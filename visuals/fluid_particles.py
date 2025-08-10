@@ -1,4 +1,3 @@
-from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 from PyQt6.QtGui import QOpenGLContext, QSurfaceFormat
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -8,8 +7,9 @@ import os
 import time
 
 from physics.physics_engine import PhysicsEngine
+from .base_visualizer import BaseVisualizer
 
-class FluidParticlesVisualizer(QOpenGLWidget):
+class FluidParticlesVisualizer(BaseVisualizer):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFormat(QSurfaceFormat())
@@ -21,6 +21,21 @@ class FluidParticlesVisualizer(QOpenGLWidget):
         self.particle_colors = None
         self.physics_engine = PhysicsEngine()
         self.last_time = time.time()
+        self.point_size = 20.0
+
+    def get_controls(self):
+        return {
+            "Point Size": {
+                "type": "slider",
+                "min": 1,
+                "max": 30,
+                "value": int(self.point_size),
+            }
+        }
+
+    def update_control(self, name, value):
+        if name == "Point Size":
+            self.point_size = float(value)
 
     def initializeGL(self):
         glClearColor(0.0, 0.0, 0.0, 1.0)
@@ -110,7 +125,7 @@ class FluidParticlesVisualizer(QOpenGLWidget):
         model = self.translate(0.0, 0.0, 0.0) # No global model translation for now
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, model)
 
-        glPointSize(20.0) # Increased point size even further for extreme visibility
+        glPointSize(self.point_size)
 
         # Debug print for particle positions
         if self.particle_positions is not None and len(self.particle_positions) > 0:

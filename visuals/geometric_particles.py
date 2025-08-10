@@ -1,4 +1,3 @@
-from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 from PyQt6.QtGui import QOpenGLContext, QSurfaceFormat
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -6,7 +5,9 @@ import numpy as np
 import ctypes
 import os
 
-class GeometricParticlesVisualizer(QOpenGLWidget):
+from .base_visualizer import BaseVisualizer
+
+class GeometricParticlesVisualizer(BaseVisualizer):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFormat(QSurfaceFormat())
@@ -17,6 +18,27 @@ class GeometricParticlesVisualizer(QOpenGLWidget):
         self.particle_positions = None
         self.particle_colors = None
         self.time = 0.0
+
+    def get_controls(self):
+        return {
+            "Particle Count": {
+                "type": "slider",
+                "min": 1000,
+                "max": 20000,
+                "value": self.num_particles,
+            }
+        }
+
+    def update_control(self, name, value):
+        if name == "Particle Count":
+            self.num_particles = int(value)
+            if self.VBO:
+                glDeleteBuffers(1, [self.VBO])
+                self.VBO = None
+            if self.VAO:
+                glDeleteVertexArrays(1, [self.VAO])
+                self.VAO = None
+            self.setup_particles()
 
     def initializeGL(self):
         glClearColor(0.0, 0.0, 0.0, 1.0)

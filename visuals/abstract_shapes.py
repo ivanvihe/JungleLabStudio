@@ -1,4 +1,3 @@
-from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 from PyQt6.QtGui import QOpenGLContext, QSurfaceFormat
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -6,7 +5,9 @@ import numpy as np
 import ctypes
 import os
 
-class AbstractShapesVisualizer(QOpenGLWidget):
+from .base_visualizer import BaseVisualizer
+
+class AbstractShapesVisualizer(BaseVisualizer):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFormat(QSurfaceFormat())
@@ -16,6 +17,21 @@ class AbstractShapesVisualizer(QOpenGLWidget):
         self.num_shapes = 10
         self.shape_data = None
         self.time = 0.0
+        self.rotation_speed = 0.0
+
+    def get_controls(self):
+        return {
+            "Rotation Speed": {
+                "type": "slider",
+                "min": 0,
+                "max": 100,
+                "value": int(self.rotation_speed * 100),
+            }
+        }
+
+    def update_control(self, name, value):
+        if name == "Rotation Speed":
+            self.rotation_speed = float(value) / 100.0
 
     def initializeGL(self):
         glClearColor(0.0, 0.0, 0.0, 1.0)
@@ -97,8 +113,8 @@ class AbstractShapesVisualizer(QOpenGLWidget):
         view = self.lookAt(np.array([0.0, 0.0, 5.0]), np.array([0.0, 0.0, 0.0]), np.array([0.0, 1.0, 0.0]))
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, view)
 
-        self.time += 0.01
-        model = self.translate(0.0, 0.0, 0.0) # No animation for now
+        self.time += self.rotation_speed
+        model = self.rotate_z(self.time)
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, model)
 
         glBindVertexArray(self.VAO)
@@ -134,6 +150,16 @@ class AbstractShapesVisualizer(QOpenGLWidget):
             [0.0, 1.0, 0.0, 0.0],
             [0.0, 0.0, 1.0, 0.0],
             [x, y, z, 1.0]
+        ], dtype=np.float32)
+
+    def rotate_z(self, angle):
+        c = np.cos(angle)
+        s = np.sin(angle)
+        return np.array([
+            [c, -s, 0.0, 0.0],
+            [s,  c, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0]
         ], dtype=np.float32)
 
     def cleanup(self):

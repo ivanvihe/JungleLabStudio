@@ -1,5 +1,14 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QPushButton, QComboBox
+from PyQt6.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QLabel,
+    QSlider,
+    QPushButton,
+    QComboBox,
+)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QSurfaceFormat # Import QSurfaceFormat
 
@@ -80,18 +89,9 @@ class ControlPanelWindow(QMainWindow):
         self.midi_device_selector.currentIndexChanged.connect(self.on_midi_device_selected)
         layout.addWidget(self.midi_device_selector)
 
-        # Example parameter control
-        layout.addWidget(QLabel("Particle Count:"))
-        self.slider_particle_count = QSlider(Qt.Orientation.Horizontal)
-        self.slider_particle_count.setRange(0, 1000)
-        self.slider_particle_count.setValue(500)
-        layout.addWidget(self.slider_particle_count)
-
-        layout.addWidget(QLabel("Audio Sensitivity:"))
-        self.slider_audio_sensitivity = QSlider(Qt.Orientation.Horizontal)
-        self.slider_audio_sensitivity.setRange(0, 100)
-        self.slider_audio_sensitivity.setValue(50)
-        layout.addWidget(self.slider_audio_sensitivity)
+        # Dynamic controls container
+        self.controls_layout = QVBoxLayout()
+        layout.addLayout(self.controls_layout)
 
         # Placeholder for MIDI mapping button
         midi_button = QPushButton("Open MIDI Mapping")
@@ -106,6 +106,9 @@ class ControlPanelWindow(QMainWindow):
             if index != -1:
                 self.midi_device_selector.setCurrentIndex(index)
                 self.midi_engine.open_midi_input_port(last_midi_device)
+
+        # Create controls for default preset
+        self.create_controls()
 
     def populate_midi_devices(self):
         self.midi_device_selector.clear()
@@ -128,12 +131,36 @@ class ControlPanelWindow(QMainWindow):
         selected_preset = self.preset_selector.currentText()
         print(f"Selected preset: {selected_preset}")
         self.visual_engine_window.set_visualizer(selected_preset)
+        self.create_controls()
 
-    def on_particle_count_changed(self, value):
-        print(f"Particle Count Slider: {value}")
+    def create_controls(self):
+        # Remove existing controls
+        while self.controls_layout.count():
+            item = self.controls_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
 
-    def on_audio_sensitivity_changed(self, value):
-        print(f"Audio Sensitivity Slider: {value}")
+        visualizer = self.visual_engine_window.visualizer
+        if not hasattr(visualizer, "get_controls"):
+            return
+
+        controls = visualizer.get_controls()
+        for name, cfg in controls.items():
+            self.controls_layout.addWidget(QLabel(name))
+            if cfg.get("type") == "slider":
+                slider = QSlider(Qt.Orientation.Horizontal)
+                slider.setRange(cfg.get("min", 0), cfg.get("max", 100))
+                slider.setValue(cfg.get("value", 0))
+                slider.valueChanged.connect(
+                    lambda value, n=name: self.on_control_changed(n, value)
+                )
+                self.controls_layout.addWidget(slider)
+
+    def on_control_changed(self, name, value):
+        visualizer = self.visual_engine_window.visualizer
+        if hasattr(visualizer, "update_control"):
+            visualizer.update_control(name, value)
 
     def on_midi_message(self, message):
         # This method receives the raw MIDI message (list of bytes)

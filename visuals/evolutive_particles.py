@@ -1,4 +1,3 @@
-from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 from PyQt6.QtGui import QOpenGLContext, QSurfaceFormat
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -6,7 +5,9 @@ import numpy as np
 import ctypes
 import os
 
-class EvolutiveParticlesVisualizer(QOpenGLWidget):
+from .base_visualizer import BaseVisualizer
+
+class EvolutiveParticlesVisualizer(BaseVisualizer):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFormat(QSurfaceFormat())
@@ -17,6 +18,21 @@ class EvolutiveParticlesVisualizer(QOpenGLWidget):
         self.particle_positions = None
         self.particle_colors = None
         self.time = 0.0
+        self.speed = 0.01
+
+    def get_controls(self):
+        return {
+            "Speed": {
+                "type": "slider",
+                "min": 1,
+                "max": 100,
+                "value": int(self.speed * 100),
+            }
+        }
+
+    def update_control(self, name, value):
+        if name == "Speed":
+            self.speed = float(value) / 100.0
 
     def initializeGL(self):
         glClearColor(0.0, 0.0, 0.0, 1.0)
@@ -94,7 +110,7 @@ class EvolutiveParticlesVisualizer(QOpenGLWidget):
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, view)
 
         # Simple animation: particles move up and down
-        self.time += 0.01
+        self.time += self.speed
         model = self.translate(0.0, np.sin(self.time) * 0.5, 0.0)
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, model)
 
