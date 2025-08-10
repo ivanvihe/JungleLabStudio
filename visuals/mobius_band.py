@@ -1,4 +1,3 @@
-from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 from PyQt6.QtGui import QOpenGLContext, QSurfaceFormat
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -6,7 +5,9 @@ import numpy as np
 import ctypes
 import os
 
-class MobiusBandVisualizer(QOpenGLWidget):
+from .base_visualizer import BaseVisualizer
+
+class MobiusBandVisualizer(BaseVisualizer):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFormat(QSurfaceFormat())
@@ -17,6 +18,27 @@ class MobiusBandVisualizer(QOpenGLWidget):
         self.num_slices = 20
         self.band_data = None
         self.time = 0.0
+
+    def get_controls(self):
+        return {
+            "Segments": {
+                "type": "slider",
+                "min": 10,
+                "max": 200,
+                "value": self.num_segments,
+            }
+        }
+
+    def update_control(self, name, value):
+        if name == "Segments":
+            self.num_segments = int(value)
+            if self.VBO:
+                glDeleteBuffers(1, [self.VBO])
+                self.VBO = None
+            if self.VAO:
+                glDeleteVertexArrays(1, [self.VAO])
+                self.VAO = None
+            self.setup_band()
 
     def initializeGL(self):
         glClearColor(0.0, 0.0, 0.0, 1.0)

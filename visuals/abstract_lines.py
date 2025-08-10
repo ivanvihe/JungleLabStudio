@@ -1,4 +1,3 @@
-from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 from PyQt6.QtGui import QOpenGLContext, QSurfaceFormat
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -6,7 +5,9 @@ import numpy as np
 import ctypes
 import os
 
-class AbstractLinesVisualizer(QOpenGLWidget):
+from .base_visualizer import BaseVisualizer
+
+class AbstractLinesVisualizer(BaseVisualizer):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFormat(QSurfaceFormat())
@@ -16,6 +17,21 @@ class AbstractLinesVisualizer(QOpenGLWidget):
         self.num_lines = 1000
         self.line_data = None
         self.time = 0.0
+        self.line_width = 1.0
+
+    def get_controls(self):
+        return {
+            "Line Width": {
+                "type": "slider",
+                "min": 1,
+                "max": 10,
+                "value": int(self.line_width),
+            }
+        }
+
+    def update_control(self, name, value):
+        if name == "Line Width":
+            self.line_width = float(value)
 
     def initializeGL(self):
         glClearColor(0.0, 0.0, 0.0, 1.0)
@@ -97,6 +113,7 @@ class AbstractLinesVisualizer(QOpenGLWidget):
         model = self.translate(0.0, 0.0, 0.0) # No animation for now
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, model)
 
+        glLineWidth(self.line_width)
         glBindVertexArray(self.VAO)
         glDrawArrays(GL_LINES, 0, self.num_lines * 2)
         glBindVertexArray(0)
