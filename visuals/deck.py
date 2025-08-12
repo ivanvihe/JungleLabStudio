@@ -11,54 +11,147 @@ class Deck:
         self.visualizer_name = None
         self.size = QSize(800, 600)
         self._needs_init_and_resize = True
+        self._gl_initialized = False
 
     def set_visualizer(self, visualizer_name):
         logging.debug(f"Setting visualizer for deck to: {visualizer_name}")
+        
+        # Clean up old visualizer
         if self.visualizer:
             if hasattr(self.visualizer, 'cleanup'):
-                self.visualizer.cleanup()
+                try:
+                    self.visualizer.cleanup()
+                except Exception as e:
+                    logging.error(f"Error cleaning up visualizer: {e}")
             self.visualizer = None
 
         self.visualizer_name = visualizer_name
         visualizer_class = self.visualizer_manager.get_visualizer_class(visualizer_name)
+        
         if visualizer_class:
-            self.visualizer = visualizer_class()
-            self._needs_init_and_resize = True
+            try:
+                self.visualizer = visualizer_class()
+                self._needs_init_and_resize = True
+                self._gl_initialized = False
+                logging.debug(f"Created visualizer instance: {visualizer_name}")
+            except Exception as e:
+                logging.error(f"Error creating visualizer {visualizer_name}: {e}")
+                self.visualizer = None
+        else:
+            logging.error(f"Visualizer class not found: {visualizer_name}")
 
     def paint(self):
-        logging.debug(f"Painting deck with visualizer: {self.visualizer_name}")
-        if self.visualizer and self.fbo:
+        if not self.visualizer or not self.fbo:
+            logging.debug("Deck has no visualizer or FBO, skipping paint")
+            return
+            
+        try:
+            # Initialize if needed
             if self._needs_init_and_resize:
-                self.visualizer.initializeGL()
-                self.visualizer.resizeGL(self.size.width(), self.size.height())
+                logging.debug(f"Initializing visualizer: {self.visualizer_name}")
+                if hasattr(self.visualizer, 'initializeGL'):
+                    self.visualizer.initializeGL()
+                if hasattr(self.visualizer, 'resizeGL'):
+                    self.visualizer.resizeGL(self.size.width(), self.size.height())
                 self._needs_init_and_resize = False
+                self._gl_initialized = True
+                logging.debug(f"Visualizer {self.visualizer_name} initialized")
 
-            self.fbo.bind()
+            # Render to framebuffer
+            if not self.fbo.bind():
+                logging.error("Failed to bind framebuffer")
+                return
+                
+            # Set viewport and clear
             glViewport(0, 0, self.size.width(), self.size.height())
+            glClearColor(0.0, 0.0, 0.0, 1.0)
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-            self.visualizer.paintGL()
+            
+            # Paint the visualizer
+            if hasattr(self.visualizer, 'paintGL') and self._gl_initialized:
+                self.visualizer.paintGL()
+            
+            # Release framebuffer
             self.fbo.release()
-        else:
-            logging.debug("Deck has no visualizer or FBO")
+            
+        except Exception as e:
+            logging.error(f"Error painting deck {self.visualizer_name}: {e}")
+            if self.fbo:
+                self.fbo.release()
 
     def resize(self, size):
+        if self.size == size:
+            return
+            
+        logging.debug(f"Resizing deck to: {size.width()}x{size.height()}")
         self.size = size
         self.recreate_fbo()
-        self._needs_init_and_resize = True
+        
+        # Mark for reinitialization if we have a visualizer
+        if self.visualizer:
+            self._needs_init_and_resize = True
 
     def recreate_fbo(self):
-        if self.fbo:
-            self.fbo.release()
-        self.fbo = QOpenGLFramebufferObject(self.size, QOpenGLFramebufferObject.Attachment.CombinedDepthStencil)
+        """Recreate the framebuffer object with the current size"""
+        try:
+            # Clean up old FBO
+            if self.fbo:
+                self.fbo.release()
+                del self.fbo
+                self.fbo = None
+                
+            # Create new FBO only if size is valid
+            if self.size.width() > 0 and self.size.height() > 0:
+                self.fbo = QOpenGLFramebufferObject(
+                    self.size, 
+                    QOpenGLFramebufferObject.Attachment.CombinedDepthStencil
+                )
+                
+                if not self.fbo.isValid():
+                    logging.error(f"Failed to create valid framebuffer object {self.size.width()}x{self.size.height()}")
+                    self.fbo = None
+                else:
+                    logging.debug(f"Created FBO: {self.size.width()}x{self.size.height()}")
+            else:
+                logging.error(f"Invalid size for FBO: {self.size.width()}x{self.size.height()}")
+                
+        except Exception as e:
+            logging.error(f"Error recreating FBO: {e}")
+            self.fbo = None
 
     def get_texture(self):
-        return self.fbo.texture() if self.fbo else 0
+        """Return the texture ID of the framebuffer"""
+        if self.fbo and self.fbo.isValid():
+            return self.fbo.texture()
+        return 0
 
     def get_controls(self):
-        if self.visualizer:
-            return self.visualizer.get_controls()
+        """Get available controls from the current visualizer"""
+        if self.visualizer and hasattr(self.visualizer, 'get_controls'):
+            try:
+                return self.visualizer.get_controls()
+            except Exception as e:
+                logging.error(f"Error getting controls from visualizer: {e}")
         return {}
 
     def update_control(self, name, value):
-        if self.visualizer:
-            self.visualizer.update_control(name, value)
+        """Update a control parameter on the current visualizer"""
+        if self.visualizer and hasattr(self.visualizer, 'update_control'):
+            try:
+                self.visualizer.update_control(name, value)
+                logging.debug(f"Updated control {name} to {value} on {self.visualizer_name}")
+            except Exception as e:
+                logging.error(f"Error updating control {name}: {e}")
+    
+    def cleanup(self):
+        """Clean up resources"""
+        if self.visualizer and hasattr(self.visualizer, 'cleanup'):
+            try:
+                self.visualizer.cleanup()
+            except Exception as e:
+                logging.error(f"Error cleaning up visualizer: {e}")
+        
+        if self.fbo:
+            self.fbo.release()
+            del self.fbo
+            self.fbo = None

@@ -1,4 +1,3 @@
-from PyQt6.QtGui import QOpenGLContext, QSurfaceFormat
 from OpenGL.GL import *
 from OpenGL.GLU import *
 import numpy as np
@@ -11,9 +10,9 @@ from .base_visualizer import BaseVisualizer
 
 class FluidParticlesVisualizer(BaseVisualizer):
     visual_name = "Fluid Particles"
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setFormat(QSurfaceFormat())
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.shader_program = None
         self.background_shader = None
         self.VBO = None
@@ -180,6 +179,7 @@ class FluidParticlesVisualizer(BaseVisualizer):
             self.background_elements.append(element)
 
     def initializeGL(self):
+        print("FluidParticlesVisualizer.initializeGL called")
         glClearColor(0.0, 0.0, 0.05, 1.0)
         glEnable(GL_DEPTH_TEST)
         glEnable(GL_BLEND)
@@ -202,33 +202,38 @@ class FluidParticlesVisualizer(BaseVisualizer):
             glBlendFunc(GL_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA)
 
     def load_shaders(self):
+        # Use basic shaders
         script_dir = os.path.dirname(__file__)
         shader_dir = os.path.join(script_dir, '..', 'shaders')
 
-        with open(os.path.join(shader_dir, 'basic.vert'), 'r') as f:
-            vertex_shader_source = f.read()
-        with open(os.path.join(shader_dir, 'basic.frag'), 'r') as f:
-            fragment_shader_source = f.read()
+        try:
+            with open(os.path.join(shader_dir, 'basic.vert'), 'r') as f:
+                vertex_shader_source = f.read()
+            with open(os.path.join(shader_dir, 'basic.frag'), 'r') as f:
+                fragment_shader_source = f.read()
 
-        # Main particle shader
-        vertex_shader = glCreateShader(GL_VERTEX_SHADER)
-        glShaderSource(vertex_shader, vertex_shader_source)
-        glCompileShader(vertex_shader)
+            # Main particle shader
+            vertex_shader = glCreateShader(GL_VERTEX_SHADER)
+            glShaderSource(vertex_shader, vertex_shader_source)
+            glCompileShader(vertex_shader)
 
-        fragment_shader = glCreateShader(GL_FRAGMENT_SHADER)
-        glShaderSource(fragment_shader, fragment_shader_source)
-        glCompileShader(fragment_shader)
+            fragment_shader = glCreateShader(GL_FRAGMENT_SHADER)
+            glShaderSource(fragment_shader, fragment_shader_source)
+            glCompileShader(fragment_shader)
 
-        self.shader_program = glCreateProgram()
-        glAttachShader(self.shader_program, vertex_shader)
-        glAttachShader(self.shader_program, fragment_shader)
-        glLinkProgram(self.shader_program)
+            self.shader_program = glCreateProgram()
+            glAttachShader(self.shader_program, vertex_shader)
+            glAttachShader(self.shader_program, fragment_shader)
+            glLinkProgram(self.shader_program)
 
-        # Background shader (same shaders, different usage)
-        self.background_shader = self.shader_program
+            # Background shader (same shaders, different usage)
+            self.background_shader = self.shader_program
 
-        glDeleteShader(vertex_shader)
-        glDeleteShader(fragment_shader)
+            glDeleteShader(vertex_shader)
+            glDeleteShader(fragment_shader)
+            print("FluidParticles shaders loaded successfully")
+        except Exception as e:
+            print(f"FluidParticles shader loading error: {e}")
 
     def setup_particle_buffers(self):
         if self.VAO:
@@ -236,7 +241,7 @@ class FluidParticlesVisualizer(BaseVisualizer):
         if self.VBO:
             glDeleteBuffers(1, [self.VBO])
 
-        self.particle_data = np.zeros((self.num_particles, 8), dtype=np.float32)
+        self.particle_data = np.zeros((self.num_particles, 7), dtype=np.float32)
 
         self.VAO = glGenVertexArrays(1)
         glBindVertexArray(self.VAO)
@@ -246,16 +251,12 @@ class FluidParticlesVisualizer(BaseVisualizer):
         glBufferData(GL_ARRAY_BUFFER, self.particle_data.nbytes, self.particle_data, GL_DYNAMIC_DRAW)
 
         # Position attribute
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * ctypes.sizeof(GLfloat), ctypes.c_void_p(0))
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(0))
         glEnableVertexAttribArray(0)
 
         # Color attribute  
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 8 * ctypes.sizeof(GLfloat), ctypes.c_void_p(3 * ctypes.sizeof(GLfloat)))
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(3 * ctypes.sizeof(GLfloat)))
         glEnableVertexAttribArray(1)
-
-        # Size attribute
-        glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 8 * ctypes.sizeof(GLfloat), ctypes.c_void_p(7 * ctypes.sizeof(GLfloat)))
-        glEnableVertexAttribArray(2)
 
         glBindVertexArray(0)
 
@@ -266,7 +267,7 @@ class FluidParticlesVisualizer(BaseVisualizer):
             glDeleteBuffers(1, [self.bg_VBO])
 
         num_bg = len(self.background_elements)
-        self.background_data = np.zeros((num_bg, 8), dtype=np.float32)
+        self.background_data = np.zeros((num_bg, 7), dtype=np.float32)
 
         self.bg_VAO = glGenVertexArrays(1)
         glBindVertexArray(self.bg_VAO)
@@ -276,12 +277,10 @@ class FluidParticlesVisualizer(BaseVisualizer):
         glBufferData(GL_ARRAY_BUFFER, self.background_data.nbytes, self.background_data, GL_DYNAMIC_DRAW)
 
         # Same attributes as particles
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * ctypes.sizeof(GLfloat), ctypes.c_void_p(0))
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(0))
         glEnableVertexAttribArray(0)
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 8 * ctypes.sizeof(GLfloat), ctypes.c_void_p(3 * ctypes.sizeof(GLfloat)))
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(3 * ctypes.sizeof(GLfloat)))
         glEnableVertexAttribArray(1)
-        glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 8 * ctypes.sizeof(GLfloat), ctypes.c_void_p(7 * ctypes.sizeof(GLfloat)))
-        glEnableVertexAttribArray(2)
 
         glBindVertexArray(0)
 
@@ -406,12 +405,6 @@ class FluidParticlesVisualizer(BaseVisualizer):
             # Enhanced alpha with more variation
             alpha = particle['life'] * 0.9 * (0.8 + 0.2 * np.sin(self.time * 4 + particle['phase']))
             self.particle_data[i, 3:7] = [r, g, b, alpha]
-            
-            # Dynamic size with pulsing
-            base_size = self.particle_size * particle['size_factor'] * particle['life']
-            pulse = 1.0 + 0.3 * np.sin(self.time * 3 + particle['birth_time'])
-            size = base_size * pulse * 15  # Increased base size multiplier
-            self.particle_data[i, 7] = max(size, 1.0)
 
         # Update buffer
         glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
@@ -455,7 +448,6 @@ class FluidParticlesVisualizer(BaseVisualizer):
             
             alpha = element['alpha'] * self.background_intensity * (0.8 + 0.2 * np.sin(self.time * 0.5 + element['phase']))
             self.background_data[i, 3:7] = [r, g, b, alpha]
-            self.background_data[i, 7] = element['size'] * 50  # Background elements are larger
 
         # Update buffer
         glBindBuffer(GL_ARRAY_BUFFER, self.bg_VBO)
@@ -467,6 +459,9 @@ class FluidParticlesVisualizer(BaseVisualizer):
 
     def paintGL(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        
+        if not self.shader_program:
+            return
         
         self.time += 0.016 * self.flow_speed
         
@@ -498,6 +493,9 @@ class FluidParticlesVisualizer(BaseVisualizer):
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, view)
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, model)
 
+        # Set point size for particles
+        glPointSize(self.particle_size * 5)
+
         # Draw background first
         if self.background_intensity > 0.01:
             glBindVertexArray(self.bg_VAO)
@@ -509,8 +507,6 @@ class FluidParticlesVisualizer(BaseVisualizer):
         glBindVertexArray(self.VAO)
         glDrawArrays(GL_POINTS, 0, particles_to_draw)
         glBindVertexArray(0)
-
-        self.update()
 
     def perspective(self, fov, aspect, near, far):
         f = 1.0 / np.tan(np.radians(fov / 2.0))
@@ -534,8 +530,7 @@ class FluidParticlesVisualizer(BaseVisualizer):
         ], dtype=np.float32).T
 
     def cleanup(self):
-        logging.debug("Cleaning up FluidParticlesVisualizer")
-        self.makeCurrent()
+        print("Cleaning up FluidParticlesVisualizer")
         try:
             if self.shader_program:
                 glDeleteProgram(self.shader_program)
@@ -553,5 +548,4 @@ class FluidParticlesVisualizer(BaseVisualizer):
                 glDeleteVertexArrays(1, [self.bg_VAO])
                 self.bg_VAO = None
         except Exception as e:
-            logging.error(f"Error during cleanup: {e}")
-        self.doneCurrent()
+            print(f"Error during cleanup: {e}")

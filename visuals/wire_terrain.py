@@ -1,5 +1,4 @@
 # wire_terrain.py
-from PyQt6.QtGui import QSurfaceFormat
 from OpenGL.GL import *
 import numpy as np
 import ctypes
@@ -37,9 +36,9 @@ void main(){
 
 class WireTerrainVisualizer(BaseVisualizer):
     visual_name = "Wire Terrain"
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setFormat(QSurfaceFormat())
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.program = None
         self.vao = None
         self.vbo = None
@@ -151,6 +150,7 @@ class WireTerrainVisualizer(BaseVisualizer):
         ], dtype=np.float32)
 
     def initializeGL(self):
+        print("WireTerrainVisualizer.initializeGL called")
         glEnable(GL_DEPTH_TEST)
         glClearColor(0.0, 0.0, 0.0, 1.0)
         
@@ -208,6 +208,10 @@ class WireTerrainVisualizer(BaseVisualizer):
     def paintGL(self):
         glClearColor(0.0, 0.0, 0.0, 1.0)  # Fondo negro
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        
+        if not self.program:
+            return
+            
         glUseProgram(self.program)
 
         t = time.time()-self.start
@@ -216,13 +220,8 @@ class WireTerrainVisualizer(BaseVisualizer):
         glUniform1f(glGetUniformLocation(self.program,"u_freq"), self.freq)
         glUniform1f(glGetUniformLocation(self.program,"u_brightness"), self.brightness)
 
-        # Get viewport dimensions for proper aspect ratio
-        viewport = glGetIntegerv(GL_VIEWPORT)
-        width, height = viewport[2], viewport[3]
-        aspect = width / height if height > 0 else 1.0
-
         # Create transformation matrices
-        projection = self.perspective(45, aspect, 0.1, 100.0)
+        projection = self.perspective(45, 1.0, 0.1, 100.0)
         view = self.lookAt(np.array([0, 3.0, 5.0]), np.array([0,0,0]), np.array([0,1,0]))
         model = self.rotate(0, 0,1,0)
         
@@ -242,12 +241,24 @@ class WireTerrainVisualizer(BaseVisualizer):
         glDrawElements(GL_TRIANGLES, self.indices.size, GL_UNSIGNED_INT, None)
         glBindVertexArray(0)
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
-        self.update()
 
-    def resizeGL(self,w,h): glViewport(0,0,w,h)
+    def resizeGL(self,w,h): 
+        glViewport(0,0,w,h)
 
     def cleanup(self):
-        if self.program: glDeleteProgram(self.program)
-        if self.vbo: glDeleteBuffers(1,[self.vbo])
-        if self.ebo: glDeleteBuffers(1,[self.ebo])
-        if self.vao: glDeleteVertexArrays(1,[self.vao])
+        print("Cleaning up WireTerrainVisualizer")
+        try:
+            if self.program: 
+                glDeleteProgram(self.program)
+                self.program = None
+            if self.vbo: 
+                glDeleteBuffers(1,[self.vbo])
+                self.vbo = None
+            if self.ebo: 
+                glDeleteBuffers(1,[self.ebo])
+                self.ebo = None
+            if self.vao: 
+                glDeleteVertexArrays(1,[self.vao])
+                self.vao = None
+        except Exception as e:
+            print(f"Error during cleanup: {e}")

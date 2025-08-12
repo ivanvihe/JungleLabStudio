@@ -1,4 +1,3 @@
-from PyQt6.QtGui import QOpenGLContext, QSurfaceFormat
 from OpenGL.GL import *
 from OpenGL.GLU import *
 import numpy as np
@@ -10,9 +9,9 @@ from .base_visualizer import BaseVisualizer
 
 class MobiusBandVisualizer(BaseVisualizer):
     visual_name = "Möbius Band"
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setFormat(QSurfaceFormat())
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.shader_program = None
         self.VBO = None
         self.VAO = None
@@ -66,6 +65,7 @@ class MobiusBandVisualizer(BaseVisualizer):
             self.color_mode = int(value)
 
     def initializeGL(self):
+        print("MobiusBandVisualizer.initializeGL called")
         glClearColor(0.0, 0.0, 0.0, 1.0)
         glEnable(GL_DEPTH_TEST)
         glEnable(GL_BLEND)
@@ -79,26 +79,30 @@ class MobiusBandVisualizer(BaseVisualizer):
         script_dir = os.path.dirname(__file__)
         shader_dir = os.path.join(script_dir, '..', 'shaders')
 
-        with open(os.path.join(shader_dir, 'basic.vert'), 'r') as f:
-            vertex_shader_source = f.read()
-        with open(os.path.join(shader_dir, 'basic.frag'), 'r') as f:
-            fragment_shader_source = f.read()
+        try:
+            with open(os.path.join(shader_dir, 'basic.vert'), 'r') as f:
+                vertex_shader_source = f.read()
+            with open(os.path.join(shader_dir, 'basic.frag'), 'r') as f:
+                fragment_shader_source = f.read()
 
-        vertex_shader = glCreateShader(GL_VERTEX_SHADER)
-        glShaderSource(vertex_shader, vertex_shader_source)
-        glCompileShader(vertex_shader)
+            vertex_shader = glCreateShader(GL_VERTEX_SHADER)
+            glShaderSource(vertex_shader, vertex_shader_source)
+            glCompileShader(vertex_shader)
 
-        fragment_shader = glCreateShader(GL_FRAGMENT_SHADER)
-        glShaderSource(fragment_shader, fragment_shader_source)
-        glCompileShader(fragment_shader)
+            fragment_shader = glCreateShader(GL_FRAGMENT_SHADER)
+            glShaderSource(fragment_shader, fragment_shader_source)
+            glCompileShader(fragment_shader)
 
-        self.shader_program = glCreateProgram()
-        glAttachShader(self.shader_program, vertex_shader)
-        glAttachShader(self.shader_program, fragment_shader)
-        glLinkProgram(self.shader_program)
+            self.shader_program = glCreateProgram()
+            glAttachShader(self.shader_program, vertex_shader)
+            glAttachShader(self.shader_program, fragment_shader)
+            glLinkProgram(self.shader_program)
 
-        glDeleteShader(vertex_shader)
-        glDeleteShader(fragment_shader)
+            glDeleteShader(vertex_shader)
+            glDeleteShader(fragment_shader)
+            print("MobiusBand shaders loaded successfully")
+        except Exception as e:
+            print(f"MobiusBand shader loading error: {e}")
 
     def generate_geometry(self):
         vertices = []
@@ -211,6 +215,10 @@ class MobiusBandVisualizer(BaseVisualizer):
 
     def paintGL(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        
+        if not self.shader_program:
+            return
+            
         glUseProgram(self.shader_program)
 
         self.time += 0.016 * self.animation_speed
@@ -229,8 +237,6 @@ class MobiusBandVisualizer(BaseVisualizer):
         glBindVertexArray(self.VAO)
         glDrawElements(GL_TRIANGLES, len(self.indices), GL_UNSIGNED_INT, None)
         glBindVertexArray(0)
-
-        self.update()
 
     def perspective(self, fov, aspect, near, far):
         f = 1.0 / np.tan(np.radians(fov / 2.0))
@@ -268,11 +274,19 @@ class MobiusBandVisualizer(BaseVisualizer):
         ], dtype=np.float32)
 
     def cleanup(self):
-        if self.shader_program:
-            glDeleteProgram(self.shader_program)
-        if self.VBO:
-            glDeleteBuffers(1, [self.VBO])
-        if self.VAO:
-            glDeleteVertexArrays(1, [self.VAO])
-        if self.EBO:
-            glDeleteBuffers(1, [self.EBO])
+        print("Cleaning up MobiusBandVisualizer")
+        try:
+            if self.shader_program:
+                glDeleteProgram(self.shader_program)
+                self.shader_program = None
+            if self.VBO:
+                glDeleteBuffers(1, [self.VBO])
+                self.VBO = None
+            if self.VAO:
+                glDeleteVertexArrays(1, [self.VAO])
+                self.VAO = None
+            if self.EBO:
+                glDeleteBuffers(1, [self.EBO])
+                self.EBO = None
+        except Exception as e:
+            print(f"Error during cleanup: {e}")

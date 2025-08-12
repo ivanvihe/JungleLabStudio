@@ -1,4 +1,3 @@
-from PyQt6.QtGui import QOpenGLContext, QSurfaceFormat
 from OpenGL.GL import *
 from OpenGL.GLU import *
 import numpy as np
@@ -10,9 +9,9 @@ from .base_visualizer import BaseVisualizer
 
 class BuildingMadnessVisualizer(BaseVisualizer):
     visual_name = "Building Madness"
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setFormat(QSurfaceFormat())
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.shader_program = None
         self.VBO = None
         self.VAO = None
@@ -76,6 +75,7 @@ class BuildingMadnessVisualizer(BaseVisualizer):
             self.effect_mode = int(value)
 
     def initializeGL(self):
+        print("BuildingMadnessVisualizer.initializeGL called")
         glClearColor(0.0, 0.0, 0.0, 1.0)
         glEnable(GL_DEPTH_TEST)
         glEnable(GL_BLEND)
@@ -110,8 +110,9 @@ class BuildingMadnessVisualizer(BaseVisualizer):
 
             glDeleteShader(vertex_shader)
             glDeleteShader(fragment_shader)
+            print("BuildingMadness shaders loaded successfully")
         except Exception as e:
-            print(f"Shader loading error: {e}")
+            print(f"BuildingMadness shader loading error: {e}")
 
     def create_cube_room(self):
         """Create a cube room with subdivided walls for effects"""
@@ -292,41 +293,6 @@ class BuildingMadnessVisualizer(BaseVisualizer):
                 base = start_vertex + i * (subdivisions + 1) + j
                 indices.extend([base, base + subdivisions + 1, base + 1])
                 indices.extend([base + 1, base + subdivisions + 1, base + subdivisions + 2])
-        
-        # Create triangular walls
-        for wall in range(4):
-            wall_start = len(vertices) // 7
-            corner1 = base_verts[wall]
-            corner2 = base_verts[(wall + 1) % 4]
-            
-            # Create triangular wall with subdivisions
-            for i in range(subdivisions + 1):
-                for j in range(subdivisions + 1 - i):
-                    u = i / subdivisions if subdivisions > 0 else 0
-                    v = j / (subdivisions + 1 - i) if (subdivisions + 1 - i) > 0 else 0
-                    
-                    # Interpolate between corner1, corner2, and apex
-                    base_pos = np.array(corner1) * (1-u) + np.array(corner2) * u
-                    pos = base_pos * (1-v) + np.array(apex) * v
-                    
-                    r = 0.7 + 0.3 * wall / 4
-                    g = 0.5 + 0.3 * u
-                    b = 0.6 + 0.4 * v
-                    
-                    vertices.extend([pos[0], pos[1], pos[2], r, g, b, 1.0])
-            
-            # Create triangles for this wall
-            for i in range(subdivisions):
-                for j in range(subdivisions - i):
-                    base = wall_start + sum(range(subdivisions + 2 - k) for k in range(i)) + j
-                    next_row = wall_start + sum(range(subdivisions + 2 - k) for k in range(i + 1)) + j
-                    
-                    if j < subdivisions - i - 1:
-                        indices.extend([base, next_row, base + 1])
-                        if next_row + 1 < wall_start + sum(range(subdivisions + 2 - k) for k in range(subdivisions + 1)):
-                            indices.extend([base + 1, next_row, next_row + 1])
-                    else:
-                        indices.extend([base, next_row, base + 1])
         
         return vertices, indices
 
@@ -593,8 +559,6 @@ class BuildingMadnessVisualizer(BaseVisualizer):
         except Exception as e:
             print(f"Paint error: {e}")
 
-        self.update()
-
     def perspective(self, fov, aspect, near, far):
         f = 1.0 / np.tan(np.radians(fov / 2.0))
         return np.array([
@@ -620,6 +584,7 @@ class BuildingMadnessVisualizer(BaseVisualizer):
             return np.identity(4, dtype=np.float32)
 
     def cleanup(self):
+        print("Cleaning up BuildingMadnessVisualizer")
         try:
             if self.shader_program:
                 glDeleteProgram(self.shader_program)
@@ -633,5 +598,5 @@ class BuildingMadnessVisualizer(BaseVisualizer):
             if self.EBO:
                 glDeleteBuffers(1, [self.EBO])
                 self.EBO = None
-        except:
-            pass
+        except Exception as e:
+            print(f"Error during cleanup: {e}")

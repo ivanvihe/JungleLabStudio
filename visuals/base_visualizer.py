@@ -1,7 +1,8 @@
 class BaseVisualizer:
     visual_name = "Base Visualizer"
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        # Accept any arguments to prevent constructor errors
         pass
 
     def initializeGL(self):
@@ -17,6 +18,7 @@ class BaseVisualizer:
         pass
 
     def get_controls(self):
+        # Return empty controls by default
         return {}
 
     def update_control(self, name, value):
