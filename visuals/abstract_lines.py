@@ -4,6 +4,7 @@ from OpenGL.GLU import *
 import numpy as np
 import ctypes
 import os
+import logging
 
 from .base_visualizer import BaseVisualizer
 
@@ -18,6 +19,7 @@ class AbstractLinesVisualizer(BaseVisualizer):
         self.line_data = None
         self.time = 0.0
         self.line_width = 1.0
+        self.pulsation_speed = 2.0
 
     def get_controls(self):
         return {
@@ -26,12 +28,29 @@ class AbstractLinesVisualizer(BaseVisualizer):
                 "min": 1,
                 "max": 10,
                 "value": int(self.line_width),
+            },
+            "Number of Lines": {
+                "type": "slider",
+                "min": 100,
+                "max": 5000,
+                "value": self.num_lines,
+            },
+            "Pulsation Speed": {
+                "type": "slider",
+                "min": 1,
+                "max": 100,
+                "value": int(self.pulsation_speed * 10),
             }
         }
 
     def update_control(self, name, value):
         if name == "Line Width":
             self.line_width = float(value)
+        elif name == "Number of Lines":
+            self.num_lines = int(value)
+            # No need to call setup_lines here, update_lines will handle it
+        elif name == "Pulsation Speed":
+            self.pulsation_speed = float(value) / 10.0
 
     def initializeGL(self):
         glClearColor(0.0, 0.0, 0.0, 1.0)
@@ -72,27 +91,69 @@ class AbstractLinesVisualizer(BaseVisualizer):
         glDeleteShader(fragment_shader)
 
     def setup_lines(self):
-        # Each line has 2 vertices, each vertex has 3 position components and 4 color components
-        self.line_data = np.random.rand(self.num_lines * 2, 7).astype(np.float32) # x,y,z, r,g,b,a
-        self.line_data[:, :3] = self.line_data[:, :3] * 2.0 - 1.0 # Positions from -1 to 1
+        # Only re-create VBO/VAO if they don't exist or if num_lines has changed significantly
+        if self.VBO is None or self.VAO is None or self.line_data is None or self.line_data.shape[0] != self.num_lines * 2:
+            if self.VBO:
+                glDeleteBuffers(1, [self.VBO])
+            if self.VAO:
+                glDeleteVertexArrays(1, [self.VAO])
+                
+            self.line_data = np.zeros((self.num_lines * 2, 7), dtype=np.float32) # Re-allocate, data will be filled by update_lines
 
-        self.VAO = glGenVertexArrays(1)
-        glBindVertexArray(self.VAO)
+            self.VAO = glGenVertexArrays(1)
+            glBindVertexArray(self.VAO)
 
-        self.VBO = glGenBuffers(1)
+            self.VBO = glGenBuffers(1)
+            glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
+            glBufferData(GL_ARRAY_BUFFER, self.line_data.nbytes, self.line_data, GL_DYNAMIC_DRAW)
+
+            # Position attribute
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(0))
+            glEnableVertexAttribArray(0)
+
+            # Color attribute
+            glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(3 * ctypes.sizeof(GLfloat)))
+            glEnableVertexAttribArray(1)
+
+            glBindBuffer(GL_ARRAY_BUFFER, 0)
+            glBindVertexArray(0)
+
+    def update_lines(self):
+        self.time += 0.01
+        
+        # Ensure line_data has the correct size and buffers are set up
+        if self.line_data is None or self.line_data.shape[0] != self.num_lines * 2:
+            self.setup_lines() # Re-allocate buffer if size changed
+
+        for i in range(self.num_lines):
+            angle = i * (2 * np.pi / self.num_lines)
+            
+            # Pulsating effect
+            pulsation = 0.5 + 0.5 * np.sin(self.time * self.pulsation_speed)
+
+            # Endpoint 1
+            x1 = np.cos(angle) * (1.0 + 0.5 * np.sin(self.time + angle)) * pulsation
+            y1 = np.sin(angle) * (1.0 + 0.5 * np.cos(self.time + angle)) * pulsation
+            z1 = np.sin(self.time + i / 10.0) * 0.5
+            
+            # Endpoint 2
+            x2 = np.cos(angle + np.pi/self.num_lines * 10) * (1.0 - 0.5 * np.sin(self.time + angle)) * pulsation
+            y2 = np.sin(angle + np.pi/self.num_lines * 10) * (1.0 - 0.5 * np.cos(self.time + angle)) * pulsation
+            z2 = np.cos(self.time + i / 10.0) * 0.5
+
+            self.line_data[i * 2, :3] = [x1, y1, z1]
+            self.line_data[i * 2 + 1, :3] = [x2, y2, z2]
+
+            # Color based on position and time
+            r = 0.6 + 0.4 * np.sin(self.time + angle)
+            g = 0.6 + 0.4 * np.cos(self.time / 2.0 + angle)
+            b = 0.6 + 0.4 * np.sin(self.time / 3.0 + angle)
+            self.line_data[i * 2, 3:7] = [r, g, b, 1.0]
+            self.line_data[i * 2 + 1, 3:7] = [r, g, b, 1.0]
+
         glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
-        glBufferData(GL_ARRAY_BUFFER, self.line_data.nbytes, self.line_data, GL_STATIC_DRAW)
-
-        # Position attribute
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(0))
-        glEnableVertexAttribArray(0)
-
-        # Color attribute
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(3 * ctypes.sizeof(GLfloat)))
-        glEnableVertexAttribArray(1)
-
+        glBufferSubData(GL_ARRAY_BUFFER, 0, self.line_data.nbytes, self.line_data)
         glBindBuffer(GL_ARRAY_BUFFER, 0)
-        glBindVertexArray(0)
 
     def resizeGL(self, width, height):
         glViewport(0, 0, width, height)
@@ -101,16 +162,15 @@ class AbstractLinesVisualizer(BaseVisualizer):
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE, projection)
 
     def paintGL(self):
-        print("AbstractLinesVisualizer: paintGL called") # Debug print
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-
         glUseProgram(self.shader_program)
 
-        view = self.lookAt(np.array([0.0, 0.0, 5.0]), np.array([0.0, 0.0, 0.0]), np.array([0.0, 1.0, 0.0]))
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, view)
+        self.update_lines()
 
-        self.time += 0.01
-        model = self.translate(0.0, 0.0, 0.0) # No animation for now
+        view = self.lookAt(np.array([0.0, 0.0, 5.0]), np.array([0.0, 0.0, 0.0]), np.array([0.0, 1.0, 0.0]))
+        model = self.rotate(self.time * 20, 1, 0, 0) @ self.rotate(self.time * 15, 0, 1, 0)
+
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, view)
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, model)
 
         glLineWidth(self.line_width)
@@ -118,7 +178,7 @@ class AbstractLinesVisualizer(BaseVisualizer):
         glDrawArrays(GL_LINES, 0, self.num_lines * 2)
         glBindVertexArray(0)
 
-        self.update() # Request continuous updates
+        self.update()
 
     def perspective(self, fov, aspect, near, far):
         f = 1.0 / np.tan(np.radians(fov / 2.0))
@@ -141,18 +201,45 @@ class AbstractLinesVisualizer(BaseVisualizer):
             [-np.dot(s, eye), -np.dot(u, eye), np.dot(f, eye), 1.0]
         ], dtype=np.float32).T
 
-    def translate(self, x, y, z):
+    def rotate(self, angle, x, y, z):
+        angle = np.radians(angle)
+        c, s = np.cos(angle), np.sin(angle)
+        n = np.sqrt(x*x + y*y + z*z)
+        x, y, z = x/n, y/n, z/n
         return np.array([
-            [1.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [x, y, z, 1.0]
+            [c+(x**2)*(1-c), x*y*(1-c)-z*s, x*z*(1-c)+y*s, 0],
+            [y*x*(1-c)+z*s, c+(y**2)*(1-c), y*z*(1-c)-x*s, 0],
+            [z*x*(1-c)-y*s, z*y*(1-c)+x*s, c+(z**2)*(1-c), 0],
+            [0, 0, 0, 1]
+        ], dtype=np.float32)
+
+    def scale(self, x, y, z):
+        return np.array([
+            [x, 0, 0, 0],
+            [0, y, 0, 0],
+            [0, 0, z, 0],
+            [0, 0, 0, 1]
         ], dtype=np.float32)
 
     def cleanup(self):
-        if self.shader_program:
-            glDeleteProgram(self.shader_program)
-        if self.VBO:
-            glDeleteBuffers(1, [self.VBO])
-        if self.VAO:
-            glDeleteVertexArrays(1, [self.VAO])
+        logging.debug("Cleaning up AbstractLinesVisualizer")
+        self.makeCurrent()
+        try:
+            if self.shader_program:
+                glDeleteProgram(self.shader_program)
+                self.shader_program = None
+        except Exception as e:
+            logging.error(f"Error deleting shader program: {e}")
+        try:
+            if self.VBO:
+                glDeleteBuffers(1, [self.VBO])
+                self.VBO = None
+        except Exception as e:
+            logging.error(f"Error deleting VBO: {e}")
+        try:
+            if self.VAO:
+                glDeleteVertexArrays(1, [self.VAO])
+                self.VAO = None
+        except Exception as e:
+            logging.error(f"Error deleting VAO: {e}")
+        self.doneCurrent()

@@ -4,6 +4,7 @@ from OpenGL.GLU import *
 import numpy as np
 import ctypes
 import os
+import logging
 
 from .base_visualizer import BaseVisualizer
 
@@ -19,6 +20,7 @@ class EvolutiveParticlesVisualizer(BaseVisualizer):
         self.particle_colors = None
         self.time = 0.0
         self.speed = 0.01
+        self.animation_type = 0
 
     def get_controls(self):
         return {
@@ -27,16 +29,24 @@ class EvolutiveParticlesVisualizer(BaseVisualizer):
                 "min": 1,
                 "max": 100,
                 "value": int(self.speed * 100),
+            },
+            "Animation Type": {
+                "type": "dropdown",
+                "options": ["Up and Down", "Swirl", "Expand"],
+                "value": self.animation_type,
             }
         }
 
     def update_control(self, name, value):
         if name == "Speed":
             self.speed = float(value) / 100.0
+        elif name == "Animation Type":
+            self.animation_type = value
 
     def initializeGL(self):
         glClearColor(0.0, 0.0, 0.0, 1.0)
         glEnable(GL_DEPTH_TEST)
+        glEnable(GL_PROGRAM_POINT_SIZE)
 
         self.load_shaders()
         self.setup_particles()
@@ -101,7 +111,6 @@ class EvolutiveParticlesVisualizer(BaseVisualizer):
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE, projection)
 
     def paintGL(self):
-        print("EvolutiveParticlesVisualizer: paintGL called") # Debug print
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         glUseProgram(self.shader_program)
@@ -109,9 +118,15 @@ class EvolutiveParticlesVisualizer(BaseVisualizer):
         view = self.lookAt(np.array([0.0, 0.0, 5.0]), np.array([0.0, 0.0, 0.0]), np.array([0.0, 1.0, 0.0]))
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, view)
 
-        # Simple animation: particles move up and down
         self.time += self.speed
-        model = self.translate(0.0, np.sin(self.time) * 0.5, 0.0)
+        if self.animation_type == 0:
+            model = self.translate(0.0, np.sin(self.time) * 0.5, 0.0)
+        elif self.animation_type == 1:
+            model = self.rotate(self.time * 50, 0, 1, 0)
+        else:
+            scale = 1.0 + np.sin(self.time) * 0.5
+            model = self.scale(scale, scale, scale)
+
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, model)
 
         glPointSize(5.0) # Set point size for visibility
@@ -123,7 +138,6 @@ class EvolutiveParticlesVisualizer(BaseVisualizer):
         self.update() # Request continuous updates
 
     def perspective(self, fov, aspect, near, far):
-        # Simple perspective matrix calculation
         f = 1.0 / np.tan(np.radians(fov / 2.0))
         return np.array([
             [f / aspect, 0.0, 0.0, 0.0],
@@ -133,7 +147,6 @@ class EvolutiveParticlesVisualizer(BaseVisualizer):
         ], dtype=np.float32)
 
     def lookAt(self, eye, center, up):
-        # Simple lookAt matrix calculation
         f = (center - eye) / np.linalg.norm(center - eye)
         s = np.cross(f, up) / np.linalg.norm(np.cross(f, up))
         u = np.cross(s, f)
@@ -153,10 +166,46 @@ class EvolutiveParticlesVisualizer(BaseVisualizer):
             [x, y, z, 1.0]
         ], dtype=np.float32)
 
+    def rotate(self, angle, x, y, z):
+        angle = np.radians(angle)
+        c, s = np.cos(angle), np.sin(angle)
+        n = np.sqrt(x*x + y*y + z*z)
+        if n == 0: return np.identity(4)
+        x, y, z = x/n, y/n, z/n
+        return np.array([
+            [c+(x**2)*(1-c), x*y*(1-c)-z*s, x*z*(1-c)+y*s, 0],
+            [y*x*(1-c)+z*s, c+(y**2)*(1-c), y*z*(1-c)-x*s, 0],
+            [z*x*(1-c)-y*s, z*y*(1-c)+x*s, c+(z**2)*(1-c), 0],
+            [0, 0, 0, 1]
+        ], dtype=np.float32)
+
+    def scale(self, x, y, z):
+        return np.array([
+            [x, 0, 0, 0],
+            [0, y, 0, 0],
+            [0, 0, z, 0],
+            [0, 0, 0, 1]
+        ], dtype=np.float32)
+
     def cleanup(self):
-        if self.shader_program:
-            glDeleteProgram(self.shader_program)
-        if self.VBO:
-            glDeleteBuffers(1, [self.VBO])
-        if self.VAO:
-            glDeleteVertexArrays(1, [self.VAO])
+        logging.debug("Cleaning up EvolutiveParticlesVisualizer")
+        self.makeCurrent()
+        try:
+            if self.shader_program:
+                glDeleteProgram(self.shader_program)
+                self.shader_program = None
+        except Exception as e:
+            logging.error(f"Error deleting shader program: {e}")
+        try:
+            if self.VBO:
+                glDeleteBuffers(1, [self.VBO])
+                self.VBO = None
+        except Exception as e:
+            logging.error(f"Error deleting VBO: {e}")
+        try:
+            if self.VAO:
+                glDeleteVertexArrays(1, [self.VAO])
+                self.VAO = None
+        except Exception as e:
+            logging.error(f"Error deleting VAO: {e}")
+        self.doneCurrent()

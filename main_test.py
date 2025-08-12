@@ -1,6 +1,7 @@
 import sys
 import logging
 logging.basicConfig(level=logging.DEBUG)
+logging.debug("EXECUTING main_test.py - THIS IS THE CORRECT FILE")
 
 from PyQt6.QtWidgets import (
     QApplication,
@@ -21,7 +22,6 @@ from visuals.abstract_lines import AbstractLinesVisualizer
 from visuals.mobius_band import MobiusBandVisualizer
 from visuals.abstract_shapes import AbstractShapesVisualizer
 from visuals.building_madness import BuildingMadnessVisualizer # New import
-from visuals.fluid_particles import FluidParticlesVisualizer # New import
 from utils.settings_manager import SettingsManager
 from midi.midi_engine import MidiEngine
 
@@ -38,7 +38,7 @@ class VisualEngineWindow(QMainWindow):
         logging.debug(f"Setting visualizer to: {visualizer_name}")
         if self.visualizer:
             if hasattr(self.visualizer, 'cleanup'):
-                logging.debug("Cleaning up old visualizer")
+                logging.debug(f"Cleaning up old visualizer: {self.visualizer.__class__.__name__}")
                 self.visualizer.cleanup()
             old_visualizer = self.visualizer
             self.centralWidget().setParent(None) # Remove old visualizer from layout
@@ -57,8 +57,6 @@ class VisualEngineWindow(QMainWindow):
             self.visualizer = AbstractShapesVisualizer()
         elif visualizer_name == "Building Madness": # New visualizer
             self.visualizer = BuildingMadnessVisualizer()
-        elif visualizer_name == "Fluid Particles": # New visualizer
-            self.visualizer = FluidParticlesVisualizer()
         else:
             self.visualizer = QLabel("Select a Visualizer")
             self.visualizer.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -92,7 +90,6 @@ class ControlPanelWindow(QMainWindow):
         self.preset_selector.addItem("Möbius Band")
         self.preset_selector.addItem("Abstract Shapes")
         self.preset_selector.addItem("Building Madness") # New visualizer
-        self.preset_selector.addItem("Fluid Particles") # New visualizer
         self.preset_selector.currentIndexChanged.connect(self.on_preset_selected)
         layout.addWidget(self.preset_selector)
 
@@ -230,8 +227,6 @@ if __name__ == "__main__":
     control_panel.raise_() # Bring to front
     control_panel.activateWindow() # Activate window
     logging.debug("ControlPanelWindow shown")
-
-    
 
     logging.debug("Starting app.exec()")
     exit_code = app.exec()
