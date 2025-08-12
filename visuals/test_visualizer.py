@@ -16,7 +16,8 @@ class TestVisualizer(BaseVisualizer):
         self.pattern = 0  # 0 = circle, 1 = square, 2 = triangle
         
     def initializeGL(self):
-        glClearColor(0.0, 0.0, 0.0, 1.0)
+        # TRANSPARENT BACKGROUND FOR MIXING
+        glClearColor(0.0, 0.0, 0.0, 0.0)  # Transparent background
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         print(f"TestVisualizer initialized")
@@ -28,17 +29,16 @@ class TestVisualizer(BaseVisualizer):
     def paintGL(self):
         self.time += 0.016 * self.speed  # Assume 60 FPS
         
-        # Clear with animated background
-        bg_color = 0.1 + 0.1 * math.sin(self.time * 0.5)
-        glClearColor(bg_color, bg_color * 0.5, bg_color * 0.2, 1.0)
+        # CLEAR WITH TRANSPARENT BACKGROUND - don't change clear color here
         glClear(GL_COLOR_BUFFER_BIT)
         
-        # Draw animated pattern
-        glColor4f(self.color_r, self.color_g, self.color_b, 0.8)
-        
+        # Draw animated pattern with transparency
         x = math.sin(self.time) * 0.5
         y = math.cos(self.time * 0.7) * 0.3
         size = 0.2 + 0.1 * math.sin(self.time * 2)
+        
+        # Use semi-transparent colors
+        glColor4f(self.color_r, self.color_g, self.color_b, 0.8)
         
         if self.pattern == 0:  # Circle
             self.draw_circle(x, y, size)

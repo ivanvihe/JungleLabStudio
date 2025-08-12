@@ -76,7 +76,8 @@ class BuildingMadnessVisualizer(BaseVisualizer):
 
     def initializeGL(self):
         print("BuildingMadnessVisualizer.initializeGL called")
-        glClearColor(0.0, 0.0, 0.0, 1.0)
+        # TRANSPARENT BACKGROUND FOR MIXING
+        glClearColor(0.0, 0.0, 0.0, 0.0)  # Alpha = 0 for transparency
         glEnable(GL_DEPTH_TEST)
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
@@ -156,12 +157,13 @@ class BuildingMadnessVisualizer(BaseVisualizer):
                     
                     pos = p1 + p2 + p3 + p4
                     
-                    # Initial color based on position and wall
+                    # Initial color based on position and wall with transparency
                     r = 0.5 + 0.3 * np.sin(u * np.pi)
                     g = 0.5 + 0.3 * np.cos(v * np.pi)
                     b = 0.7
+                    alpha = 0.8  # Semi-transparent for mixing
                     
-                    vertices.extend([pos[0], pos[1], pos[2], r, g, b, 1.0])
+                    vertices.extend([pos[0], pos[1], pos[2], r, g, b, alpha])
             
             # Create triangles for this wall
             for i in range(subdivisions):
@@ -197,8 +199,9 @@ class BuildingMadnessVisualizer(BaseVisualizer):
                 r = 0.5 + 0.5 * np.sin(theta * 2)
                 g = 0.5 + 0.5 * np.cos(phi)
                 b = 0.5 + 0.5 * np.sin(phi * 2)
+                alpha = 0.8  # Semi-transparent
                 
-                vertices.extend([x, y, z, r, g, b, 1.0])
+                vertices.extend([x, y, z, r, g, b, alpha])
         
         # Create triangles (note reversed winding for inside view)
         for lat in range(lat_segments):
@@ -236,8 +239,9 @@ class BuildingMadnessVisualizer(BaseVisualizer):
                 r = 0.5 + 0.5 * np.sin(angle * 3)
                 g = 0.5 + 0.5 * np.cos(z * 0.2)
                 b = 0.8
+                alpha = 0.7  # Semi-transparent
                 
-                vertices.extend([x, y, z, r, g, b, 1.0])
+                vertices.extend([x, y, z, r, g, b, alpha])
         
         # Create triangles (inside view)
         for ring in range(rings):
@@ -284,8 +288,9 @@ class BuildingMadnessVisualizer(BaseVisualizer):
                 r = 0.8 * (1 - u * 0.3)
                 g = 0.6 * (1 - v * 0.3)
                 b = 0.9
+                alpha = 0.75  # Semi-transparent
                 
-                vertices.extend([pos[0], pos[1], pos[2], r, g, b, 1.0])
+                vertices.extend([pos[0], pos[1], pos[2], r, g, b, alpha])
         
         # Base triangles
         for i in range(subdivisions):
@@ -327,8 +332,9 @@ class BuildingMadnessVisualizer(BaseVisualizer):
                     r = 0.3 + 0.7 * np.sin(angle + u * np.pi)
                     g = 0.4 + 0.6 * np.cos(v * np.pi)
                     b = 0.8 + 0.2 * np.sin(angle * 2)
+                    alpha = 0.6  # More transparent for crystal effect
                     
-                    vertices.extend([x, y, z, r, g, b, 0.9])
+                    vertices.extend([x, y, z, r, g, b, alpha])
             
             # Create triangles for this face
             for i in range(subdivisions):
@@ -363,10 +369,10 @@ class BuildingMadnessVisualizer(BaseVisualizer):
             print(f"Error creating room: {e}")
             # Fallback geometry
             self.vertices = np.array([
-                -5, -5, -5, 1, 0, 0, 1,
-                 5, -5, -5, 0, 1, 0, 1,
-                 5,  5, -5, 0, 0, 1, 1,
-                -5,  5, -5, 1, 1, 0, 1
+                -5, -5, -5, 1, 0, 0, 0.8,
+                 5, -5, -5, 0, 1, 0, 0.8,
+                 5,  5, -5, 0, 0, 1, 0.8,
+                -5,  5, -5, 1, 1, 0, 0.8
             ], dtype=np.float32)
             self.indices = np.array([0, 1, 2, 0, 2, 3], dtype=np.uint32)
             self.original_vertices = self.vertices.copy()
@@ -423,6 +429,7 @@ class BuildingMadnessVisualizer(BaseVisualizer):
                 orig_r = self.original_vertices[idx + 3]
                 orig_g = self.original_vertices[idx + 4]
                 orig_b = self.original_vertices[idx + 5]
+                orig_a = self.original_vertices[idx + 6]
                 
                 # Apply different effects based on mode
                 if self.effect_mode == 0:  # Wave Patterns
@@ -492,6 +499,9 @@ class BuildingMadnessVisualizer(BaseVisualizer):
                     self.vertices[idx + 3] = np.clip(orig_r * (0.5 + 0.5 * color_wave), 0, 1)
                     self.vertices[idx + 4] = np.clip(orig_g * (0.5 + 0.5 * np.sin(color_wave + 2)), 0, 1)
                     self.vertices[idx + 5] = np.clip(orig_b * (0.5 + 0.5 * np.cos(color_wave + 4)), 0, 1)
+                
+                # Keep original alpha for transparency
+                self.vertices[idx + 6] = orig_a
 
             # Update buffer
             glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
@@ -507,6 +517,7 @@ class BuildingMadnessVisualizer(BaseVisualizer):
         glViewport(0, 0, width, height)
 
     def paintGL(self):
+        # CLEAR WITH TRANSPARENT BACKGROUND
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         
         if self.shader_program is None or self.VAO is None:

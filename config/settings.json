@@ -1,3 +1,44 @@
 {
-    "last_midi_device": "virtual 20"
+    "last_midi_device": "virtual 3",
+    "control_panel_monitor": 0,
+    "main_window_monitor": 2,
+    "auto_save_settings": true,
+    "window_positions": {
+        "control_panel": {
+            "x": 50,
+            "y": 50,
+            "width": 1200,
+            "height": 800
+        },
+        "main_window": {
+            "x": 100,
+            "y": 100,
+            "width": 800,
+            "height": 600
+        }
+    },
+    "deck_settings": {
+        "deck_a": {
+            "last_visualizer": "",
+            "last_controls": {}
+        },
+        "deck_b": {
+            "last_visualizer": "",
+            "last_controls": {}
+        }
+    },
+    "mixer_settings": {
+        "last_mix_value": 50,
+        "crossfader_curve": "linear"
+    },
+    "audio_settings": {
+        "input_device": "Microphone (2- Q9-1) (1 ch)",
+        "buffer_size": 1024,
+        "sample_rate": 44100
+    },
+    "visual_settings": {
+        "fps_limit": 60,
+        "vsync": true,
+        "quality": "high"
+    }
 }

@@ -13,7 +13,10 @@ class SimpleTestVisualizer(BaseVisualizer):
         
     def initializeGL(self):
         print("SimpleTestVisualizer.initializeGL called")
-        glClearColor(0.0, 0.0, 0.0, 1.0)
+        # TRANSPARENT BACKGROUND FOR MIXING
+        glClearColor(0.0, 0.0, 0.0, 0.0)  # Transparent background
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         
     def resizeGL(self, w, h):
         print(f"SimpleTestVisualizer.resizeGL called: {w}x{h}")
@@ -22,16 +25,16 @@ class SimpleTestVisualizer(BaseVisualizer):
     def paintGL(self):
         self.time += 0.05
         
-        # Simple animated clear color
+        # CLEAR WITH TRANSPARENT BACKGROUND - don't change clear color here
+        glClear(GL_COLOR_BUFFER_BIT)
+        
+        # Simple animated triangle with transparency
         r = 0.5 + 0.5 * math.sin(self.time * self.red)
         g = 0.5 + 0.5 * math.sin(self.time * 1.2)
         b = 0.5 + 0.5 * math.sin(self.time * 0.8)
         
-        glClearColor(r, g, b, 1.0)
-        glClear(GL_COLOR_BUFFER_BIT)
-        
-        # Draw a simple triangle
-        glColor3f(1.0 - r, 1.0 - g, 1.0 - b)
+        # Draw a simple triangle with transparency
+        glColor4f(r, g, b, 0.8)  # Semi-transparent
         glBegin(GL_TRIANGLES)
         glVertex2f(0.0, 0.5)
         glVertex2f(-0.5, -0.5)

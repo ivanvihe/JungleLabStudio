@@ -6,3 +6,4 @@ PyBullet
 PyQt6 # Assuming PyQt6 as the latest stable version for PyQt
 numpy
 scipy
+pyaudio>=0.2.11

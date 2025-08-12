@@ -45,9 +45,12 @@ class EvolutiveParticlesVisualizer(BaseVisualizer):
             self.animation_type = value
 
     def initializeGL(self):
-        glClearColor(0.0, 0.0, 0.0, 1.0)
+        # TRANSPARENT BACKGROUND FOR MIXING
+        glClearColor(0.0, 0.0, 0.0, 0.0)  # Alpha = 0 for transparency
         glEnable(GL_DEPTH_TEST)
         glEnable(GL_PROGRAM_POINT_SIZE)
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
         self.load_shaders()
         self.setup_particles()
@@ -85,7 +88,9 @@ class EvolutiveParticlesVisualizer(BaseVisualizer):
 
     def setup_particles(self):
         self.particle_positions = np.random.rand(self.num_particles, 3).astype(np.float32) * 2.0 - 1.0
+        # Make particles semi-transparent for better mixing
         self.particle_colors = np.random.rand(self.num_particles, 4).astype(np.float32)
+        self.particle_colors[:, 3] = 0.7  # Set alpha to 0.7 for semi-transparency
 
         self.VAO = glGenVertexArrays(1)
         glBindVertexArray(self.VAO)
@@ -112,6 +117,7 @@ class EvolutiveParticlesVisualizer(BaseVisualizer):
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE, projection)
 
     def paintGL(self):
+        # CLEAR WITH TRANSPARENT BACKGROUND
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         glUseProgram(self.shader_program)

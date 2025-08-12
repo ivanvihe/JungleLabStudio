@@ -24,6 +24,7 @@ class MobiusBandVisualizer(BaseVisualizer):
         self.width = 1.0
         self.animation_speed = 1.0
         self.color_mode = 0
+        self.surface_offset = 0.0  # Para el deslizamiento de la superficie
 
     def get_controls(self):
         return {
@@ -66,7 +67,8 @@ class MobiusBandVisualizer(BaseVisualizer):
 
     def initializeGL(self):
         print("MobiusBandVisualizer.initializeGL called")
-        glClearColor(0.0, 0.0, 0.0, 1.0)
+        # TRANSPARENT BACKGROUND FOR MIXING
+        glClearColor(0.0, 0.0, 0.0, 0.0)  # Alpha = 0 for transparency
         glEnable(GL_DEPTH_TEST)
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
@@ -120,8 +122,8 @@ class MobiusBandVisualizer(BaseVisualizer):
                 y = (2.0 + v * np.cos(u/2)) * np.sin(u)
                 z = v * np.sin(u/2)
                 
-                # Add vertex with position and initial color
-                vertices.extend([x, y, z, 1.0, 1.0, 1.0, 1.0])
+                # Add vertex with position and initial color (semi-transparent)
+                vertices.extend([x, y, z, 1.0, 1.0, 1.0, 0.8])
 
         # Generate triangle indices
         for i in range(self.num_segments):
@@ -177,33 +179,46 @@ class MobiusBandVisualizer(BaseVisualizer):
             u = segment * 2.0 * np.pi / self.num_segments
             v = strip / (self.num_strips - 1)
             
-            # Color based on mode
-            if self.color_mode == 0:  # Rainbow
-                r = 0.5 + 0.5 * np.sin(u * 2 + self.time * self.animation_speed)
-                g = 0.5 + 0.5 * np.sin(u * 2 + self.time * self.animation_speed + 2*np.pi/3)
-                b = 0.5 + 0.5 * np.sin(u * 2 + self.time * self.animation_speed + 4*np.pi/3)
-            elif self.color_mode == 1:  # Fire
-                r = 0.9
-                g = 0.3 + 0.4 * np.sin(u * 3 + self.time * self.animation_speed * 2)
-                b = 0.1
-            elif self.color_mode == 2:  # Electric
-                intensity = 0.5 + 0.5 * np.sin(u * 5 + self.time * self.animation_speed * 3)
-                r = 0.3 * intensity
-                g = 0.8 * intensity
-                b = 1.0 * intensity
-            elif self.color_mode == 3:  # Ocean
-                r = 0.1
-                g = 0.4 + 0.3 * np.sin(u * 4 + self.time * self.animation_speed)
-                b = 0.8 + 0.2 * np.sin(u * 6 + self.time * self.animation_speed * 1.5)
-            else:  # Plasma
-                r = 0.5 + 0.5 * np.sin(u * 3 + v * 5 + self.time * self.animation_speed * 2)
-                g = 0.5 + 0.5 * np.sin(u * 4 - v * 3 + self.time * self.animation_speed * 1.5)
-                b = 0.5 + 0.5 * np.sin(u * 5 + v * 4 + self.time * self.animation_speed * 2.5)
+            # SUPERFICIE DESLIZANTE: añadir offset que se mueve a lo largo de la banda
+            # Esto hace que los patrones de color se deslicen siguiendo la superficie
+            sliding_u = u + self.surface_offset
             
-            self.vertices[idx + 3] = r
-            self.vertices[idx + 4] = g
-            self.vertices[idx + 5] = b
-            self.vertices[idx + 6] = 1.0
+            # Color based on mode con superficie deslizante
+            if self.color_mode == 0:  # Rainbow - deslizante
+                r = 0.5 + 0.5 * np.sin(sliding_u * 3)
+                g = 0.5 + 0.5 * np.sin(sliding_u * 3 + 2*np.pi/3)
+                b = 0.5 + 0.5 * np.sin(sliding_u * 3 + 4*np.pi/3)
+            elif self.color_mode == 1:  # Fire - efecto llama deslizante
+                flame_intensity = 0.5 + 0.5 * np.sin(sliding_u * 4)
+                r = 0.9 * flame_intensity
+                g = 0.3 + 0.4 * flame_intensity
+                b = 0.1 * flame_intensity
+            elif self.color_mode == 2:  # Electric - pulsos eléctricos
+                electric_pulse = 0.3 + 0.7 * np.sin(sliding_u * 8)
+                r = 0.3 * electric_pulse
+                g = 0.8 * electric_pulse
+                b = 1.0 * electric_pulse
+            elif self.color_mode == 3:  # Ocean - ondas de agua
+                wave1 = 0.5 + 0.5 * np.sin(sliding_u * 2)
+                wave2 = 0.5 + 0.5 * np.sin(sliding_u * 3 + v * 2)
+                r = 0.1 * wave1
+                g = 0.4 + 0.3 * wave1
+                b = 0.7 + 0.3 * wave2
+            else:  # Plasma - patrón ondulatorio complejo
+                plasma1 = np.sin(sliding_u * 2 + v * 3)
+                plasma2 = np.sin(sliding_u * 3 - v * 2)
+                plasma3 = np.sin(sliding_u * 4 + v * 4)
+                r = 0.5 + 0.5 * plasma1
+                g = 0.5 + 0.5 * plasma2
+                b = 0.5 + 0.5 * plasma3
+            
+            # Añadir variación basada en la posición v para mayor riqueza visual
+            v_factor = 0.8 + 0.2 * np.sin(v * np.pi)
+            
+            self.vertices[idx + 3] = r * v_factor
+            self.vertices[idx + 4] = g * v_factor
+            self.vertices[idx + 5] = b * v_factor
+            self.vertices[idx + 6] = 0.8  # Semi-transparente para mezclas
 
         # Update buffer
         glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
@@ -214,6 +229,7 @@ class MobiusBandVisualizer(BaseVisualizer):
         glViewport(0, 0, width, height)
 
     def paintGL(self):
+        # CLEAR WITH TRANSPARENT BACKGROUND
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         
         if not self.shader_program:
@@ -221,13 +237,20 @@ class MobiusBandVisualizer(BaseVisualizer):
             
         glUseProgram(self.shader_program)
 
+        # Actualizar tiempo y offset de superficie deslizante
         self.time += 0.016 * self.animation_speed
+        # El surface_offset hace que la superficie se deslice a lo largo de la banda
+        self.surface_offset += 0.05 * self.animation_speed
+        
         self.update_colors()
 
-        # Set matrices
+        # Set matrices - BANDA FIJA EN EL ESPACIO
         projection = self.perspective(45, 1.0, 0.1, 100.0)
-        view = self.lookAt(np.array([0, 0, 8]), np.array([0, 0, 0]), np.array([0, 1, 0]))
-        model = self.rotate(self.time * 15, 0, 1, 0) @ self.rotate(self.time * 10, 1, 0, 0)
+        # FIXED: Camera más alejada para ver toda la banda
+        view = self.lookAt(np.array([0, 3, 12]), np.array([0, 0, 0]), np.array([0, 1, 0]))
+        
+        # MODELO FIJO - sin rotación, solo una ligera inclinación para mejor visualización
+        model = self.rotate(15, 1, 0, 0) @ self.rotate(30, 0, 1, 0)  # Inclinación fija
 
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE, projection)
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, view)

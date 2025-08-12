@@ -28,16 +28,14 @@ class FluidParticlesVisualizer(BaseVisualizer):
         self.turbulence = 0.8
         self.gravity_strength = 0.5
         self.color_mode = 0
-        self.blend_mode = 0
-        self.brightness = 1.0
+        self.blend_mode = 1  # Default to Alpha Blend for deck mixing
+        self.brightness = 1.5  # Increased default brightness
         self.background_intensity = 0.3
         
         # Particle physics properties
         self.particles = []
         self.attractors = []
         self.background_elements = []
-        self.init_particles()
-        self.init_background()
 
     def get_controls(self):
         return {
@@ -136,7 +134,7 @@ class FluidParticlesVisualizer(BaseVisualizer):
                     np.random.uniform(-0.02, 0.02),
                     np.random.uniform(-0.01, 0.01)
                 ]),
-                'life': np.random.uniform(0.3, 1.0),
+                'life': np.random.uniform(0.5, 1.0),
                 'max_life': np.random.uniform(0.8, 1.0),
                 'birth_time': np.random.uniform(0, 2 * np.pi),
                 'phase': np.random.uniform(0, 2 * np.pi),
@@ -180,21 +178,27 @@ class FluidParticlesVisualizer(BaseVisualizer):
 
     def initializeGL(self):
         print("FluidParticlesVisualizer.initializeGL called")
-        glClearColor(0.0, 0.0, 0.05, 1.0)
+        # TRANSPARENT BACKGROUND FOR MIXING
+        glClearColor(0.0, 0.0, 0.0, 0.0)  # Fixed: Alpha = 0 for transparency
         glEnable(GL_DEPTH_TEST)
         glEnable(GL_BLEND)
         glEnable(GL_PROGRAM_POINT_SIZE)
-        glDepthMask(GL_FALSE)  # Disable depth writing for better blending
+        # Removed: glDepthMask(GL_FALSE) - was causing issues
+        
         self.set_blend_mode()
-
         self.load_shaders()
+        
+        # Initialize particles and backgrounds
+        self.init_particles()
+        self.init_background()
+        
         self.setup_particle_buffers()
         self.setup_background_buffers()
 
     def set_blend_mode(self):
         if self.blend_mode == 0:  # Additive Glow
             glBlendFunc(GL_SRC_ALPHA, GL_ONE)
-        elif self.blend_mode == 1:  # Alpha Blend
+        elif self.blend_mode == 1:  # Alpha Blend - better for deck mixing
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         elif self.blend_mode == 2:  # Screen Light
             glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ONE)
@@ -236,55 +240,66 @@ class FluidParticlesVisualizer(BaseVisualizer):
             print(f"FluidParticles shader loading error: {e}")
 
     def setup_particle_buffers(self):
-        if self.VAO:
-            glDeleteVertexArrays(1, [self.VAO])
-        if self.VBO:
-            glDeleteBuffers(1, [self.VBO])
+        try:
+            if self.VAO:
+                glDeleteVertexArrays(1, [self.VAO])
+            if self.VBO:
+                glDeleteBuffers(1, [self.VBO])
 
-        self.particle_data = np.zeros((self.num_particles, 7), dtype=np.float32)
+            self.particle_data = np.zeros((self.num_particles, 7), dtype=np.float32)
 
-        self.VAO = glGenVertexArrays(1)
-        glBindVertexArray(self.VAO)
+            self.VAO = glGenVertexArrays(1)
+            glBindVertexArray(self.VAO)
 
-        self.VBO = glGenBuffers(1)
-        glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
-        glBufferData(GL_ARRAY_BUFFER, self.particle_data.nbytes, self.particle_data, GL_DYNAMIC_DRAW)
+            self.VBO = glGenBuffers(1)
+            glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
+            glBufferData(GL_ARRAY_BUFFER, self.particle_data.nbytes, self.particle_data, GL_DYNAMIC_DRAW)
 
-        # Position attribute
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(0))
-        glEnableVertexAttribArray(0)
+            # Position attribute
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(0))
+            glEnableVertexAttribArray(0)
 
-        # Color attribute  
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(3 * ctypes.sizeof(GLfloat)))
-        glEnableVertexAttribArray(1)
+            # Color attribute  
+            glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(3 * ctypes.sizeof(GLfloat)))
+            glEnableVertexAttribArray(1)
 
-        glBindVertexArray(0)
+            glBindVertexArray(0)
+            print(f"FluidParticles particle buffers set up with {self.num_particles} particles")
+        except Exception as e:
+            print(f"Error setting up particle buffers: {e}")
 
     def setup_background_buffers(self):
-        if self.bg_VAO:
-            glDeleteVertexArrays(1, [self.bg_VAO])
-        if self.bg_VBO:
-            glDeleteBuffers(1, [self.bg_VBO])
+        try:
+            if self.bg_VAO:
+                glDeleteVertexArrays(1, [self.bg_VAO])
+            if self.bg_VBO:
+                glDeleteBuffers(1, [self.bg_VBO])
 
-        num_bg = len(self.background_elements)
-        self.background_data = np.zeros((num_bg, 7), dtype=np.float32)
+            num_bg = len(self.background_elements)
+            self.background_data = np.zeros((num_bg, 7), dtype=np.float32)
 
-        self.bg_VAO = glGenVertexArrays(1)
-        glBindVertexArray(self.bg_VAO)
+            self.bg_VAO = glGenVertexArrays(1)
+            glBindVertexArray(self.bg_VAO)
 
-        self.bg_VBO = glGenBuffers(1)
-        glBindBuffer(GL_ARRAY_BUFFER, self.bg_VBO)
-        glBufferData(GL_ARRAY_BUFFER, self.background_data.nbytes, self.background_data, GL_DYNAMIC_DRAW)
+            self.bg_VBO = glGenBuffers(1)
+            glBindBuffer(GL_ARRAY_BUFFER, self.bg_VBO)
+            glBufferData(GL_ARRAY_BUFFER, self.background_data.nbytes, self.background_data, GL_DYNAMIC_DRAW)
 
-        # Same attributes as particles
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(0))
-        glEnableVertexAttribArray(0)
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(3 * ctypes.sizeof(GLfloat)))
-        glEnableVertexAttribArray(1)
+            # Same attributes as particles
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(0))
+            glEnableVertexAttribArray(0)
+            glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(3 * ctypes.sizeof(GLfloat)))
+            glEnableVertexAttribArray(1)
 
-        glBindVertexArray(0)
+            glBindVertexArray(0)
+            print(f"FluidParticles background buffers set up with {num_bg} elements")
+        except Exception as e:
+            print(f"Error setting up background buffers: {e}")
 
     def update_physics(self):
+        if not self.particles:
+            return
+            
         dt = 0.016 * self.flow_speed
         
         # Update attractors with more dynamic movement
@@ -345,7 +360,7 @@ class FluidParticlesVisualizer(BaseVisualizer):
                     particle['pos'][i] = 6 + (particle['pos'][i] + 6) * 0.1
             
             # Update life with breathing effect
-            particle['life'] = particle['max_life'] * (0.5 + 0.5 * np.sin(self.time * 0.8 + particle['birth_time']))
+            particle['life'] = particle['max_life'] * (0.7 + 0.3 * np.sin(self.time * 0.8 + particle['birth_time']))
 
     def get_particle_color(self, particle, velocity_mag, dist_to_center):
         # More vibrant and responsive colors
@@ -354,20 +369,20 @@ class FluidParticlesVisualizer(BaseVisualizer):
         
         if self.color_mode == 0:  # Plasma Storm
             r = base_intensity * (0.9 + 0.1 * np.sin(time_factor * 3))
-            g = base_intensity * (0.1 + 0.6 * velocity_mag * 20)
+            g = base_intensity * (0.3 + 0.6 * velocity_mag * 20)
             b = base_intensity * (0.8 + 0.2 * np.sin(dist_to_center * 2 + time_factor))
         elif self.color_mode == 1:  # Aurora Dreams
-            r = base_intensity * (0.1 + 0.4 * np.sin(particle['pos'][1] * 2 + time_factor))
+            r = base_intensity * (0.3 + 0.4 * np.sin(particle['pos'][1] * 2 + time_factor))
             g = base_intensity * (0.7 + 0.3 * np.cos(particle['pos'][0] * 1.5 + time_factor * 0.7))
             b = base_intensity * (0.9 + 0.1 * np.sin(dist_to_center * 3 + time_factor * 0.5))
         elif self.color_mode == 2:  # Deep Void
-            r = base_intensity * 0.05
-            g = base_intensity * (0.2 + 0.5 * particle['life'])
+            r = base_intensity * 0.15
+            g = base_intensity * (0.4 + 0.5 * particle['life'])
             b = base_intensity * (0.9 + 0.1 * np.sin(time_factor + particle['phase']))
         elif self.color_mode == 3:  # Fire Galaxy
             r = base_intensity * (0.95 + 0.05 * np.sin(time_factor * 4))
-            g = base_intensity * (0.1 + 0.6 * velocity_mag * 15 + 0.2 * particle['life'])
-            b = base_intensity * (0.05 + 0.15 * particle['life'])
+            g = base_intensity * (0.3 + 0.6 * velocity_mag * 15 + 0.2 * particle['life'])
+            b = base_intensity * (0.1 + 0.15 * particle['life'])
         elif self.color_mode == 4:  # Crystal Nebula
             intensity = 0.6 + 0.4 * np.sin(dist_to_center * 4 + time_factor * 2)
             r = base_intensity * 0.8 * intensity
@@ -376,7 +391,7 @@ class FluidParticlesVisualizer(BaseVisualizer):
         elif self.color_mode == 5:  # Neon Pulse
             pulse = 0.7 + 0.3 * np.sin(time_factor * 6)
             r = base_intensity * pulse * particle['life']
-            g = base_intensity * 0.1
+            g = base_intensity * 0.3
             b = base_intensity * pulse * (1 - particle['life'] * 0.5)
         else:  # Rainbow Flow
             hue = (time_factor + dist_to_center) % (2 * np.pi)
@@ -387,6 +402,9 @@ class FluidParticlesVisualizer(BaseVisualizer):
         return r, g, b
 
     def update_particle_data(self):
+        if not self.particles or self.particle_data is None:
+            return
+            
         particles_to_process = min(len(self.particles), self.particle_data.shape[0])
         
         for i in range(particles_to_process):
@@ -402,8 +420,8 @@ class FluidParticlesVisualizer(BaseVisualizer):
             # Get color
             r, g, b = self.get_particle_color(particle, velocity_mag, dist_to_center)
             
-            # Enhanced alpha with more variation
-            alpha = particle['life'] * 0.9 * (0.8 + 0.2 * np.sin(self.time * 4 + particle['phase']))
+            # Enhanced alpha with more variation - better for mixing
+            alpha = particle['life'] * 0.8 * (0.7 + 0.3 * np.sin(self.time * 4 + particle['phase']))
             self.particle_data[i, 3:7] = [r, g, b, alpha]
 
         # Update buffer
@@ -412,7 +430,7 @@ class FluidParticlesVisualizer(BaseVisualizer):
         glBindBuffer(GL_ARRAY_BUFFER, 0)
 
     def update_background_data(self):
-        if not self.background_elements:
+        if not self.background_elements or self.background_data is None:
             return
             
         for i, element in enumerate(self.background_elements):
@@ -432,19 +450,19 @@ class FluidParticlesVisualizer(BaseVisualizer):
             
             # Subtle color based on main color mode
             if self.color_mode == 0:  # Plasma
-                r, g, b = 0.3, 0.1, 0.4
+                r, g, b = 0.5, 0.2, 0.6
             elif self.color_mode == 1:  # Aurora  
-                r, g, b = 0.1, 0.3, 0.4
+                r, g, b = 0.2, 0.5, 0.6
             elif self.color_mode == 2:  # Deep Void
-                r, g, b = 0.0, 0.1, 0.3
+                r, g, b = 0.1, 0.2, 0.5
             elif self.color_mode == 3:  # Fire
-                r, g, b = 0.4, 0.2, 0.0
+                r, g, b = 0.6, 0.3, 0.1
             elif self.color_mode == 4:  # Crystal
-                r, g, b = 0.2, 0.2, 0.3
+                r, g, b = 0.4, 0.4, 0.5
             elif self.color_mode == 5:  # Neon
-                r, g, b = 0.3, 0.0, 0.3
+                r, g, b = 0.5, 0.1, 0.5
             else:  # Rainbow
-                r, g, b = 0.2, 0.2, 0.2
+                r, g, b = 0.4, 0.4, 0.4
             
             alpha = element['alpha'] * self.background_intensity * (0.8 + 0.2 * np.sin(self.time * 0.5 + element['phase']))
             self.background_data[i, 3:7] = [r, g, b, alpha]
@@ -458,6 +476,7 @@ class FluidParticlesVisualizer(BaseVisualizer):
         glViewport(0, 0, width, height)
 
     def paintGL(self):
+        # CLEAR WITH TRANSPARENT BACKGROUND
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         
         if not self.shader_program:
@@ -473,9 +492,9 @@ class FluidParticlesVisualizer(BaseVisualizer):
         # Set matrices
         projection = self.perspective(50, 1.0, 0.1, 100.0)
         
-        # More dynamic camera movement
-        cam_radius = 8 + 2 * np.sin(self.time * 0.08)
-        cam_height = 3 + 2 * np.sin(self.time * 0.12)
+        # Simplified camera movement for deck context
+        cam_radius = 8
+        cam_height = 3
         cam_x = np.cos(self.time * 0.05) * cam_radius
         cam_y = cam_height
         cam_z = np.sin(self.time * 0.05) * cam_radius
@@ -494,19 +513,20 @@ class FluidParticlesVisualizer(BaseVisualizer):
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, model)
 
         # Set point size for particles
-        glPointSize(self.particle_size * 5)
+        glPointSize(max(self.particle_size * 3, 2.0))  # Ensure minimum visibility
 
         # Draw background first
-        if self.background_intensity > 0.01:
+        if self.background_intensity > 0.01 and self.background_elements:
             glBindVertexArray(self.bg_VAO)
             glDrawArrays(GL_POINTS, 0, len(self.background_elements))
             glBindVertexArray(0)
 
         # Draw particles
-        particles_to_draw = min(len(self.particles), self.particle_data.shape[0])
-        glBindVertexArray(self.VAO)
-        glDrawArrays(GL_POINTS, 0, particles_to_draw)
-        glBindVertexArray(0)
+        if self.particles:
+            particles_to_draw = min(len(self.particles), self.particle_data.shape[0])
+            glBindVertexArray(self.VAO)
+            glDrawArrays(GL_POINTS, 0, particles_to_draw)
+            glBindVertexArray(0)
 
     def perspective(self, fov, aspect, near, far):
         f = 1.0 / np.tan(np.radians(fov / 2.0))

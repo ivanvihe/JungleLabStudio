@@ -45,9 +45,12 @@ class GeometricParticlesVisualizer(BaseVisualizer):
             self.shape_type = value
 
     def initializeGL(self):
-        glClearColor(0.0, 0.0, 0.0, 1.0)
+        # TRANSPARENT BACKGROUND FOR MIXING
+        glClearColor(0.0, 0.0, 0.0, 0.0)  # Alpha = 0 for transparency
         glEnable(GL_DEPTH_TEST)
         glEnable(GL_PROGRAM_POINT_SIZE)
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
         self.load_shaders()
         self.setup_particles()
@@ -135,11 +138,13 @@ class GeometricParticlesVisualizer(BaseVisualizer):
 
             self.particle_data[i, 0:3] = [x, y, z]
 
-            # Color based on position and time
+            # Color based on position and time with transparency
             r_color = 0.6 + 0.4 * np.sin(x + self.time)
             g_color = 0.6 + 0.4 * np.cos(y + self.time)
             b_color = 0.6 + 0.4 * np.sin(z + self.time)
-            self.particle_data[i, 3:7] = [r_color, g_color, b_color, 1.0]
+            # Make particles semi-transparent for better mixing
+            alpha = 0.8
+            self.particle_data[i, 3:7] = [r_color, g_color, b_color, alpha]
 
         glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
         glBufferSubData(GL_ARRAY_BUFFER, 0, self.particle_data.nbytes, self.particle_data)
@@ -152,12 +157,13 @@ class GeometricParticlesVisualizer(BaseVisualizer):
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE, projection)
 
     def paintGL(self):
+        # CLEAR WITH TRANSPARENT BACKGROUND
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glUseProgram(self.shader_program)
 
         self.update_particles()
 
-        view = self.lookAt(np.array([0.0, 0.0, 8.0]), np.array([0.0, 0.0, 0.0]), np.array([0.0, 1.0, 0.0]))
+        view = self.lookAt(np.array([0.0, 0.0, 10.0]), np.array([0.0, 0.0, 0.0]), np.array([0.0, 1.0, 0.0]))
         model = self.rotate(self.time * 15, 0, 1, 0) @ self.rotate(self.time * 10, 1, 0, 0)
 
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, view)

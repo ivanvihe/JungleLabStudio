@@ -30,7 +30,8 @@ in vec3 vCol;
 out vec4 FragColor;
 uniform float u_brightness;
 void main(){
-    FragColor = vec4(vCol * u_brightness, 1.0);
+    // Make wireframe semi-transparent for mixing
+    FragColor = vec4(vCol * u_brightness, 0.8);
 }
 """
 
@@ -151,8 +152,11 @@ class WireTerrainVisualizer(BaseVisualizer):
 
     def initializeGL(self):
         print("WireTerrainVisualizer.initializeGL called")
+        # TRANSPARENT BACKGROUND FOR MIXING
+        glClearColor(0.0, 0.0, 0.0, 0.0)  # Transparent background
         glEnable(GL_DEPTH_TEST)
-        glClearColor(0.0, 0.0, 0.0, 1.0)
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         
         # Compile vertex shader
         vs = glCreateShader(GL_VERTEX_SHADER)
@@ -206,7 +210,7 @@ class WireTerrainVisualizer(BaseVisualizer):
         glBindVertexArray(0)
 
     def paintGL(self):
-        glClearColor(0.0, 0.0, 0.0, 1.0)  # Fondo negro
+        # CLEAR WITH TRANSPARENT BACKGROUND
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         
         if not self.program:

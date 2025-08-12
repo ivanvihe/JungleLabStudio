@@ -30,10 +30,16 @@ class Deck:
         
         if visualizer_class:
             try:
+                # Create visualizer instance
                 self.visualizer = visualizer_class()
                 self._needs_init_and_resize = True
                 self._gl_initialized = False
                 logging.debug(f"Created visualizer instance: {visualizer_name}")
+                
+                # If we already have an FBO, mark for initialization
+                if self.fbo and self.fbo.isValid():
+                    self._needs_init_and_resize = True
+                    
             except Exception as e:
                 logging.error(f"Error creating visualizer {visualizer_name}: {e}")
                 self.visualizer = None
@@ -46,22 +52,40 @@ class Deck:
             return
             
         try:
-            # Initialize if needed
-            if self._needs_init_and_resize:
-                logging.debug(f"Initializing visualizer: {self.visualizer_name}")
-                if hasattr(self.visualizer, 'initializeGL'):
-                    self.visualizer.initializeGL()
-                if hasattr(self.visualizer, 'resizeGL'):
-                    self.visualizer.resizeGL(self.size.width(), self.size.height())
-                self._needs_init_and_resize = False
-                self._gl_initialized = True
-                logging.debug(f"Visualizer {self.visualizer_name} initialized")
-
-            # Render to framebuffer
+            # Bind to framebuffer
             if not self.fbo.bind():
                 logging.error("Failed to bind framebuffer")
                 return
+            
+            # Initialize if needed
+            if self._needs_init_and_resize:
+                logging.debug(f"Initializing visualizer: {self.visualizer_name}")
                 
+                # Set viewport first
+                glViewport(0, 0, self.size.width(), self.size.height())
+                
+                # Initialize OpenGL state for visualizer
+                if hasattr(self.visualizer, 'initializeGL'):
+                    try:
+                        self.visualizer.initializeGL()
+                        logging.debug(f"Visualizer {self.visualizer_name} initializeGL completed")
+                    except Exception as e:
+                        logging.error(f"Error in visualizer initializeGL: {e}")
+                        self.fbo.release()
+                        return
+                
+                # Resize visualizer
+                if hasattr(self.visualizer, 'resizeGL'):
+                    try:
+                        self.visualizer.resizeGL(self.size.width(), self.size.height())
+                        logging.debug(f"Visualizer {self.visualizer_name} resized to {self.size.width()}x{self.size.height()}")
+                    except Exception as e:
+                        logging.error(f"Error in visualizer resizeGL: {e}")
+                
+                self._needs_init_and_resize = False
+                self._gl_initialized = True
+                logging.debug(f"Visualizer {self.visualizer_name} initialization completed")
+
             # Set viewport and clear
             glViewport(0, 0, self.size.width(), self.size.height())
             glClearColor(0.0, 0.0, 0.0, 1.0)
@@ -69,7 +93,10 @@ class Deck:
             
             # Paint the visualizer
             if hasattr(self.visualizer, 'paintGL') and self._gl_initialized:
-                self.visualizer.paintGL()
+                try:
+                    self.visualizer.paintGL()
+                except Exception as e:
+                    logging.error(f"Error in visualizer paintGL: {e}")
             
             # Release framebuffer
             self.fbo.release()
@@ -80,7 +107,7 @@ class Deck:
                 self.fbo.release()
 
     def resize(self, size):
-        if self.size == size:
+        if self.size == size and self.fbo and self.fbo.isValid():
             return
             
         logging.debug(f"Resizing deck to: {size.width()}x{size.height()}")
@@ -129,7 +156,9 @@ class Deck:
         """Get available controls from the current visualizer"""
         if self.visualizer and hasattr(self.visualizer, 'get_controls'):
             try:
-                return self.visualizer.get_controls()
+                controls = self.visualizer.get_controls()
+                logging.debug(f"Got controls from {self.visualizer_name}: {list(controls.keys()) if controls else 'None'}")
+                return controls
             except Exception as e:
                 logging.error(f"Error getting controls from visualizer: {e}")
         return {}
