@@ -9,6 +9,7 @@ import logging
 from .base_visualizer import BaseVisualizer
 
 class EvolutiveParticlesVisualizer(BaseVisualizer):
+    visual_name = "Evolutive Particles"
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFormat(QSurfaceFormat())

@@ -9,6 +9,7 @@ import logging
 from .base_visualizer import BaseVisualizer
 
 class MobiusBandVisualizer(BaseVisualizer):
+    visual_name = "Möbius Band"
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFormat(QSurfaceFormat())
@@ -267,7 +268,6 @@ class MobiusBandVisualizer(BaseVisualizer):
         ], dtype=np.float32)
 
     def cleanup(self):
-        self.makeCurrent()
         if self.shader_program:
             glDeleteProgram(self.shader_program)
         if self.VBO:
@@ -276,4 +276,3 @@ class MobiusBandVisualizer(BaseVisualizer):
             glDeleteVertexArrays(1, [self.VAO])
         if self.EBO:
             glDeleteBuffers(1, [self.EBO])
-        self.doneCurrent()

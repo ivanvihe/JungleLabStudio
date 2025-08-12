@@ -55,6 +55,7 @@ void main(){
 """
 
 class VortexParticlesVisualizer(BaseVisualizer):
+    visual_name = "Vortex Particles"
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFormat(QSurfaceFormat())
@@ -80,6 +81,46 @@ class VortexParticlesVisualizer(BaseVisualizer):
         elif name=="Spin": self.spin = float(value)/100.0
         elif name=="Spread": self.spread = float(value)/100.0
         elif name=="Palette": self.palette = int(value)
+
+    def perspective(self, fov, aspect, near, far):
+        """Create a perspective projection matrix"""
+        fov_rad = np.radians(fov)
+        f = np.cos(fov_rad/2) / np.sin(fov_rad/2)
+        
+        matrix = np.zeros((4, 4), dtype=np.float32)
+        matrix[0, 0] = f / aspect
+        matrix[1, 1] = f
+        matrix[2, 2] = (far + near) / (near - far)
+        matrix[2, 3] = (2 * far * near) / (near - far)
+        matrix[3, 2] = -1
+        
+        return matrix
+
+    def lookAt(self, eye, center, up):
+        """Create a look-at view matrix"""
+        f = center - eye
+        f = f / np.linalg.norm(f)
+        
+        up = up / np.linalg.norm(up)
+        s = np.cross(f, up)
+        s = s / np.linalg.norm(s)
+        u = np.cross(s, f)
+        
+        matrix = np.identity(4, dtype=np.float32)
+        matrix[0, 0] = s[0]
+        matrix[1, 0] = s[1]
+        matrix[2, 0] = s[2]
+        matrix[0, 1] = u[0]
+        matrix[1, 1] = u[1]
+        matrix[2, 1] = u[2]
+        matrix[0, 2] = -f[0]
+        matrix[1, 2] = -f[1]
+        matrix[2, 2] = -f[2]
+        matrix[3, 0] = -np.dot(s, eye)
+        matrix[3, 1] = -np.dot(u, eye)
+        matrix[3, 2] = np.dot(f, eye)
+        
+        return matrix
 
     def _spawn(self):
         # pos (3) + size (1) + phase (1)
@@ -145,8 +186,6 @@ class VortexParticlesVisualizer(BaseVisualizer):
     def resizeGL(self,w,h): glViewport(0,0,w,h)
 
     def cleanup(self):
-        self.makeCurrent()
         if self.program: glDeleteProgram(self.program)
         if self.vbo: glDeleteBuffers(1,[self.vbo])
         if self.vao: glDeleteVertexArrays(1,[self.vao])
-        self.doneCurrent()

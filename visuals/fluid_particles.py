@@ -10,6 +10,7 @@ import math
 from .base_visualizer import BaseVisualizer
 
 class FluidParticlesVisualizer(BaseVisualizer):
+    visual_name = "Fluid Particles"
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFormat(QSurfaceFormat())

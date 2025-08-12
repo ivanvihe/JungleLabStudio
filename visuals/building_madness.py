@@ -9,6 +9,7 @@ import logging
 from .base_visualizer import BaseVisualizer
 
 class BuildingMadnessVisualizer(BaseVisualizer):
+    visual_name = "Building Madness"
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFormat(QSurfaceFormat())
@@ -619,7 +620,6 @@ class BuildingMadnessVisualizer(BaseVisualizer):
             return np.identity(4, dtype=np.float32)
 
     def cleanup(self):
-        self.makeCurrent()
         try:
             if self.shader_program:
                 glDeleteProgram(self.shader_program)
@@ -635,4 +635,3 @@ class BuildingMadnessVisualizer(BaseVisualizer):
                 self.EBO = None
         except:
             pass
-        self.doneCurrent()

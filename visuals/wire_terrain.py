@@ -36,6 +36,7 @@ void main(){
 """
 
 class WireTerrainVisualizer(BaseVisualizer):
+    visual_name = "Wire Terrain"
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFormat(QSurfaceFormat())
@@ -83,10 +84,12 @@ class WireTerrainVisualizer(BaseVisualizer):
         verts = []
         for i, x in enumerate(xs):
             for j, z in enumerate(zs):
-                # color by position
-                c = 0.5 + 0.5*np.sin(0.8*x + 1.2*z)
-                color = (0.2+0.8*c, 0.4+0.6*c, 0.9)
-                verts.extend([x, 0.0, z, *color])
+                # Color gradient from blue to cyan to white based on position
+                dist_from_center = np.sqrt(x*x + z*z) / (n*self.scale)
+                r = 0.2 + 0.5 * dist_from_center
+                g = 0.4 + 0.4 * dist_from_center  
+                b = 0.8 + 0.2 * dist_from_center
+                verts.extend([x, 0.0, z, r, g, b])
         self.vertices = np.array(verts, dtype=np.float32)
 
         idx = []
@@ -98,17 +101,94 @@ class WireTerrainVisualizer(BaseVisualizer):
                 d = c + 1
                 idx.extend([a,c,b,  b,c,d])  # two triangles
         self.indices = np.array(idx, dtype=np.uint32)
+        
+        print(f"Grid size: {n}x{n}, Scale: {self.scale}, Bounds: [{-n*self.scale:.2f}, {n*self.scale:.2f}]")
+
+    def perspective(self, fovy, aspect, near, far):
+        """Create a perspective projection matrix"""
+        f = 1.0 / math.tan(math.radians(fovy) / 2.0)
+        return np.array([
+            [f/aspect, 0, 0, 0],
+            [0, f, 0, 0],
+            [0, 0, (far+near)/(near-far), (2*far*near)/(near-far)],
+            [0, 0, -1, 0]
+        ], dtype=np.float32)
+
+    def lookAt(self, eye, center, up):
+        """Create a view matrix using lookAt"""
+        f = (center - eye)
+        f = f / np.linalg.norm(f)
+        
+        u = up / np.linalg.norm(up)
+        s = np.cross(f, u)
+        s = s / np.linalg.norm(s)
+        u = np.cross(s, f)
+        
+        return np.array([
+            [s[0], u[0], -f[0], 0],
+            [s[1], u[1], -f[1], 0],
+            [s[2], u[2], -f[2], 0],
+            [-np.dot(s, eye), -np.dot(u, eye), np.dot(f, eye), 1]
+        ], dtype=np.float32)
+
+    def rotate(self, angle, x, y, z):
+        """Create a rotation matrix around axis (x,y,z) by angle degrees"""
+        if angle == 0:
+            return np.eye(4, dtype=np.float32)
+        
+        angle = math.radians(angle)
+        c = math.cos(angle)
+        s = math.sin(angle)
+        axis = np.array([x, y, z], dtype=np.float32)
+        axis = axis / np.linalg.norm(axis)
+        x, y, z = axis
+        
+        return np.array([
+            [c + x*x*(1-c), x*y*(1-c) - z*s, x*z*(1-c) + y*s, 0],
+            [y*x*(1-c) + z*s, c + y*y*(1-c), y*z*(1-c) - x*s, 0],
+            [z*x*(1-c) - y*s, z*y*(1-c) + x*s, c + z*z*(1-c), 0],
+            [0, 0, 0, 1]
+        ], dtype=np.float32)
 
     def initializeGL(self):
         glEnable(GL_DEPTH_TEST)
-        vs = glCreateShader(GL_VERTEX_SHADER); glShaderSource(vs, VERT); glCompileShader(vs)
-        fs = glCreateShader(GL_FRAGMENT_SHADER); glShaderSource(fs, FRAG); glCompileShader(fs)
+        glClearColor(0.0, 0.0, 0.0, 1.0)
+        
+        # Compile vertex shader
+        vs = glCreateShader(GL_VERTEX_SHADER)
+        glShaderSource(vs, VERT)
+        glCompileShader(vs)
+        
+        # Check vertex shader compilation
+        if not glGetShaderiv(vs, GL_COMPILE_STATUS):
+            print("Vertex shader error:", glGetShaderInfoLog(vs).decode())
+        
+        # Compile fragment shader  
+        fs = glCreateShader(GL_FRAGMENT_SHADER)
+        glShaderSource(fs, FRAG)
+        glCompileShader(fs)
+        
+        # Check fragment shader compilation
+        if not glGetShaderiv(fs, GL_COMPILE_STATUS):
+            print("Fragment shader error:", glGetShaderInfoLog(fs).decode())
+        
+        # Link program
         self.program = glCreateProgram()
-        glAttachShader(self.program, vs); glAttachShader(self.program, fs); glLinkProgram(self.program)
-        glDeleteShader(vs); glDeleteShader(fs)
+        glAttachShader(self.program, vs)
+        glAttachShader(self.program, fs)
+        glLinkProgram(self.program)
+        
+        # Check program linking
+        if not glGetProgramiv(self.program, GL_LINK_STATUS):
+            print("Program link error:", glGetProgramInfoLog(self.program).decode())
+        
+        glDeleteShader(vs)
+        glDeleteShader(fs)
 
         self._gen_mesh()
         self._setup_buffers()
+        
+        print(f"Generated {len(self.vertices)//6} vertices and {len(self.indices)//3} triangles")
 
     def _setup_buffers(self):
         if self.vao: glDeleteVertexArrays(1,[self.vao])
@@ -126,6 +206,7 @@ class WireTerrainVisualizer(BaseVisualizer):
         glBindVertexArray(0)
 
     def paintGL(self):
+        glClearColor(0.0, 0.0, 0.0, 1.0)  # Fondo negro
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glUseProgram(self.program)
 
@@ -135,16 +216,25 @@ class WireTerrainVisualizer(BaseVisualizer):
         glUniform1f(glGetUniformLocation(self.program,"u_freq"), self.freq)
         glUniform1f(glGetUniformLocation(self.program,"u_brightness"), self.brightness)
 
-        # Matrices (usa helpers de tus otros presets)
-        projection = self.perspective(55, 1.0, 0.1, 100.0)
-        view = self.lookAt(np.array([0, 2.8, 4.6]), np.array([0,0,0]), np.array([0,1,0]))
-        model = self.rotate(0, 0,1,0)
-        glUniformMatrix4fv(glGetUniformLocation(self.program,"projection"),1,GL_FALSE,projection)
-        glUniformMatrix4fv(glGetUniformLocation(self.program,"view"),1,GL_FALSE,view)
-        glUniformMatrix4fv(glGetUniformLocation(self.program,"model"),1,GL_FALSE,model)
+        # Get viewport dimensions for proper aspect ratio
+        viewport = glGetIntegerv(GL_VIEWPORT)
+        width, height = viewport[2], viewport[3]
+        aspect = width / height if height > 0 else 1.0
 
+        # Create transformation matrices
+        projection = self.perspective(45, aspect, 0.1, 100.0)
+        view = self.lookAt(np.array([0, 3.0, 5.0]), np.array([0,0,0]), np.array([0,1,0]))
+        model = self.rotate(0, 0,1,0)
+        
+        # Transpose matrices for OpenGL (row-major to column-major)
+        glUniformMatrix4fv(glGetUniformLocation(self.program,"projection"),1,GL_TRUE,projection)
+        glUniformMatrix4fv(glGetUniformLocation(self.program,"view"),1,GL_TRUE,view)
+        glUniformMatrix4fv(glGetUniformLocation(self.program,"model"),1,GL_TRUE,model)
+
+        # Enable wireframe or fill mode
         if self.wire==1:
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+            glLineWidth(1.0)
         else:
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
 
@@ -157,9 +247,7 @@ class WireTerrainVisualizer(BaseVisualizer):
     def resizeGL(self,w,h): glViewport(0,0,w,h)
 
     def cleanup(self):
-        self.makeCurrent()
         if self.program: glDeleteProgram(self.program)
         if self.vbo: glDeleteBuffers(1,[self.vbo])
         if self.ebo: glDeleteBuffers(1,[self.ebo])
         if self.vao: glDeleteVertexArrays(1,[self.vao])
-        self.doneCurrent()

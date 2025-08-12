@@ -1,16 +1,23 @@
-from PyQt6.QtOpenGLWidgets import QOpenGLWidget
+class BaseVisualizer:
+    visual_name = "Base Visualizer"
 
-class BaseVisualizer(QOpenGLWidget):
-    """Common interface for all visualizers with runtime controls."""
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self):
+        pass
+
+    def initializeGL(self):
+        pass
+
+    def resizeGL(self, w, h):
+        pass
+
+    def paintGL(self):
+        pass
+
+    def cleanup(self):
+        pass
 
     def get_controls(self):
-        """Return a dict describing available controls.
-        Example: {"Name": {"type": "slider", "min":0, "max":100, "value":50}}
-        """
         return {}
 
     def update_control(self, name, value):
-        """Update internal parameter identified by name with new value."""
         pass

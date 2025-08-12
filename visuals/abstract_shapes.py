@@ -9,6 +9,7 @@ import logging
 from .base_visualizer import BaseVisualizer
 
 class AbstractShapesVisualizer(BaseVisualizer):
+    visual_name = "Abstract Shapes"
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFormat(QSurfaceFormat())

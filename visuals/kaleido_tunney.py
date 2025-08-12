@@ -65,6 +65,7 @@ void main(){
 """
 
 class KaleidoTunnelVisualizer(BaseVisualizer):
+    visual_name = "Kaleido Tunnel"
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFormat(QSurfaceFormat())
@@ -129,8 +130,6 @@ class KaleidoTunnelVisualizer(BaseVisualizer):
         glViewport(0,0,w,h)
 
     def cleanup(self):
-        self.makeCurrent()
         if self.program: glDeleteProgram(self.program)
         if self.vbo: glDeleteBuffers(1, [self.vbo])
         if self.vao: glDeleteVertexArrays(1, [self.vao])
-        self.doneCurrent()
