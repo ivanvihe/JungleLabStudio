@@ -1,5 +1,5 @@
 {
-    "last_midi_device": "Keystation 61 MK3 1",
+    "last_midi_device": "virtual 4",
     "control_panel_monitor": 0,
     "main_window_monitor": 2,
     "auto_save_settings": true,
@@ -8,11 +8,11 @@
             "x": 0,
             "y": 30,
             "width": 1536,
-            "height": 925
+            "height": 844
         },
         "main_window": {
-            "x": 2062,
-            "y": 70,
+            "x": 4322,
+            "y": 257,
             "width": 800,
             "height": 600
         }
