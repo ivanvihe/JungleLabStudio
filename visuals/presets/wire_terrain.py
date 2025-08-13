@@ -1,3 +1,5 @@
+import logging
+
 # wire_terrain.py
 from OpenGL.GL import *
 import numpy as np
@@ -5,7 +7,7 @@ import ctypes
 import math
 import time
 
-from .base_visualizer import BaseVisualizer
+from visuals.base_visualizer import BaseVisualizer
 
 # Import OpenGL safety functions
 try:
@@ -212,28 +214,60 @@ class WireTerrainVisualizer(BaseVisualizer):
         print(f"Generated {len(self.vertices)//6} vertices and {len(self.indices)//3} triangles")
 
     def _setup_buffers(self):
-        if self.vao: glDeleteVertexArrays(1,[self.vao])
-        if self.vbo: glDeleteBuffers(1,[self.vbo])
-        if self.ebo: glDeleteBuffers(1,[self.ebo])
+        logging.debug("WireTerrain: Setting up buffers...")
+        if self.vao: 
+            glDeleteVertexArrays(1,[self.vao])
+            logging.debug(f"WireTerrain: Deleted old VAO {self.vao}")
+        if self.vbo: 
+            glDeleteBuffers(1,[self.vbo])
+            logging.debug(f"WireTerrain: Deleted old VBO {self.vbo}")
+        if self.ebo: 
+            glDeleteBuffers(1,[self.ebo])
+            logging.debug(f"WireTerrain: Deleted old EBO {self.ebo}")
 
-        self.vao = glGenVertexArrays(1); glBindVertexArray(self.vao)
-        self.vbo = glGenBuffers(1); glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
+        if self.vertices is None or self.indices is None or self.vertices.size == 0 or self.indices.size == 0:
+            logging.error("WireTerrain: Vertices or indices are empty/None. Cannot setup buffers.")
+            return
+
+        self.vao = glGenVertexArrays(1)
+        glBindVertexArray(self.vao)
+        logging.debug(f"WireTerrain: Created and bound VAO {self.vao}")
+        
+        self.vbo = glGenBuffers(1)
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
         glBufferData(GL_ARRAY_BUFFER, self.vertices.nbytes, self.vertices, GL_DYNAMIC_DRAW)
+        logging.debug(f"WireTerrain: Created VBO {self.vbo} and uploaded {self.vertices.nbytes} bytes")
+        
         stride = 6*ctypes.sizeof(GLfloat)
         glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,stride,ctypes.c_void_p(0)); glEnableVertexAttribArray(0)
         glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,stride,ctypes.c_void_p(3*ctypes.sizeof(GLfloat))); glEnableVertexAttribArray(1)
-        self.ebo = glGenBuffers(1); glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.ebo)
+        logging.debug("WireTerrain: Vertex attributes set.")
+        
+        self.ebo = glGenBuffers(1)
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.ebo)
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, self.indices.nbytes, self.indices, GL_STATIC_DRAW)
+        logging.debug(f"WireTerrain: Created EBO {self.ebo} and uploaded {self.indices.nbytes} bytes")
+        
         glBindVertexArray(0)
+        logging.debug("WireTerrain: Unbound VAO.")
+        
+        error = glGetError()
+        if error != GL_NO_ERROR:
+            logging.error(f"WireTerrain: OpenGL Error after _setup_buffers: {error}")
 
     def paintGL(self):
         # CLEAR WITH TRANSPARENT BACKGROUND
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         
-        if not self.program:
+        if not self.program or not self.vao or not self.vbo or not self.ebo:
+            logging.warning("WireTerrain: Skipping paintGL, program or buffers not initialized.")
             return
             
         glUseProgram(self.program)
+        error = glGetError()
+        if error != GL_NO_ERROR:
+            logging.error(f"WireTerrain: OpenGL Error after glUseProgram: {error}")
+            return
 
         t = time.time()-self.start
         glUniform1f(glGetUniformLocation(self.program,"u_time"), t)
@@ -259,7 +293,17 @@ class WireTerrainVisualizer(BaseVisualizer):
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
 
         glBindVertexArray(self.vao)
+        error = glGetError()
+        if error != GL_NO_ERROR:
+            logging.error(f"WireTerrain: OpenGL Error after glBindVertexArray: {error}")
+            return
+
         glDrawElements(GL_TRIANGLES, self.indices.size, GL_UNSIGNED_INT, None)
+        error = glGetError()
+        if error != GL_NO_ERROR:
+            logging.error(f"WireTerrain: OpenGL Error after glDrawElements: {error}")
+            return
+
         glBindVertexArray(0)
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
         

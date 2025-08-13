@@ -6,43 +6,43 @@ import ctypes
 import os
 import logging
 
-from .base_visualizer import BaseVisualizer
+from visuals.base_visualizer import BaseVisualizer
 
-class GeometricParticlesVisualizer(BaseVisualizer):
-    visual_name = "Geometric Particles"
+class EvolutiveParticlesVisualizer(BaseVisualizer):
+    visual_name = "Evolutive Particles"
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFormat(QSurfaceFormat())
+        
         self.shader_program = None
         self.VBO = None
         self.VAO = None
         self.num_particles = 10000
-        self.particle_data = None
+        self.particle_positions = None
+        self.particle_colors = None
         self.time = 0.0
-        self.point_size = 2.0
-        self.shape_type = 0
+        self.speed = 0.01
+        self.animation_type = 0
 
     def get_controls(self):
         return {
-            "Particle Count": {
-                "type": "slider", "min": 1000, "max": 50000, "value": self.num_particles
+            "Speed": {
+                "type": "slider",
+                "min": 1,
+                "max": 100,
+                "value": int(self.speed * 100),
             },
-            "Point Size": {
-                "type": "slider", "min": 1, "max": 10, "value": int(self.point_size)
-            },
-            "Shape Type": {
-                "type": "dropdown", "options": ["Pulsating Sphere", "Animated Torus", "Abstract Cloud"], "value": self.shape_type
+            "Animation Type": {
+                "type": "dropdown",
+                "options": ["Up and Down", "Swirl", "Expand"],
+                "value": self.animation_type,
             }
         }
 
     def update_control(self, name, value):
-        if name == "Particle Count":
-            self.num_particles = int(value)
-            self.setup_particles() # Re-initialize particles
-        elif name == "Point Size":
-            self.point_size = float(value)
-        elif name == "Shape Type":
-            self.shape_type = value
+        if name == "Speed":
+            self.speed = float(value) / 100.0
+        elif name == "Animation Type":
+            self.animation_type = value
 
     def initializeGL(self):
         # TRANSPARENT BACKGROUND FOR MIXING
@@ -57,7 +57,7 @@ class GeometricParticlesVisualizer(BaseVisualizer):
 
     def load_shaders(self):
         script_dir = os.path.dirname(__file__)
-        shader_dir = os.path.join(script_dir, '..', 'shaders')
+        shader_dir = os.path.join(script_dir, '..', '..', 'shaders')
 
         with open(os.path.join(shader_dir, 'basic.vert'), 'r') as f:
             vertex_shader_source = f.read()
@@ -87,68 +87,28 @@ class GeometricParticlesVisualizer(BaseVisualizer):
         glDeleteShader(fragment_shader)
 
     def setup_particles(self):
-        if self.VBO:
-            glDeleteBuffers(1, [self.VBO])
-        if self.VAO:
-            glDeleteVertexArrays(1, [self.VAO])
-
-        # position (3) + color (4)
-        self.particle_data = np.zeros((self.num_particles, 7), dtype=np.float32)
+        self.particle_positions = np.random.rand(self.num_particles, 3).astype(np.float32) * 2.0 - 1.0
+        # Make particles semi-transparent for better mixing
+        self.particle_colors = np.random.rand(self.num_particles, 4).astype(np.float32)
+        self.particle_colors[:, 3] = 0.7  # Set alpha to 0.7 for semi-transparency
 
         self.VAO = glGenVertexArrays(1)
         glBindVertexArray(self.VAO)
 
         self.VBO = glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
-        glBufferData(GL_ARRAY_BUFFER, self.particle_data.nbytes, self.particle_data, GL_DYNAMIC_DRAW)
+        glBufferData(GL_ARRAY_BUFFER, self.particle_positions.nbytes + self.particle_colors.nbytes, None, GL_STATIC_DRAW)
+        glBufferSubData(GL_ARRAY_BUFFER, 0, self.particle_positions.nbytes, self.particle_positions)
+        glBufferSubData(GL_ARRAY_BUFFER, self.particle_positions.nbytes, self.particle_colors.nbytes, self.particle_colors)
 
-        # Position
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(0))
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
         glEnableVertexAttribArray(0)
-        # Color
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(3 * ctypes.sizeof(GLfloat)))
+
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(self.particle_positions.nbytes))
         glEnableVertexAttribArray(1)
 
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
-
-    def update_particles(self):
-        self.time += 0.01
-
-        for i in range(self.num_particles):
-            # Parametric equations for different shapes
-            u = (i / self.num_particles) * 2 * np.pi * 10 # Increase frequency for more complex patterns
-            v = np.sin(self.time + i / (self.num_particles / 50.0))
-
-            if self.shape_type == 0:  # Pulsating Sphere
-                r = 1.5 + 0.5 * np.sin(self.time * 3.0 + u * 0.5)
-                x = r * np.cos(u) * np.sqrt(1 - v**2)
-                y = r * np.sin(u) * np.sqrt(1 - v**2)
-                z = r * v
-            elif self.shape_type == 1:  # Animated Torus
-                R = 2.0
-                r = 0.5 + 0.2 * np.sin(self.time * 2.0 + u)
-                x = (R + r * np.cos(u)) * np.cos(v * 2 * np.pi)
-                y = (R + r * np.cos(u)) * np.sin(v * 2 * np.pi)
-                z = r * np.sin(u)
-            else:  # Abstract "Cloud"
-                x = np.sin(u * 3.0 + self.time) * 2.0
-                y = np.cos(v * 5.0 - self.time) * 2.0
-                z = np.sin(u * 2.0 + v * 3.0 + self.time) * 2.0
-
-            self.particle_data[i, 0:3] = [x, y, z]
-
-            # Color based on position and time with transparency
-            r_color = 0.6 + 0.4 * np.sin(x + self.time)
-            g_color = 0.6 + 0.4 * np.cos(y + self.time)
-            b_color = 0.6 + 0.4 * np.sin(z + self.time)
-            # Make particles semi-transparent for better mixing
-            alpha = 0.8
-            self.particle_data[i, 3:7] = [r_color, g_color, b_color, alpha]
-
-        glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
-        glBufferSubData(GL_ARRAY_BUFFER, 0, self.particle_data.nbytes, self.particle_data)
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
 
     def resizeGL(self, width, height):
         glViewport(0, 0, width, height)
@@ -159,23 +119,30 @@ class GeometricParticlesVisualizer(BaseVisualizer):
     def paintGL(self):
         # CLEAR WITH TRANSPARENT BACKGROUND
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
         glUseProgram(self.shader_program)
 
-        self.update_particles()
-
-        view = self.lookAt(np.array([0.0, 0.0, 10.0]), np.array([0.0, 0.0, 0.0]), np.array([0.0, 1.0, 0.0]))
-        model = self.rotate(self.time * 15, 0, 1, 0) @ self.rotate(self.time * 10, 1, 0, 0)
-
+        view = self.lookAt(np.array([0.0, 0.0, 5.0]), np.array([0.0, 0.0, 0.0]), np.array([0.0, 1.0, 0.0]))
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, view)
+
+        self.time += self.speed
+        if self.animation_type == 0:
+            model = self.translate(0.0, np.sin(self.time) * 0.5, 0.0)
+        elif self.animation_type == 1:
+            model = self.rotate(self.time * 50, 0, 1, 0)
+        else:
+            scale = 1.0 + np.sin(self.time) * 0.5
+            model = self.scale(scale, scale, scale)
+
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, model)
 
-        glPointSize(self.point_size)
+        glPointSize(5.0) # Set point size for visibility
 
         glBindVertexArray(self.VAO)
         glDrawArrays(GL_POINTS, 0, self.num_particles)
         glBindVertexArray(0)
 
-        self.update()
+        
 
     def perspective(self, fov, aspect, near, far):
         f = 1.0 / np.tan(np.radians(fov / 2.0))
@@ -197,6 +164,14 @@ class GeometricParticlesVisualizer(BaseVisualizer):
             [s[2], u[2], -f[2], 0.0],
             [-np.dot(s, eye), -np.dot(u, eye), np.dot(f, eye), 1.0]
         ], dtype=np.float32).T
+
+    def translate(self, x, y, z):
+        return np.array([
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [x, y, z, 1.0]
+        ], dtype=np.float32)
 
     def rotate(self, angle, x, y, z):
         angle = np.radians(angle)
@@ -220,8 +195,7 @@ class GeometricParticlesVisualizer(BaseVisualizer):
         ], dtype=np.float32)
 
     def cleanup(self):
-        logging.debug("Cleaning up GeometricParticlesVisualizer")
-        self.makeCurrent()
+        logging.debug("Cleaning up EvolutiveParticlesVisualizer")
         try:
             if self.shader_program:
                 glDeleteProgram(self.shader_program)
@@ -240,4 +214,3 @@ class GeometricParticlesVisualizer(BaseVisualizer):
                 self.VAO = None
         except Exception as e:
             logging.error(f"Error deleting VAO: {e}")
-        self.doneCurrent()

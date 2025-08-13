@@ -15,7 +15,8 @@ class VisualizerManager:
         try:
             # Get the directory where this file is located
             current_dir = Path(__file__).parent
-            logging.info(f"🔍 Loading visualizers from: {current_dir}")
+            presets_dir = current_dir / "presets"
+            logging.info(f"🔍 Loading visualizers from: {presets_dir}")
             
             # List of visualizer modules to load (in order of preference)
             visualizer_modules = [
@@ -39,13 +40,13 @@ class VisualizerManager:
             for module_name in visualizer_modules:
                 try:
                     # Check if file exists
-                    module_file = current_dir / f"{module_name}.py"
+                    module_file = presets_dir / f"{module_name}.py"
                     if not module_file.exists():
                         logging.debug(f"⚠️ Module file not found: {module_file}")
                         continue
                     
                     # Import the module
-                    full_module_name = f"visuals.{module_name}"
+                    full_module_name = f"visuals.presets.{module_name}"
                     
                     # Force reload if already imported
                     if full_module_name in sys.modules:

@@ -20,13 +20,18 @@ from visuals.visualizer_manager import VisualizerManager
 
 # Configure logging with better formatting
 logging.basicConfig(
-    level=logging.INFO,  # Changed from DEBUG to reduce noise
+    level=logging.DEBUG,  # Ensure base level is DEBUG
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
         logging.FileHandler('audiovisualizer.log', mode='w')
     ]
 )
+
+# Get specific loggers and set their levels to DEBUG
+logging.getLogger('visuals.deck').setLevel(logging.DEBUG)
+logging.getLogger('ui.mixer_window').setLevel(logging.DEBUG)
+logging.getLogger('visuals.visualizer_manager').setLevel(logging.DEBUG)
 
 class MainApplication:
     def __init__(self):
@@ -506,7 +511,7 @@ class MainApplication:
             self.show_windows()
             
             # Test visualizer change after 3 seconds
-            QTimer.singleShot(3000, self.test_visualizer_directly)
+            # QTimer.singleShot(3000, self.test_visualizer_directly)
             
             # Test MIDI mapping after 5 seconds (if any exist)
             QTimer.singleShot(5000, self.test_midi_mapping)

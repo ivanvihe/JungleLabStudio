@@ -6,7 +6,7 @@ import math
 import logging
 import ctypes
 
-from .base_visualizer import BaseVisualizer
+from visuals.base_visualizer import BaseVisualizer
 
 class SimpleTestVisualizer(BaseVisualizer):
     visual_name = "Simple Test"

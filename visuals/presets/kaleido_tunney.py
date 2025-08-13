@@ -5,7 +5,7 @@ import numpy as np
 import ctypes
 import time
 
-from .base_visualizer import BaseVisualizer
+from visuals.base_visualizer import BaseVisualizer
 
 VERT_SRC = """
 #version 330 core
@@ -68,7 +68,7 @@ class KaleidoTunnelVisualizer(BaseVisualizer):
     visual_name = "Kaleido Tunnel"
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFormat(QSurfaceFormat())
+        
         self.program = None
         self.vao = None
         self.vbo = None
@@ -95,8 +95,22 @@ class KaleidoTunnelVisualizer(BaseVisualizer):
     def initializeGL(self):
         glDisable(GL_DEPTH_TEST)
         # compile shaders
-        vs = glCreateShader(GL_VERTEX_SHADER); glShaderSource(vs, VERT_SRC); glCompileShader(vs)
-        fs = glCreateShader(GL_FRAGMENT_SHADER); glShaderSource(fs, FRAG_SRC); glCompileShader(fs)
+        script_dir = os.path.dirname(__file__)
+        shader_dir = os.path.join(script_dir, '..', '..', 'shaders')
+
+        # Load shaders from files
+        try:
+            with open(os.path.join(shader_dir, 'mix.vert'), 'r') as f:
+                vertex_shader_source = f.read()
+            with open(os.path.join(shader_dir, 'mix.frag'), 'r') as f:
+                fragment_shader_source = f.read()
+        except FileNotFoundError:
+            # Fallback to inline shaders if files not found
+            vertex_shader_source = VERT_SRC
+            fragment_shader_source = FRAG_SRC
+
+        vs = glCreateShader(GL_VERTEX_SHADER); glShaderSource(vs, vertex_shader_source); glCompileShader(vs)
+        fs = glCreateShader(GL_FRAGMENT_SHADER); glShaderSource(fs, fragment_shader_source); glCompileShader(fs)
         self.program = glCreateProgram()
         glAttachShader(self.program, vs); glAttachShader(self.program, fs); glLinkProgram(self.program)
         glDeleteShader(vs); glDeleteShader(fs)
@@ -124,7 +138,7 @@ class KaleidoTunnelVisualizer(BaseVisualizer):
         glBindVertexArray(self.vao)
         glDrawArrays(GL_TRIANGLES, 0, 6)
         glBindVertexArray(0)
-        self.update()
+        
 
     def resizeGL(self,w,h):
         glViewport(0,0,w,h)

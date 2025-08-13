@@ -15,14 +15,15 @@ class Deck:
         self._gl_initialized = False
         self._frame_count = 0
         
-        logging.info(f"🎮 Deck initialized with size {self.size.width()}x{self.size.height()}")
+        logging.debug(f"🎮 Deck initialized with size {self.size.width()}x{self.size.height()}")
 
     def set_visualizer(self, visualizer_name):
         """Set a new visualizer for this deck"""
-        logging.info(f"🎨 Setting deck visualizer to: {visualizer_name}")
+        logging.debug(f"🎨 Setting deck visualizer to: {visualizer_name}")
         
         # Clean up old visualizer
         if self.visualizer:
+            logging.debug(f"Cleaning up existing visualizer: {self.visualizer_name}")
             if hasattr(self.visualizer, 'cleanup'):
                 try:
                     self.visualizer.cleanup()
@@ -41,11 +42,14 @@ class Deck:
                 self.visualizer = visualizer_class()
                 self._needs_init = True
                 self._gl_initialized = False
-                logging.info(f"✅ Created visualizer instance: {visualizer_name}")
+                logging.debug(f"✅ Created visualizer instance: {visualizer_name}")
                 
                 # If we have a valid FBO, initialize the visualizer immediately
                 if self.fbo and self.fbo.isValid():
+                    logging.debug(f"FBO valid, attempting immediate initialization for {visualizer_name}")
                     self._initialize_visualizer()
+                else:
+                    logging.debug(f"FBO not valid or not created yet for {visualizer_name}, will initialize later")
                     
             except Exception as e:
                 logging.error(f"❌ Error creating visualizer {visualizer_name}: {e}")
@@ -58,10 +62,11 @@ class Deck:
     def _initialize_visualizer(self):
         """Initialize the visualizer with OpenGL context"""
         if not self.visualizer or not self.fbo or not self.fbo.isValid():
+            logging.debug(f"Skipping _initialize_visualizer: visualizer={self.visualizer is not None}, fbo_valid={self.fbo and self.fbo.isValid()}")
             return False
             
         try:
-            logging.info(f"🔧 Initializing visualizer: {self.visualizer_name}")
+            logging.debug(f"🔧 Initializing visualizer: {self.visualizer_name}")
             
             # Bind FBO to ensure we have GL context
             if not self.fbo.bind():
@@ -73,11 +78,13 @@ class Deck:
             
             # Initialize visualizer
             if hasattr(self.visualizer, 'initializeGL'):
+                logging.debug(f"Calling initializeGL on {self.visualizer_name}")
                 self.visualizer.initializeGL()
                 logging.debug(f"✅ Called initializeGL on {self.visualizer_name}")
             
             # Resize visualizer
             if hasattr(self.visualizer, 'resizeGL'):
+                logging.debug(f"Calling resizeGL on {self.visualizer_name}")
                 self.visualizer.resizeGL(self.size.width(), self.size.height())
                 logging.debug(f"✅ Called resizeGL on {self.visualizer_name}")
             
@@ -89,11 +96,11 @@ class Deck:
             
             self.fbo.release()
             
-            logging.info(f"✅ Visualizer {self.visualizer_name} initialized successfully")
+            logging.debug(f"✅ Visualizer {self.visualizer_name} initialized successfully")
             return True
             
         except Exception as e:
-            logging.error(f"❌ Error initializing visualizer: {e}")
+            logging.error(f"❌ Error initializing visualizer {self.visualizer_name}: {e}")
             import traceback
             traceback.print_exc()
             self.fbo.release()
@@ -102,6 +109,7 @@ class Deck:
     def _test_render(self):
         """Do a test render to verify the visualizer works"""
         try:
+            logging.debug(f"Performing test render for {self.visualizer_name}")
             # Clear with a test color
             glClearColor(0.1, 0.0, 0.1, 1.0)
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -112,7 +120,7 @@ class Deck:
                 logging.debug(f"✅ Test render successful for {self.visualizer_name}")
             
         except Exception as e:
-            logging.error(f"❌ Test render failed: {e}")
+            logging.error(f"❌ Test render failed for {self.visualizer_name}: {e}")
 
     def paint(self):
         """Render the visualizer to the framebuffer"""
@@ -132,7 +140,9 @@ class Deck:
             
             # Initialize if needed
             if self._needs_init and not self._gl_initialized:
+                logging.debug(f"Visualizer {self.visualizer_name} needs initialization. Attempting now.")
                 if not self._initialize_visualizer():
+                    logging.error(f"❌ Failed to initialize visualizer {self.visualizer_name} during paint.")
                     self.fbo.release()
                     return
             
@@ -154,11 +164,12 @@ class Deck:
                         logging.debug(f"🎬 Deck rendering {self.visualizer_name} - Frame {self._frame_count}")
                         
                 except Exception as e:
-                    logging.error(f"❌ Error in visualizer paintGL: {e}")
+                    logging.error(f"❌ Error in visualizer {self.visualizer_name} paintGL: {e}")
                     # Don't crash, just clear to a color
                     glClearColor(0.2, 0.0, 0.0, 1.0)
                     glClear(GL_COLOR_BUFFER_BIT)
             else:
+                logging.debug(f"Visualizer {self.visualizer_name} not GL initialized or no paintGL. Drawing test pattern.")
                 # No visualizer ready, show a test pattern
                 self._draw_test_pattern()
             
@@ -194,15 +205,17 @@ class Deck:
     def resize(self, size):
         """Resize the deck and recreate FBO if needed"""
         if self.size == size and self.fbo and self.fbo.isValid():
+            logging.debug(f"Deck already at size {size.width()}x{size.height()} and FBO valid. Skipping resize.")
             return
             
-        logging.info(f"📐 Resizing deck from {self.size.width()}x{self.size.height()} to {size.width()}x{size.height()}")
+        logging.debug(f"📐 Resizing deck from {self.size.width()}x{self.size.height()} to {size.width()}x{size.height()}")
         self.size = size
         self.recreate_fbo()
         
         # Reinitialize visualizer with new size
         if self.visualizer and self.fbo and self.fbo.isValid():
             try:
+                logging.debug(f"Re-initializing visualizer {self.visualizer_name} after resize.")
                 if self.fbo.bind():
                     if hasattr(self.visualizer, 'resizeGL'):
                         self.visualizer.resizeGL(size.width(), size.height())
@@ -214,8 +227,10 @@ class Deck:
     def recreate_fbo(self):
         """Recreate the framebuffer object with the current size"""
         try:
+            logging.debug(f"Attempting to recreate FBO for size {self.size.width()}x{self.size.height()}")
             # Clean up old FBO
             if self.fbo:
+                logging.debug(f"Releasing old FBO: {self.fbo.texture()}")
                 self.fbo.release()
                 del self.fbo
                 self.fbo = None
@@ -228,13 +243,14 @@ class Deck:
                 )
                 
                 if not self.fbo.isValid():
-                    logging.error(f"❌ Failed to create valid FBO")
+                    logging.error(f"❌ Failed to create valid FBO for {self.size.width()}x{self.size.height()}")
                     self.fbo = None
                 else:
-                    logging.info(f"✅ Created FBO: {self.size.width()}x{self.size.height()}, Texture ID: {self.fbo.texture()}")
+                    logging.debug(f"✅ Created FBO: {self.size.width()}x{self.size.height()}, Texture ID: {self.fbo.texture()}")
                     
                     # Initialize visualizer if we have one
                     if self.visualizer and not self._gl_initialized:
+                        logging.debug(f"Visualizer {self.visualizer_name} exists and not GL initialized. Calling _initialize_visualizer.")
                         self._initialize_visualizer()
             else:
                 logging.error(f"❌ Invalid size for FBO: {self.size.width()}x{self.size.height()}")
@@ -249,12 +265,13 @@ class Deck:
         """Return the texture ID of the framebuffer"""
         if self.fbo and self.fbo.isValid():
             texture_id = self.fbo.texture()
+            logging.debug(f"Returning FBO texture ID: {texture_id} for visualizer {self.visualizer_name}")
             if texture_id > 0:
                 return texture_id
             else:
-                logging.warning(f"⚠️ FBO has invalid texture ID: {texture_id}")
+                logging.warning(f"⚠️ FBO has invalid texture ID: {texture_id} for visualizer {self.visualizer_name}")
         else:
-            logging.debug(f"No valid FBO for texture")
+            logging.debug(f"No valid FBO for texture for visualizer {self.visualizer_name}")
         return 0
 
     def get_controls(self):
@@ -272,8 +289,14 @@ class Deck:
         """Update a control parameter on the current visualizer"""
         if self.visualizer and hasattr(self.visualizer, 'update_control'):
             try:
-                self.visualizer.update_control(name, value)
-                logging.debug(f"🎛️ Updated {self.visualizer_name}.{name} = {value}")
+                # Ensure OpenGL context is current before updating visualizer control
+                if self.fbo and self.fbo.isValid():
+                    self.fbo.bind()
+                    self.visualizer.update_control(name, value)
+                    self.fbo.release()
+                    logging.debug(f"🎛️ Updated {self.visualizer_name}.{name} = {value}")
+                else:
+                    logging.warning(f"⚠️ Cannot update control {name} for {self.visualizer_name}: FBO not valid.")
             except Exception as e:
                 logging.error(f"❌ Error updating control {name}: {e}")
 
@@ -283,7 +306,7 @@ class Deck:
 
     def cleanup(self):
         """Clean up resources"""
-        logging.info(f"🧹 Cleaning up deck")
+        logging.debug(f"🧹 Cleaning up deck")
         
         if self.visualizer and hasattr(self.visualizer, 'cleanup'):
             try:
@@ -292,6 +315,7 @@ class Deck:
                 logging.error(f"❌ Error cleaning up visualizer: {e}")
         
         if self.fbo:
+            logging.debug(f"Releasing FBO: {self.fbo.texture()}")
             self.fbo.release()
             del self.fbo
             self.fbo = None

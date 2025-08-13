@@ -4,7 +4,7 @@ import ctypes
 import os
 import time
 
-from .base_visualizer import BaseVisualizer
+from visuals.base_visualizer import BaseVisualizer
 
 # Inline shaders similar to wire_terrain
 VERT_SHADER = """

@@ -1,3 +1,9 @@
+import logging
+from OpenGL.GLU import gluErrorString # Import gluErrorString
+
+import logging
+from OpenGL.GLU import gluErrorString # Import gluErrorString
+
 class BaseVisualizer:
     visual_name = "Base Visualizer"
 
@@ -5,6 +11,15 @@ class BaseVisualizer:
         # Accept any arguments to prevent constructor errors
         # No longer inherit from QOpenGLWidget - just pure Python class
         pass
+
+    def _check_gl_error(self, context=""):
+        """Checks for OpenGL errors and logs them."""
+        error = glGetError()
+        if error != GL_NO_ERROR:
+            error_str = f"OpenGL Error ({error}) in {context}: {gluErrorString(error).decode()}"
+            logging.error(error_str)
+            return True
+        return False
 
     def initializeGL(self):
         """Initialize OpenGL state - called when visualizer is first set up"""

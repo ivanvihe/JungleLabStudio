@@ -5,7 +5,7 @@ logging.basicConfig(level=logging.DEBUG)
 from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.QtGui import QSurfaceFormat
 
-from visuals.fluid_particles import FluidParticlesVisualizer
+from visuals.presets.fluid_particles import FluidParticlesVisualizer
 
 if __name__ == "__main__":
     logging.debug("Application starting")

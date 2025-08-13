@@ -108,9 +108,18 @@ class MixerWindow(QMainWindow):
                 self.gl_widget.makeCurrent()
                 
                 # Set default visualizers for both decks
-                self.deck_a.set_visualizer(visualizer_names[0])
+                # Always try to set Deck A to "Simple Test" if available, otherwise use the first visualizer
+                if "Simple Test" in visualizer_names:
+                    self.deck_a.set_visualizer("Simple Test")
+                else:
+                    self.deck_a.set_visualizer(visualizer_names[0])
+
                 if len(visualizer_names) > 1:
-                    self.deck_b.set_visualizer(visualizer_names[1])
+                    # Try to set Deck B to "Wire Terrain" if available, otherwise use the second visualizer
+                    if "Wire Terrain" in visualizer_names:
+                        self.deck_b.set_visualizer("Wire Terrain")
+                    else:
+                        self.deck_b.set_visualizer(visualizer_names[1])
                 else:
                     self.deck_b.set_visualizer(visualizer_names[0])
                     
@@ -285,6 +294,8 @@ class MixerWindow(QMainWindow):
             # Get textures from decks
             texture_a = self.deck_a.get_texture()
             texture_b = self.deck_b.get_texture()
+            
+            logging.debug(f"Mixer paintGL: Deck A texture ID: {texture_a}, Deck B texture ID: {texture_b}")
             
             # Bind texture A
             glActiveTexture(GL_TEXTURE0)

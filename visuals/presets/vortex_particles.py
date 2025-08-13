@@ -5,7 +5,7 @@ import numpy as np
 import ctypes
 import time
 
-from .base_visualizer import BaseVisualizer
+from visuals.base_visualizer import BaseVisualizer
 
 VERT = """
 #version 330 core
@@ -58,7 +58,7 @@ class VortexParticlesVisualizer(BaseVisualizer):
     visual_name = "Vortex Particles"
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFormat(QSurfaceFormat())
+        
         self.program = None
         self.vao = None
         self.vbo = None
@@ -181,7 +181,7 @@ class VortexParticlesVisualizer(BaseVisualizer):
         glBindVertexArray(self.vao)
         glDrawArrays(GL_POINTS, 0, self.count)
         glBindVertexArray(0)
-        self.update()
+        
 
     def resizeGL(self,w,h): glViewport(0,0,w,h)
 

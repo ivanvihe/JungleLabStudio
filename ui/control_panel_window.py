@@ -427,7 +427,7 @@ class ControlPanelWindow(QMainWindow):
                 logging.error(f"❌ Error in on_preset_selected: {e}")
 
     def create_controls(self, deck_id):
-        logging.info(f"🎛️ Creating controls for deck {deck_id}")
+        logging.debug(f"🎛️ Creating controls for deck {deck_id}") # Changed to debug
         
         try:
             layout = self.controls_layout_a if deck_id == 'A' else self.controls_layout_b
@@ -441,12 +441,13 @@ class ControlPanelWindow(QMainWindow):
 
             # Get controls from the mixer window
             controls = self.mixer_window.get_deck_controls(deck_id)
-            logging.info(f"📋 Got controls for deck {deck_id}: {controls}")
+            logging.debug(f"📋 Got controls for deck {deck_id}: {controls}") # Changed to debug
             
             if not controls:
                 no_controls_label = QLabel("No controls available")
                 layout.addWidget(no_controls_label)
                 layout.addStretch()
+                logging.debug(f"No controls found for deck {deck_id}") # Added debug
                 return
                 
             for name, cfg in controls.items():

@@ -16,12 +16,12 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QSurfaceFormat
 
-from visuals.geometric_particles import GeometricParticlesVisualizer
-from visuals.evolutive_particles import EvolutiveParticlesVisualizer
-from visuals.abstract_lines import AbstractLinesVisualizer
-from visuals.mobius_band import MobiusBandVisualizer
-from visuals.abstract_shapes import AbstractShapesVisualizer
-from visuals.building_madness import BuildingMadnessVisualizer # New import
+from visuals.presets.geometric_particles import GeometricParticlesVisualizer
+from visuals.presets.evolutive_particles import EvolutiveParticlesVisualizer
+from visuals.presets.abstract_lines import AbstractLinesVisualizer
+from visuals.presets.mobius_band import MobiusBandVisualizer
+from visuals.presets.abstract_shapes import AbstractShapesVisualizer
+from visuals.presets.building_madness import BuildingMadnessVisualizer # New import
 from utils.settings_manager import SettingsManager
 from midi.midi_engine import MidiEngine
 

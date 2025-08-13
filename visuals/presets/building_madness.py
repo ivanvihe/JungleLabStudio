@@ -5,7 +5,7 @@ import ctypes
 import os
 import logging
 
-from .base_visualizer import BaseVisualizer
+from visuals.base_visualizer import BaseVisualizer
 
 class BuildingMadnessVisualizer(BaseVisualizer):
     visual_name = "Building Madness"
@@ -88,7 +88,7 @@ class BuildingMadnessVisualizer(BaseVisualizer):
 
     def load_shaders(self):
         script_dir = os.path.dirname(__file__)
-        shader_dir = os.path.join(script_dir, '..', 'shaders')
+        shader_dir = os.path.join(script_dir, '..', '..', 'shaders')
 
         try:
             with open(os.path.join(shader_dir, 'basic.vert'), 'r') as f:

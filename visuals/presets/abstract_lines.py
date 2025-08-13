@@ -4,7 +4,7 @@ import ctypes
 import os
 import logging
 
-from .base_visualizer import BaseVisualizer
+from visuals.base_visualizer import BaseVisualizer
 
 # Import OpenGL safety functions
 try:
@@ -101,7 +101,7 @@ class AbstractLinesVisualizer(BaseVisualizer):
         try:
             # Try to load from files first
             script_dir = os.path.dirname(__file__)
-            shader_dir = os.path.join(script_dir, '..', 'shaders')
+            shader_dir = os.path.join(script_dir, '..', '..', 'shaders')
             
             vertex_src = None
             fragment_src = None

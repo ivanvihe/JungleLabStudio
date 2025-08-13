@@ -4,7 +4,7 @@ import ctypes
 import os
 import logging
 
-from .base_visualizer import BaseVisualizer
+from visuals.base_visualizer import BaseVisualizer
 
 class AbstractShapesVisualizer(BaseVisualizer):
     visual_name = "Abstract Shapes"
@@ -68,7 +68,7 @@ class AbstractShapesVisualizer(BaseVisualizer):
 
     def load_shaders(self):
         script_dir = os.path.dirname(__file__)
-        shader_dir = os.path.join(script_dir, '..', 'shaders')
+        shader_dir = os.path.join(script_dir, '..', '..', 'shaders')
 
         try:
             with open(os.path.join(shader_dir, 'basic.vert'), 'r') as f:
@@ -104,12 +104,15 @@ class AbstractShapesVisualizer(BaseVisualizer):
     def setup_shapes(self):
         try:
             # Clean up old buffers
-            if self.VBO:
+            if self.VBO and self.VBO != 0:
                 glDeleteBuffers(1, [self.VBO])
-            if self.VAO:
+                self.VBO = None
+            if self.VAO and self.VAO != 0:
                 glDeleteVertexArrays(1, [self.VAO])
-            if self.EBO:
+                self.VAO = None
+            if self.EBO and self.EBO != 0:
                 glDeleteBuffers(1, [self.EBO])
+                self.EBO = None
 
             vertices = []
             indices = []
@@ -125,8 +128,7 @@ class AbstractShapesVisualizer(BaseVisualizer):
             elif self.shape_type == 1: # Quad
                 base_vertices = np.array([
                     -0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 0.8, # Vertex 1
-                     0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 0.8, # Vertex 2
-                     0.5,  0.5, 0.0, 0.0, 0.0, 1.0, 0.8, # Vertex 3
+                     0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 0.8, # Vertex 3
                     -0.5,  0.5, 0.0, 1.0, 1.0, 0.0, 0.8  # Vertex 4
                 ], dtype=np.float32)
                 base_indices = np.array([0, 1, 2, 2, 3, 0], dtype=np.uint32)
