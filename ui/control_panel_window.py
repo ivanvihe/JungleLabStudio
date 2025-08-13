@@ -168,36 +168,30 @@ class ControlPanelWindow(QMainWindow):
         title.setStyleSheet("color: #00ff00; background-color: #1a1a1a; padding: 10px; border-radius: 5px;")
         deck_layout.addWidget(title)
         
-        # Preview window - DISABLED to avoid OpenGL conflicts
+        # Preview window
         preview_group = QGroupBox("Preview")
         preview_layout = QVBoxLayout(preview_group)
-        
-        # For now, just show a placeholder to avoid OpenGL context issues
-        placeholder_label = QLabel(f"Deck {deck_id} Preview\n(Disabled to prevent conflicts)")
-        placeholder_label.setStyleSheet("color: #888; background-color: #2a2a2a; padding: 40px; text-align: center;")
-        placeholder_label.setFixedSize(250, 200)
-        placeholder_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        preview_layout.addWidget(placeholder_label)
-        
-        # TODO: Re-enable preview when OpenGL context sharing is fixed
-        # try:
-        #     # Get the appropriate deck for preview
-        #     deck = self.mixer_window.deck_a if deck_id == 'A' else self.mixer_window.deck_b
-        #     preview_widget = PreviewGLWidget(deck)
-        #     preview_widget.setFixedSize(250, 200)
-        #     preview_layout.addWidget(preview_widget)
-        #     
-        #     # Store reference to preview widget
-        #     if deck_id == 'A':
-        #         self.preview_a = preview_widget
-        #     else:
-        #         self.preview_b = preview_widget
-        #         
-        # except Exception as e:
-        #     logging.error(f"Error creating preview widget for deck {deck_id}: {e}")
-        #     error_label = QLabel(f"Preview Error: {str(e)}")
-        #     error_label.setStyleSheet("color: red; background-color: #2a2a2a; padding: 10px;")
-        #     preview_layout.addWidget(error_label)
+
+        try:
+            # Get the appropriate deck for preview
+            deck = self.mixer_window.deck_a if deck_id == 'A' else self.mixer_window.deck_b
+            preview_widget = PreviewGLWidget(deck)
+            preview_widget.setFixedSize(250, 200)
+            preview_layout.addWidget(preview_widget)
+
+            # Store reference to preview widget
+            if deck_id == 'A':
+                self.preview_a = preview_widget
+            else:
+                self.preview_b = preview_widget
+
+        except Exception as e:
+            logging.error(f"Error creating preview widget for deck {deck_id}: {e}")
+            error_label = QLabel(f"Preview Error: {str(e)}")
+            error_label.setStyleSheet("color: red; background-color: #2a2a2a; padding: 10px;")
+            error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            error_label.setFixedSize(250, 200)
+            preview_layout.addWidget(error_label)
         
         deck_layout.addWidget(preview_group)
         
@@ -612,11 +606,10 @@ class ControlPanelWindow(QMainWindow):
     def update_info_and_previews(self):
         """Update preview windows and system information"""
         try:
-            # Preview updates disabled to prevent OpenGL conflicts
-            # if hasattr(self, 'preview_a'):
-            #     self.preview_a.update_preview()
-            # if hasattr(self, 'preview_b'):
-            #     self.preview_b.update_preview()
+            if hasattr(self, 'preview_a'):
+                self.preview_a.update_preview()
+            if hasattr(self, 'preview_b'):
+                self.preview_b.update_preview()
             
             # Update device displays periodically (every 2 seconds)
             if not hasattr(self, '_last_device_update'):
