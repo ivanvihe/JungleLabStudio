@@ -7,6 +7,23 @@ import time
 
 from .base_visualizer import BaseVisualizer
 
+# Import OpenGL safety functions
+try:
+    from opengl_fixes import OpenGLSafety
+except ImportError:
+    # Fallback if opengl_fixes is not available
+    class OpenGLSafety:
+        @staticmethod
+        def safe_line_width(width):
+            try:
+                glLineWidth(max(1.0, min(width, 10.0)))  # Clamp to reasonable range
+            except:
+                glLineWidth(1.0)
+        
+        @staticmethod
+        def check_gl_errors(context=""):
+            pass
+
 VERT = """
 #version 330 core
 layout(location=0) in vec3 aPos;
@@ -237,7 +254,7 @@ class WireTerrainVisualizer(BaseVisualizer):
         # Enable wireframe or fill mode
         if self.wire==1:
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
-            glLineWidth(1.0)
+            OpenGLSafety.safe_line_width(1.0)
         else:
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
 
@@ -245,6 +262,8 @@ class WireTerrainVisualizer(BaseVisualizer):
         glDrawElements(GL_TRIANGLES, self.indices.size, GL_UNSIGNED_INT, None)
         glBindVertexArray(0)
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+        
+        OpenGLSafety.check_gl_errors("WireTerrain paintGL")
 
     def resizeGL(self,w,h): 
         glViewport(0,0,w,h)

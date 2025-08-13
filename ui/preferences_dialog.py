@@ -98,7 +98,7 @@ class PreferencesDialog(QDialog):
         self.midi_device_selector.clear()
         self.midi_device_selector.addItem("No Device")
         
-        devices = self.midi_engine.get_midi_input_ports()
+        devices = self.midi_engine.list_input_ports()
         for device in devices:
             self.midi_device_selector.addItem(device)
 
@@ -115,10 +115,10 @@ class PreferencesDialog(QDialog):
     def on_midi_device_changed(self, device_name):
         """Handle MIDI device selection change"""
         if device_name == "No Device":
-            self.midi_engine.close_midi_input_port()
+            self.midi_engine.close_input_port()
             self.settings_manager.set_setting("last_midi_device", "")
         else:
-            self.midi_engine.open_midi_input_port(device_name)
+            self.midi_engine.open_input_port(device_name)
             self.settings_manager.set_setting("last_midi_device", device_name)
 
     def on_audio_device_changed(self, device_text):

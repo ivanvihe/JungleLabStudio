@@ -1,144 +1,318 @@
 from OpenGL.GL import *
-from OpenGL.GLU import *
 import numpy as np
 import ctypes
 import os
 import logging
+import math
+import time
 
 from .base_visualizer import BaseVisualizer
 
+# Import OpenGL safety functions (opcional)
+try:
+    from opengl_fixes import OpenGLSafety
+except ImportError:
+    class OpenGLSafety:
+        @staticmethod
+        def check_gl_errors(context=""):
+            try:
+                error = glGetError()
+                if error != GL_NO_ERROR:
+                    logging.warning(f"OpenGL error in {context}: {error}")
+                return error
+            except Exception:
+                return GL_NO_ERROR
+
+
+def _perspective(fovy_deg: float, aspect: float, znear: float, zfar: float) -> np.ndarray:
+    f = 1.0 / math.tan(math.radians(fovy_deg) / 2.0)
+    m = np.zeros((4, 4), dtype=np.float32)
+    m[0, 0] = f / aspect
+    m[1, 1] = f
+    m[2, 2] = (zfar + znear) / (znear - zfar)
+    m[2, 3] = (2.0 * zfar * znear) / (znear - zfar)
+    m[3, 2] = -1.0
+    return m
+
+
+def _look_at(eye, center, up) -> np.ndarray:
+    eye = np.array(eye, dtype=np.float32)
+    center = np.array(center, dtype=np.float32)
+    up = np.array(up, dtype=np.float32)
+
+    f = center - eye
+    f = f / np.linalg.norm(f)
+    u = up / np.linalg.norm(up)
+    s = np.cross(f, u)
+    s = s / np.linalg.norm(s)
+    u = np.cross(s, f)
+
+    m = np.identity(4, dtype=np.float32)
+    m[0, 0:3] = s
+    m[1, 0:3] = u
+    m[2, 0:3] = -f
+    t = np.identity(4, dtype=np.float32)
+    t[0, 3] = -eye[0]
+    t[1, 3] = -eye[1]
+    t[2, 3] = -eye[2]
+    return m @ t
+
+
+def _rotation_y(theta: float) -> np.ndarray:
+    c, s = math.cos(theta), math.sin(theta)
+    m = np.identity(4, dtype=np.float32)
+    m[0, 0] = c
+    m[0, 2] = s
+    m[2, 0] = -s
+    m[2, 2] = c
+    return m
+
+
 class MobiusBandVisualizer(BaseVisualizer):
     visual_name = "Möbius Band"
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.shader_program = None
         self.VBO = None
         self.VAO = None
         self.EBO = None
+
         self.num_segments = 100
-        self.num_strips = 20
-        self.vertices = None
+        self.num_strips = 24   # algo más suave que 20
+        self.vertices = None   # interleaved: x,y,z,r,g,b,a (7 floats)
         self.indices = None
-        self.time = 0.0
+
         self.width = 1.0
         self.animation_speed = 1.0
         self.color_mode = 0
-        self.surface_offset = 0.0  # Para el deslizamiento de la superficie
+        self.surface_offset = 0.0
+        self.opacity = 0.9
+        self.wireframe = False
 
+        self._last_time = time.time()
+        self._proj = np.identity(4, dtype=np.float32)
+        self._view = _look_at(eye=(0.0, 0.0, 6.0), center=(0.0, 0.0, 0.0), up=(0.0, 1.0, 0.0))
+        self._model = np.identity(4, dtype=np.float32)
+
+        # cache uniform locations
+        self._u_projection = None
+        self._u_view = None
+        self._u_model = None
+
+    # ---------- UI ----------
     def get_controls(self):
         return {
-            "Segments": {
-                "type": "slider",
-                "min": 50,
-                "max": 300,
-                "value": self.num_segments,
-            },
-            "Width": {
-                "type": "slider",
-                "min": 50,
-                "max": 200,
-                "value": int(self.width * 100),
-            },
-            "Speed": {
-                "type": "slider",
-                "min": 1,
-                "max": 50,
-                "value": int(self.animation_speed * 10),
-            },
-            "Color Mode": {
-                "type": "dropdown",
-                "options": ["Rainbow", "Fire", "Electric", "Ocean", "Plasma"],
-                "value": self.color_mode,
-            }
+            "Segments": {"type": "slider", "min": 50, "max": 300, "value": int(self.num_segments)},
+            "Width": {"type": "slider", "min": 30, "max": 300, "value": int(self.width * 100)},
+            "Speed": {"type": "slider", "min": 1, "max": 100, "value": int(self.animation_speed * 10)},
+            "Color Mode": {"type": "dropdown",
+                           "options": ["Rainbow", "Fire", "Electric", "Ocean", "Plasma"],
+                           "value": self.color_mode},
+            "Opacity": {"type": "slider", "min": 10, "max": 100, "value": int(self.opacity * 100)},
+            "Wireframe": {"type": "checkbox", "value": self.wireframe},
         }
 
     def update_control(self, name, value):
         if name == "Segments":
-            self.num_segments = int(value)
+            self.num_segments = max(3, int(value))
             self.generate_geometry()
+            self._upload_full_vbo()
         elif name == "Width":
             self.width = float(value) / 100.0
             self.generate_geometry()
+            self._upload_full_vbo()
         elif name == "Speed":
             self.animation_speed = float(value) / 10.0
         elif name == "Color Mode":
             self.color_mode = int(value)
+        elif name == "Opacity":
+            self.opacity = float(value) / 100.0
+        elif name == "Wireframe":
+            self.wireframe = bool(value)
 
+    # ---------- GL lifecycle ----------
     def initializeGL(self):
-        print("MobiusBandVisualizer.initializeGL called")
-        # TRANSPARENT BACKGROUND FOR MIXING
-        glClearColor(0.0, 0.0, 0.0, 0.0)  # Alpha = 0 for transparency
+        glClearColor(0.0, 0.0, 0.0, 0.0)  # fondo transparente
         glEnable(GL_DEPTH_TEST)
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
-        self.load_shaders()
+        if not self.load_shaders():
+            print("Failed to initialize Möbius shaders")
+            return
+
         self.generate_geometry()
         self.setup_buffers()
+        self._cache_uniforms()
+        print("MobiusBand initialized successfully")
 
-    def load_shaders(self):
-        script_dir = os.path.dirname(__file__)
-        shader_dir = os.path.join(script_dir, '..', 'shaders')
+    def resizeGL(self, w, h):
+        glViewport(0, 0, max(1, w), max(1, h))
+        aspect = max(1.0, float(w) / float(h if h > 0 else 1))
+        self._proj = _perspective(50.0, aspect, 0.05, 100.0)
 
+    def paintGL(self):
+        # delta time
+        now = time.time()
+        dt = max(0.0, min(0.05, now - self._last_time))  # clamp 50ms
+        self._last_time = now
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+        # animación
+        self.surface_offset += dt * 0.7 * self.animation_speed
+        self._model = _rotation_y(now * 0.3 * self.animation_speed)
+
+        # actualizar colores (y subir al VBO eficientemente)
+        self.update_colors()
+        self._upload_colors_only()
+
+        # draw
+        glUseProgram(self.shader_program)
+        if self._u_projection is not None:
+            glUniformMatrix4fv(self._u_projection, 1, GL_FALSE, self._proj)
+        if self._u_view is not None:
+            glUniformMatrix4fv(self._u_view, 1, GL_FALSE, self._view)
+        if self._u_model is not None:
+            glUniformMatrix4fv(self._u_model, 1, GL_FALSE, self._model)
+
+        glBindVertexArray(self.VAO)
+        polygon_mode = GL_LINE if self.wireframe else GL_FILL
+        glPolygonMode(GL_FRONT_AND_BACK, polygon_mode)
+        glDrawElements(GL_TRIANGLES, self.indices.size, GL_UNSIGNED_INT, ctypes.c_void_p(0))
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+        glBindVertexArray(0)
+        glUseProgram(0)
+
+        OpenGLSafety.check_gl_errors("paintGL")
+
+    def teardownGL(self):
+        # Llama a esto en tu BaseVisualizer si tienes hook de cleanup
         try:
-            with open(os.path.join(shader_dir, 'basic.vert'), 'r') as f:
-                vertex_shader_source = f.read()
-            with open(os.path.join(shader_dir, 'basic.frag'), 'r') as f:
-                fragment_shader_source = f.read()
+            if self.VAO:
+                glDeleteVertexArrays(1, [self.VAO])
+                self.VAO = None
+            if self.VBO:
+                glDeleteBuffers(1, [self.VBO])
+                self.VBO = None
+            if self.EBO:
+                glDeleteBuffers(1, [self.EBO])
+                self.EBO = None
+            if self.shader_program:
+                glDeleteProgram(self.shader_program)
+                self.shader_program = None
+        except Exception as e:
+            print(f"teardownGL error: {e}")
 
-            vertex_shader = glCreateShader(GL_VERTEX_SHADER)
-            glShaderSource(vertex_shader, vertex_shader_source)
-            glCompileShader(vertex_shader)
+    # ---------- Shaders ----------
+    def load_shaders(self):
+        try:
+            # intenta cargar desde archivo
+            script_dir = os.path.dirname(__file__)
+            shader_dir = os.path.join(script_dir, '..', 'shaders')
 
-            fragment_shader = glCreateShader(GL_FRAGMENT_SHADER)
-            glShaderSource(fragment_shader, fragment_shader_source)
-            glCompileShader(fragment_shader)
+            vertex_src = None
+            fragment_src = None
+            try:
+                with open(os.path.join(shader_dir, 'basic.vert'), 'r', encoding='utf-8') as f:
+                    vertex_src = f.read()
+                with open(os.path.join(shader_dir, 'basic.frag'), 'r', encoding='utf-8') as f:
+                    fragment_src = f.read()
+            except FileNotFoundError:
+                print("Shader files not found, using fallback shaders")
+
+            if not vertex_src:
+                vertex_src = """
+                #version 330 core
+                layout (location = 0) in vec3 aPos;
+                layout (location = 1) in vec4 aColor;
+                uniform mat4 projection;
+                uniform mat4 view;
+                uniform mat4 model;
+                out vec4 vColor;
+                void main(){
+                    gl_Position = projection * view * model * vec4(aPos, 1.0);
+                    vColor = aColor;
+                }
+                """
+            if not fragment_src:
+                fragment_src = """
+                #version 330 core
+                in vec4 vColor;
+                out vec4 FragColor;
+                void main(){
+                    FragColor = vColor;
+                }
+                """
+
+            vs = glCreateShader(GL_VERTEX_SHADER)
+            glShaderSource(vs, vertex_src)
+            glCompileShader(vs)
+            if not glGetShaderiv(vs, GL_COMPILE_STATUS):
+                raise RuntimeError(glGetShaderInfoLog(vs).decode())
+
+            fs = glCreateShader(GL_FRAGMENT_SHADER)
+            glShaderSource(fs, fragment_src)
+            glCompileShader(fs)
+            if not glGetShaderiv(fs, GL_COMPILE_STATUS):
+                raise RuntimeError(glGetShaderInfoLog(fs).decode())
 
             self.shader_program = glCreateProgram()
-            glAttachShader(self.shader_program, vertex_shader)
-            glAttachShader(self.shader_program, fragment_shader)
+            glAttachShader(self.shader_program, vs)
+            glAttachShader(self.shader_program, fs)
             glLinkProgram(self.shader_program)
+            if not glGetProgramiv(self.shader_program, GL_LINK_STATUS):
+                raise RuntimeError(glGetProgramInfoLog(self.shader_program).decode())
 
-            glDeleteShader(vertex_shader)
-            glDeleteShader(fragment_shader)
-            print("MobiusBand shaders loaded successfully")
+            glDeleteShader(vs)
+            glDeleteShader(fs)
+            return True
         except Exception as e:
-            print(f"MobiusBand shader loading error: {e}")
+            print(f"Error loading MobiusBand shaders: {e}")
+            return False
 
+    def _cache_uniforms(self):
+        glUseProgram(self.shader_program)
+        self._u_projection = glGetUniformLocation(self.shader_program, "projection")
+        self._u_view = glGetUniformLocation(self.shader_program, "view")
+        self._u_model = glGetUniformLocation(self.shader_program, "model")
+        glUseProgram(0)
+
+    # ---------- Geometría ----------
     def generate_geometry(self):
         vertices = []
         indices = []
 
-        # Generate Möbius strip
+        # Parametrización clásica (radio ~2.0) con ancho variable en v
         for i in range(self.num_segments + 1):
             u = i * 2.0 * np.pi / self.num_segments
-            
             for j in range(self.num_strips):
-                v = -self.width + (2 * self.width * j) / (self.num_strips - 1)
-                
-                # Möbius strip equations
-                x = (2.0 + v * np.cos(u/2)) * np.cos(u)
-                y = (2.0 + v * np.cos(u/2)) * np.sin(u)
-                z = v * np.sin(u/2)
-                
-                # Add vertex with position and initial color (semi-transparent)
-                vertices.extend([x, y, z, 1.0, 1.0, 1.0, 0.8])
+                v = -self.width + (2.0 * self.width * j) / (self.num_strips - 1)
 
-        # Generate triangle indices
+                x = (2.0 + v * math.cos(u * 0.5)) * math.cos(u)
+                y = (2.0 + v * math.cos(u * 0.5)) * math.sin(u)
+                z = v * math.sin(u * 0.5)
+
+                # pos + color placeholder (se rellena en update_colors)
+                vertices.extend([x, y, z, 1.0, 1.0, 1.0, self.opacity])
+
+        # Triángulos
+        ring = self.num_strips
         for i in range(self.num_segments):
             for j in range(self.num_strips - 1):
-                idx = i * self.num_strips + j
-                next_i = ((i + 1) % (self.num_segments + 1)) * self.num_strips + j
-                
-                # Two triangles per quad
-                indices.extend([idx, next_i, idx + 1])
-                indices.extend([next_i, next_i + 1, idx + 1])
+                curr = i * ring + j
+                nextu = (i + 1) * ring + j
+                indices.extend([curr, nextu, curr + 1])
+                indices.extend([nextu, nextu + 1, curr + 1])
 
         self.vertices = np.array(vertices, dtype=np.float32)
         self.indices = np.array(indices, dtype=np.uint32)
+        # inicializa colores una primera vez
+        self.update_colors()
 
     def setup_buffers(self):
+        # limpia anteriores
         if self.VAO:
             glDeleteVertexArrays(1, [self.VAO])
         if self.VBO:
@@ -147,169 +321,87 @@ class MobiusBandVisualizer(BaseVisualizer):
             glDeleteBuffers(1, [self.EBO])
 
         self.VAO = glGenVertexArrays(1)
+        self.VBO = glGenBuffers(1)
+        self.EBO = glGenBuffers(1)
+
         glBindVertexArray(self.VAO)
 
-        self.VBO = glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
         glBufferData(GL_ARRAY_BUFFER, self.vertices.nbytes, self.vertices, GL_DYNAMIC_DRAW)
 
-        # Position
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(0))
+        stride = 7 * self.vertices.itemsize
+        # aPos (location 0)
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(0))
         glEnableVertexAttribArray(0)
-        
-        # Color
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(3 * ctypes.sizeof(GLfloat)))
+        # aColor (location 1)
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(3 * self.vertices.itemsize))
         glEnableVertexAttribArray(1)
 
-        self.EBO = glGenBuffers(1)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.EBO)
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, self.indices.nbytes, self.indices, GL_STATIC_DRAW)
 
         glBindVertexArray(0)
 
+    # ---------- Actualización de color ----------
     def update_colors(self):
-        vertex_count = len(self.vertices) // 7
-        
-        for i in range(vertex_count):
-            idx = i * 7
-            
-            # Get parametric coordinates
-            segment = i // self.num_strips
-            strip = i % self.num_strips
-            u = segment * 2.0 * np.pi / self.num_segments
-            v = strip / (self.num_strips - 1)
-            
-            # SUPERFICIE DESLIZANTE: añadir offset que se mueve a lo largo de la banda
-            # Esto hace que los patrones de color se deslicen siguiendo la superficie
-            sliding_u = u + self.surface_offset
-            
-            # Color based on mode con superficie deslizante
-            if self.color_mode == 0:  # Rainbow - deslizante
-                r = 0.5 + 0.5 * np.sin(sliding_u * 3)
-                g = 0.5 + 0.5 * np.sin(sliding_u * 3 + 2*np.pi/3)
-                b = 0.5 + 0.5 * np.sin(sliding_u * 3 + 4*np.pi/3)
-            elif self.color_mode == 1:  # Fire - efecto llama deslizante
-                flame_intensity = 0.5 + 0.5 * np.sin(sliding_u * 4)
-                r = 0.9 * flame_intensity
-                g = 0.3 + 0.4 * flame_intensity
-                b = 0.1 * flame_intensity
-            elif self.color_mode == 2:  # Electric - pulsos eléctricos
-                electric_pulse = 0.3 + 0.7 * np.sin(sliding_u * 8)
-                r = 0.3 * electric_pulse
-                g = 0.8 * electric_pulse
-                b = 1.0 * electric_pulse
-            elif self.color_mode == 3:  # Ocean - ondas de agua
-                wave1 = 0.5 + 0.5 * np.sin(sliding_u * 2)
-                wave2 = 0.5 + 0.5 * np.sin(sliding_u * 3 + v * 2)
-                r = 0.1 * wave1
-                g = 0.4 + 0.3 * wave1
-                b = 0.7 + 0.3 * wave2
-            else:  # Plasma - patrón ondulatorio complejo
-                plasma1 = np.sin(sliding_u * 2 + v * 3)
-                plasma2 = np.sin(sliding_u * 3 - v * 2)
-                plasma3 = np.sin(sliding_u * 4 + v * 4)
-                r = 0.5 + 0.5 * plasma1
-                g = 0.5 + 0.5 * plasma2
-                b = 0.5 + 0.5 * plasma3
-            
-            # Añadir variación basada en la posición v para mayor riqueza visual
-            v_factor = 0.8 + 0.2 * np.sin(v * np.pi)
-            
-            self.vertices[idx + 3] = r * v_factor
-            self.vertices[idx + 4] = g * v_factor
-            self.vertices[idx + 5] = b * v_factor
-            self.vertices[idx + 6] = 0.8  # Semi-transparente para mezclas
+        if self.vertices is None:
+            return
 
-        # Update buffer
+        vertex_count = self.vertices.size // 7
+        ring = self.num_strips
+
+        for i in range(vertex_count):
+            seg = i // ring
+            strip = i % ring
+            u = seg * 2.0 * np.pi / self.num_segments
+            v = strip / (ring - 1) if ring > 1 else 0.0
+
+            sliding_u = u + self.surface_offset
+
+            if self.color_mode == 0:  # Rainbow
+                r = 0.5 + 0.5 * math.sin(sliding_u * 3.0)
+                g = 0.5 + 0.5 * math.sin(sliding_u * 3.0 + 2 * math.pi / 3)
+                b = 0.5 + 0.5 * math.sin(sliding_u * 3.0 + 4 * math.pi / 3)
+            elif self.color_mode == 1:  # Fire
+                t = 0.5 + 0.5 * math.sin(sliding_u * 4.0 + v * 2.0)
+                r, g, b = 0.9 * t, 0.25 + 0.5 * t, 0.05 * t
+            elif self.color_mode == 2:  # Electric
+                t = 0.3 + 0.7 * max(0.0, math.sin(sliding_u * 8.0))
+                r, g, b = 0.25 * t, 0.85 * t, 1.0 * t
+            elif self.color_mode == 3:  # Ocean
+                w1 = 0.5 + 0.5 * math.sin(sliding_u * 2.0)
+                w2 = 0.5 + 0.5 * math.sin(sliding_u * 3.0 + v * 2.5)
+                r, g, b = 0.08 * w1, 0.35 + 0.35 * w1, 0.65 + 0.35 * w2
+            else:  # Plasma
+                p1 = math.sin(sliding_u * 2.0 + v * 3.0)
+                p2 = math.sin(sliding_u * 3.0 - v * 2.0)
+                p3 = math.sin(sliding_u * 4.0 + v * 4.0)
+                r, g, b = 0.5 + 0.5 * p1, 0.5 + 0.5 * p2, 0.5 + 0.5 * p3
+
+            v_factor = 0.8 + 0.2 * math.sin(v * math.pi)
+            base = i * 7
+            self.vertices[base + 3] = r * v_factor
+            self.vertices[base + 4] = g * v_factor
+            self.vertices[base + 5] = b * v_factor
+            self.vertices[base + 6] = self.opacity  # alpha
+
+    # ---------- Subidas al GPU ----------
+    def _upload_full_vbo(self):
+        """Re-subir el VBO completo tras regenerar geometría."""
+        if not self.VBO:
+            self.setup_buffers()
+            return
         glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
-        glBufferSubData(GL_ARRAY_BUFFER, 0, self.vertices.nbytes, self.vertices)
+        glBufferData(GL_ARRAY_BUFFER, self.vertices.nbytes, self.vertices, GL_DYNAMIC_DRAW)
         glBindBuffer(GL_ARRAY_BUFFER, 0)
 
-    def resizeGL(self, width, height):
-        glViewport(0, 0, width, height)
-
-    def paintGL(self):
-        # CLEAR WITH TRANSPARENT BACKGROUND
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        
-        if not self.shader_program:
+    def _upload_colors_only(self):
+        """Sube solo la parte de color si la estructura no cambia."""
+        if not self.VBO or self.vertices is None:
             return
-            
-        glUseProgram(self.shader_program)
-
-        # Actualizar tiempo y offset de superficie deslizante
-        self.time += 0.016 * self.animation_speed
-        # El surface_offset hace que la superficie se deslice a lo largo de la banda
-        self.surface_offset += 0.05 * self.animation_speed
-        
-        self.update_colors()
-
-        # Set matrices - BANDA FIJA EN EL ESPACIO
-        projection = self.perspective(45, 1.0, 0.1, 100.0)
-        # FIXED: Camera más alejada para ver toda la banda
-        view = self.lookAt(np.array([0, 3, 12]), np.array([0, 0, 0]), np.array([0, 1, 0]))
-        
-        # MODELO FIJO - sin rotación, solo una ligera inclinación para mejor visualización
-        model = self.rotate(15, 1, 0, 0) @ self.rotate(30, 0, 1, 0)  # Inclinación fija
-
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE, projection)
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, view)
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, model)
-
-        # Draw
-        glBindVertexArray(self.VAO)
-        glDrawElements(GL_TRIANGLES, len(self.indices), GL_UNSIGNED_INT, None)
-        glBindVertexArray(0)
-
-    def perspective(self, fov, aspect, near, far):
-        f = 1.0 / np.tan(np.radians(fov / 2.0))
-        return np.array([
-            [f / aspect, 0.0, 0.0, 0.0],
-            [0.0, f, 0.0, 0.0],
-            [0.0, 0.0, (far + near) / (near - far), -1.0],
-            [0.0, 0.0, (2.0 * far * near) / (near - far), 0.0]
-        ], dtype=np.float32)
-
-    def lookAt(self, eye, center, up):
-        f = (center - eye) / np.linalg.norm(center - eye)
-        s = np.cross(f, up) / np.linalg.norm(np.cross(f, up))
-        u = np.cross(s, f)
-
-        return np.array([
-            [s[0], u[0], -f[0], 0.0],
-            [s[1], u[1], -f[1], 0.0],
-            [s[2], u[2], -f[2], 0.0],
-            [-np.dot(s, eye), -np.dot(u, eye), np.dot(f, eye), 1.0]
-        ], dtype=np.float32).T
-
-    def rotate(self, angle, x, y, z):
-        angle = np.radians(angle)
-        c, s = np.cos(angle), np.sin(angle)
-        n = np.sqrt(x*x + y*y + z*z)
-        if n == 0: 
-            return np.identity(4, dtype=np.float32)
-        x, y, z = x/n, y/n, z/n
-        return np.array([
-            [c+(x**2)*(1-c), x*y*(1-c)-z*s, x*z*(1-c)+y*s, 0],
-            [y*x*(1-c)+z*s, c+(y**2)*(1-c), y*z*(1-c)-x*s, 0],
-            [z*x*(1-c)-y*s, z*y*(1-c)+x*s, c+(z**2)*(1-c), 0],
-            [0, 0, 0, 1]
-        ], dtype=np.float32)
-
-    def cleanup(self):
-        print("Cleaning up MobiusBandVisualizer")
-        try:
-            if self.shader_program:
-                glDeleteProgram(self.shader_program)
-                self.shader_program = None
-            if self.VBO:
-                glDeleteBuffers(1, [self.VBO])
-                self.VBO = None
-            if self.VAO:
-                glDeleteVertexArrays(1, [self.VAO])
-                self.VAO = None
-            if self.EBO:
-                glDeleteBuffers(1, [self.EBO])
-                self.EBO = None
-        except Exception as e:
-            print(f"Error during cleanup: {e}")
+        glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
+        stride = 7 * self.vertices.itemsize
+        # Como los colores están intercalados, la forma más simple/robusta
+        # es subir el bloque completo. En GPUs modernas esto es OK.
+        glBufferSubData(GL_ARRAY_BUFFER, 0, self.vertices.nbytes, self.vertices)
+        glBindBuffer(GL_ARRAY_BUFFER, 0)

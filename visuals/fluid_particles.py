@@ -8,6 +8,23 @@ import math
 
 from .base_visualizer import BaseVisualizer
 
+# Import OpenGL safety functions
+try:
+    from opengl_fixes import OpenGLSafety
+except ImportError:
+    # Fallback if opengl_fixes is not available
+    class OpenGLSafety:
+        @staticmethod
+        def safe_point_size(size):
+            try:
+                glPointSize(max(1.0, min(size, 64.0)))  # Clamp to reasonable range
+            except:
+                glPointSize(1.0)
+        
+        @staticmethod
+        def check_gl_errors(context=""):
+            pass
+
 class FluidParticlesVisualizer(BaseVisualizer):
     visual_name = "Fluid Particles"
     
@@ -512,8 +529,8 @@ class FluidParticlesVisualizer(BaseVisualizer):
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, view)
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, model)
 
-        # Set point size for particles
-        glPointSize(max(self.particle_size * 3, 2.0))  # Ensure minimum visibility
+        # Set point size for particles - USING SAFE FUNCTION
+        OpenGLSafety.safe_point_size(max(self.particle_size * 3, 2.0))  # Ensure minimum visibility
 
         # Draw background first
         if self.background_intensity > 0.01 and self.background_elements:
@@ -527,6 +544,8 @@ class FluidParticlesVisualizer(BaseVisualizer):
             glBindVertexArray(self.VAO)
             glDrawArrays(GL_POINTS, 0, particles_to_draw)
             glBindVertexArray(0)
+        
+        OpenGLSafety.check_gl_errors("FluidParticles paintGL")
 
     def perspective(self, fov, aspect, near, far):
         f = 1.0 / np.tan(np.radians(fov / 2.0))

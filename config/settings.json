@@ -1,18 +1,18 @@
 {
-    "last_midi_device": "virtual 3",
+    "last_midi_device": "Keystation 61 MK3 1",
     "control_panel_monitor": 0,
     "main_window_monitor": 2,
     "auto_save_settings": true,
     "window_positions": {
         "control_panel": {
-            "x": 50,
-            "y": 50,
-            "width": 1200,
-            "height": 800
+            "x": 0,
+            "y": 30,
+            "width": 1536,
+            "height": 925
         },
         "main_window": {
-            "x": 100,
-            "y": 100,
+            "x": 2062,
+            "y": 70,
             "width": 800,
             "height": 600
         }
@@ -40,5 +40,16 @@
         "fps_limit": 60,
         "vsync": true,
         "quality": "high"
+    },
+    "midi_mappings": {
+        "mapping_0": {
+            "type": "load_preset",
+            "params": {
+                "deck_id": "B",
+                "preset_name": "Wire Terrain",
+                "custom_values": ""
+            },
+            "midi": "note_on_ch8_note52"
+        }
     }
 }

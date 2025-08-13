@@ -5,6 +5,8 @@ import logging
 class SettingsManager:
     def __init__(self, settings_file='config/settings.json'):
         self.settings_file = settings_file
+        # Archivo separado para mapeos MIDI
+        self.mappings_file = 'config/midi_mappings.json'
         self.settings = self.load_settings()
         
         # Set default values if they don't exist
@@ -44,7 +46,8 @@ class SettingsManager:
                 "fps_limit": 60,
                 "vsync": True,
                 "quality": "high"
-            }
+            },
+            "midi_mappings": {}  # Default empty MIDI mappings
         }
         
         # Add missing defaults
@@ -197,3 +200,101 @@ class SettingsManager:
             self.set_setting("control_panel_monitor", control_panel_monitor)
         if main_window_monitor is not None:
             self.set_setting("main_window_monitor", main_window_monitor)
+
+    # --- FUNCIONES MIDI MEJORADAS ---
+    def load_midi_mappings(self):
+        """Load MIDI mappings from settings - improved version"""
+        try:
+            # First try to load from the main settings file
+            mappings = self.get_setting("midi_mappings", {})
+            
+            # Also try to load from separate mappings file for backward compatibility
+            if not mappings and os.path.exists(self.mappings_file):
+                with open(self.mappings_file, 'r') as f:
+                    file_mappings = json.load(f)
+                    if isinstance(file_mappings, dict):
+                        mappings = file_mappings
+            
+            if isinstance(mappings, dict):
+                logging.info(f"Loaded {len(mappings)} MIDI mappings")
+                return mappings
+            else:
+                logging.warning("Invalid MIDI mappings format, returning empty dict")
+                return {}
+                
+        except Exception as e:
+            logging.error(f"Error loading MIDI mappings: {e}")
+            return {}
+
+    def save_midi_mappings(self, mappings):
+        """Save MIDI mappings to settings - improved version"""
+        try:
+            if isinstance(mappings, dict):
+                # Save to main settings
+                self.set_setting("midi_mappings", mappings)
+                
+                # Also save to separate file for backup
+                try:
+                    os.makedirs(os.path.dirname(self.mappings_file), exist_ok=True)
+                    with open(self.mappings_file, 'w') as f:
+                        json.dump(mappings, f, indent=4)
+                    logging.debug(f"MIDI mappings also saved to {self.mappings_file}")
+                except Exception as backup_error:
+                    logging.warning(f"Could not save MIDI mappings backup: {backup_error}")
+                
+                logging.info(f"Saved {len(mappings)} MIDI mappings")
+            else:
+                logging.error("Invalid mappings format, must be a dictionary")
+                
+        except Exception as e:
+            logging.error(f"Error saving MIDI mappings: {e}")
+
+    def get_midi_device_settings(self):
+        """Get MIDI device settings"""
+        return {
+            'last_device': self.get_setting("last_midi_device", ""),
+            'auto_connect': self.get_setting("midi_auto_connect", True),
+            'learn_timeout': self.get_setting("midi_learn_timeout", 10)
+        }
+
+    def set_midi_device_settings(self, device_settings):
+        """Set MIDI device settings"""
+        try:
+            for key, value in device_settings.items():
+                if key == 'last_device':
+                    self.set_setting("last_midi_device", value)
+                elif key == 'auto_connect':
+                    self.set_setting("midi_auto_connect", value)
+                elif key == 'learn_timeout':
+                    self.set_setting("midi_learn_timeout", value)
+            logging.info("MIDI device settings updated")
+        except Exception as e:
+            logging.error(f"Error setting MIDI device settings: {e}")
+
+    def export_midi_mappings(self, filename):
+        """Export MIDI mappings to a file"""
+        try:
+            mappings = self.load_midi_mappings()
+            with open(filename, 'w') as f:
+                json.dump(mappings, f, indent=2)
+            logging.info(f"MIDI mappings exported to {filename}")
+            return True
+        except Exception as e:
+            logging.error(f"Error exporting MIDI mappings: {e}")
+            return False
+
+    def import_midi_mappings(self, filename):
+        """Import MIDI mappings from a file"""
+        try:
+            with open(filename, 'r') as f:
+                mappings = json.load(f)
+            if isinstance(mappings, dict):
+                self.save_midi_mappings(mappings)
+                logging.info(f"MIDI mappings imported from {filename}")
+                return True
+            else:
+                logging.error("Invalid file format for MIDI mappings")
+                return False
+        except Exception as e:
+            logging.error(f"Error importing MIDI mappings: {e}")
+            return False

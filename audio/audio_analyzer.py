@@ -21,7 +21,7 @@ class AudioAnalyzer(QObject):
         
         # Data buffers
         self.audio_buffer = np.zeros(chunk_size, dtype=np.float32)
-        self.fft_buffer = np.zeros(chunk_size // 2, dtype=np.float32)
+        self.fft_buffer = np.zeros(chunk_size // 2 + 1, dtype=np.float32)
         
         # Analysis parameters
         self.window = np.hanning(chunk_size)  # Hanning window for FFT
@@ -32,7 +32,7 @@ class AudioAnalyzer(QObject):
         self.is_running = False
         self.current_level = 0.0
         self.peak_level = 0.0
-        self.last_fft = np.zeros(chunk_size // 2)
+        self.last_fft = np.zeros(chunk_size // 2 + 1)
         
         # Device info
         self.input_device_index = None
