@@ -87,36 +87,33 @@ class PreviewGLWidget(QOpenGLWidget):
         glBindVertexArray(0)
 
     def paintGL(self):
-        # Temporarily draw a solid color to test if the crash is in rendering
-        glClearColor(0.5, 0.0, 0.5, 1.0) # Magenta color
+        if not self.initialized:
+            glClearColor(0.1, 0.1, 0.2, 1.0)
+            glClear(GL_COLOR_BUFFER_BIT)
+            return
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        # All other rendering logic will be commented out for this test
 
-        # if not self.initialized:
-        #     return
-            
-        # glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        
-        # if not self.shader_program or not self.deck:
-        #     return
-            
-        # # Get texture from deck
-        # texture_id = self.deck.get_texture()
-        
-        # if texture_id and texture_id > 0:
-        #     glUseProgram(self.shader_program)
-        #     glActiveTexture(GL_TEXTURE0)
-        #     glBindTexture(GL_TEXTURE_2D, texture_id)
-        #     glUniform1i(glGetUniformLocation(self.shader_program, "screenTexture"), 0)
+        if not self.shader_program or not self.deck:
+            return
 
-        #     glBindVertexArray(self.quad_vao)
-        #     glDrawArrays(GL_TRIANGLES, 0, 6)
-        #     glBindVertexArray(0)
-        #     glUseProgram(0)
-        # else:
-        #     # Draw a fallback pattern if no texture
-        #     glClearColor(0.1, 0.1, 0.2, 1.0)
-        #     glClear(GL_COLOR_BUFFER_BIT)
+        # Get texture from deck and draw it to the quad
+        texture_id = self.deck.get_texture()
+
+        if texture_id and texture_id > 0:
+            glUseProgram(self.shader_program)
+            glActiveTexture(GL_TEXTURE0)
+            glBindTexture(GL_TEXTURE_2D, texture_id)
+            glUniform1i(glGetUniformLocation(self.shader_program, "screenTexture"), 0)
+
+            glBindVertexArray(self.quad_vao)
+            glDrawArrays(GL_TRIANGLES, 0, 6)
+            glBindVertexArray(0)
+            glUseProgram(0)
+        else:
+            # Draw a fallback pattern if no texture
+            glClearColor(0.1, 0.1, 0.2, 1.0)
+            glClear(GL_COLOR_BUFFER_BIT)
 
     def update_preview(self):
         self.update()

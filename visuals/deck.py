@@ -86,9 +86,9 @@ class Deck:
                 self._gl_initialized = True
                 logging.debug(f"Visualizer {self.visualizer_name} initialization completed")
 
-            # Set viewport and clear
+            # Set viewport and clear with transparent background
             glViewport(0, 0, self.size.width(), self.size.height())
-            glClearColor(0.0, 0.0, 0.0, 1.0)
+            glClearColor(0.0, 0.0, 0.0, 0.0)
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
             
             # Paint the visualizer
