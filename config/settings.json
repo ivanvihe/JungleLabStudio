@@ -5,16 +5,16 @@
     "auto_save_settings": true,
     "window_positions": {
         "control_panel": {
-            "x": 0,
-            "y": 30,
+            "x": 1947,
+            "y": 42,
             "width": 1536,
-            "height": 844
+            "height": 1219
         },
         "main_window": {
-            "x": 4322,
-            "y": 257,
-            "width": 800,
-            "height": 600
+            "x": 3840,
+            "y": 23,
+            "width": 1536,
+            "height": 793
         }
     },
     "deck_settings": {
