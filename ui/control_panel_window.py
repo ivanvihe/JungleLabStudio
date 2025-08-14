@@ -9,7 +9,6 @@ from PyQt6.QtCore import Qt, QTimer, QMutex, QMutexLocker
 from PyQt6.QtGui import QAction
 
 from .preferences_dialog import PreferencesDialog
-from .preview_gl_widget import PreviewGLWidget
 
 class ControlPanelWindow(QMainWindow):
     def __init__(self, mixer_window, settings_manager, midi_engine, visualizer_manager, audio_analyzer, open_midi_mapping_dialog_callback):
@@ -28,7 +27,6 @@ class ControlPanelWindow(QMainWindow):
         self._mutex = QMutex()
         
         # UI state tracking
-        self.preview_widgets = {}
         self.preset_selectors = {}
         self.controls_layouts = {}
         self.last_device_update = 0
@@ -48,9 +46,9 @@ class ControlPanelWindow(QMainWindow):
         # Connect audio signals
         self.setup_audio_connections()
         
-        # Timer for updating preview and info
+        # Timer for updating system information
         self.update_timer = QTimer()
-        self.update_timer.timeout.connect(self.update_info_and_previews)
+        self.update_timer.timeout.connect(self.update_info)
         self.update_timer.start(100)  # 10 FPS for UI updates
 
     def setup_midi_connections(self):
@@ -89,10 +87,6 @@ class ControlPanelWindow(QMainWindow):
         preferences_action.triggered.connect(self.show_preferences)
         settings_menu.addAction(preferences_action)
 
-        midi_mapping_action = QAction('MIDI Mapping...', self)
-        midi_mapping_action.triggered.connect(self.show_midi_mapping_dialog)
-        settings_menu.addAction(midi_mapping_action)
-
         # View menu
         view_menu = menubar.addMenu('View')
         
@@ -112,13 +106,6 @@ class ControlPanelWindow(QMainWindow):
             logging.error(f"Error opening preferences: {e}")
             QMessageBox.critical(self, "Error", f"Could not open preferences: {str(e)}")
 
-    def show_midi_mapping_dialog(self):
-        try:
-            if self.open_midi_mapping_dialog_callback:
-                self.open_midi_mapping_dialog_callback(self)
-        except Exception as e:
-            logging.error(f"Error opening MIDI mapping dialog: {e}")
-            QMessageBox.critical(self, "Error", f"Could not open MIDI mapping dialog: {str(e)}")
 
     def refresh_devices(self):
         """Refresh device information and update displays"""
@@ -177,7 +164,7 @@ class ControlPanelWindow(QMainWindow):
             logging.error(f"Error applying monitor settings: {e}")
 
     def create_deck_section(self, deck_id):
-        """Create a complete deck section with preview, controls, etc."""
+        """Create a complete deck section with controls and mappings"""
         deck_frame = QFrame()
         deck_frame.setFrameStyle(QFrame.Shape.StyledPanel)
         deck_layout = QVBoxLayout(deck_frame)
@@ -187,37 +174,6 @@ class ControlPanelWindow(QMainWindow):
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet("color: #00ff00; background-color: #1a1a1a; padding: 10px; border-radius: 5px;")
         deck_layout.addWidget(title)
-        
-        # Preview window
-        preview_group = QGroupBox("Preview")
-        preview_layout = QVBoxLayout(preview_group)
-
-        try:
-            # Get the appropriate deck for preview
-            deck = self.mixer_window.deck_a if deck_id == 'A' else self.mixer_window.deck_b
-            
-            if deck:
-                preview_widget = PreviewGLWidget(deck)
-                preview_widget.setFixedSize(280, 210)  # Slightly larger for better visibility
-                preview_layout.addWidget(preview_widget)
-                self.preview_widgets[deck_id] = preview_widget
-                logging.debug(f"✅ Created preview widget for deck {deck_id}")
-            else:
-                raise Exception("Deck not available yet")
-
-        except Exception as e:
-            logging.warning(f"Preview widget for deck {deck_id} will be created later: {e}")
-            # Create placeholder
-            placeholder_label = QLabel("Preview Loading...")
-            placeholder_label.setStyleSheet("color: #888; background-color: #2a2a2a; padding: 10px; border: 1px dashed #555;")
-            placeholder_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            placeholder_label.setFixedSize(280, 210)
-            preview_layout.addWidget(placeholder_label)
-            
-            # Try to create preview later
-            QTimer.singleShot(2000, lambda: self.retry_create_preview(deck_id, preview_layout, placeholder_label))
-        
-        deck_layout.addWidget(preview_group)
         
         # Visualizer selector
         selector_group = QGroupBox("Visualizer")
@@ -281,33 +237,19 @@ class ControlPanelWindow(QMainWindow):
         controls_group_layout = QVBoxLayout(controls_group)
         controls_group_layout.addWidget(controls_scroll)
         deck_layout.addWidget(controls_group)
-        
+
+        # MIDI mapping section
+        midi_group = QGroupBox("MIDI Mapping")
+        midi_layout = QVBoxLayout(midi_group)
+        midi_button = QPushButton("Configure MIDI Mapping")
+        midi_button.clicked.connect(lambda _, d=deck_id: self.open_midi_mapping_dialog_callback(d, self))
+        midi_layout.addWidget(midi_button)
+        deck_layout.addWidget(midi_group)
+
         # Store reference to controls layout
         self.controls_layouts[deck_id] = controls_layout
-        
-        return deck_frame
 
-    def retry_create_preview(self, deck_id, preview_layout, placeholder_label):
-        """Retry creating preview widget"""
-        try:
-            deck = self.mixer_window.deck_a if deck_id == 'A' else self.mixer_window.deck_b
-            
-            if deck and deck.is_ready():
-                # Remove placeholder
-                placeholder_label.setParent(None)
-                
-                # Create actual preview widget
-                preview_widget = PreviewGLWidget(deck)
-                preview_widget.setFixedSize(280, 210)
-                preview_layout.addWidget(preview_widget)
-                self.preview_widgets[deck_id] = preview_widget
-                logging.info(f"✅ Successfully created preview widget for deck {deck_id}")
-            else:
-                # Try again later
-                QTimer.singleShot(2000, lambda: self.retry_create_preview(deck_id, preview_layout, placeholder_label))
-                
-        except Exception as e:
-            logging.error(f"Failed to create preview widget for deck {deck_id}: {e}")
+        return deck_frame
 
     def apply_initial_visualizer(self, deck_id, visualizer_name):
         """Apply initial visualizer selection"""
@@ -682,14 +624,9 @@ class ControlPanelWindow(QMainWindow):
         except Exception as e:
             logging.error(f"Error updating frequency bands: {e}")
 
-    def update_info_and_previews(self):
-        """Update preview windows and system information"""
+    def update_info(self):
+        """Update system information"""
         try:
-            # Update previews
-            for deck_id, preview_widget in self.preview_widgets.items():
-                if preview_widget and hasattr(preview_widget, 'update_preview'):
-                    preview_widget.update_preview()
-            
             # Update device displays periodically
             import time
             current_time = time.time()
@@ -697,9 +634,9 @@ class ControlPanelWindow(QMainWindow):
                 self.update_midi_device_display()
                 self.update_audio_device_display()
                 self.last_device_update = current_time
-                
+
         except Exception as e:
-            logging.error(f"Error in update_info_and_previews: {e}")
+            logging.error(f"Error in update_info: {e}")
 
     def on_midi_device_connected(self, device_name):
         """Handle MIDI device connection"""
@@ -799,11 +736,6 @@ class ControlPanelWindow(QMainWindow):
             # Stop timer
             if hasattr(self, 'update_timer'):
                 self.update_timer.stop()
-            
-            # Clean up preview widgets
-            for preview_widget in self.preview_widgets.values():
-                if preview_widget and hasattr(preview_widget, 'cleanup'):
-                    preview_widget.cleanup()
             
             logging.debug("✅ Control panel cleaned up")
             

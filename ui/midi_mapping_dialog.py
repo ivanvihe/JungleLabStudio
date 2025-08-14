@@ -16,14 +16,20 @@ class MidiMappingDialog(QDialog):
     start_midi_learn = pyqtSignal(int)  # Emite el row index que está aprendiendo
     mappings_saved = pyqtSignal(dict)
 
-    def __init__(self, visualizer_presets, midi_engine, parent=None):
+    def __init__(self, visualizer_presets, midi_engine, deck_id=None, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Configuración de Mapeo MIDI")
+        title = "Configuración de Mapeo MIDI"
+        if deck_id:
+            title += f" - Deck {deck_id}"
+        self.setWindowTitle(title)
         self.setMinimumSize(1000, 700)
         self.resize(1200, 800)
 
         self.visualizer_presets = visualizer_presets or []
         self.midi_engine = midi_engine
+        self.deck_id = deck_id
+        self.deck_target = f"deck{deck_id.lower()}" if deck_id else None
+        self.existing_engine_mappings = {}
         self.learning_row = -1
         self.learning_timeout_timer = QTimer()
         self.learning_timeout_timer.setSingleShot(True)
@@ -32,8 +38,12 @@ class MidiMappingDialog(QDialog):
         # Cargar mapeos existentes y convertir al formato interno
         try:
             if hasattr(self.midi_engine, 'get_midi_mappings'):
-                existing_mappings = self.midi_engine.get_midi_mappings()
-                self.mappings = self.convert_engine_mappings_to_dialog_format(existing_mappings)
+                self.existing_engine_mappings = self.midi_engine.get_midi_mappings()
+                dialog_mappings = self.convert_engine_mappings_to_dialog_format(self.existing_engine_mappings)
+                if self.deck_target:
+                    self.mappings = [m for m in dialog_mappings if m.get('target') == self.deck_target]
+                else:
+                    self.mappings = dialog_mappings
                 logging.info(f"Loaded {len(self.mappings)} existing mappings from engine")
             else:
                 self.mappings = []
@@ -219,10 +229,11 @@ class MidiMappingDialog(QDialog):
 
     def add_new_mapping(self):
         """Añadir un nuevo mapeo a la tabla"""
+        target = self.deck_target if self.deck_target else 'deckA'
         new_mapping = {
             'action': 'Set Preset',
             'preset': self.visualizer_presets[0] if self.visualizer_presets else '',
-            'target': 'deckA', 
+            'target': target,
             'values': '',
             'midi': 'Sin asignar'
         }
@@ -262,12 +273,17 @@ class MidiMappingDialog(QDialog):
 
                 # Columna 2: Target (ComboBox)
                 target_combo = QComboBox()
-                if current_action in action_definitions:
-                    target_combo.addItems(action_definitions[current_action]["targets"])
-                current_target = mapping.get('target', 'deckA')
-                if current_target and current_target in action_definitions[current_action]["targets"]:
-                    target_combo.setCurrentText(current_target)
-                target_combo.currentTextChanged.connect(lambda text, r=row: self.on_target_changed(r, text))
+                if self.deck_target:
+                    target_combo.addItem(self.deck_target)
+                    target_combo.setCurrentText(self.deck_target)
+                    target_combo.setEnabled(False)
+                else:
+                    if current_action in action_definitions:
+                        target_combo.addItems(action_definitions[current_action]["targets"])
+                    current_target = mapping.get('target', 'deckA')
+                    if current_target and current_target in action_definitions[current_action]["targets"]:
+                        target_combo.setCurrentText(current_target)
+                    target_combo.currentTextChanged.connect(lambda text, r=row: self.on_target_changed(r, text))
                 self.table.setCellWidget(row, 2, target_combo)
 
                 # Columna 3: Values (LineEdit)
@@ -354,13 +370,18 @@ class MidiMappingDialog(QDialog):
             if isinstance(preset_combo, QComboBox):
                 preset_combo.clear()
                 preset_combo.addItems(action_definitions[action]["presets"])
-            
+
             # Actualizar target combo
             target_combo = self.table.cellWidget(row, 2)
             if isinstance(target_combo, QComboBox):
                 target_combo.clear()
-                target_combo.addItems(action_definitions[action]["targets"])
-            
+                if self.deck_target:
+                    target_combo.addItem(self.deck_target)
+                    target_combo.setCurrentText(self.deck_target)
+                    target_combo.setEnabled(False)
+                else:
+                    target_combo.addItems(action_definitions[action]["targets"])
+
             # Actualizar placeholder de values
             values_edit = self.table.cellWidget(row, 3)
             if isinstance(values_edit, QLineEdit):
@@ -607,6 +628,28 @@ class MidiMappingDialog(QDialog):
         """Aplicar mapeos sin cerrar diálogo"""
         try:
             engine_mappings = self.convert_to_engine_format()
+            if self.deck_target and self.midi_engine and hasattr(self.midi_engine, 'get_midi_mappings'):
+                existing = self.midi_engine.get_midi_mappings()
+                to_remove = []
+                for action_id, data in existing.items():
+                    try:
+                        action_type = data.get('type')
+                        params = data.get('params', {})
+                        deck = None
+                        if action_type == 'load_preset':
+                            deck = params.get('deck_id')
+                        elif action_type == 'control_parameter':
+                            target = params.get('target', '')
+                            if target.startswith('deck'):
+                                deck = target.replace('deck', '').upper()
+                        if deck and deck.lower() == self.deck_target.replace('deck', ''):
+                            to_remove.append(action_id)
+                    except Exception:
+                        continue
+                for action_id in to_remove:
+                    existing.pop(action_id, None)
+                existing.update(engine_mappings)
+                engine_mappings = existing
             if self.midi_engine and hasattr(self.midi_engine, 'set_midi_mappings'):
                 self.midi_engine.set_midi_mappings(engine_mappings)
                 logging.info(f"Applied {len(engine_mappings)} MIDI mappings to engine")
@@ -626,10 +669,32 @@ class MidiMappingDialog(QDialog):
         """Guardar mapeos y cerrar diálogo"""
         try:
             engine_mappings = self.convert_to_engine_format()
+            if self.deck_target and self.midi_engine and hasattr(self.midi_engine, 'get_midi_mappings'):
+                existing = self.midi_engine.get_midi_mappings()
+                to_remove = []
+                for action_id, data in existing.items():
+                    try:
+                        action_type = data.get('type')
+                        params = data.get('params', {})
+                        deck = None
+                        if action_type == 'load_preset':
+                            deck = params.get('deck_id')
+                        elif action_type == 'control_parameter':
+                            target = params.get('target', '')
+                            if target.startswith('deck'):
+                                deck = target.replace('deck', '').upper()
+                        if deck and deck.lower() == self.deck_target.replace('deck', ''):
+                            to_remove.append(action_id)
+                    except Exception:
+                        continue
+                for action_id in to_remove:
+                    existing.pop(action_id, None)
+                existing.update(engine_mappings)
+                engine_mappings = existing
             if self.midi_engine and hasattr(self.midi_engine, 'set_midi_mappings'):
                 self.midi_engine.set_midi_mappings(engine_mappings)
                 logging.info(f"Saved {len(engine_mappings)} MIDI mappings to engine")
-            
+
             self.mappings_saved.emit(engine_mappings)
             self.accept()
             

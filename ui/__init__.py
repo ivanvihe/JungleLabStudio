@@ -6,7 +6,6 @@ try:
     from .mixer_window import MixerWindow
     from .control_panel_window import ControlPanelWindow
     from .preferences_dialog import PreferencesDialog
-    from .preview_gl_widget import PreviewGLWidget
     from .midi_mapping_dialog import MidiMappingDialog
     
     __all__ = [
@@ -14,7 +13,6 @@ try:
         'MixerWindow', 
         'ControlPanelWindow',
         'PreferencesDialog',
-        'PreviewGLWidget',
         'MidiMappingDialog'
     ]
     
@@ -33,7 +31,6 @@ except ImportError as e:
     MixerWindow = DummyClass
     ControlPanelWindow = DummyClass
     PreferencesDialog = DummyClass
-    PreviewGLWidget = DummyClass
     MidiMappingDialog = DummyClass
     
     __all__ = []
