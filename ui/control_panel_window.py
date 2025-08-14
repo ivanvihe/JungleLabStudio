@@ -208,9 +208,6 @@ class ControlPanelWindow(QMainWindow):
                 # Store reference
                 self.preset_selectors[deck_id] = selector
                 
-                # Apply initial selection with delay
-                QTimer.singleShot(500, lambda: self.apply_initial_visualizer(deck_id, selector.currentText()))
-                
             else:
                 selector.addItem("No visualizers available")
                 logging.warning("No visualizers found!")
@@ -254,6 +251,9 @@ class ControlPanelWindow(QMainWindow):
 
         # Store reference to controls layout
         self.controls_layouts[deck_id] = controls_layout
+
+        # Apply initial selection with delay (after layout is ready)
+        QTimer.singleShot(500, lambda: self.apply_initial_visualizer(deck_id, selector.currentText()))
 
         return deck_frame
 
