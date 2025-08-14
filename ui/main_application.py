@@ -1,3 +1,4 @@
+# ui/main_application.py
 import sys
 import logging
 from PyQt6.QtWidgets import QApplication, QMessageBox
@@ -20,7 +21,7 @@ from visuals.visualizer_manager import VisualizerManager
 
 # Configure logging with better formatting
 logging.basicConfig(
-    level=logging.DEBUG,  # Ensure base level is DEBUG
+    level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
@@ -51,12 +52,11 @@ class MainApplication:
             # Validate components
             self.validate_initialization()
             
-            # Create UI windows
+            # Create UI windows with proper sequencing
             self.create_windows()
             
             # Setup connections and auto-connect devices
             self.setup_connections()
-            self.auto_connect_devices()
             
             # Setup debug connections for MIDI
             self.setup_debug_connections()
@@ -65,6 +65,8 @@ class MainApplication:
             
         except Exception as e:
             logging.critical(f"❌ Failed to initialize application: {e}")
+            import traceback
+            traceback.print_exc()
             self.show_critical_error("Initialization Error", str(e))
             sys.exit(1)
 
@@ -119,18 +121,9 @@ class MainApplication:
             
             logging.info(f"🎨 Loaded {len(visualizer_names)} visualizers: {visualizer_names}")
             
-            # List all visualizer classes for debugging
-            for name in visualizer_names:
-                visualizer_class = self.visualizer_manager.get_visualizer_class(name)
-                logging.debug(f"  Visualizer '{name}' -> {visualizer_class}")
-            
             # Check MIDI mappings
             midi_mappings = self.midi_engine.get_midi_mappings()
             logging.info(f"🎹 Loaded {len(midi_mappings)} MIDI mappings")
-            for mapping_id, mapping_data in midi_mappings.items():
-                midi_key = mapping_data.get('midi', 'no_midi')
-                action_type = mapping_data.get('type', 'unknown')
-                logging.info(f"  📋 MIDI Mapping: {midi_key} -> {action_type}")
             
             # Check settings
             settings = self.settings_manager.get_all_settings()
@@ -141,15 +134,15 @@ class MainApplication:
             raise
 
     def create_windows(self):
-        """Create and setup UI windows"""
+        """Create and setup UI windows with proper sequencing"""
         try:
             logging.info("🖥️ Creating UI windows...")
             
-            # Create mixer window
+            # Create mixer window first
             self.mixer_window = MixerWindow(self.visualizer_manager)
-            logging.debug("✅ Mixer window created")
+            logging.info("✅ Mixer window created")
             
-            # Create control panel
+            # Create control panel immediately (don't delay)
             self.control_panel = ControlPanelWindow(
                 self.mixer_window, 
                 self.settings_manager, 
@@ -158,18 +151,22 @@ class MainApplication:
                 self.audio_analyzer,
                 self.open_midi_mapping_dialog
             )
-            logging.debug("✅ Control panel created")
+            logging.info("✅ Control panel created")
             
-            # Set application references in MIDI engine for action execution
+            # Set application references in MIDI engine
             self.midi_engine.set_application_references(
                 mixer_window=self.mixer_window,
                 control_panel=self.control_panel
             )
-            logging.debug("✅ MIDI engine references set")
+            logging.info("✅ MIDI engine references set")
             
         except Exception as e:
             logging.error(f"❌ Error creating windows: {e}")
             raise
+
+    def create_control_panel(self):
+        """This method is no longer needed"""
+        pass
 
     def setup_connections(self):
         """Setup all signal connections"""
@@ -177,26 +174,30 @@ class MainApplication:
             logging.info("🔗 Setting up connections...")
             
             # Connect MIDI signals to control panel for UI updates
-            self.midi_engine.device_connected.connect(self.on_midi_device_connected)
-            self.midi_engine.device_disconnected.connect(self.on_midi_device_disconnected)
-            self.midi_engine.bpm_changed.connect(self.on_bmp_changed)
+            if hasattr(self.midi_engine, 'device_connected'):
+                self.midi_engine.device_connected.connect(self.on_midi_device_connected)
+            if hasattr(self.midi_engine, 'device_disconnected'):
+                self.midi_engine.device_disconnected.connect(self.on_midi_device_disconnected)
+            if hasattr(self.midi_engine, 'bpm_changed'):
+                self.midi_engine.bmp_changed.connect(self.on_bpm_changed)
             
             logging.info("✅ MIDI connections established")
             
         except Exception as e:
             logging.error(f"❌ Error setting up connections: {e}")
-            raise
 
     def setup_debug_connections(self):
         """Setup debug connections for MIDI monitoring"""
         try:
             # Connect to MIDI learning signal for debugging
-            self.midi_engine.midi_message_received_for_learning.connect(self.debug_midi_message)
+            if hasattr(self.midi_engine, 'midi_message_received_for_learning'):
+                self.midi_engine.midi_message_received_for_learning.connect(self.debug_midi_message)
             
             # Connect to raw MIDI messages for activity monitoring
-            self.midi_engine.midi_message_received.connect(self.debug_raw_midi_message)
+            if hasattr(self.midi_engine, 'midi_message_received'):
+                self.midi_engine.midi_message_received.connect(self.debug_raw_midi_message)
             
-            logging.info("🐛 Debug connections established")
+            logging.info("🛠 Debug connections established")
             
         except Exception as e:
             logging.warning(f"⚠️ Could not setup debug connections: {e}")
@@ -235,13 +236,9 @@ class MainApplication:
     def on_midi_device_connected(self, device_name):
         """Handle MIDI device connection"""
         try:
-            self.control_panel.update_midi_device_display(device_name)
+            if hasattr(self, 'control_panel'):
+                self.control_panel.update_midi_device_display(device_name)
             logging.info(f"🎹 MIDI device connected: {device_name}")
-            
-            # Load and apply any saved mappings
-            mappings = self.midi_engine.get_midi_mappings()
-            if mappings:
-                logging.info(f"📝 Applied {len(mappings)} saved MIDI mappings")
                 
         except Exception as e:
             logging.error(f"Error handling MIDI device connection: {e}")
@@ -249,15 +246,19 @@ class MainApplication:
     def on_midi_device_disconnected(self, device_name):
         """Handle MIDI device disconnection"""
         try:
-            self.control_panel.update_midi_device_display(None)
+            if hasattr(self, 'control_panel'):
+                self.control_panel.update_midi_device_display(None)
             logging.info(f"🎹 MIDI device disconnected: {device_name}")
         except Exception as e:
             logging.error(f"Error handling MIDI device disconnection: {e}")
 
-    def on_bmp_changed(self, bpm):
+    def on_bpm_changed(self, bpm):
         """Handle BPM change"""
         try:
-            self.control_panel.update_bpm_display(bpm)
+            if hasattr(self, 'control_panel'):
+                # Update BPM display if control panel has this method
+                if hasattr(self.control_panel, 'update_bpm_display'):
+                    self.control_panel.update_bpm_display(bpm)
             logging.debug(f"🥁 BPM updated: {bpm:.1f}")
         except Exception as e:
             logging.error(f"Error handling BPM change: {e}")
@@ -269,7 +270,7 @@ class MainApplication:
             
             # Auto-connect MIDI device
             last_midi_device = self.settings_manager.get_setting("last_midi_device", "")
-            if last_midi_device and last_midi_device != "":
+            if last_midi_device:
                 available_midi = self.midi_engine.list_input_ports()
                 logging.debug(f"Available MIDI devices: {available_midi}")
                 
@@ -285,19 +286,22 @@ class MainApplication:
             
             # Auto-connect audio device
             last_audio_device = self.settings_manager.get_setting("audio_settings.input_device", "")
-            if last_audio_device and last_audio_device != "":
-                available_audio = self.audio_analyzer.get_available_devices()
-                logging.debug(f"Available audio devices: {len(available_audio)} devices")
-                
-                for device in available_audio:
-                    device_text = f"{device['name']} ({device['channels']} ch)"
-                    if device_text == last_audio_device:
-                        self.audio_analyzer.set_input_device(device['index'])
-                        self.audio_analyzer.start_analysis()
-                        logging.info(f"✅ Auto-connected to audio device: {last_audio_device}")
-                        break
-                else:
-                    logging.info(f"❌ Previously used audio device '{last_audio_device}' not available")
+            if last_audio_device:
+                try:
+                    available_audio = self.audio_analyzer.get_available_devices()
+                    logging.debug(f"Available audio devices: {len(available_audio)} devices")
+                    
+                    for device in available_audio:
+                        device_text = f"{device['name']} ({device['channels']} ch)"
+                        if device_text == last_audio_device:
+                            self.audio_analyzer.set_input_device(device['index'])
+                            self.audio_analyzer.start_analysis()
+                            logging.info(f"✅ Auto-connected to audio device: {last_audio_device}")
+                            break
+                    else:
+                        logging.info(f"❌ Previously used audio device '{last_audio_device}' not available")
+                except Exception as e:
+                    logging.warning(f"⚠️ Error auto-connecting audio device: {e}")
             else:
                 logging.info("ℹ️ No audio device saved for auto-connection")
                 
@@ -327,7 +331,7 @@ class MainApplication:
             QMessageBox.critical(
                 parent_widget, 
                 "Error", 
-                f"No se pudo abrir el diálogo de mapeo MIDI: {str(e)}"
+                f"Could not open MIDI mapping dialog: {str(e)}"
             )
 
     def on_midi_mappings_saved(self, mappings):
@@ -343,49 +347,6 @@ class MainApplication:
             
         except Exception as e:
             logging.error(f"Error handling saved MIDI mappings: {e}")
-
-    def test_midi_mapping(self):
-        """Test method to manually trigger a MIDI mapping"""
-        try:
-            logging.info("🧪 Testing MIDI mapping functionality...")
-            
-            # Get available mappings
-            mappings = self.midi_engine.get_midi_mappings()
-            if not mappings:
-                logging.info("❌ No MIDI mappings available to test")
-                return
-            
-            # Test the first mapping
-            first_mapping = next(iter(mappings.values()))
-            test_message_key = first_mapping.get('midi')
-            
-            if test_message_key:
-                logging.info(f"🎹 Testing mapping with key: {test_message_key}")
-                self.midi_engine.execute_mapped_action(test_message_key, 127)
-            else:
-                logging.info("❌ No valid MIDI key found in mappings")
-                
-        except Exception as e:
-            logging.error(f"Error testing MIDI mapping: {e}")
-
-    def test_visualizer_directly(self):
-        """Test setting visualizer directly"""
-        try:
-            logging.info("🧪 Testing direct visualizer change...")
-            
-            # Test changing deck A visualizer
-            visualizer_names = self.visualizer_manager.get_visualizer_names()
-            if visualizer_names and len(visualizer_names) > 1:
-                test_visualizer = visualizer_names[1]  # Use second visualizer
-                logging.info(f"🎨 Testing direct visualizer change to: {test_visualizer}")
-                self.mixer_window.safe_set_deck_visualizer('A', test_visualizer)
-                
-                # Test changing crossfader
-                QTimer.singleShot(2000, lambda: self.mixer_window.safe_set_mix_value(75))
-                logging.info("🎚️ Testing crossfader change to 75%")
-                
-        except Exception as e:
-            logging.error(f"Error testing visualizer directly: {e}")
 
     def show_critical_error(self, title, message):
         """Show critical error dialog"""
@@ -407,8 +368,11 @@ class MainApplication:
             # Show control panel
             self.control_panel.show()
             
+            # Auto-connect devices after everything is set up
+            QTimer.singleShot(500, self.auto_connect_devices)
+            
             # Apply saved window positions
-            QTimer.singleShot(100, self.apply_window_positions)
+            QTimer.singleShot(200, self.apply_window_positions)
             
             logging.info("✅ Windows displayed")
             
@@ -424,7 +388,7 @@ class MainApplication:
             mixer_position = self.settings_manager.get_window_position("main_window")
             
             # Apply control panel position
-            if cp_position:
+            if cp_position and hasattr(self, 'control_panel'):
                 self.control_panel.setGeometry(
                     cp_position.get('x', 50),
                     cp_position.get('y', 50),
@@ -450,14 +414,15 @@ class MainApplication:
         """Save current window positions"""
         try:
             # Save control panel position
-            cp_geometry = self.control_panel.geometry()
-            self.settings_manager.set_window_position(
-                "control_panel",
-                cp_geometry.x(),
-                cp_geometry.y(), 
-                cp_geometry.width(),
-                cp_geometry.height()
-            )
+            if hasattr(self, 'control_panel'):
+                cp_geometry = self.control_panel.geometry()
+                self.settings_manager.set_window_position(
+                    "control_panel",
+                    cp_geometry.x(),
+                    cp_geometry.y(), 
+                    cp_geometry.width(),
+                    cp_geometry.height()
+                )
             
             # Save mixer window position
             mixer_geometry = self.mixer_window.geometry()
@@ -483,12 +448,12 @@ class MainApplication:
             self.save_window_positions()
             
             # Close MIDI connection
-            if self.midi_engine:
+            if hasattr(self, 'midi_engine') and self.midi_engine:
                 self.midi_engine.close_input_port()
                 logging.debug("✅ MIDI connection closed")
             
             # Stop audio analysis
-            if self.audio_analyzer:
+            if hasattr(self, 'audio_analyzer') and self.audio_analyzer:
                 self.audio_analyzer.stop_analysis()
                 logging.debug("✅ Audio analysis stopped")
             
@@ -496,6 +461,11 @@ class MainApplication:
             if hasattr(self, 'mixer_window') and self.mixer_window:
                 self.mixer_window.cleanup()
                 logging.debug("✅ OpenGL resources cleaned")
+            
+            # Cleanup control panel
+            if hasattr(self, 'control_panel') and self.control_panel:
+                self.control_panel.cleanup()
+                logging.debug("✅ Control panel cleaned")
             
             logging.info("✅ Cleanup completed")
             
@@ -509,12 +479,6 @@ class MainApplication:
             
             # Show windows
             self.show_windows()
-            
-            # Test visualizer change after 3 seconds
-            # QTimer.singleShot(3000, self.test_visualizer_directly)
-            
-            # Test MIDI mapping after 5 seconds (if any exist)
-            QTimer.singleShot(5000, self.test_midi_mapping)
             
             # Run the application
             result = self.app.exec()

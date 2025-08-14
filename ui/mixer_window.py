@@ -1,8 +1,10 @@
+# ui/mixer_window.py
 import logging
 import numpy as np
 import ctypes
+import time
 from PyQt6.QtWidgets import QMainWindow
-from PyQt6.QtCore import Qt, QSize, QTimer, pyqtSlot, pyqtSignal
+from PyQt6.QtCore import Qt, QSize, QTimer, pyqtSlot, pyqtSignal, QMutex, QMutexLocker
 from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 from OpenGL.GL import *
 
@@ -20,6 +22,9 @@ class MixerWindow(QMainWindow):
         self.setGeometry(100, 100, 800, 600)
         self.visualizer_manager = visualizer_manager
 
+        # Thread safety
+        self._mutex = QMutex()
+        
         # Initialize variables first
         self.mix_value = 0.5
         self.deck_a = None
@@ -35,11 +40,14 @@ class MixerWindow(QMainWindow):
         self.gl_widget.resizeGL = self.resizeGL
         
         # State tracking
-        self.initial_setup_done = False
         self.gl_initialized = False
         self.shader_program = None
         self.quad_vao = None
         self.quad_vbo = None
+        
+        # Performance tracking
+        self.frame_count = 0
+        self.last_fps_time = time.time()
         
         # Connect internal signals to slots
         self.signal_set_mix_value.connect(self.set_mix_value)
@@ -55,135 +63,128 @@ class MixerWindow(QMainWindow):
 
     def initializeGL(self):
         """Initialize OpenGL context and resources"""
-        try:
-            logging.info("🎮 MixerWindow.initializeGL called")
-            
-            # Basic OpenGL setup
-            glClearColor(0.0, 0.0, 0.0, 1.0)
-            glEnable(GL_BLEND)
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-            glDisable(GL_DEPTH_TEST)  # We don't need depth testing for 2D mixing
-            
-            # Load shaders and setup geometry
-            self.load_shaders()
-            self.setup_quad()
-            
-            # NOW create decks with valid OpenGL context
-            logging.info("🎨 Creating decks with OpenGL context...")
-            self.deck_a = Deck(self.visualizer_manager)
-            self.deck_b = Deck(self.visualizer_manager)
-            
-            # Initialize decks with current size - NOW with valid OpenGL context
-            current_size = QSize(max(self.gl_widget.width(), 800), max(self.gl_widget.height(), 600))
-            logging.info(f"🔧 Initializing decks with size: {current_size.width()}x{current_size.height()}")
-            
-            # Make sure GL context is current
-            self.gl_widget.makeCurrent()
-            
-            # Resize decks to create FBOs
-            self.deck_a.resize(current_size)
-            self.deck_b.resize(current_size)
-            
-            # Setup initial visualizers now that OpenGL is ready
-            if not self.initial_setup_done:
-                self.setup_initial_visualizers()
-                self.initial_setup_done = True
-            
-            self.gl_initialized = True
-            logging.info("✅ MixerWindow OpenGL initialized successfully")
-            
-        except Exception as e:
-            logging.error(f"❌ Error in initializeGL: {e}")
-            self.gl_initialized = False
-            raise
-
-    def setup_initial_visualizers(self):
-        """Setup initial visualizers now that OpenGL context is available"""
-        try:
-            visualizer_names = self.visualizer_manager.get_visualizer_names()
-            if visualizer_names and self.deck_a and self.deck_b:
-                logging.info(f"🎨 Setting up initial visualizers from: {visualizer_names}")
+        with QMutexLocker(self._mutex):
+            try:
+                logging.info("🎮 MixerWindow.initializeGL called")
                 
-                # Make sure we have current GL context
+                # Make context current
                 self.gl_widget.makeCurrent()
                 
-                # Set default visualizers for both decks
-                # Always try to set Deck A to "Simple Test" if available, otherwise use the first visualizer
-                if "Simple Test" in visualizer_names:
-                    self.deck_a.set_visualizer("Simple Test")
-                else:
-                    self.deck_a.set_visualizer(visualizer_names[0])
-
-                if len(visualizer_names) > 1:
-                    # Try to set Deck B to "Wire Terrain" if available, otherwise use the second visualizer
-                    if "Wire Terrain" in visualizer_names:
-                        self.deck_b.set_visualizer("Wire Terrain")
-                    else:
-                        self.deck_b.set_visualizer(visualizer_names[1])
-                else:
-                    self.deck_b.set_visualizer(visualizer_names[0])
+                # Clear any existing GL errors
+                while glGetError() != GL_NO_ERROR:
+                    pass
+                
+                # Basic OpenGL setup
+                glClearColor(0.0, 0.0, 0.0, 1.0)
+                glEnable(GL_BLEND)
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+                glDisable(GL_DEPTH_TEST)
+                
+                # Load shaders and setup geometry
+                if not self.load_shaders():
+                    logging.error("❌ Failed to load mixer shaders")
+                    return
                     
-                logging.info("✅ Initial visualizers set up successfully")
+                if not self.setup_quad():
+                    logging.error("❌ Failed to setup quad geometry")
+                    return
+                
+                # Create decks with proper IDs
+                logging.info("🎨 Creating decks...")
+                self.deck_a = Deck(self.visualizer_manager, "A")
+                self.deck_b = Deck(self.visualizer_manager, "B")
+                
+                # Initialize deck FBOs
+                current_size = QSize(
+                    max(self.gl_widget.width(), 800), 
+                    max(self.gl_widget.height(), 600)
+                )
+                
+                self.deck_a.resize(current_size)
+                self.deck_b.resize(current_size)
+                
+                # Setup initial visualizers
+                self.setup_initial_visualizers()
+                
+                self.gl_initialized = True
+                logging.info("✅ MixerWindow OpenGL initialized successfully")
+                
+            except Exception as e:
+                logging.error(f"❌ Error in initializeGL: {e}")
+                import traceback
+                traceback.print_exc()
+                self.gl_initialized = False
+
+    def setup_initial_visualizers(self):
+        """Setup initial visualizers"""
+        try:
+            visualizer_names = self.visualizer_manager.get_visualizer_names()
+            if not visualizer_names:
+                logging.warning("⚠️ No visualizers available")
+                return
+                
+            logging.info(f"🎨 Setting up initial visualizers from: {visualizer_names}")
+            
+            # Set default visualizers
+            deck_a_viz = "Simple Test" if "Simple Test" in visualizer_names else visualizer_names[0]
+            self.deck_a.set_visualizer(deck_a_viz)
+            
+            if len(visualizer_names) > 1:
+                deck_b_viz = "Wire Terrain" if "Wire Terrain" in visualizer_names else visualizer_names[1]
+                self.deck_b.set_visualizer(deck_b_viz)
             else:
-                logging.warning("⚠️ No visualizers available for initial setup or decks not created")
+                self.deck_b.set_visualizer(visualizer_names[0])
+                
+            logging.info(f"✅ Initial visualizers set")
                 
         except Exception as e:
             logging.error(f"❌ Error setting up initial visualizers: {e}")
 
-    def animate(self):
-        """Called by timer to trigger repaints"""
-        try:
-            if self.gl_widget and self.gl_initialized and self.deck_a and self.deck_b:
-                self.gl_widget.update()
-        except Exception as e:
-            logging.error(f"❌ Error in animate: {e}")
-
     def load_shaders(self):
         """Load and compile shaders for mixing"""
         try:
-            # Try to load shaders from files first
-            vs_src = None
-            fs_src = None
+            vs_src = """
+            #version 330 core
+            layout (location = 0) in vec2 aPos;
+            layout (location = 1) in vec2 aTexCoord;
+            out vec2 TexCoord;
+            void main()
+            {
+                gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0);
+                TexCoord = aTexCoord;
+            }
+            """
             
-            try:
-                with open("shaders/mix.vert", 'r') as f:
-                    vs_src = f.read()
-                with open("shaders/mix.frag", 'r') as f:
-                    fs_src = f.read()
-                logging.debug("📁 Loaded shaders from files")
-            except FileNotFoundError:
-                logging.warning("⚠️ Shader files not found, using fallback shaders")
+            fs_src = """
+            #version 330 core
+            out vec4 FragColor;
+            in vec2 TexCoord;
+            uniform sampler2D texture1;
+            uniform sampler2D texture2;
+            uniform float mixValue;
+            
+            void main()
+            {
+                vec4 color1 = texture(texture1, TexCoord);
+                vec4 color2 = texture(texture2, TexCoord);
                 
-            # Fallback shaders if files don't exist
-            if not vs_src:
-                vs_src = """
-                #version 330 core
-                layout (location = 0) in vec2 aPos;
-                layout (location = 1) in vec2 aTexCoord;
-                out vec2 TexCoord;
-                void main()
-                {
-                    gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0);
-                    TexCoord = aTexCoord;
-                }
-                """
+                // Ensure alpha is 1.0
+                color1.a = 1.0;
+                color2.a = 1.0;
                 
-            if not fs_src:
-                fs_src = """
-                #version 330 core
-                out vec4 FragColor;
-                in vec2 TexCoord;
-                uniform sampler2D texture1;
-                uniform sampler2D texture2;
-                uniform float mixValue;
-                void main()
-                {
-                    vec4 color1 = texture(texture1, TexCoord);
-                    vec4 color2 = texture(texture2, TexCoord);
-                    FragColor = mix(color1, color2, mixValue);
-                }
-                """
+                FragColor = mix(color1, color2, mixValue);
+            }
+            """
 
+            return self.compile_shader_program(vs_src, fs_src)
+            
+        except Exception as e:
+            logging.error(f"❌ Failed to load mixer shaders: {e}")
+            return False
+
+    def compile_shader_program(self, vs_src, fs_src):
+        """Compile shader program"""
+        try:
             # Compile vertex shader
             vs = glCreateShader(GL_VERTEX_SHADER)
             glShaderSource(vs, vs_src)
@@ -192,7 +193,7 @@ class MixerWindow(QMainWindow):
             if not glGetShaderiv(vs, GL_COMPILE_STATUS):
                 error = glGetShaderInfoLog(vs).decode()
                 logging.error(f"❌ Vertex shader compilation failed: {error}")
-                raise Exception(f"Vertex shader error: {error}")
+                return False
 
             # Compile fragment shader
             fs = glCreateShader(GL_FRAGMENT_SHADER)
@@ -202,7 +203,7 @@ class MixerWindow(QMainWindow):
             if not glGetShaderiv(fs, GL_COMPILE_STATUS):
                 error = glGetShaderInfoLog(fs).decode()
                 logging.error(f"❌ Fragment shader compilation failed: {error}")
-                raise Exception(f"Fragment shader error: {error}")
+                return False
 
             # Link program
             self.shader_program = glCreateProgram()
@@ -213,16 +214,17 @@ class MixerWindow(QMainWindow):
             if not glGetProgramiv(self.shader_program, GL_LINK_STATUS):
                 error = glGetProgramInfoLog(self.shader_program).decode()
                 logging.error(f"❌ Shader program linking failed: {error}")
-                raise Exception(f"Shader program error: {error}")
+                return False
 
             # Clean up individual shaders
             glDeleteShader(vs)
             glDeleteShader(fs)
-            logging.info("✅ Mixer shaders loaded successfully")
+            logging.debug("✅ Mixer shaders compiled successfully")
+            return True
             
         except Exception as e:
-            logging.error(f"❌ Failed to load mixer shaders: {e}")
-            raise
+            logging.error(f"❌ Error compiling shader program: {e}")
+            return False
 
     def setup_quad(self):
         """Setup geometry for full-screen quad"""
@@ -254,17 +256,22 @@ class MixerWindow(QMainWindow):
             glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * 4, ctypes.c_void_p(2 * 4))
             
             glBindVertexArray(0)
-            logging.info("✅ Quad geometry setup complete")
+            logging.debug("✅ Quad geometry setup complete")
+            return True
             
         except Exception as e:
             logging.error(f"❌ Error setting up quad geometry: {e}")
-            raise
+            return False
+
+    def animate(self):
+        """Called by timer to trigger repaints"""
+        if self.gl_widget and self.gl_initialized:
+            self.gl_widget.update()
 
     def paintGL(self):
         """Render the mixed output"""
         try:
-            if not self.gl_initialized or not self.shader_program or not self.deck_a or not self.deck_b:
-                # Draw a simple color to show the window is working
+            if not self.gl_initialized:
                 glClearColor(0.1, 0.1, 0.2, 1.0)
                 glClear(GL_COLOR_BUFFER_BIT)
                 return
@@ -272,44 +279,50 @@ class MixerWindow(QMainWindow):
             # Make sure we have the current context
             self.gl_widget.makeCurrent()
             
-            # Render both decks to their framebuffers
-            try:
+            # First, render both decks to their FBOs
+            if self.deck_a:
                 self.deck_a.paint()
+            if self.deck_b:
                 self.deck_b.paint()
-            except Exception as e:
-                logging.error(f"❌ Error painting decks: {e}")
-                # Draw fallback color
-                glClearColor(0.2, 0.0, 0.0, 1.0)
-                glClear(GL_COLOR_BUFFER_BIT)
-                return
-
+            
             # Now composite them in the main framebuffer
             glBindFramebuffer(GL_FRAMEBUFFER, self.gl_widget.defaultFramebufferObject())
             glViewport(0, 0, self.gl_widget.width(), self.gl_widget.height())
+            
+            # Clear main framebuffer
+            glClearColor(0.0, 0.0, 0.0, 1.0)
             glClear(GL_COLOR_BUFFER_BIT)
 
+            if not self.shader_program or not self.quad_vao:
+                return
+                
             # Use the mixing shader
             glUseProgram(self.shader_program)
             
             # Get textures from decks
-            texture_a = self.deck_a.get_texture()
-            texture_b = self.deck_b.get_texture()
+            texture_a = self.deck_a.get_texture() if self.deck_a else 0
+            texture_b = self.deck_b.get_texture() if self.deck_b else 0
             
-            logging.debug(f"Mixer paintGL: Deck A texture ID: {texture_a}, Deck B texture ID: {texture_b}")
+            # If we don't have textures, show a fallback
+            if texture_a == 0 and texture_b == 0:
+                glClearColor(0.1, 0.0, 0.1, 1.0)
+                glClear(GL_COLOR_BUFFER_BIT)
+                glUseProgram(0)
+                return
             
-            # Bind texture A
+            # Bind textures
             glActiveTexture(GL_TEXTURE0)
-            if texture_a and texture_a > 0:
+            if texture_a > 0:
                 glBindTexture(GL_TEXTURE_2D, texture_a)
             else:
-                # Bind a default black texture if needed
+                # Create a dummy texture for deck A
                 glBindTexture(GL_TEXTURE_2D, 0)
             
-            # Bind texture B
             glActiveTexture(GL_TEXTURE1)
-            if texture_b and texture_b > 0:
+            if texture_b > 0:
                 glBindTexture(GL_TEXTURE_2D, texture_b)
             else:
+                # Create a dummy texture for deck B
                 glBindTexture(GL_TEXTURE_2D, 0)
             
             # Set shader uniforms
@@ -318,136 +331,115 @@ class MixerWindow(QMainWindow):
             glUniform1f(glGetUniformLocation(self.shader_program, "mixValue"), self.mix_value)
 
             # Draw the full-screen quad
-            if self.quad_vao:
-                glBindVertexArray(self.quad_vao)
-                glDrawArrays(GL_TRIANGLES, 0, 6)
-                glBindVertexArray(0)
+            glBindVertexArray(self.quad_vao)
+            glDrawArrays(GL_TRIANGLES, 0, 6)
+            glBindVertexArray(0)
             
             # Clean up
             glUseProgram(0)
+            glActiveTexture(GL_TEXTURE0)
+            glBindTexture(GL_TEXTURE_2D, 0)
+            glActiveTexture(GL_TEXTURE1)
+            glBindTexture(GL_TEXTURE_2D, 0)
+            
+            # Track performance
+            self.frame_count += 1
+            current_time = time.time()
+            if current_time - self.last_fps_time > 5.0:
+                fps = self.frame_count / (current_time - self.last_fps_time)
+                if self.frame_count > 60:
+                    logging.debug(f"🎬 Mixer FPS: {fps:.1f}")
+                self.last_fps_time = current_time
+                self.frame_count = 0
             
         except Exception as e:
             logging.error(f"❌ Error in paintGL: {e}")
-            # Draw error color
-            glClearColor(0.5, 0.0, 0.5, 1.0)
+            glClearColor(0.5, 0.0, 0.0, 1.0)
             glClear(GL_COLOR_BUFFER_BIT)
 
     def resizeGL(self, w, h):
         """Handle window resize"""
         try:
             current_size = QSize(w, h)
-            logging.debug(f"🔧 MixerWindow resized to {w}x{h}")
+            logging.debug(f"📐 MixerWindow resized to {w}x{h}")
             
-            if not self.gl_initialized or not self.deck_a or not self.deck_b:
+            if not self.gl_initialized:
                 return
                 
             # Make sure GL context is current
             self.gl_widget.makeCurrent()
             
             # Resize decks
-            self.deck_a.resize(current_size)
-            self.deck_b.resize(current_size)
+            if self.deck_a:
+                self.deck_a.resize(current_size)
+            if self.deck_b:
+                self.deck_b.resize(current_size)
             
         except Exception as e:
             logging.error(f"❌ Error in resizeGL: {e}")
 
-    # Main slot methods (called from signals)
+    # Main slot methods
     @pyqtSlot(int)
     def set_mix_value(self, value):
         """Set crossfader mix value (0-100)"""
-        try:
+        with QMutexLocker(self._mutex):
             self.mix_value = max(0.0, min(1.0, value / 100.0))
-            logging.info(f"🎚️ Mix value set to: {self.mix_value} ({value}%)")
-            
-            if self.gl_initialized:
-                self.gl_widget.update()  # Trigger a repaint
-                
-        except Exception as e:
-            logging.error(f"❌ Error setting mix value: {e}")
+            logging.info(f"🎚️ Mix value set to: {self.mix_value:.2f} ({value}%)")
 
     @pyqtSlot(str, str)
     def set_deck_visualizer(self, deck_id, visualizer_name):
         """Set visualizer for a specific deck"""
-        try:
-            logging.info(f"🎮 SETTING deck {deck_id} to visualizer: {visualizer_name}")
+        with QMutexLocker(self._mutex):
+            logging.info(f"🎮 Setting deck {deck_id} to visualizer: {visualizer_name}")
             
             if not self.gl_initialized:
-                logging.warning("⚠️ OpenGL not initialized, cannot set visualizer")
-                return
-                
-            if not self.deck_a or not self.deck_b:
-                logging.warning("⚠️ Decks not initialized, cannot set visualizer")
+                logging.warning("⚠️ OpenGL not initialized")
                 return
                 
             # Make sure we have OpenGL context
             self.gl_widget.makeCurrent()
             
-            if deck_id == 'A':
+            if deck_id == 'A' and self.deck_a:
                 self.deck_a.set_visualizer(visualizer_name)
                 logging.info(f"✅ Deck A set to: {visualizer_name}")
-            elif deck_id == 'B':
+            elif deck_id == 'B' and self.deck_b:
                 self.deck_b.set_visualizer(visualizer_name)
                 logging.info(f"✅ Deck B set to: {visualizer_name}")
             else:
                 logging.warning(f"⚠️ Unknown deck ID: {deck_id}")
-                return
-                
-            self.gl_widget.update()  # Trigger a repaint
-            
-        except Exception as e:
-            logging.error(f"❌ Error setting deck visualizer: {e}")
 
     @pyqtSlot(str, str, object)
     def update_deck_control(self, deck_id, name, value):
         """Update a control parameter for a specific deck"""
-        try:
-            logging.info(f"🎛️ UPDATING deck {deck_id} control {name} to {value}")
+        with QMutexLocker(self._mutex):
+            logging.debug(f"🎛️ Updating deck {deck_id} control {name} to {value}")
             
             if not self.gl_initialized:
-                logging.warning("⚠️ OpenGL not initialized, cannot update control")
                 return
                 
-            if not self.deck_a or not self.deck_b:
-                logging.warning("⚠️ Decks not initialized, cannot update control")
-                return
-                
-            if deck_id == 'A':
+            if deck_id == 'A' and self.deck_a:
                 self.deck_a.update_control(name, value)
-                logging.info(f"✅ Updated A.{name} = {value}")
-            elif deck_id == 'B':
+            elif deck_id == 'B' and self.deck_b:
                 self.deck_b.update_control(name, value)
-                logging.info(f"✅ Updated B.{name} = {value}")
-            else:
-                logging.warning(f"⚠️ Unknown deck ID: {deck_id}")
-                return
-                
-            self.gl_widget.update()  # Trigger a repaint
-            
-        except Exception as e:
-            logging.error(f"❌ Error updating deck control: {e}")
 
-    # Thread-safe public methods (emit signals)
+    # Thread-safe public methods
     def safe_set_mix_value(self, value):
         """Thread-safe wrapper for setting mix value"""
-        logging.info(f"🔄 safe_set_mix_value called with value: {value}")
         self.signal_set_mix_value.emit(value)
 
     def safe_set_deck_visualizer(self, deck_id, visualizer_name):
         """Thread-safe wrapper for setting deck visualizer"""
-        logging.info(f"🔄 safe_set_deck_visualizer called: deck {deck_id} -> {visualizer_name}")
         self.signal_set_deck_visualizer.emit(deck_id, visualizer_name)
 
     def safe_update_deck_control(self, deck_id, name, value):
         """Thread-safe wrapper for updating deck control"""
-        logging.info(f"🔄 safe_update_deck_control called: {deck_id}.{name} = {value}")
         self.signal_update_deck_control.emit(deck_id, name, value)
 
     # Utility methods
     def get_deck_controls(self, deck_id):
         """Get available controls for the specified deck"""
-        try:
+        with QMutexLocker(self._mutex):
             if not self.deck_a or not self.deck_b:
-                logging.warning("⚠️ Decks not initialized, cannot get controls")
                 return {}
                 
             if deck_id == 'A':
@@ -455,38 +447,32 @@ class MixerWindow(QMainWindow):
             elif deck_id == 'B':
                 return self.deck_b.get_controls()
             else:
-                logging.warning(f"⚠️ Unknown deck ID: {deck_id}")
                 return {}
-                
-        except Exception as e:
-            logging.error(f"❌ Error getting deck controls: {e}")
-            return {}
 
     def get_current_visualizers(self):
         """Get currently loaded visualizers for both decks"""
-        try:
+        with QMutexLocker(self._mutex):
             if not self.deck_a or not self.deck_b:
                 return {'A': 'Not Initialized', 'B': 'Not Initialized'}
                 
             return {
-                'A': self.deck_a.get_current_visualizer_name() if hasattr(self.deck_a, 'get_current_visualizer_name') else 'Unknown',
-                'B': self.deck_b.get_current_visualizer_name() if hasattr(self.deck_b, 'get_current_visualizer_name') else 'Unknown'
+                'A': self.deck_a.get_current_visualizer_name(),
+                'B': self.deck_b.get_current_visualizer_name()
             }
-        except Exception as e:
-            logging.error(f"❌ Error getting current visualizers: {e}")
-            return {'A': 'Error', 'B': 'Error'}
 
     def get_mix_value(self):
         """Get current mix value (0.0-1.0)"""
-        return self.mix_value
+        with QMutexLocker(self._mutex):
+            return self.mix_value
 
     def get_mix_value_percent(self):
         """Get current mix value as percentage (0-100)"""
-        return int(self.mix_value * 100)
+        with QMutexLocker(self._mutex):
+            return int(self.mix_value * 100)
 
     def cleanup(self):
         """Clean up OpenGL resources"""
-        try:
+        with QMutexLocker(self._mutex):
             if self.gl_initialized:
                 self.gl_widget.makeCurrent()
                 
@@ -501,18 +487,17 @@ class MixerWindow(QMainWindow):
                 if self.quad_vbo:
                     glDeleteBuffers(1, [self.quad_vbo])
                     self.quad_vbo = None
+                
+                # Clean up decks
+                if self.deck_a:
+                    self.deck_a.cleanup()
+                if self.deck_b:
+                    self.deck_b.cleanup()
                     
                 logging.info("✅ OpenGL resources cleaned up")
-                
-        except Exception as e:
-            logging.error(f"❌ Error cleaning up OpenGL resources: {e}")
 
     def closeEvent(self, event):
         """Handle window close event"""
-        try:
-            self.animation_timer.stop()
-            self.cleanup()
-            super().closeEvent(event)
-        except Exception as e:
-            logging.error(f"❌ Error in closeEvent: {e}")
-            super().closeEvent(event)
+        self.animation_timer.stop()
+        self.cleanup()
+        super().closeEvent(event)
