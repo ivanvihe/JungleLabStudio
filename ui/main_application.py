@@ -11,7 +11,6 @@ from visuals.visualizer_manager import VisualizerManager
 from audio.audio_analyzer import AudioAnalyzer
 from .mixer_window import MixerWindow
 from .control_panel_window import ControlPanelWindow
-from .midi_mapping_dialog import MidiMappingDialog
 
 # Force reload of visualizer_manager to ensure fresh loading
 import importlib
@@ -144,12 +143,11 @@ class MainApplication:
             
             # Create control panel immediately (don't delay)
             self.control_panel = ControlPanelWindow(
-                self.mixer_window, 
-                self.settings_manager, 
-                self.midi_engine, 
+                self.mixer_window,
+                self.settings_manager,
+                self.midi_engine,
                 self.visualizer_manager,
                 self.audio_analyzer,
-                self.open_midi_mapping_dialog
             )
             logging.info("✅ Control panel created")
             
@@ -308,45 +306,9 @@ class MainApplication:
         except Exception as e:
             logging.error(f"Error in auto_connect_devices: {e}")
 
-    def open_midi_mapping_dialog(self, deck_id, parent_widget):
-        """Open the MIDI mapping dialog for a specific deck"""
-        try:
-            logging.info(f"🎛️ Opening MIDI mapping dialog for deck {deck_id}...")
-
-            visualizer_names = self.visualizer_manager.get_visualizer_names()
-            dialog = MidiMappingDialog(visualizer_names, self.midi_engine, deck_id, parent_widget)
-            
-            # Connect the mappings saved signal to update the engine
-            dialog.mappings_saved.connect(self.on_midi_mappings_saved)
-            
-            result = dialog.exec()
-            
-            if result == dialog.DialogCode.Accepted:
-                logging.info("✅ MIDI mapping dialog closed with changes saved")
-            else:
-                logging.info("ℹ️ MIDI mapping dialog closed without saving")
-                
-        except Exception as e:
-            logging.error(f"Error opening MIDI mapping dialog: {e}")
-            QMessageBox.critical(
-                parent_widget, 
-                "Error", 
-                f"Could not open MIDI mapping dialog: {str(e)}"
-            )
-
-    def on_midi_mappings_saved(self, mappings):
-        """Handle saved MIDI mappings"""
-        try:
-            logging.info(f"💾 MIDI mappings saved from dialog: {len(mappings)} mappings")
-            
-            # Log details of saved mappings
-            for action_id, mapping_data in mappings.items():
-                midi_key = mapping_data.get('midi', 'no_midi')
-                action_type = mapping_data.get('type', 'unknown')
-                logging.info(f"  💾 Saved mapping: {midi_key} -> {action_type}")
-            
-        except Exception as e:
-            logging.error(f"Error handling saved MIDI mappings: {e}")
+    # Legacy helper methods for opening a separate MIDI mapping dialog have
+    # been removed. MIDI mappings are now managed directly within each deck of
+    # the control panel.
 
     def show_critical_error(self, title, message):
         """Show critical error dialog"""
