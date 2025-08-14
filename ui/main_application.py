@@ -177,7 +177,7 @@ class MainApplication:
             if hasattr(self.midi_engine, 'device_disconnected'):
                 self.midi_engine.device_disconnected.connect(self.on_midi_device_disconnected)
             if hasattr(self.midi_engine, 'bpm_changed'):
-                self.midi_engine.bmp_changed.connect(self.on_bpm_changed)
+                self.midi_engine.bpm_changed.connect(self.on_bpm_changed)
             
             logging.info("✅ MIDI connections established")
             
