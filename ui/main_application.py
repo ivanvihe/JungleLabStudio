@@ -308,13 +308,13 @@ class MainApplication:
         except Exception as e:
             logging.error(f"Error in auto_connect_devices: {e}")
 
-    def open_midi_mapping_dialog(self, parent_widget):
-        """Open the MIDI mapping dialog"""
+    def open_midi_mapping_dialog(self, deck_id, parent_widget):
+        """Open the MIDI mapping dialog for a specific deck"""
         try:
-            logging.info("🎛️ Opening MIDI mapping dialog...")
-            
+            logging.info(f"🎛️ Opening MIDI mapping dialog for deck {deck_id}...")
+
             visualizer_names = self.visualizer_manager.get_visualizer_names()
-            dialog = MidiMappingDialog(visualizer_names, self.midi_engine, parent_widget)
+            dialog = MidiMappingDialog(visualizer_names, self.midi_engine, deck_id, parent_widget)
             
             # Connect the mappings saved signal to update the engine
             dialog.mappings_saved.connect(self.on_midi_mappings_saved)
