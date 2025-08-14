@@ -7,6 +7,29 @@ import math
 from OpenGL.GL import *
 from ..base_visualizer import BaseVisualizer
 
+# Use safer OpenGL helpers when available
+try:
+    from opengl_fixes import OpenGLSafety
+except ImportError:  # pragma: no cover - fallback for environments without helpers
+    class OpenGLSafety:  # type: ignore
+        """Minimal fallback if OpenGLSafety isn't available"""
+
+        @staticmethod
+        def safe_line_width(width: float) -> None:
+            """Attempt to set line width, ignoring any errors"""
+            try:
+                glLineWidth(width)
+            except Exception:
+                try:
+                    glLineWidth(1.0)
+                except Exception:
+                    pass
+
+        @staticmethod
+        def check_gl_errors(context: str = "") -> None:
+            """No-op fallback for error checking"""
+            return
+
 class SimpleTestVisualizer(BaseVisualizer):
     visual_name = "Simple Test"
     
@@ -250,9 +273,13 @@ class SimpleTestVisualizer(BaseVisualizer):
             # Draw lines
             if self.vao:
                 glBindVertexArray(self.vao)
-                glLineWidth(2.0)
+                # Use safe line width to avoid GL errors on unsupported values
+                OpenGLSafety.safe_line_width(2.0)
                 glDrawElements(GL_LINES, self.line_count * 2, GL_UNSIGNED_INT, None)
                 glBindVertexArray(0)
+
+            # Check for GL errors in debug builds (no-op in fallback)
+            OpenGLSafety.check_gl_errors("SimpleTestVisualizer.paintGL")
             
             # Clean up
             glUseProgram(0)
