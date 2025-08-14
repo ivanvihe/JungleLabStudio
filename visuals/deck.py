@@ -157,17 +157,25 @@ class Deck:
                         try:
                             # Paint visualizer directly without deprecated state saving
                             self.visualizer.paintGL()
-                            
+
                             self._frame_count += 1
                             if self._frame_count % 300 == 0:
                                 logging.debug(f"🎬 Deck {self.deck_id}: {self.visualizer_name} - Frame {self._frame_count}")
-                                
+
                         except Exception as e:
                             current_time = time.time()
                             if current_time - self._last_error_log > 5.0:
                                 logging.error(f"❌ Deck {self.deck_id}: Error in paintGL: {e}")
                                 self._last_error_log = current_time
                             self._render_fallback()
+                        finally:
+                            # Reset GL state changed by visualizers
+                            try:
+                                glUseProgram(0)
+                                glDisable(GL_DEPTH_TEST)
+                                glDisable(GL_CULL_FACE)
+                            except Exception:
+                                pass
                 else:
                     self._render_fallback()
                 

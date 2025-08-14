@@ -288,10 +288,14 @@ class MixerWindow(QMainWindow):
             # Now composite them in the main framebuffer
             glBindFramebuffer(GL_FRAMEBUFFER, self.gl_widget.defaultFramebufferObject())
             glViewport(0, 0, self.gl_widget.width(), self.gl_widget.height())
-            
-            # Clear main framebuffer
+
+            # Clear main framebuffer and reset state that might be changed by visualizers
+            glDisable(GL_DEPTH_TEST)
+            glDisable(GL_CULL_FACE)
+            glDepthMask(GL_FALSE)
             glClearColor(0.0, 0.0, 0.0, 1.0)
-            glClear(GL_COLOR_BUFFER_BIT)
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+            glDepthMask(GL_TRUE)
 
             if not self.shader_program or not self.quad_vao:
                 return
