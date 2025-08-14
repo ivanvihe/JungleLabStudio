@@ -271,10 +271,17 @@ class Deck:
     def get_texture(self):
         """Return the texture ID of the framebuffer"""
         with QMutexLocker(self._mutex):
-            # Ensure FBO is rendered
-            if self._fbo_dirty:
+            # Make sure we have a valid FBO
+            if not self.fbo or not self.fbo.isValid():
+                # Try to recreate the FBO when invalid – this can happen
+                # when the context wasn't ready during initialization.
+                self._recreate_fbo()
+                self._gl_initialized = False
+
+            # Ensure the framebuffer has the latest rendering
+            if self._fbo_dirty and self.fbo and self.fbo.isValid():
                 self.render_to_fbo()
-                
+
             if self.fbo and self.fbo.isValid():
                 return self.fbo.texture()
             return 0

@@ -16,14 +16,40 @@ class MidiMappingDialog(QDialog):
     start_midi_learn = pyqtSignal(int)  # Emite el row index que está aprendiendo
     mappings_saved = pyqtSignal(dict)
 
-    def __init__(self, visualizer_presets, midi_engine, deck_id=None, parent=None):
+    def __init__(self, visualizer_presets, midi_engine, deck_id=None, parent=None, as_widget=False):
+        """Create the dialog.
+
+        Parameters
+        ----------
+        visualizer_presets: list
+            Available visualizer names.
+        midi_engine: object
+            Engine handling MIDI operations.
+        deck_id: str | None
+            Optional deck identifier ("A" or "B").
+        parent: QWidget | None
+            Parent widget.
+        as_widget: bool
+            When True the dialog behaves as a normal widget so it can be
+            embedded directly into other layouts instead of opening a new
+            window.  This is used by the redesigned control panel where MIDI
+            mappings live inside each deck section.
+        """
         super().__init__(parent)
+        self.as_widget = as_widget
         title = "Configuración de Mapeo MIDI"
         if deck_id:
             title += f" - Deck {deck_id}"
         self.setWindowTitle(title)
-        self.setMinimumSize(1000, 700)
-        self.resize(1200, 800)
+
+        # When used as an embedded widget we keep the size compact
+        if as_widget:
+            self.setWindowFlags(Qt.WindowType.Widget)
+            self.setMinimumSize(0, 0)
+            self.resize(400, 250)
+        else:
+            self.setMinimumSize(1000, 700)
+            self.resize(1200, 800)
 
         self.visualizer_presets = visualizer_presets or []
         self.midi_engine = midi_engine
@@ -110,11 +136,13 @@ class MidiMappingDialog(QDialog):
     def init_ui(self):
         layout = QVBoxLayout(self)
         layout.setSpacing(10)
+        if self.as_widget:
+            layout.setContentsMargins(0, 0, 0, 0)
 
         # Título
-        title_label = QLabel("Configuración de Mapeo MIDI")
+        title_label = QLabel("Configuración de Mapeo MIDI" if not self.as_widget else "MIDI Mapping")
         title_font = QFont()
-        title_font.setPointSize(14)
+        title_font.setPointSize(14 if not self.as_widget else 10)
         title_font.setBold(True)
         title_label.setFont(title_font)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -137,18 +165,21 @@ class MidiMappingDialog(QDialog):
         self.learning_progress.setMaximum(100)
         status_layout.addWidget(self.learning_progress)
 
+        if self.as_widget:
+            status_group.setMaximumHeight(80)
         layout.addWidget(status_group)
 
         # Instrucciones
-        instructions = QLabel(
-            "Instrucciones:\n"
-            "1. Haz clic en 'Add Mapping' para añadir una nueva asignación\n"
-            "2. Configura la acción, preset, target y valores\n"
-            "3. Haz clic en 'Learn' y envía el mensaje MIDI desde tu controlador\n"
-            "4. Haz clic en 'Save' para guardar todos los cambios"
-        )
-        instructions.setStyleSheet("background-color: #f0f0f0; padding: 10px; border-radius: 5px;")
-        layout.addWidget(instructions)
+        if not self.as_widget:
+            instructions = QLabel(
+                "Instrucciones:\n"
+                "1. Haz clic en 'Add Mapping' para añadir una nueva asignación\n"
+                "2. Configura la acción, preset, target y valores\n"
+                "3. Haz clic en 'Learn' y envía el mensaje MIDI desde tu controlador\n"
+                "4. Haz clic en 'Save' para guardar todos los cambios"
+            )
+            instructions.setStyleSheet("background-color: #f0f0f0; padding: 10px; border-radius: 5px;")
+            layout.addWidget(instructions)
 
         # Botón Add Mapping
         add_button_layout = QHBoxLayout()
@@ -177,6 +208,8 @@ class MidiMappingDialog(QDialog):
         self.table.setAlternatingRowColors(True)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         
+        if self.as_widget:
+            self.table.setMaximumHeight(150)
         layout.addWidget(self.table)
 
         # Botones
@@ -190,17 +223,23 @@ class MidiMappingDialog(QDialog):
         button_layout.addStretch()
 
         button_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Save | 
+            QDialogButtonBox.StandardButton.Save |
             QDialogButtonBox.StandardButton.Cancel |
             QDialogButtonBox.StandardButton.Apply
         )
         button_box.accepted.connect(self.save_mappings)
         button_box.rejected.connect(self.reject)
-        
+
         apply_btn = button_box.button(QDialogButtonBox.StandardButton.Apply)
         if apply_btn:
             apply_btn.clicked.connect(self.apply_mappings)
-        
+            if self.as_widget:
+                apply_btn.hide()
+        if self.as_widget:
+            cancel_btn = button_box.button(QDialogButtonBox.StandardButton.Cancel)
+            if cancel_btn:
+                cancel_btn.hide()
+
         button_layout.addWidget(button_box)
         layout.addLayout(button_layout)
 

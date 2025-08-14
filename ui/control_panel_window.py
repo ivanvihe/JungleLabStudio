@@ -9,9 +9,10 @@ from PyQt6.QtCore import Qt, QTimer, QMutex, QMutexLocker
 from PyQt6.QtGui import QAction
 
 from .preferences_dialog import PreferencesDialog
+from .midi_mapping_dialog import MidiMappingDialog
 
 class ControlPanelWindow(QMainWindow):
-    def __init__(self, mixer_window, settings_manager, midi_engine, visualizer_manager, audio_analyzer, open_midi_mapping_dialog_callback):
+    def __init__(self, mixer_window, settings_manager, midi_engine, visualizer_manager, audio_analyzer):
         super().__init__(mixer_window)  # Set mixer window as parent for monitor management
         logging.debug("ControlPanelWindow.__init__ called")
         
@@ -21,7 +22,6 @@ class ControlPanelWindow(QMainWindow):
         self.midi_engine = midi_engine
         self.visualizer_manager = visualizer_manager
         self.audio_analyzer = audio_analyzer
-        self.open_midi_mapping_dialog_callback = open_midi_mapping_dialog_callback
 
         # Thread safety
         self._mutex = QMutex()
@@ -167,6 +167,7 @@ class ControlPanelWindow(QMainWindow):
         """Create a complete deck section with controls and mappings"""
         deck_frame = QFrame()
         deck_frame.setFrameStyle(QFrame.Shape.StyledPanel)
+        deck_frame.setMaximumWidth(400)
         deck_layout = QVBoxLayout(deck_frame)
         
         # Deck title
@@ -227,7 +228,7 @@ class ControlPanelWindow(QMainWindow):
         controls_scroll.setWidgetResizable(True)
         controls_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         controls_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        controls_scroll.setMaximumHeight(300)
+        controls_scroll.setMaximumHeight(150)
         
         controls_widget = QWidget()
         controls_layout = QVBoxLayout(controls_widget)
@@ -238,12 +239,17 @@ class ControlPanelWindow(QMainWindow):
         controls_group_layout.addWidget(controls_scroll)
         deck_layout.addWidget(controls_group)
 
-        # MIDI mapping section
+        # Embedded MIDI mapping widget
         midi_group = QGroupBox("MIDI Mapping")
         midi_layout = QVBoxLayout(midi_group)
-        midi_button = QPushButton("Configure MIDI Mapping")
-        midi_button.clicked.connect(lambda _, d=deck_id: self.open_midi_mapping_dialog_callback(d, self))
-        midi_layout.addWidget(midi_button)
+        midi_widget = MidiMappingDialog(
+            self.visualizer_manager.get_visualizer_names(),
+            self.midi_engine,
+            deck_id=deck_id,
+            parent=self,
+            as_widget=True,
+        )
+        midi_layout.addWidget(midi_widget)
         deck_layout.addWidget(midi_group)
 
         # Store reference to controls layout
