@@ -51,7 +51,7 @@ class VisualEngineWindow(QMainWindow):
             self.visualizer = EvolutiveParticlesVisualizer()
         elif visualizer_name == "Abstract Lines":
             self.visualizer = AbstractLinesVisualizer()
-        elif visualizer_name == "Möbius Band":
+        elif visualizer_name == "Mobius Band":
             self.visualizer = MobiusBandVisualizer()
         elif visualizer_name == "Abstract Shapes":
             self.visualizer = AbstractShapesVisualizer()
@@ -87,7 +87,7 @@ class ControlPanelWindow(QMainWindow):
         self.preset_selector.addItem("Geometric Particles")
         self.preset_selector.addItem("Evolutive Particles") # Added new preset
         self.preset_selector.addItem("Abstract Lines")
-        self.preset_selector.addItem("Möbius Band")
+        self.preset_selector.addItem("Mobius Band")
         self.preset_selector.addItem("Abstract Shapes")
         self.preset_selector.addItem("Building Madness") # New visualizer
         self.preset_selector.currentIndexChanged.connect(self.on_preset_selected)

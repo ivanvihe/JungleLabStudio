@@ -587,7 +587,7 @@ class MidiEngine(QObject):
         # DECK A PRESETS (36-45) - NOMBRES EXACTOS del visualizer_manager
         deck_a_presets = [
             "Simple Test", "Wire Terrain", "Abstract Lines", "Geometric Particles", 
-            "Evolutive Particles", "Abstract Shapes", "Möbius Band", "Building Madness",
+            "Evolutive Particles", "Abstract Shapes", "Mobius Band", "Building Madness",
             "Cosmic Flow", "Fluid Particles"
         ]
         
@@ -639,7 +639,7 @@ class MidiEngine(QObject):
         # DECK B PRESETS (54-63) - NOMBRES EXACTOS del visualizer_manager
         deck_b_presets = [
             "Simple Test", "Wire Terrain", "Abstract Lines", "Geometric Particles", 
-            "Evolutive Particles", "Abstract Shapes", "Möbius Band", "Building Madness",
+            "Evolutive Particles", "Abstract Shapes", "Mobius Band", "Building Madness",
             "Cosmic Flow", "Fluid Particles"
         ]
         

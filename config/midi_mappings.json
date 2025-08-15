@@ -57,7 +57,7 @@
     "type": "load_preset",
     "params": {
       "deck_id": "A",
-      "preset_name": "Möbius Band",
+      "preset_name": "Mobius Band",
       "custom_values": ""
     },
     "midi": "note_on_ch0_note42"
@@ -210,7 +210,7 @@
     "type": "load_preset",
     "params": {
       "deck_id": "B",
-      "preset_name": "Möbius Band",
+      "preset_name": "Mobius Band",
       "custom_values": ""
     },
     "midi": "note_on_ch0_note60"

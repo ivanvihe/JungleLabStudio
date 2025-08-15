@@ -7,7 +7,8 @@ import math
 from visuals.base_visualizer import BaseVisualizer
 
 class MobiusBandVisualizer(BaseVisualizer):
-    visual_name = "Möbius Band"
+    # Use ASCII-only name to match configuration files and avoid lookup mismatches
+    visual_name = "Mobius Band"
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -72,7 +73,7 @@ class MobiusBandVisualizer(BaseVisualizer):
             return
         
         if not self.generate_mobius():
-            print("Failed to generate Möbius band")
+            print("Failed to generate Mobius band")
             return
             
         self.initialized = True
@@ -168,16 +169,16 @@ class MobiusBandVisualizer(BaseVisualizer):
             vertices = []
             indices = []
             
-            print(f"Generating Möbius band with {self.u_segments}x{self.v_segments} segments")
-            
-            # Generate Möbius band vertices - MUCH BIGGER for visibility
+            print(f"Generating Mobius band with {self.u_segments}x{self.v_segments} segments")
+
+            # Generate Mobius band vertices - MUCH BIGGER for visibility
             for i in range(self.u_segments + 1):
                 u = (i / self.u_segments) * 2 * math.pi  # 0 to 2π
                 
                 for j in range(self.v_segments + 1):
                     v = ((j / self.v_segments) - 0.5) * 2.0  # -1.0 to 1.0 (width)
                     
-                    # Möbius band parametric equations - VISIBLE SIZE
+                    # Mobius band parametric equations - VISIBLE SIZE
                     radius = 2.0 + v * math.cos(u / 2.0) * 0.5  # Normal size
                     x = radius * math.cos(u)  # Full size X
                     y = radius * math.sin(u)  # Full size Y  
@@ -200,9 +201,9 @@ class MobiusBandVisualizer(BaseVisualizer):
                     bottom_left = (i + 1) * (self.v_segments + 1) + j
                     bottom_right = bottom_left + 1
                     
-                    # Handle Möbius wrapping for last segment
+                    # Handle Mobius wrapping for last segment
                     if i == self.u_segments - 1:
-                        # Connect to first segment with flipped v for Möbius topology
+                        # Connect to first segment with flipped v for Mobius topology
                         bottom_left = (self.v_segments - j)
                         bottom_right = bottom_left + 1
                         if j == 0:  # Special case for edge
@@ -215,7 +216,7 @@ class MobiusBandVisualizer(BaseVisualizer):
             self.vertices = np.array(vertices, dtype=np.float32)
             self.indices = np.array(indices, dtype=np.uint32)
             
-            print(f"Generated Möbius: {len(vertices)//6} vertices, {len(indices)//3} triangles")
+            print(f"Generated Mobius: {len(vertices)//6} vertices, {len(indices)//3} triangles")
             print(f"Vertex range X: {self.vertices[::6].min():.2f} to {self.vertices[::6].max():.2f}")
             print(f"Vertex range Y: {self.vertices[1::6].min():.2f} to {self.vertices[1::6].max():.2f}")
             print(f"Vertex range Z: {self.vertices[2::6].min():.2f} to {self.vertices[2::6].max():.2f}")
@@ -223,7 +224,7 @@ class MobiusBandVisualizer(BaseVisualizer):
             return self.setup_buffers()
             
         except Exception as e:
-            print(f"Error generating Möbius band: {e}")
+            print(f"Error generating Mobius band: {e}")
             return False
 
     def setup_buffers(self):
@@ -305,7 +306,7 @@ class MobiusBandVisualizer(BaseVisualizer):
             else:
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
             
-            # Draw Möbius band
+            # Draw Mobius band
             if self.vao:
                 glBindVertexArray(self.vao)
                 glDrawElements(GL_TRIANGLES, len(self.indices), GL_UNSIGNED_INT, None)
