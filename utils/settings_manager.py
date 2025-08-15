@@ -1,3 +1,4 @@
+# utils/settings_manager.py - FIXED MIDI MAPPINGS LOADING - COMPLETE VERSION
 import json
 import os
 import logging
@@ -62,7 +63,7 @@ class SettingsManager:
         """Load settings from file"""
         try:
             if os.path.exists(self.settings_file):
-                with open(self.settings_file, 'r') as f:
+                with open(self.settings_file, 'r', encoding='utf-8') as f:
                     settings = json.load(f)
                 logging.debug(f"Loaded settings from {self.settings_file}")
                 return settings
@@ -77,8 +78,8 @@ class SettingsManager:
         """Save settings to file"""
         try:
             os.makedirs(os.path.dirname(self.settings_file), exist_ok=True)
-            with open(self.settings_file, 'w') as f:
-                json.dump(self.settings, f, indent=4)
+            with open(self.settings_file, 'w', encoding='utf-8') as f:
+                json.dump(self.settings, f, indent=4, ensure_ascii=False)
             logging.debug(f"Settings saved to {self.settings_file}")
         except Exception as e:
             logging.error(f"Error saving settings: {e}")
@@ -154,8 +155,8 @@ class SettingsManager:
     def export_settings(self, export_path):
         """Export settings to a different file"""
         try:
-            with open(export_path, 'w') as f:
-                json.dump(self.settings, f, indent=4)
+            with open(export_path, 'w', encoding='utf-8') as f:
+                json.dump(self.settings, f, indent=4, ensure_ascii=False)
             logging.info(f"Settings exported to {export_path}")
             return True
         except Exception as e:
@@ -165,7 +166,7 @@ class SettingsManager:
     def import_settings(self, import_path):
         """Import settings from a file"""
         try:
-            with open(import_path, 'r') as f:
+            with open(import_path, 'r', encoding='utf-8') as f:
                 imported_settings = json.load(f)
             
             # Merge with current settings (imported takes precedence)
@@ -201,56 +202,97 @@ class SettingsManager:
         if main_window_monitor is not None:
             self.set_setting("main_window_monitor", main_window_monitor)
 
-    # --- FUNCIONES MIDI MEJORADAS ---
+    # --- FUNCIONES MIDI MEJORADAS PARA PRIORIZAR config/midi_mappings.json ---
     def load_midi_mappings(self):
-        """Load MIDI mappings from settings - improved version"""
+        """FIXED: Load MIDI mappings with priority to config/midi_mappings.json"""
         try:
-            logging.info("💾 Loading MIDI mappings...")
-            # First try to load from the main settings file
+            logging.info("💾 LOADING MIDI MAPPINGS...")
+            
+            # CRITICAL FIX: First try to load from config/midi_mappings.json (standalone file)
+            # This is the PRIMARY source that should override everything else
+            if os.path.exists(self.mappings_file):
+                logging.info(f"📁 Trying to load from PRIMARY source: {self.mappings_file}")
+                try:
+                    with open(self.mappings_file, 'r', encoding='utf-8') as f:
+                        file_mappings = json.load(f)
+                    
+                    if isinstance(file_mappings, dict) and len(file_mappings) > 0:
+                        logging.info(f"✅ SUCCESS: Loaded {len(file_mappings)} MIDI mappings from {self.mappings_file}")
+                        
+                        # Debug: mostrar algunos mappings cargados
+                        for action_id, mapping_data in list(file_mappings.items())[:5]:
+                            midi_key = mapping_data.get('midi', 'no_midi')
+                            action_type = mapping_data.get('type', 'unknown')
+                            params = mapping_data.get('params', {})
+                            logging.info(f"   {action_id}: {midi_key} -> {action_type} {params}")
+                        
+                        # Also save to settings for backup
+                        self.set_setting("midi_mappings", file_mappings)
+                        return file_mappings
+                    else:
+                        logging.warning(f"⚠️ Empty or invalid mappings in {self.mappings_file}")
+                        
+                except json.JSONDecodeError as e:
+                    logging.error(f"❌ JSON decode error in {self.mappings_file}: {e}")
+                except Exception as e:
+                    logging.error(f"❌ Error reading {self.mappings_file}: {e}")
+            else:
+                logging.warning(f"⚠️ PRIMARY mappings file {self.mappings_file} not found")
+            
+            # FALLBACK: Try to load from main settings file
+            logging.info("📁 Trying fallback: load from settings file...")
             mappings = self.get_setting("midi_mappings", {})
             
-            # Also try to load from separate mappings file for backward compatibility
-            if not mappings and os.path.exists(self.mappings_file):
-                logging.info(f"Trying to load from backup file: {self.mappings_file}")
-                with open(self.mappings_file, 'r') as f:
-                    file_mappings = json.load(f)
-                    if isinstance(file_mappings, dict):
-                        mappings = file_mappings
-            
-            if isinstance(mappings, dict):
-                logging.info(f"✅ Loaded {len(mappings)} MIDI mappings")
+            if isinstance(mappings, dict) and len(mappings) > 0:
+                logging.info(f"✅ FALLBACK: Loaded {len(mappings)} MIDI mappings from settings")
+                # Save to primary file for future use
+                try:
+                    os.makedirs(os.path.dirname(self.mappings_file), exist_ok=True)
+                    with open(self.mappings_file, 'w', encoding='utf-8') as f:
+                        json.dump(mappings, f, indent=4, ensure_ascii=False)
+                    logging.info(f"✅ Mappings also saved to primary file: {self.mappings_file}")
+                except Exception as e:
+                    logging.warning(f"⚠️ Could not save to primary file: {e}")
                 return mappings
             else:
-                logging.warning("Invalid MIDI mappings format, returning empty dict")
+                logging.warning("⚠️ No valid MIDI mappings found in settings either")
                 return {}
                 
         except Exception as e:
-            logging.error(f"Error loading MIDI mappings: {e}")
+            logging.error(f"❌ Critical error loading MIDI mappings: {e}")
+            import traceback
+            traceback.print_exc()
             return {}
 
     def save_midi_mappings(self, mappings):
-        """Save MIDI mappings to settings - improved version"""
+        """FIXED: Save MIDI mappings to BOTH primary file AND settings"""
         try:
-            if isinstance(mappings, dict):
-                logging.info(f"💾 Saving {len(mappings)} MIDI mappings to settings.")
-                # Save to main settings
+            if not isinstance(mappings, dict):
+                logging.error("❌ Invalid mappings format, must be a dictionary")
+                return
+                
+            logging.info(f"💾 SAVING {len(mappings)} MIDI mappings...")
+            
+            # PRIORITY 1: Save to primary config file (config/midi_mappings.json)
+            try:
+                os.makedirs(os.path.dirname(self.mappings_file), exist_ok=True)
+                with open(self.mappings_file, 'w', encoding='utf-8') as f:
+                    json.dump(mappings, f, indent=4, ensure_ascii=False)
+                logging.info(f"✅ PRIMARY: Saved to {self.mappings_file}")
+            except Exception as e:
+                logging.error(f"❌ Failed to save to primary file {self.mappings_file}: {e}")
+            
+            # BACKUP: Also save to main settings
+            try:
                 self.set_setting("midi_mappings", mappings)
+                logging.info(f"✅ BACKUP: Saved to settings file")
+            except Exception as e:
+                logging.error(f"❌ Failed to save to settings: {e}")
                 
-                # Also save to separate file for backup
-                try:
-                    os.makedirs(os.path.dirname(self.mappings_file), exist_ok=True)
-                    with open(self.mappings_file, 'w') as f:
-                        json.dump(mappings, f, indent=4)
-                    logging.info(f"✅ MIDI mappings also saved to backup file: {self.mappings_file}")
-                except Exception as backup_error:
-                    logging.warning(f"Could not save MIDI mappings backup: {backup_error}")
-                
-                logging.info(f"Saved {len(mappings)} MIDI mappings")
-            else:
-                logging.error("Invalid mappings format, must be a dictionary")
+            logging.info(f"✅ MIDI mappings saved successfully")
                 
         except Exception as e:
-            logging.error(f"Error saving MIDI mappings: {e}")
+            logging.error(f"❌ Critical error saving MIDI mappings: {e}")
 
     def get_midi_device_settings(self):
         """Get MIDI device settings"""
@@ -278,8 +320,8 @@ class SettingsManager:
         """Export MIDI mappings to a file"""
         try:
             mappings = self.load_midi_mappings()
-            with open(filename, 'w') as f:
-                json.dump(mappings, f, indent=2)
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(mappings, f, indent=2, ensure_ascii=False)
             logging.info(f"MIDI mappings exported to {filename}")
             return True
         except Exception as e:
@@ -289,7 +331,7 @@ class SettingsManager:
     def import_midi_mappings(self, filename):
         """Import MIDI mappings from a file"""
         try:
-            with open(filename, 'r') as f:
+            with open(filename, 'r', encoding='utf-8') as f:
                 mappings = json.load(f)
             if isinstance(mappings, dict):
                 self.save_midi_mappings(mappings)
@@ -301,3 +343,157 @@ class SettingsManager:
         except Exception as e:
             logging.error(f"Error importing MIDI mappings: {e}")
             return False
+
+    # --- FUNCIONES ADICIONALES PARA MANEJO DE CONFIGURACIONES ---
+    
+    def get_audio_settings(self):
+        """Get audio settings"""
+        return {
+            'input_device': self.get_setting("audio_settings.input_device", ""),
+            'buffer_size': self.get_setting("audio_settings.buffer_size", 1024),
+            'sample_rate': self.get_setting("audio_settings.sample_rate", 44100)
+        }
+
+    def set_audio_settings(self, audio_settings):
+        """Set audio settings"""
+        try:
+            for key, value in audio_settings.items():
+                self.set_setting(f"audio_settings.{key}", value)
+            logging.info("Audio settings updated")
+        except Exception as e:
+            logging.error(f"Error setting audio settings: {e}")
+
+    def get_visual_settings(self):
+        """Get visual settings"""
+        return {
+            'fps_limit': self.get_setting("visual_settings.fps_limit", 60),
+            'vsync': self.get_setting("visual_settings.vsync", True),
+            'quality': self.get_setting("visual_settings.quality", "high")
+        }
+
+    def set_visual_settings(self, visual_settings):
+        """Set visual settings"""
+        try:
+            for key, value in visual_settings.items():
+                self.set_setting(f"visual_settings.{key}", value)
+            logging.info("Visual settings updated")
+        except Exception as e:
+            logging.error(f"Error setting visual settings: {e}")
+
+    def backup_settings(self, backup_path=None):
+        """Create a backup of all settings"""
+        try:
+            if backup_path is None:
+                import datetime
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                backup_path = f"config/settings_backup_{timestamp}.json"
+            
+            return self.export_settings(backup_path)
+        except Exception as e:
+            logging.error(f"Error creating settings backup: {e}")
+            return False
+
+    def restore_settings(self, backup_path):
+        """Restore settings from a backup"""
+        try:
+            return self.import_settings(backup_path)
+        except Exception as e:
+            logging.error(f"Error restoring settings from backup: {e}")
+            return False
+
+    def validate_settings(self):
+        """Validate current settings for consistency"""
+        try:
+            issues = []
+            
+            # Check required settings
+            required_settings = [
+                "control_panel_monitor",
+                "main_window_monitor", 
+                "window_positions",
+                "deck_settings",
+                "mixer_settings",
+                "audio_settings",
+                "visual_settings"
+            ]
+            
+            for setting in required_settings:
+                if setting not in self.settings:
+                    issues.append(f"Missing required setting: {setting}")
+            
+            # Check window positions
+            if "window_positions" in self.settings:
+                for window_name, pos in self.settings["window_positions"].items():
+                    required_pos_keys = ["x", "y", "width", "height"]
+                    for key in required_pos_keys:
+                        if key not in pos:
+                            issues.append(f"Missing {key} in window_positions.{window_name}")
+            
+            # Check deck settings
+            if "deck_settings" in self.settings:
+                for deck_id in ["deck_a", "deck_b"]:
+                    if deck_id not in self.settings["deck_settings"]:
+                        issues.append(f"Missing deck_settings.{deck_id}")
+            
+            if issues:
+                logging.warning(f"Settings validation found {len(issues)} issues:")
+                for issue in issues:
+                    logging.warning(f"  - {issue}")
+                return False
+            else:
+                logging.info("Settings validation passed")
+                return True
+                
+        except Exception as e:
+            logging.error(f"Error validating settings: {e}")
+            return False
+
+    def cleanup_old_settings(self):
+        """Remove old or unused settings to keep file clean"""
+        try:
+            # List of deprecated settings that can be safely removed
+            deprecated_settings = [
+                "old_midi_device",
+                "legacy_audio_settings",
+                "deprecated_visual_options"
+            ]
+            
+            removed_count = 0
+            for setting in deprecated_settings:
+                if setting in self.settings:
+                    del self.settings[setting]
+                    removed_count += 1
+            
+            if removed_count > 0:
+                self.save_settings()
+                logging.info(f"Cleaned up {removed_count} deprecated settings")
+            
+            return removed_count
+            
+        except Exception as e:
+            logging.error(f"Error cleaning up settings: {e}")
+            return 0
+
+    def get_settings_summary(self):
+        """Get a summary of current settings for debugging"""
+        try:
+            summary = {
+                'total_settings': len(self.settings),
+                'midi_mappings_count': len(self.get_setting("midi_mappings", {})),
+                'has_window_positions': 'window_positions' in self.settings,
+                'audio_device': self.get_setting("audio_settings.input_device", "Not set"),
+                'midi_device': self.get_setting("last_midi_device", "Not set"),
+                'auto_save_enabled': self.get_setting("auto_save_settings", False),
+                'visual_quality': self.get_setting("visual_settings.quality", "Not set")
+            }
+            
+            return summary
+            
+        except Exception as e:
+            logging.error(f"Error getting settings summary: {e}")
+            return {}
+
+    def __str__(self):
+        """String representation for debugging"""
+        summary = self.get_settings_summary()
+        return f"SettingsManager(settings: {summary.get('total_settings', 0)}, midi_mappings: {summary.get('midi_mappings_count', 0)})"
