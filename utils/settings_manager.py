@@ -205,18 +205,20 @@ class SettingsManager:
     def load_midi_mappings(self):
         """Load MIDI mappings from settings - improved version"""
         try:
+            logging.info("💾 Loading MIDI mappings...")
             # First try to load from the main settings file
             mappings = self.get_setting("midi_mappings", {})
             
             # Also try to load from separate mappings file for backward compatibility
             if not mappings and os.path.exists(self.mappings_file):
+                logging.info(f"Trying to load from backup file: {self.mappings_file}")
                 with open(self.mappings_file, 'r') as f:
                     file_mappings = json.load(f)
                     if isinstance(file_mappings, dict):
                         mappings = file_mappings
             
             if isinstance(mappings, dict):
-                logging.info(f"Loaded {len(mappings)} MIDI mappings")
+                logging.info(f"✅ Loaded {len(mappings)} MIDI mappings")
                 return mappings
             else:
                 logging.warning("Invalid MIDI mappings format, returning empty dict")
@@ -230,6 +232,7 @@ class SettingsManager:
         """Save MIDI mappings to settings - improved version"""
         try:
             if isinstance(mappings, dict):
+                logging.info(f"💾 Saving {len(mappings)} MIDI mappings to settings.")
                 # Save to main settings
                 self.set_setting("midi_mappings", mappings)
                 
@@ -238,7 +241,7 @@ class SettingsManager:
                     os.makedirs(os.path.dirname(self.mappings_file), exist_ok=True)
                     with open(self.mappings_file, 'w') as f:
                         json.dump(mappings, f, indent=4)
-                    logging.debug(f"MIDI mappings also saved to {self.mappings_file}")
+                    logging.info(f"✅ MIDI mappings also saved to backup file: {self.mappings_file}")
                 except Exception as backup_error:
                     logging.warning(f"Could not save MIDI mappings backup: {backup_error}")
                 

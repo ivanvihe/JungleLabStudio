@@ -1,20 +1,20 @@
-# ui/control_panel_window.py
+# ui/control_panel_window.py - REDISEÑADO PARA OPERACIÓN 100% DESDE ABLETON
 import logging
 from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QPushButton, QComboBox,
+    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox,
     QGroupBox, QGridLayout, QFrame, QProgressBar, QMenuBar, QMenu, QFormLayout, QApplication,
-    QMessageBox, QTextEdit, QScrollArea, QSplitter, QTabWidget
+    QMessageBox, QTextEdit, QScrollArea, QSplitter, QTabWidget, QTableWidget, QTableWidgetItem,
+    QHeaderView
 )
 from PyQt6.QtCore import Qt, QTimer, QMutex, QMutexLocker, QSize
-from PyQt6.QtGui import QAction, QFont
+from PyQt6.QtGui import QAction, QFont, QColor
 
 from .preferences_dialog import PreferencesDialog
-from .midi_mapping_dialog import MidiMappingDialog
 
 class ControlPanelWindow(QMainWindow):
     def __init__(self, mixer_window, settings_manager, midi_engine, visualizer_manager, audio_analyzer):
         super().__init__(mixer_window)  # Set mixer window as parent for monitor management
-        logging.debug("ControlPanelWindow.__init__ called")
+        logging.debug("ControlPanelWindow.__init__ called - REDISEÑADO PARA ABLETON")
         
         # Store references
         self.mixer_window = mixer_window
@@ -26,19 +26,33 @@ class ControlPanelWindow(QMainWindow):
         # Thread safety
         self._mutex = QMutex()
         
-        # UI state tracking
-        self.preset_selectors = {}
-        self.controls_layouts = {}
-        self.last_device_update = 0
+        # Estado de actividad MIDI en tiempo real
+        self.deck_a_status = {
+            'active_preset': None,
+            'last_activity': None,
+            'controls': {'intensity': 0, 'speed': 0, 'color': 0}
+        }
         
-        self.setWindowTitle("Audio Visualizer Pro - MIDI Control Center")
-        self.setGeometry(50, 50, 1400, 900)
+        self.deck_b_status = {
+            'active_preset': None,
+            'last_activity': None,
+            'controls': {'intensity': 0, 'speed': 0, 'color': 0}
+        }
+        
+        self.mix_status = {
+            'crossfader_value': 50,
+            'last_mix_action': None,
+            'last_activity': None
+        }
+        
+        self.setWindowTitle("Audio Visualizer Pro - MIDI Control Center (Ableton Mode)")
+        self.setGeometry(50, 50, 1600, 900)
         
         # Create menu bar
         self.create_menu_bar()
 
-        # Create main UI
-        self.create_ui()
+        # Create main UI - REDISEÑADO
+        self.create_midi_focused_ui()
         
         # Connect MIDI signals for activity monitoring
         self.setup_midi_connections()
@@ -64,6 +78,8 @@ class ControlPanelWindow(QMainWindow):
                 self.midi_engine.device_connected.connect(self.on_midi_device_connected)
             if hasattr(self.midi_engine, 'device_disconnected'):
                 self.midi_engine.device_disconnected.connect(self.on_midi_device_disconnected)
+            if hasattr(self.midi_engine, 'preset_loaded_on_deck'):
+                self.midi_engine.preset_loaded_on_deck.connect(self.on_preset_loaded_on_deck)
         except Exception as e:
             logging.warning(f"Could not connect MIDI activity signals: {e}")
 
@@ -87,6 +103,17 @@ class ControlPanelWindow(QMainWindow):
         preferences_action.triggered.connect(self.show_preferences)
         settings_menu.addAction(preferences_action)
 
+        # MIDI menu
+        midi_menu = menubar.addMenu('MIDI')
+        
+        test_mappings_action = QAction('Test MIDI Mappings', self)
+        test_mappings_action.triggered.connect(self.test_midi_mappings)
+        midi_menu.addAction(test_mappings_action)
+        
+        print_mappings_action = QAction('Print Current Mappings', self)
+        print_mappings_action.triggered.connect(self.print_midi_mappings)
+        midi_menu.addAction(print_mappings_action)
+
         # View menu
         view_menu = menubar.addMenu('View')
         
@@ -94,9 +121,832 @@ class ControlPanelWindow(QMainWindow):
         refresh_action.triggered.connect(self.refresh_devices)
         view_menu.addAction(refresh_action)
 
-        reload_visualizers_action = QAction('Reload Visualizers', self)
-        reload_visualizers_action.triggered.connect(self.reload_visualizers)
-        view_menu.addAction(reload_visualizers_action)
+    def create_midi_focused_ui(self):
+        """Create the new MIDI-focused UI"""
+        main_widget = QWidget()
+        self.setCentralWidget(main_widget)
+        
+        # Main layout
+        main_layout = QVBoxLayout(main_widget)
+        main_layout.setSpacing(10)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        
+        # Header Section
+        header_section = self.create_header_section()
+        main_layout.addWidget(header_section)
+        
+        # Main Content: 3 Column Layout (Deck A, Mix, Deck B)
+        content_splitter = QSplitter(Qt.Orientation.Horizontal)
+        
+        # Column 1: Deck A
+        deck_a_widget = self.create_deck_section('A')
+        content_splitter.addWidget(deck_a_widget)
+        
+        # Column 2: Mix Section
+        mix_widget = self.create_mix_section()
+        content_splitter.addWidget(mix_widget)
+        
+        # Column 3: Deck B
+        deck_b_widget = self.create_deck_section('B')
+        content_splitter.addWidget(deck_b_widget)
+        
+        # Set equal proportions
+        content_splitter.setSizes([500, 600, 500])
+        main_layout.addWidget(content_splitter)
+        
+        # Footer: Drum Rack Guide
+        footer_section = self.create_footer_section()
+        main_layout.addWidget(footer_section)
+
+    def create_header_section(self):
+        """Create header with status information including MIDI indicator and debug button"""
+        header_frame = QFrame()
+        header_frame.setFrameStyle(QFrame.Shape.StyledPanel)
+        header_frame.setStyleSheet("""
+            QFrame {
+                background-color: #1a1a1a;
+                border: 2px solid #00ff00;
+                border-radius: 8px;
+                padding: 10px;
+            }
+        """)
+        header_layout = QHBoxLayout(header_frame)
+        
+        # Title
+        title_label = QLabel("<b>🎛️ CONTROL PANEL MIDI - Operación 100% desde Ableton Live</b>")
+        title_label.setStyleSheet("font-size: 18px; color: #00ff00; font-weight: bold;")
+        header_layout.addWidget(title_label)
+        
+        header_layout.addStretch()
+        
+        # MIDI Activity Indicator (NUEVO)
+        midi_activity = self.create_midi_activity_indicator()
+        header_layout.addWidget(midi_activity)
+        
+        # MIDI Status
+        self.midi_status_label = QLabel("MIDI: Checking...")
+        self.midi_status_label.setStyleSheet("font-weight: bold; padding: 5px; color: #ffaa00;")
+        header_layout.addWidget(self.midi_status_label)
+        
+        # Debug Button (NUEVO)
+        debug_btn = QPushButton("🔍 Debug")
+        debug_btn.setMaximumWidth(80)
+        debug_btn.setStyleSheet("background-color: #0066cc; color: white; padding: 5px;")
+        debug_btn.clicked.connect(self.run_midi_debug)
+        header_layout.addWidget(debug_btn)
+        
+        # Audio Level (compact)
+        level_widget = QWidget()
+        level_layout = QVBoxLayout(level_widget)
+        level_layout.setContentsMargins(0, 0, 0, 0)
+        level_layout.setSpacing(2)
+        
+        level_label = QLabel("Audio Level:")
+        level_label.setStyleSheet("font-size: 10px; color: #ffffff;")
+        level_layout.addWidget(level_label)
+        
+        self.audio_level_bar = QProgressBar()
+        self.audio_level_bar.setRange(0, 100)
+        self.audio_level_bar.setValue(0)
+        self.audio_level_bar.setMaximumHeight(15)
+        self.audio_level_bar.setMaximumWidth(120)
+        self.audio_level_bar.setStyleSheet("""
+            QProgressBar {
+                border: 1px solid #333;
+                border-radius: 3px;
+                background-color: #1a1a1a;
+                text-align: center;
+                font-size: 9px;
+                color: white;
+            }
+            QProgressBar::chunk {
+                background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #00ff00, stop:0.7 #ffff00, stop:1 #ff0000);
+                border-radius: 2px;
+            }
+        """)
+        level_layout.addWidget(self.audio_level_bar)
+        
+        header_layout.addWidget(level_widget)
+        
+        return header_frame
+
+    def create_midi_activity_indicator(self):
+        """Crear indicador visual de actividad MIDI como en Ableton"""
+        indicator_widget = QWidget()
+        indicator_layout = QHBoxLayout(indicator_widget)
+        indicator_layout.setContentsMargins(5, 2, 5, 2)
+        indicator_layout.setSpacing(5)
+        
+        # Label MIDI
+        midi_label = QLabel("MIDI:")
+        midi_label.setStyleSheet("color: #ffffff; font-size: 10px;")
+        indicator_layout.addWidget(midi_label)
+        
+        # Indicador LED (círculo)
+        self.midi_led = QLabel("●")
+        self.midi_led.setStyleSheet("""
+            QLabel {
+                color: #333333;
+                font-size: 16px;
+                font-weight: bold;
+                background-color: transparent;
+                border-radius: 8px;
+                min-width: 16px;
+                max-width: 16px;
+                text-align: center;
+            }
+        """)
+        indicator_layout.addWidget(self.midi_led)
+        
+        # Timer para apagar el LED
+        self.midi_led_timer = QTimer()
+        self.midi_led_timer.setSingleShot(True)
+        self.midi_led_timer.timeout.connect(self.turn_off_midi_led)
+        
+        return indicator_widget
+
+    def turn_on_midi_led(self):
+        """Encender LED de actividad MIDI"""
+        try:
+            self.midi_led.setStyleSheet("""
+                QLabel {
+                    color: #00ff00;
+                    font-size: 16px;
+                    font-weight: bold;
+                    background-color: transparent;
+                    border-radius: 8px;
+                    min-width: 16px;
+                    max-width: 16px;
+                    text-align: center;
+                }
+            """)
+            # Apagar después de 100ms
+            self.midi_led_timer.start(100)
+        except Exception as e:
+            logging.error(f"Error turning on MIDI LED: {e}")
+
+    def turn_off_midi_led(self):
+        """Apagar LED de actividad MIDI"""
+        try:
+            self.midi_led.setStyleSheet("""
+                QLabel {
+                    color: #333333;
+                    font-size: 16px;
+                    font-weight: bold;
+                    background-color: transparent;
+                    border-radius: 8px;
+                    min-width: 16px;
+                    max-width: 16px;
+                    text-align: center;
+                }
+            """)
+        except Exception as e:
+            logging.error(f"Error turning off MIDI LED: {e}")
+
+    def run_midi_debug(self):
+        """Ejecutar debug completo de MIDI"""
+        try:
+            logging.info("🔍 USUARIO SOLICITÓ DEBUG MIDI")
+            
+            if not self.midi_engine:
+                QMessageBox.warning(self, "Debug Error", "MIDI Engine no disponible")
+                return
+            
+            # Ejecutar debug
+            self.debug_midi_connection()
+            
+            # Mostrar resultado
+            QMessageBox.information(self, "Debug MIDI", 
+                                  "Debug MIDI ejecutado.\nRevisa la consola para detalles completos.")
+            
+        except Exception as e:
+            logging.error(f"Error en run_midi_debug: {e}")
+            QMessageBox.critical(self, "Error", f"Error ejecutando debug: {str(e)}")
+
+    def debug_midi_connection(self):
+        """Debug completo de la conexión MIDI"""
+        try:
+            logging.info("🔍 INICIANDO DEBUG DE CONEXIÓN MIDI")
+            logging.info("=" * 80)
+            
+            # 1. Verificar engine
+            if not self.midi_engine:
+                logging.error("❌ MIDI Engine no existe!")
+                return
+            
+            # 2. Verificar estado del puerto
+            logging.info("1. ESTADO DEL PUERTO MIDI:")
+            logging.info(f"   input_port: {self.midi_engine.input_port}")
+            logging.info(f"   running: {self.midi_engine.running}")
+            logging.info(f"   is_port_open(): {self.midi_engine.is_port_open()}")
+            
+            # 3. Puertos disponibles
+            logging.info("2. PUERTOS MIDI DISPONIBLES:")
+            available_ports = self.midi_engine.list_input_ports()
+            for i, port in enumerate(available_ports):
+                logging.info(f"   {i}: {port}")
+            
+            # 4. Verificar callback
+            logging.info("3. VERIFICANDO CALLBACK:")
+            if self.midi_engine.input_port:
+                try:
+                    # Intentar acceder al callback del puerto
+                    logging.info(f"   Puerto existe: {self.midi_engine.input_port}")
+                    logging.info(f"   Tipo de puerto: {type(self.midi_engine.input_port)}")
+                except Exception as cb_error:
+                    logging.error(f"   Error verificando callback: {cb_error}")
+            else:
+                logging.error("   ❌ Puerto MIDI no existe")
+            
+            # 5. Verificar mappings
+            logging.info("4. VERIFICANDO MAPPINGS:")
+            logging.info(f"   Total mappings: {len(self.midi_engine.midi_mappings)}")
+            
+            # Mostrar mappings críticos
+            critical_notes = [36, 37, 48, 54, 55]  # Algunas notas importantes
+            for note in critical_notes:
+                test_key = f"note_on_ch0_note{note}"
+                found = False
+                for action_id, mapping_data in self.midi_engine.midi_mappings.items():
+                    if mapping_data.get('midi') == test_key:
+                        action_type = mapping_data.get('type', 'unknown')
+                        params = mapping_data.get('params', {})
+                        preset = params.get('preset_name', 'N/A')
+                        logging.info(f"   ✅ Note {note}: {action_id} -> {action_type} ({preset})")
+                        found = True
+                        break
+                if not found:
+                    logging.warning(f"   ❌ Note {note}: No mapping found")
+            
+            # 6. Test de referencias
+            logging.info("5. VERIFICANDO REFERENCIAS:")
+            logging.info(f"   mixer_window: {'✅' if self.midi_engine.mixer_window else '❌'}")
+            logging.info(f"   control_panel: {'✅' if self.midi_engine.control_panel else '❌'}")
+            
+            # 7. Test simulado
+            logging.info("6. TEST SIMULADO:")
+            try:
+                import mido
+                test_msg = mido.Message('note_on', channel=0, note=37, velocity=127)
+                logging.info(f"   Simulando: {test_msg}")
+                
+                # Llamar directamente al handler
+                self.midi_engine.handle_midi_message(test_msg)
+                logging.info("   ✅ Handler llamado sin errores")
+                
+            except Exception as sim_error:
+                logging.error(f"   ❌ Error en simulación: {sim_error}")
+            
+            logging.info("=" * 80)
+            logging.info("🔍 DEBUG FINALIZADO")
+            
+        except Exception as e:
+            logging.error(f"Error en debug_midi_connection: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def create_deck_section(self, deck_id):
+        """Create a deck section (A or B)"""
+        deck_frame = QFrame()
+        deck_frame.setFrameStyle(QFrame.Shape.StyledPanel)
+        
+        # Color coding
+        if deck_id == 'A':
+            border_color = "#ff4444"
+            deck_name = "DECK A"
+        else:
+            border_color = "#44ff44"
+            deck_name = "DECK B"
+            
+        deck_frame.setStyleSheet(f"""
+            QFrame {{
+                background-color: #1a1a1a;
+                border: 2px solid {border_color};
+                border-radius: 8px;
+                padding: 5px;
+            }}
+        """)
+        
+        deck_layout = QVBoxLayout(deck_frame)
+        deck_layout.setSpacing(10)
+        
+        # Deck Header
+        header_label = QLabel(f"<b>{deck_name}</b>")
+        header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header_label.setStyleSheet(f"color: {border_color}; font-size: 16px; font-weight: bold; padding: 5px;")
+        deck_layout.addWidget(header_label)
+        
+        # Status Information
+        status_group = self.create_deck_status_section(deck_id)
+        deck_layout.addWidget(status_group)
+        
+        # MIDI Mappings
+        mappings_group = self.create_deck_mappings_section(deck_id)
+        deck_layout.addWidget(mappings_group)
+        
+        return deck_frame
+
+    def create_deck_status_section(self, deck_id):
+        """Create deck status information section"""
+        status_group = QGroupBox("📊 Estado Actual")
+        status_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                color: #ffffff;
+                border: 1px solid #666;
+                border-radius: 5px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px 0 5px;
+            }
+        """)
+        
+        status_layout = QVBoxLayout(status_group)
+        
+        # Create status labels
+        if deck_id == 'A':
+            self.deck_a_preset_label = QLabel("Preset: Ninguno")
+            self.deck_a_activity_label = QLabel("Última actividad: --")
+            self.deck_a_controls_label = QLabel("Controles: --")
+            
+            self.deck_a_preset_label.setStyleSheet("color: #00ff00; font-weight: bold;")
+            self.deck_a_activity_label.setStyleSheet("color: #888; font-size: 10px;")
+            self.deck_a_controls_label.setStyleSheet("color: #00aaff; font-size: 10px;")
+            
+            status_layout.addWidget(self.deck_a_preset_label)
+            status_layout.addWidget(self.deck_a_activity_label)
+            status_layout.addWidget(self.deck_a_controls_label)
+        else:
+            self.deck_b_preset_label = QLabel("Preset: Ninguno")
+            self.deck_b_activity_label = QLabel("Última actividad: --")
+            self.deck_b_controls_label = QLabel("Controles: --")
+            
+            self.deck_b_preset_label.setStyleSheet("color: #00ff00; font-weight: bold;")
+            self.deck_b_activity_label.setStyleSheet("color: #888; font-size: 10px;")
+            self.deck_b_controls_label.setStyleSheet("color: #00aaff; font-size: 10px;")
+            
+            status_layout.addWidget(self.deck_b_preset_label)
+            status_layout.addWidget(self.deck_b_activity_label)
+            status_layout.addWidget(self.deck_b_controls_label)
+        
+        return status_group
+
+    def create_deck_mappings_section(self, deck_id):
+        """Create MIDI mappings section for deck"""
+        mappings_group = QGroupBox("🎹 MIDI Mappings - Presets")
+        mappings_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                color: #ffffff;
+                border: 1px solid #666;
+                border-radius: 5px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px 0 5px;
+            }
+        """)
+        
+        mappings_layout = QVBoxLayout(mappings_group)
+        
+        # Create table for mappings
+        table = QTableWidget()
+        table.setColumnCount(3)
+        table.setHorizontalHeaderLabels(["Pad", "Preset", "Status"])
+        
+        # Style the table
+        table.setStyleSheet("""
+            QTableWidget {
+                background-color: #2a2a2a;
+                color: white;
+                border: 1px solid #444;
+                border-radius: 3px;
+                gridline-color: #444;
+            }
+            QTableWidget::item {
+                padding: 5px;
+                border-bottom: 1px solid #333;
+            }
+            QTableWidget::item:selected {
+                background-color: #555;
+            }
+            QHeaderView::section {
+                background-color: #333;
+                color: white;
+                padding: 5px;
+                border: 1px solid #444;
+                font-weight: bold;
+            }
+        """)
+        
+        # Configure table
+        header = table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
+        table.setColumnWidth(0, 60)
+        table.setColumnWidth(2, 80)
+        
+        # Populate with mappings
+        self.populate_deck_mappings_table(table, deck_id)
+        
+        # Store table reference
+        if deck_id == 'A':
+            self.deck_a_mappings_table = table
+        else:
+            self.deck_b_mappings_table = table
+        
+        mappings_layout.addWidget(table)
+        
+        return mappings_group
+
+    def populate_deck_mappings_table(self, table, deck_id):
+        """Populate deck mappings table"""
+        try:
+            # Get mappings from MIDI engine
+            if not self.midi_engine:
+                return
+                
+            mappings = self.midi_engine.get_midi_mappings()
+            
+            # Filter mappings for this deck
+            deck_mappings = []
+            for action_id, mapping_data in mappings.items():
+                params = mapping_data.get('params', {})
+                if params.get('deck_id') == deck_id:
+                    deck_mappings.append((action_id, mapping_data))
+            
+            # Sort by MIDI note
+            deck_mappings.sort(key=lambda x: int(x[1].get('midi', 'note0').split('note')[-1]))
+            
+            table.setRowCount(len(deck_mappings))
+            
+            for row, (action_id, mapping_data) in enumerate(deck_mappings):
+                midi_key = mapping_data.get('midi', '')
+                params = mapping_data.get('params', {})
+                preset_name = params.get('preset_name', 'Clear') if params.get('preset_name') else 'Clear'
+                
+                # Extract note number and convert to pad name
+                note_num = int(midi_key.split('note')[-1]) if 'note' in midi_key else 0
+                pad_name = self.note_to_pad_name(note_num)
+                
+                # Pad column
+                pad_item = QTableWidgetItem(pad_name)
+                pad_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                table.setItem(row, 0, pad_item)
+                
+                # Preset column
+                preset_item = QTableWidgetItem(preset_name)
+                table.setItem(row, 1, preset_item)
+                
+                # Status column
+                status = "●" if self.is_preset_active(deck_id, preset_name) else "○"
+                status_item = QTableWidgetItem(status)
+                status_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                if status == "●":
+                    status_item.setForeground(QColor("#00ff00"))
+                else:
+                    status_item.setForeground(QColor("#666"))
+                table.setItem(row, 2, status_item)
+                
+        except Exception as e:
+            logging.error(f"Error populating deck mappings table: {e}")
+
+    def note_to_pad_name(self, note_number):
+        """Convert MIDI note number to pad name"""
+        # Standard MIDI note mapping
+        note_names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+        octave = (note_number // 12) - 1
+        note_name = note_names[note_number % 12]
+        return f"{note_name}{octave}"
+
+    def is_preset_active(self, deck_id, preset_name):
+        """Check if preset is currently active on deck"""
+        if deck_id == 'A':
+            return self.deck_a_status['active_preset'] == preset_name
+        else:
+            return self.deck_b_status['active_preset'] == preset_name
+
+    def create_mix_section(self):
+        """Create mix section"""
+        mix_frame = QFrame()
+        mix_frame.setFrameStyle(QFrame.Shape.StyledPanel)
+        mix_frame.setStyleSheet("""
+            QFrame {
+                background-color: #1a1a1a;
+                border: 2px solid #ffaa00;
+                border-radius: 8px;
+                padding: 5px;
+            }
+        """)
+        
+        mix_layout = QVBoxLayout(mix_frame)
+        mix_layout.setSpacing(10)
+        
+        # Mix Header
+        header_label = QLabel("<b>🎚️ VISUAL MIX</b>")
+        header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header_label.setStyleSheet("color: #ffaa00; font-size: 16px; font-weight: bold; padding: 5px;")
+        mix_layout.addWidget(header_label)
+        
+        # Mix Status
+        status_group = self.create_mix_status_section()
+        mix_layout.addWidget(status_group)
+        
+        # Mix Mappings
+        mappings_group = self.create_mix_mappings_section()
+        mix_layout.addWidget(mappings_group)
+        
+        # Future Features
+        future_group = self.create_future_features_section()
+        mix_layout.addWidget(future_group)
+        
+        return mix_frame
+
+    def create_mix_status_section(self):
+        """Create mix status section"""
+        status_group = QGroupBox("📊 Estado del Mix")
+        status_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                color: #ffffff;
+                border: 1px solid #666;
+                border-radius: 5px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px 0 5px;
+            }
+        """)
+        
+        status_layout = QVBoxLayout(status_group)
+        
+        # Crossfader value
+        self.mix_value_label = QLabel("Crossfader: 50%")
+        self.mix_value_label.setStyleSheet("color: #ffaa00; font-weight: bold;")
+        status_layout.addWidget(self.mix_value_label)
+        
+        # Visual crossfader representation
+        fader_widget = QWidget()
+        fader_layout = QVBoxLayout(fader_widget)
+        fader_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Labels
+        labels_layout = QHBoxLayout()
+        labels_layout.addWidget(QLabel("← A"))
+        labels_layout.addStretch()
+        labels_layout.addWidget(QLabel("B →"))
+        fader_layout.addLayout(labels_layout)
+        
+        # Progress bar as visual fader
+        self.mix_progress_bar = QProgressBar()
+        self.mix_progress_bar.setRange(0, 100)
+        self.mix_progress_bar.setValue(50)
+        self.mix_progress_bar.setMaximumHeight(20)
+        self.mix_progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: 2px solid #333;
+                border-radius: 10px;
+                background-color: #1a1a1a;
+                text-align: center;
+                color: white;
+                font-weight: bold;
+            }
+            QProgressBar::chunk {
+                background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #ff4444, stop:0.5 #ffaa00, stop:1 #44ff44);
+                border-radius: 8px;
+            }
+        """)
+        fader_layout.addWidget(self.mix_progress_bar)
+        
+        status_layout.addWidget(fader_widget)
+        
+        # Last activity
+        self.mix_activity_label = QLabel("Última actividad: --")
+        self.mix_activity_label.setStyleSheet("color: #888; font-size: 10px;")
+        status_layout.addWidget(self.mix_activity_label)
+        
+        return status_group
+
+    def create_mix_mappings_section(self):
+        """Create mix mappings section"""
+        mappings_group = QGroupBox("🎹 MIDI Mappings - Mix Actions")
+        mappings_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                color: #ffffff;
+                border: 1px solid #666;
+                border-radius: 5px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px 0 5px;
+            }
+        """)
+        
+        mappings_layout = QVBoxLayout(mappings_group)
+        
+        # Create table for mix mappings
+        table = QTableWidget()
+        table.setColumnCount(4)
+        table.setHorizontalHeaderLabels(["Pad", "Action", "Duration", "Status"])
+        
+        # Style the table
+        table.setStyleSheet("""
+            QTableWidget {
+                background-color: #2a2a2a;
+                color: white;
+                border: 1px solid #444;
+                border-radius: 3px;
+                gridline-color: #444;
+            }
+            QTableWidget::item {
+                padding: 5px;
+                border-bottom: 1px solid #333;
+            }
+            QTableWidget::item:selected {
+                background-color: #555;
+            }
+            QHeaderView::section {
+                background-color: #333;
+                color: white;
+                padding: 5px;
+                border: 1px solid #444;
+                font-weight: bold;
+            }
+        """)
+        
+        # Configure table
+        header = table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
+        table.setColumnWidth(0, 60)
+        table.setColumnWidth(2, 80)
+        table.setColumnWidth(3, 60)
+        
+        # Populate with mix mappings
+        self.populate_mix_mappings_table(table)
+        
+        self.mix_mappings_table = table
+        mappings_layout.addWidget(table)
+        
+        return mappings_group
+
+    def populate_mix_mappings_table(self, table):
+        """Populate mix mappings table"""
+        try:
+            if not self.midi_engine:
+                return
+                
+            mappings = self.midi_engine.get_midi_mappings()
+            
+            # Filter mix mappings
+            mix_mappings = []
+            for action_id, mapping_data in mappings.items():
+                if mapping_data.get('type') == 'crossfade_action':
+                    mix_mappings.append((action_id, mapping_data))
+            
+            # Sort by MIDI note
+            mix_mappings.sort(key=lambda x: int(x[1].get('midi', 'note0').split('note')[-1]))
+            
+            table.setRowCount(len(mix_mappings))
+            
+            for row, (action_id, mapping_data) in enumerate(mix_mappings):
+                midi_key = mapping_data.get('midi', '')
+                params = mapping_data.get('params', {})
+                
+                # Extract note number and convert to pad name
+                note_num = int(midi_key.split('note')[-1]) if 'note' in midi_key else 0
+                pad_name = self.note_to_pad_name(note_num)
+                
+                # Pad column
+                pad_item = QTableWidgetItem(pad_name)
+                pad_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                table.setItem(row, 0, pad_item)
+                
+                # Action column
+                preset = params.get('preset', 'Unknown')
+                action_item = QTableWidgetItem(preset)
+                table.setItem(row, 1, action_item)
+                
+                # Duration column
+                duration = params.get('duration', '--')
+                duration_item = QTableWidgetItem(duration)
+                duration_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                table.setItem(row, 2, duration_item)
+                
+                # Status column
+                status_item = QTableWidgetItem("○")
+                status_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                status_item.setForeground(QColor("#666"))
+                table.setItem(row, 3, status_item)
+                
+        except Exception as e:
+            logging.error(f"Error populating mix mappings table: {e}")
+
+    def create_future_features_section(self):
+        """Create future features section"""
+        future_group = QGroupBox("🚀 Próximamente")
+        future_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                color: #00aaff;
+                border: 1px solid #00aaff;
+                border-radius: 5px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px 0 5px;
+            }
+        """)
+        
+        future_layout = QVBoxLayout(future_group)
+        
+        features = [
+            "• Efectos visuales en tiempo real",
+            "• Control de colores por MIDI",
+            "• Ajustes de contraste y brillo",
+            "• Efectos de transición avanzados",
+            "• Sincronización con BPM",
+            "• Macros de control visual"
+        ]
+        
+        for feature in features:
+            label = QLabel(feature)
+            label.setStyleSheet("color: #00aaff; font-size: 10px; padding: 2px;")
+            future_layout.addWidget(label)
+        
+        return future_group
+
+    def create_footer_section(self):
+        """Create footer with drum rack guide"""
+        footer_frame = QFrame()
+        footer_frame.setFrameStyle(QFrame.Shape.StyledPanel)
+        footer_frame.setStyleSheet("""
+            QFrame {
+                background-color: #2a2a2a;
+                border: 1px solid #666;
+                border-radius: 5px;
+                padding: 10px;
+            }
+        """)
+        footer_frame.setMaximumHeight(100)
+        
+        footer_layout = QVBoxLayout(footer_frame)
+        
+        # Title
+        title_label = QLabel("<b>🥁 Guía para Drum Rack de Ableton Live</b>")
+        title_label.setStyleSheet("color: #ffffff; font-size: 12px; font-weight: bold;")
+        footer_layout.addWidget(title_label)
+        
+        # Guide grid
+        guide_layout = QHBoxLayout()
+        
+        # Deck A
+        deck_a_guide = QLabel("<b>Deck A (C1-A#1):</b> Notas 36-46<br>Presets visuales para Deck A")
+        deck_a_guide.setStyleSheet("color: #ff4444; font-size: 10px;")
+        guide_layout.addWidget(deck_a_guide)
+        
+        # Mix
+        mix_guide = QLabel("<b>Mix (C2-F2):</b> Notas 48-53<br>Acciones de mezcla y crossfader")
+        mix_guide.setStyleSheet("color: #ffaa00; font-size: 10px;")
+        guide_layout.addWidget(mix_guide)
+        
+        # Deck B
+        deck_b_guide = QLabel("<b>Deck B (F#2-E3):</b> Notas 54-64<br>Presets visuales para Deck B")
+        deck_b_guide.setStyleSheet("color: #44ff44; font-size: 10px;")
+        guide_layout.addWidget(deck_b_guide)
+        
+        footer_layout.addLayout(guide_layout)
+        
+        # Configuration instructions
+        config_label = QLabel("<b>Configuración:</b> Crea un track en Ableton → Añade Drum Rack → "
+                             "Para cada pad, añade External Instrument → Configura MIDI Out al dispositivo virtual")
+        config_label.setStyleSheet("color: #888; font-size: 9px;")
+        config_label.setWordWrap(True)
+        footer_layout.addWidget(config_label)
+        
+        return footer_frame
 
     def show_preferences(self):
         try:
@@ -105,6 +955,34 @@ class ControlPanelWindow(QMainWindow):
         except Exception as e:
             logging.error(f"Error opening preferences: {e}")
             QMessageBox.critical(self, "Error", f"Could not open preferences: {str(e)}")
+
+    def test_midi_mappings(self):
+        """Test MIDI mappings"""
+        try:
+            if self.midi_engine:
+                # Test a few key mappings
+                test_notes = [37, 50, 55]  # Wire Terrain A, Mix A→B 5s, Wire Terrain B
+                for note in test_notes:
+                    self.midi_engine.test_midi_mapping(note)
+                    
+                QMessageBox.information(self, "MIDI Test", 
+                                      f"Tested MIDI mappings for notes: {test_notes}\nCheck console for results.")
+            else:
+                QMessageBox.warning(self, "Error", "MIDI Engine not available")
+        except Exception as e:
+            logging.error(f"Error testing MIDI mappings: {e}")
+            QMessageBox.critical(self, "Error", f"Error testing MIDI mappings: {str(e)}")
+
+    def print_midi_mappings(self):
+        """Print current MIDI mappings"""
+        try:
+            if self.midi_engine:
+                self.midi_engine.print_current_mappings()
+                QMessageBox.information(self, "MIDI Mappings", "Current MIDI mappings printed to console.")
+            else:
+                QMessageBox.warning(self, "Error", "MIDI Engine not available")
+        except Exception as e:
+            logging.error(f"Error printing MIDI mappings: {e}")
 
     def refresh_devices(self):
         """Refresh device information and update displays"""
@@ -115,673 +993,65 @@ class ControlPanelWindow(QMainWindow):
         except Exception as e:
             logging.error(f"Error refreshing devices: {e}")
 
-    def reload_visualizers(self):
-        """Reload visualizers and update selectors"""
+    def on_preset_loaded_on_deck(self, deck_id, preset_name):
+        """Handle preset loading from MIDI to update the UI"""
         try:
-            self.visualizer_manager.reload_visualizers()
-            self.update_visualizer_selectors()
-            logging.info("Visualizers reloaded")
-        except Exception as e:
-            logging.error(f"Error reloading visualizers: {e}")
-
-    def create_ui(self):
-        main_widget = QWidget()
-        self.setCentralWidget(main_widget)
-        
-        # Main layout - Vertical splitter for better space management
-        main_layout = QVBoxLayout(main_widget)
-        main_layout.setSpacing(5)
-        main_layout.setContentsMargins(5, 5, 5, 5)
-        
-        # Top section: System Status (compact)
-        status_section = self.create_status_section()
-        main_layout.addWidget(status_section)
-        
-        # Main content: Horizontal splitter with decks and mixer
-        content_splitter = QSplitter(Qt.Orientation.Horizontal)
-        
-        # Left: Deck A
-        deck_a_widget = self.create_compact_deck_section('A')
-        content_splitter.addWidget(deck_a_widget)
-        
-        # Center: Mixer and Activity Monitor
-        mixer_widget = self.create_compact_mixer_section()
-        content_splitter.addWidget(mixer_widget)
-        
-        # Right: Deck B
-        deck_b_widget = self.create_compact_deck_section('B')
-        content_splitter.addWidget(deck_b_widget)
-        
-        # Set splitter proportions (30% - 40% - 30%)
-        content_splitter.setSizes([420, 560, 420])
-        main_layout.addWidget(content_splitter)
-        
-        # Apply monitor settings after a delay
-        QTimer.singleShot(200, self.apply_monitor_settings)
-
-    def create_status_section(self):
-        """Create compact system status section"""
-        status_frame = QFrame()
-        status_frame.setFrameStyle(QFrame.Shape.StyledPanel)
-        status_frame.setMaximumHeight(80)
-        status_layout = QHBoxLayout(status_frame)
-        status_layout.setSpacing(20)
-        
-        # Title
-        title_label = QLabel("<b>🎛️ MIDI Control Center</b>")
-        title_label.setStyleSheet("font-size: 16px; color: #00ff00; padding: 5px;")
-        status_layout.addWidget(title_label)
-        
-        status_layout.addStretch()
-        
-        # MIDI Status
-        self.midi_status_label = QLabel("MIDI: Checking...")
-        self.midi_status_label.setStyleSheet("font-weight: bold; padding: 5px;")
-        status_layout.addWidget(self.midi_status_label)
-        
-        # Audio Status
-        self.audio_status_label = QLabel("Audio: Checking...")
-        self.audio_status_label.setStyleSheet("font-weight: bold; padding: 5px;")
-        status_layout.addWidget(self.audio_status_label)
-        
-        # Audio Level (compact)
-        level_widget = QWidget()
-        level_layout = QVBoxLayout(level_widget)
-        level_layout.setContentsMargins(0, 0, 0, 0)
-        level_layout.setSpacing(2)
-        
-        level_label = QLabel("Level:")
-        level_label.setStyleSheet("font-size: 10px;")
-        level_layout.addWidget(level_label)
-        
-        self.audio_level_bar = QProgressBar()
-        self.audio_level_bar.setRange(0, 100)
-        self.audio_level_bar.setValue(0)
-        self.audio_level_bar.setMaximumHeight(15)
-        self.audio_level_bar.setMaximumWidth(100)
-        self.audio_level_bar.setStyleSheet("""
-            QProgressBar {
-                border: 1px solid #333;
-                border-radius: 3px;
-                background-color: #1a1a1a;
-                text-align: center;
-                font-size: 9px;
-            }
-            QProgressBar::chunk {
-                background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #00ff00, stop:0.7 #ffff00, stop:1 #ff0000);
-                border-radius: 2px;
-            }
-        """)
-        level_layout.addWidget(self.audio_level_bar)
-        
-        status_layout.addWidget(level_widget)
-        
-        return status_frame
-
-    def create_compact_deck_section(self, deck_id):
-        """Create a compact deck section optimized for MIDI workflow"""
-        deck_frame = QFrame()
-        deck_frame.setFrameStyle(QFrame.Shape.StyledPanel)
-        deck_layout = QVBoxLayout(deck_frame)
-        deck_layout.setSpacing(8)
-        deck_layout.setContentsMargins(8, 8, 8, 8)
-        
-        # Deck Header (compact)
-        header_layout = QHBoxLayout()
-        
-        title = QLabel(f"<b>DECK {deck_id}</b>")
-        title.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        title.setStyleSheet("color: #00ff00; font-size: 14px; font-weight: bold;")
-        header_layout.addWidget(title)
-        
-        header_layout.addStretch()
-        
-        # Quick preset info
-        self.preset_info_labels = getattr(self, 'preset_info_labels', {})
-        preset_info = QLabel("No Preset")
-        preset_info.setStyleSheet("color: #888; font-size: 10px;")
-        self.preset_info_labels[deck_id] = preset_info
-        header_layout.addWidget(preset_info)
-        
-        deck_layout.addLayout(header_layout)
-        
-        # Visualizer Selection (compact)
-        viz_group = QGroupBox("Visualizer")
-        viz_group.setMaximumHeight(60)
-        viz_layout = QVBoxLayout(viz_group)
-        viz_layout.setSpacing(5)
-        viz_layout.setContentsMargins(5, 5, 5, 5)
-        
-        selector = QComboBox()
-        selector.setMinimumHeight(25)
-        try:
-            visualizer_names = self.visualizer_manager.get_visualizer_names()
-            if visualizer_names:
-                # Add "No preset selected" as first option
-                selector.addItem("-- No preset selected --")
-                selector.addItems(visualizer_names)
-                
-                # Start with no selection (index 0 = "No preset selected")
-                selector.setCurrentIndex(0)
-                
-                selector.currentTextChanged.connect(lambda text, d=deck_id: self.on_preset_selected(d, text))
-                self.preset_selectors[deck_id] = selector
-                
-            else:
-                selector.addItem("No visualizers available")
-                logging.warning("No visualizers found!")
+            import time
+            current_time = time.strftime("%H:%M:%S")
             
-        except Exception as e:
-            logging.error(f"Error setting up visualizer selector for deck {deck_id}: {e}")
-            selector.addItem("Error loading visualizers")
-        
-        viz_layout.addWidget(selector)
-        deck_layout.addWidget(viz_group)
-        
-        # Controls Section (compact and collapsible)
-        controls_group = QGroupBox("Controls")
-        controls_group.setMaximumHeight(120)
-        controls_layout = QVBoxLayout(controls_group)
-        controls_layout.setSpacing(3)
-        controls_layout.setContentsMargins(5, 5, 5, 5)
-        
-        # Controls scroll area (very compact)
-        controls_scroll = QScrollArea()
-        controls_scroll.setWidgetResizable(True)
-        controls_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        controls_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        controls_scroll.setMaximumHeight(90)
-        controls_scroll.setStyleSheet("""
-            QScrollArea {
-                border: 1px solid #333;
-                border-radius: 3px;
-                background-color: #1e1e1e;
-            }
-        """)
-        
-        controls_widget = QWidget()
-        controls_widget_layout = QVBoxLayout(controls_widget)
-        controls_widget_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        controls_widget_layout.setSpacing(2)
-        controls_widget_layout.setContentsMargins(3, 3, 3, 3)
-        controls_scroll.setWidget(controls_widget)
-        
-        controls_layout.addWidget(controls_scroll)
-        deck_layout.addWidget(controls_group)
-        
-        # Store reference to controls layout
-        self.controls_layouts[deck_id] = controls_widget_layout
-        
-        # MIDI Mapping Section (main focus)
-        midi_group = QGroupBox("🎹 MIDI Mapping")
-        midi_group.setStyleSheet("""
-            QGroupBox::title {
-                font-weight: bold;
-                color: #00aaff;
-                padding: 5px;
-            }
-            QGroupBox {
-                border: 2px solid #00aaff;
-                border-radius: 8px;
-                margin-top: 10px;
-            }
-        """)
-        
-        midi_layout = QVBoxLayout(midi_group)
-        midi_layout.setSpacing(5)
-        midi_layout.setContentsMargins(8, 15, 8, 8)
-        
-        # Create embedded MIDI mapping widget
-        midi_widget = MidiMappingDialog(
-            self.visualizer_manager.get_visualizer_names(),
-            self.midi_engine,
-            deck_id=deck_id,
-            parent=self,
-            as_widget=True,
-        )
-        midi_layout.addWidget(midi_widget)
-        deck_layout.addWidget(midi_group)
-        
-        # Apply initial selection with delay - but only if not "No preset selected"
-        # Don't auto-apply any visualizer, let user choose
-        
-        return deck_frame
-
-    def create_compact_mixer_section(self):
-        """Create compact mixer section with activity monitor"""
-        mixer_frame = QFrame()
-        mixer_frame.setFrameStyle(QFrame.Shape.StyledPanel)
-        mixer_layout = QVBoxLayout(mixer_frame)
-        mixer_layout.setSpacing(8)
-        
-        # Mixer Header
-        title = QLabel("<b>🎚️ VISUAL MIX</b>")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("color: #ff6600; font-size: 14px; font-weight: bold; padding: 5px;")
-        mixer_layout.addWidget(title)
-        
-        # Crossfader Section
-        fader_group = QGroupBox("Crossfader")
-        fader_group.setMaximumHeight(100)
-        fader_layout = QVBoxLayout(fader_group)
-        fader_layout.setSpacing(5)
-        
-        # Fader labels
-        labels_layout = QHBoxLayout()
-        labels_layout.addWidget(QLabel("<b>A</b>"))
-        labels_layout.addStretch()
-        labels_layout.addWidget(QLabel("<b>B</b>"))
-        fader_layout.addLayout(labels_layout)
-        
-        # The fader itself
-        self.fader = QSlider(Qt.Orientation.Horizontal)
-        self.fader.setRange(0, 100)
-        self.fader.setValue(50)
-        self.fader.setMinimumHeight(30)
-        self.fader.valueChanged.connect(self.mixer_window.safe_set_mix_value)
-        self.fader.valueChanged.connect(self.update_fader_label)
-        self.fader.setStyleSheet("""
-            QSlider::groove:horizontal {
-                border: 2px solid #333;
-                height: 12px;
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #00ff00, stop:0.5 #ffff00, stop:1 #ff0000);
-                border-radius: 6px;
-            }
-            QSlider::handle:horizontal {
-                background: #ffffff;
-                border: 2px solid #333;
-                width: 20px;
-                margin: -5px 0;
-                border-radius: 10px;
-            }
-            QSlider::handle:horizontal:hover {
-                background: #00aaff;
-            }
-        """)
-        fader_layout.addWidget(self.fader)
-        
-        # Fader value label
-        self.fader_label = QLabel("Mix: 50%")
-        self.fader_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.fader_label.setStyleSheet("font-weight: bold; color: #ffff00;")
-        fader_layout.addWidget(self.fader_label)
-        
-        mixer_layout.addWidget(fader_group)
-        
-        # MIDI Activity Monitor (compact but informative)
-        activity_group = QGroupBox("🎵 MIDI Activity")
-        activity_layout = QVBoxLayout(activity_group)
-        activity_layout.setSpacing(5)
-        
-        # Activity status
-        self.activity_status = QLabel("Waiting for MIDI...")
-        self.activity_status.setStyleSheet("color: #888; font-size: 11px; padding: 3px;")
-        self.activity_status.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        activity_layout.addWidget(self.activity_status)
-        
-        # Compact activity log
-        self.midi_activity_log = QTextEdit()
-        self.midi_activity_log.setMaximumHeight(150)
-        self.midi_activity_log.setStyleSheet("""
-            QTextEdit {
-                background-color: #0a0a0a;
-                color: #00ff00;
-                font-family: 'Consolas', 'Courier New', monospace;
-                font-size: 9px;
-                border: 1px solid #333;
-                border-radius: 3px;
-                padding: 3px;
-            }
-        """)
-        self.midi_activity_log.setReadOnly(True)
-        activity_layout.addWidget(self.midi_activity_log)
-        
-        # Activity controls
-        activity_controls = QHBoxLayout()
-        
-        clear_btn = QPushButton("Clear")
-        clear_btn.setMaximumHeight(25)
-        clear_btn.clicked.connect(self.clear_midi_log)
-        clear_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #444;
-                color: white;
-                border: 1px solid #666;
-                border-radius: 3px;
-                padding: 3px 8px;
-                font-size: 10px;
-            }
-            QPushButton:hover {
-                background-color: #555;
-            }
-        """)
-        activity_controls.addWidget(clear_btn)
-        
-        activity_controls.addStretch()
-        
-        # MIDI connection indicator
-        self.midi_indicator = QLabel("●")
-        self.midi_indicator.setStyleSheet("color: red; font-size: 16px;")
-        self.midi_indicator.setToolTip("MIDI Connection Status")
-        activity_controls.addWidget(self.midi_indicator)
-        
-        activity_layout.addLayout(activity_controls)
-        mixer_layout.addWidget(activity_group)
-        
-        # Stretch to fill remaining space
-        mixer_layout.addStretch()
-        
-        return mixer_frame
-
-    def apply_monitor_settings(self):
-        """Apply saved monitor settings"""
-        try:
-            cp_monitor = self.settings_manager.get_setting("control_panel_monitor", 0)
-            main_monitor = self.settings_manager.get_setting("main_window_monitor", 0)
-            
-            screens = QApplication.screens()
-            if cp_monitor < len(screens):
-                screen = screens[cp_monitor]
-                self.move(screen.geometry().x(), screen.geometry().y())
-                logging.debug(f"Moved control panel to monitor {cp_monitor}")
+            if deck_id == 'A':
+                self.deck_a_status['active_preset'] = preset_name
+                self.deck_a_status['last_activity'] = current_time
                 
-        except Exception as e:
-            logging.error(f"Error applying monitor settings: {e}")
-
-    def update_fader_label(self, value):
-        """Update fader label with visual feedback"""
-        if value < 25:
-            label = f"Mix: {value}% (← A)"
-            color = "#00ff00"
-        elif value > 75:
-            label = f"Mix: {value}% (B →)"
-            color = "#ff0000"
-        else:
-            label = f"Mix: {value}% (Mix)"
-            color = "#ffff00"
-            
-        self.fader_label.setText(label)
-        self.fader_label.setStyleSheet(f"font-weight: bold; color: {color};")
-
-    def on_preset_selected(self, deck_id, preset_name):
-        """Handle preset selection"""
-        logging.info(f"🎮 Preset selected for deck {deck_id}: {preset_name}")
-        
-        # Check if "No preset selected" or invalid options
-        if (not preset_name or 
-            preset_name in ["-- No preset selected --", "No visualizers available", "Error loading visualizers"]):
-            
-            # Clear the deck - show nothing
-            try:
-                # Update preset info label to show no selection
-                if hasattr(self, 'preset_info_labels') and deck_id in self.preset_info_labels:
-                    self.preset_info_labels[deck_id].setText("No Preset")
-                    self.preset_info_labels[deck_id].setStyleSheet("color: #666; font-size: 10px; font-style: italic;")
+                self.deck_a_preset_label.setText(f"Preset: {preset_name}")
+                self.deck_a_activity_label.setText(f"Última actividad: {current_time}")
                 
-                # Clear controls
-                layout = self.controls_layouts.get(deck_id)
-                if layout:
-                    while layout.count():
-                        item = layout.takeAt(0)
-                        widget = item.widget()
-                        if widget: 
-                            widget.deleteLater()
+                # Update table
+                if hasattr(self, 'deck_a_mappings_table'):
+                    self.refresh_deck_mappings_table(self.deck_a_mappings_table, 'A')
                     
-                    no_preset_label = QLabel("Select a preset above")
-                    no_preset_label.setStyleSheet("color: #666; font-style: italic; font-size: 10px; padding: 10px;")
-                    no_preset_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                    layout.addWidget(no_preset_label)
+            elif deck_id == 'B':
+                self.deck_b_status['active_preset'] = preset_name
+                self.deck_b_status['last_activity'] = current_time
                 
-                # Clear the visualizer in mixer (show black)
-                self.mixer_window.safe_set_deck_visualizer(deck_id, None)
+                self.deck_b_preset_label.setText(f"Preset: {preset_name}")
+                self.deck_b_activity_label.setText(f"Última actividad: {current_time}")
                 
-                logging.info(f"🚫 Cleared deck {deck_id} - no preset selected")
-                
-            except Exception as e:
-                logging.error(f"Error clearing deck {deck_id}: {e}")
-            return
-        
-        # Valid preset selected
-        try:
-            # Update preset info label
-            if hasattr(self, 'preset_info_labels') and deck_id in self.preset_info_labels:
-                self.preset_info_labels[deck_id].setText(preset_name)
-                self.preset_info_labels[deck_id].setStyleSheet("color: #00ff00; font-size: 10px; font-weight: bold;")
+                # Update table
+                if hasattr(self, 'deck_b_mappings_table'):
+                    self.refresh_deck_mappings_table(self.deck_b_mappings_table, 'B')
             
-            # Update the mixer window - NO PREVIEW WINDOW
-            self.mixer_window.safe_set_deck_visualizer(deck_id, preset_name)
-            
-            # Update controls after a short delay
-            QTimer.singleShot(300, lambda: self.create_controls(deck_id))
-            
+            logging.info(f"✅ UI updated for deck {deck_id} to preset {preset_name}")
         except Exception as e:
-            logging.error(f"Error in on_preset_selected: {e}")
+            logging.error(f"Error updating preset selector for deck {deck_id}: {e}")
 
-    def apply_initial_visualizer(self, deck_id, visualizer_name):
-        """Apply initial visualizer selection"""
-        if visualizer_name and visualizer_name not in ["No visualizers available", "Error loading visualizers"]:
-            try:
-                logging.info(f"🎮 Applying initial visualizer for deck {deck_id}: {visualizer_name}")
-                self.mixer_window.safe_set_deck_visualizer(deck_id, visualizer_name)
-                
-                # Update preset info
-                if hasattr(self, 'preset_info_labels') and deck_id in self.preset_info_labels:
-                    self.preset_info_labels[deck_id].setText(visualizer_name)
-                    self.preset_info_labels[deck_id].setStyleSheet("color: #00ff00; font-size: 10px; font-weight: bold;")
-                
-                # Update controls after a short delay
-                QTimer.singleShot(800, lambda: self.create_controls(deck_id))
-            except Exception as e:
-                logging.error(f"Error applying initial visualizer: {e}")
-
-    def create_controls(self, deck_id):
-        """Create compact control widgets for a deck"""
-        with QMutexLocker(self._mutex):
-            logging.debug(f"🎛️ Creating compact controls for deck {deck_id}")
-            
-            try:
-                layout = self.controls_layouts.get(deck_id)
-                if not layout:
-                    logging.warning(f"No controls layout found for deck {deck_id}")
-                    return
-
-                # Clear old controls
-                while layout.count():
-                    item = layout.takeAt(0)
-                    widget = item.widget()
-                    if widget: 
-                        widget.deleteLater()
-
-                # Get controls from the mixer window
-                controls = self.mixer_window.get_deck_controls(deck_id)
-                logging.debug(f"📋 Got controls for deck {deck_id}: {list(controls.keys()) if controls else 'None'}")
-                
-                if not controls:
-                    no_controls_label = QLabel("No controls")
-                    no_controls_label.setStyleSheet("color: #666; font-style: italic; font-size: 10px; padding: 5px;")
-                    no_controls_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                    layout.addWidget(no_controls_label)
-                    return
-                    
-                # Create compact grid layout for controls
-                controls_grid = QWidget()
-                grid_layout = QGridLayout(controls_grid)
-                grid_layout.setSpacing(3)
-                grid_layout.setContentsMargins(0, 0, 0, 0)
-                
-                row = 0
-                col = 0
-                max_cols = 2  # Two controls per row for compact display
-                
-                for name, cfg in controls.items():
-                    control_widget = self.create_compact_control_widget(deck_id, name, cfg)
-                    if control_widget:
-                        grid_layout.addWidget(control_widget, row, col)
-                        col += 1
-                        if col >= max_cols:
-                            col = 0
-                            row += 1
-                
-                layout.addWidget(controls_grid)
-                
-            except Exception as e:
-                logging.error(f"Error creating controls for deck {deck_id}: {e}")
-                # Show error in the controls area
-                error_label = QLabel(f"Error: {str(e)}")
-                error_label.setStyleSheet("color: red; background-color: #2a1a1a; padding: 3px; font-size: 9px;")
-                layout.addWidget(error_label)
-
-    def create_compact_control_widget(self, deck_id, name, cfg):
-        """Create a compact control widget"""
+    def refresh_deck_mappings_table(self, table, deck_id):
+        """Refresh deck mappings table status"""
         try:
-            # Create control frame (very compact)
-            control_frame = QFrame()
-            control_frame.setFrameStyle(QFrame.Shape.Box)
-            control_frame.setStyleSheet("""
-                QFrame {
-                    border: 1px solid #444;
-                    border-radius: 3px;
-                    margin: 1px;
-                    background-color: #1a1a1a;
-                }
-            """)
-            control_frame.setMaximumHeight(50)
-            
-            control_layout = QVBoxLayout(control_frame)
-            control_layout.setSpacing(2)
-            control_layout.setContentsMargins(4, 3, 4, 3)
-            
-            # Control label (compact)
-            label = QLabel(name)
-            label.setStyleSheet("font-weight: bold; color: #ffffff; font-size: 9px;")
-            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            control_layout.addWidget(label)
-            
-            if cfg.get("type") == "slider":
-                # Create compact slider with value display
-                slider_layout = QHBoxLayout()
-                slider_layout.setSpacing(3)
+            for row in range(table.rowCount()):
+                preset_item = table.item(row, 1)
+                status_item = table.item(row, 2)
                 
-                slider = QSlider(Qt.Orientation.Horizontal)
-                slider.setRange(cfg.get("min", 0), cfg.get("max", 100))
-                slider.setValue(cfg.get("value", 0))
-                slider.setMaximumHeight(15)
-                slider.setStyleSheet("""
-                    QSlider::groove:horizontal {
-                        border: 1px solid #444;
-                        height: 4px;
-                        background: #222;
-                        border-radius: 2px;
-                    }
-                    QSlider::handle:horizontal {
-                        background: #00ff00;
-                        border: 1px solid #333;
-                        width: 10px;
-                        margin: -3px 0;
-                        border-radius: 5px;
-                    }
-                    QSlider::handle:horizontal:hover {
-                        background: #44ff44;
-                    }
-                """)
-                
-                # Compact value display
-                value_label = QLabel(str(cfg.get("value", 0)))
-                value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                value_label.setStyleSheet("color: #00ff00; font-weight: bold; font-size: 8px;")
-                value_label.setFixedWidth(25)
-                
-                slider_layout.addWidget(slider, 1)
-                slider_layout.addWidget(value_label, 0)
-                control_layout.addLayout(slider_layout)
-                
-                # Connect signals
-                slider.valueChanged.connect(
-                    lambda value, n=name, d=deck_id: self.update_deck_control_safe(d, n, value)
-                )
-                slider.valueChanged.connect(lambda v, lbl=value_label: lbl.setText(str(v)))
-                
-            elif cfg.get("type") == "dropdown":
-                dropdown = QComboBox()
-                dropdown.setMaximumHeight(20)
-                dropdown.setStyleSheet("""
-                    QComboBox {
-                        background-color: #333;
-                        color: white;
-                        border: 1px solid #555;
-                        border-radius: 2px;
-                        padding: 1px;
-                        font-size: 9px;
-                    }
-                    QComboBox::drop-down {
-                        border: none;
-                    }
-                """)
-                
-                options = cfg.get("options", [])
-                dropdown.addItems(options)
-                current_value = cfg.get("value", 0)
-                if current_value < len(options):
-                    dropdown.setCurrentIndex(current_value)
+                if preset_item and status_item:
+                    preset_name = preset_item.text()
+                    is_active = self.is_preset_active(deck_id, preset_name)
                     
-                dropdown.currentIndexChanged.connect(
-                    lambda index, n=name, d=deck_id: self.update_deck_control_safe(d, n, index)
-                )
-                control_layout.addWidget(dropdown)
-            
-            return control_frame
-            
-        except Exception as e:
-            logging.error(f"Error creating compact control widget {name}: {e}")
-            return None
-
-    def update_deck_control_safe(self, deck_id, name, value):
-        """Safely update deck control"""
-        try:
-            logging.debug(f"🎛️ Updating deck {deck_id} control {name} to {value}")
-            self.mixer_window.safe_update_deck_control(deck_id, name, value)
-        except Exception as e:
-            logging.error(f"Error updating deck control {name} for deck {deck_id}: {e}")
-
-    def update_visualizer_selectors(self):
-        """Update visualizer selectors with current list"""
-        try:
-            visualizer_names = self.visualizer_manager.get_visualizer_names()
-            
-            for deck_id, selector in self.preset_selectors.items():
-                current_selection = selector.currentText()
-                selector.clear()
-                
-                if visualizer_names:
-                    # Always add "No preset selected" as first option
-                    selector.addItem("-- No preset selected --")
-                    selector.addItems(visualizer_names)
+                    status = "●" if is_active else "○"
+                    status_item.setText(status)
                     
-                    # Try to restore previous selection
-                    if current_selection in visualizer_names:
-                        selector.setCurrentText(current_selection)
-                    elif current_selection == "-- No preset selected --":
-                        selector.setCurrentIndex(0)
+                    if is_active:
+                        status_item.setForeground(QColor("#00ff00"))
                     else:
-                        selector.setCurrentIndex(0)  # Default to "No preset selected"
-                else:
-                    selector.addItem("No visualizers available")
-                    
+                        status_item.setForeground(QColor("#666"))
         except Exception as e:
-            logging.error(f"Error updating visualizer selectors: {e}")
+            logging.error(f"Error refreshing deck mappings table: {e}")
 
     def update_midi_device_display(self, device_name=None):
         """Update MIDI device display with enhanced visual feedback"""
         try:
             if device_name:
                 self.midi_status_label.setText(f"MIDI: {device_name}")
-                self.midi_status_label.setStyleSheet("color: #00ff00; font-weight: bold;")
-                self.midi_indicator.setStyleSheet("color: #00ff00; font-size: 16px;")
-                self.midi_indicator.setToolTip(f"Connected: {device_name}")
-                self.activity_status.setText("🎵 MIDI Active")
-                self.activity_status.setStyleSheet("color: #00ff00; font-size: 11px; font-weight: bold;")
+                self.midi_status_label.setStyleSheet("color: #00ff00; font-weight: bold; padding: 5px;")
             else:
                 # Check current MIDI status
                 midi_connected = False
@@ -801,39 +1071,22 @@ class ControlPanelWindow(QMainWindow):
                 
                 self.midi_status_label.setText(f"MIDI: {device_info}")
                 if midi_connected:
-                    self.midi_status_label.setStyleSheet("color: #00ff00; font-weight: bold;")
-                    self.midi_indicator.setStyleSheet("color: #00ff00; font-size: 16px;")
-                    self.activity_status.setText("🎵 MIDI Ready")
-                    self.activity_status.setStyleSheet("color: #00ff00; font-size: 11px;")
+                    self.midi_status_label.setStyleSheet("color: #00ff00; font-weight: bold; padding: 5px;")
                 else:
-                    self.midi_status_label.setStyleSheet("color: #ff6600; font-weight: bold;")
-                    self.midi_indicator.setStyleSheet("color: red; font-size: 16px;")
-                    self.activity_status.setText("⏸️ No MIDI")
-                    self.activity_status.setStyleSheet("color: #888; font-size: 11px;")
+                    self.midi_status_label.setStyleSheet("color: #ff6600; font-weight: bold; padding: 5px;")
                     
         except Exception as e:
             logging.error(f"Error updating MIDI device display: {e}")
             self.midi_status_label.setText("MIDI: Error")
-            self.midi_status_label.setStyleSheet("color: red; font-weight: bold;")
-            self.midi_indicator.setStyleSheet("color: red; font-size: 16px;")
+            self.midi_status_label.setStyleSheet("color: red; font-weight: bold; padding: 5px;")
 
     def update_audio_device_display(self):
         """Update audio device display"""
         try:
-            if self.audio_analyzer and self.audio_analyzer.is_active():
-                device_info = getattr(self.audio_analyzer, 'get_device_info', lambda: None)()
-                if device_info:
-                    self.audio_status_label.setText(f"Audio: {device_info.get('name', 'Active')}")
-                else:
-                    self.audio_status_label.setText("Audio: Active")
-                self.audio_status_label.setStyleSheet("color: #00ff00; font-weight: bold;")
-            else:
-                self.audio_status_label.setText("Audio: Not Connected")
-                self.audio_status_label.setStyleSheet("color: #ff6600; font-weight: bold;")
+            # This is for future implementation if needed
+            pass
         except Exception as e:
             logging.error(f"Error updating audio device display: {e}")
-            self.audio_status_label.setText("Audio: Error")
-            self.audio_status_label.setStyleSheet("color: red; font-weight: bold;")
 
     def update_audio_level(self, level):
         """Update audio level display"""
@@ -853,9 +1106,18 @@ class ControlPanelWindow(QMainWindow):
     def update_info(self):
         """Update system information"""
         try:
+            # Update mix value from mixer window
+            if self.mixer_window and hasattr(self.mixer_window, 'get_mix_value_percent'):
+                mix_value = self.mixer_window.get_mix_value_percent()
+                self.mix_value_label.setText(f"Crossfader: {mix_value}%")
+                self.mix_progress_bar.setValue(mix_value)
+            
             # Update device displays periodically
             import time
             current_time = time.time()
+            if not hasattr(self, 'last_device_update'):
+                self.last_device_update = 0
+                
             if current_time - self.last_device_update > 3.0:  # Every 3 seconds
                 self.update_midi_device_display()
                 self.update_audio_device_display()
@@ -868,7 +1130,6 @@ class ControlPanelWindow(QMainWindow):
         """Handle MIDI device connection"""
         try:
             self.update_midi_device_display(device_name)
-            self.add_midi_activity(f"✅ MIDI Device Connected: {device_name}")
             logging.info(f"🎹 MIDI device connected: {device_name}")
         except Exception as e:
             logging.error(f"Error handling MIDI device connection: {e}")
@@ -877,39 +1138,88 @@ class ControlPanelWindow(QMainWindow):
         """Handle MIDI device disconnection"""
         try:
             self.update_midi_device_display(None)
-            self.add_midi_activity(f"❌ MIDI Device Disconnected: {device_name}")
             logging.info(f"🎹 MIDI device disconnected: {device_name}")
         except Exception as e:
             logging.error(f"Error handling MIDI device disconnection: {e}")
 
     def on_midi_activity(self, msg):
-        """Handle raw MIDI activity for monitoring with enhanced feedback"""
+        """Handle raw MIDI activity for monitoring with enhanced feedback and LED"""
         try:
-            import time
-            timestamp = time.strftime("%H:%M:%S")
+            # ✅ ENCENDER LED DE ACTIVIDAD
+            self.turn_on_midi_led()
+            
+            # FIX: Usar datetime para obtener microsegundos correctamente
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]  # Incluir milisegundos
             
             if hasattr(msg, 'type'):
-                if msg.type == 'note_on' and hasattr(msg, 'velocity') and msg.velocity > 0:
-                    note_names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
-                    octave = msg.note // 12 - 1
-                    note_name = note_names[msg.note % 12]
-                    activity_msg = f"🎵 [{timestamp}] Note: {note_name}{octave} Ch:{msg.channel+1} Vel:{msg.velocity}"
-                    self.add_midi_activity(activity_msg)
+                # Log CRÍTICO - CADA mensaje debe aparecer aquí
+                logging.info(f"🎼 MIDI ACTIVITY DETECTED: {msg}")
+                logging.info(f"   ⏰ Timestamp: {timestamp}")
+                logging.info(f"   🔍 Type: {msg.type}")
+                logging.info(f"   📡 Channel: {getattr(msg, 'channel', 'N/A')}")
+                
+                if msg.type == 'note_on':
+                    velocity = getattr(msg, 'velocity', 0)
+                    note = getattr(msg, 'note', 0)
                     
-                    # Update activity status
-                    self.activity_status.setText(f"🎵 Note: {note_name}{octave}")
-                    self.activity_status.setStyleSheet("color: #00ff00; font-size: 11px; font-weight: bold;")
+                    logging.info(f"   🎵 NOTE_ON DETAILS:")
+                    logging.info(f"      Note: {note}")
+                    logging.info(f"      Velocity: {velocity}")
+                    
+                    # Solo procesar si velocity > 0
+                    if velocity > 0:
+                        note_names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+                        octave = note // 12 - 1
+                        note_name = note_names[note % 12]
+                        
+                        logging.info(f"🎵 ACTIVE NOTE: {note_name}{octave} (#{note}) Ch:{msg.channel+1} Vel:{velocity}")
+                        
+                        # CRÍTICO: Verificar mapping
+                        if self.midi_engine:
+                            mappings = self.midi_engine.get_midi_mappings()
+                            expected_key = f"note_on_ch0_note{note}"
+                            
+                            logging.info(f"🔍 BUSCANDO MAPPING PARA: {expected_key}")
+                            
+                            found_mapping = False
+                            for action_id, mapping_data in mappings.items():
+                                midi_key = mapping_data.get('midi', 'no_midi')
+                                if midi_key == expected_key:
+                                    action_type = mapping_data.get('type', 'unknown')
+                                    params = mapping_data.get('params', {})
+                                    logging.info(f"✅ MAPPING ENCONTRADO!")
+                                    logging.info(f"   Action ID: {action_id}")
+                                    logging.info(f"   Type: {action_type}")
+                                    logging.info(f"   Params: {params}")
+                                    found_mapping = True
+                                    break
+                            
+                            if not found_mapping:
+                                logging.warning(f"❌ NO HAY MAPPING PARA: {expected_key}")
+                                logging.info(f"📋 Mappings disponibles:")
+                                for i, (aid, mdata) in enumerate(list(mappings.items())[:5]):
+                                    logging.info(f"   {aid}: {mdata.get('midi', 'no_midi')}")
+                                if len(mappings) > 5:
+                                    logging.info(f"   ... y {len(mappings) - 5} más")
+                    else:
+                        logging.info(f"   🎵 NOTE_ON with velocity 0 (note off)")
+                        
+                elif msg.type == 'note_off':
+                    note = getattr(msg, 'note', 0)
+                    logging.info(f"   🎵 NOTE_OFF: Note={note}")
                     
                 elif msg.type == 'control_change':
-                    activity_msg = f"🎛️ [{timestamp}] CC#{msg.control} Ch:{msg.channel+1} Val:{msg.value}"
-                    self.add_midi_activity(activity_msg)
+                    control = getattr(msg, 'control', 0)
+                    value = getattr(msg, 'value', 0)
+                    logging.info(f"   🎛️ CC: Control={control}, Value={value}")
                     
-                    # Update activity status
-                    self.activity_status.setText(f"🎛️ CC#{msg.control}: {msg.value}")
-                    self.activity_status.setStyleSheet("color: #00aaff; font-size: 11px; font-weight: bold;")
+            logging.info(f"🔃 MIDI ACTIVITY PROCESSING COMPLETE")
                     
         except Exception as e:
-            logging.error(f"Error handling MIDI activity: {e}")
+            logging.error(f"❌ ERROR EN on_midi_activity: {e}")
+            import traceback
+            traceback.print_exc()
 
     def on_note_activity(self, note, velocity):
         """Handle note activity"""
@@ -919,8 +1229,7 @@ class ControlPanelWindow(QMainWindow):
             note_names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
             octave = note // 12 - 1
             note_name = note_names[note % 12]
-            activity_msg = f"🎵 [{timestamp}] Note: {note_name}{octave} Vel:{velocity}"
-            self.add_midi_activity(activity_msg)
+            logging.debug(f"🎵 [{timestamp}] Note: {note_name}{octave} Vel:{velocity}")
         except Exception as e:
             logging.error(f"Error handling note activity: {e}")
 
@@ -929,44 +1238,9 @@ class ControlPanelWindow(QMainWindow):
         try:
             import time
             timestamp = time.strftime("%H:%M:%S")
-            activity_msg = f"🎛️ [{timestamp}] CC: {control_id} = {value}"
-            self.add_midi_activity(activity_msg)
+            logging.debug(f"🎛️ [{timestamp}] CC: {control_id} = {value}")
         except Exception as e:
             logging.error(f"Error handling CC activity: {e}")
-
-    def add_midi_activity(self, message):
-        """Add a message to the MIDI activity log with improved formatting"""
-        try:
-            if hasattr(self, 'midi_activity_log'):
-                # Add message to log
-                self.midi_activity_log.append(message)
-                
-                # Keep only last 50 lines to prevent memory issues
-                document = self.midi_activity_log.document()
-                if document.blockCount() > 50:
-                    cursor = self.midi_activity_log.textCursor()
-                    cursor.movePosition(cursor.MoveOperation.Start)
-                    cursor.select(cursor.SelectionType.LineUnderCursor)
-                    cursor.removeSelectedText()
-                    cursor.deleteChar()
-                
-                # Auto-scroll to bottom
-                scrollbar = self.midi_activity_log.verticalScrollBar()
-                scrollbar.setValue(scrollbar.maximum())
-                
-        except Exception as e:
-            logging.error(f"Error adding MIDI activity: {e}")
-
-    def clear_midi_log(self):
-        """Clear the MIDI activity log"""
-        try:
-            if hasattr(self, 'midi_activity_log'):
-                self.midi_activity_log.clear()
-                self.add_midi_activity("🧹 MIDI Activity Monitor - Log Cleared")
-                self.activity_status.setText("📋 Log Cleared")
-                self.activity_status.setStyleSheet("color: #888; font-size: 11px;")
-        except Exception as e:
-            logging.error(f"Error clearing MIDI log: {e}")
 
     def cleanup(self):
         """Clean up resources"""

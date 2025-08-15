@@ -222,25 +222,26 @@ class MidiMappingDialog(QDialog):
         
         button_layout.addStretch()
 
-        button_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Save |
-            QDialogButtonBox.StandardButton.Cancel |
-            QDialogButtonBox.StandardButton.Apply
-        )
-        button_box.accepted.connect(self.save_mappings)
-        button_box.rejected.connect(self.reject)
+        # No buttons needed for auto-saving
+        # button_box = QDialogButtonBox(
+        #     QDialogButtonBox.StandardButton.Save |
+        #     QDialogButtonBox.StandardButton.Cancel |
+        #     QDialogButtonBox.StandardButton.Apply
+        # )
+        # button_box.accepted.connect(self.save_mappings)
+        # button_box.rejected.connect(self.reject)
 
-        apply_btn = button_box.button(QDialogButtonBox.StandardButton.Apply)
-        if apply_btn:
-            apply_btn.clicked.connect(self.apply_mappings)
-            if self.as_widget:
-                apply_btn.hide()
-        if self.as_widget:
-            cancel_btn = button_box.button(QDialogButtonBox.StandardButton.Cancel)
-            if cancel_btn:
-                cancel_btn.hide()
+        # apply_btn = button_box.button(QDialogButtonBox.StandardButton.Apply)
+        # if apply_btn:
+        #     apply_btn.clicked.connect(self.apply_mappings)
+        #     if self.as_widget:
+        #         apply_btn.hide()
+        # if self.as_widget:
+        #     cancel_btn = button_box.button(QDialogButtonBox.StandardButton.Cancel)
+        #     if cancel_btn:
+        #         cancel_btn.hide()
 
-        button_layout.addWidget(button_box)
+        # button_layout.addWidget(button_box)
         layout.addLayout(button_layout)
 
     def get_action_definitions(self):
@@ -282,6 +283,7 @@ class MidiMappingDialog(QDialog):
         # Scroll to the new row
         new_row = len(self.mappings) - 1
         self.table.scrollToItem(self.table.item(new_row, 0))
+        QTimer.singleShot(100, self.apply_mappings)
 
     def populate_table(self):
         """Poblar la tabla con los mapeos actuales"""
@@ -379,21 +381,25 @@ class MidiMappingDialog(QDialog):
             self.mappings[row]['action'] = action
             # Actualizar presets y targets disponibles
             self.update_row_options(row)
+            QTimer.singleShot(100, self.apply_mappings)
 
     def on_preset_changed(self, row, preset):
         """Manejar cambio de preset"""
         if row < len(self.mappings):
             self.mappings[row]['preset'] = preset
+            QTimer.singleShot(100, self.apply_mappings)
 
     def on_target_changed(self, row, target):
         """Manejar cambio de target"""
         if row < len(self.mappings):
             self.mappings[row]['target'] = target
+            QTimer.singleShot(100, self.apply_mappings)
 
     def on_values_changed(self, row, values):
         """Manejar cambio de valores"""
         if row < len(self.mappings):
             self.mappings[row]['values'] = values
+            QTimer.singleShot(100, self.apply_mappings)
 
     def update_row_options(self, row):
         """Actualizar las opciones de preset y target para una fila"""
@@ -537,6 +543,7 @@ class MidiMappingDialog(QDialog):
             self.populate_table()
             
             logging.info(f"MIDI learned: {message_key} for row {self.learning_row}")
+            QTimer.singleShot(100, self.apply_mappings)
             
         except Exception as e:
             logging.error(f"Error processing MIDI learning: {e}")
@@ -572,6 +579,7 @@ class MidiMappingDialog(QDialog):
             if result == QMessageBox.StandardButton.Yes:
                 del self.mappings[row]
                 self.populate_table()
+                QTimer.singleShot(100, self.apply_mappings)
 
     def clear_all_mappings(self):
         """Limpiar todos los mapeos"""
@@ -584,6 +592,7 @@ class MidiMappingDialog(QDialog):
         if result == QMessageBox.StandardButton.Yes:
             self.mappings.clear()
             self.populate_table()
+            QTimer.singleShot(100, self.apply_mappings)
 
     def update_midi_status(self):
         """Actualizar estado MIDI"""
@@ -622,7 +631,7 @@ class MidiMappingDialog(QDialog):
             if mapping.get('midi', 'Sin asignar') == 'Sin asignar':
                 continue
                 
-            action_id = f"mapping_{i}"
+            action_id = f"mapping_{self.deck_id}_{i}"
             action = mapping.get('action', '')
             preset = mapping.get('preset', '')
             target = mapping.get('target', '')

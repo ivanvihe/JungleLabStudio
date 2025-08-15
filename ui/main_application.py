@@ -54,7 +54,7 @@ class MainApplication:
             # Create UI windows with proper sequencing
             self.create_windows()
             
-            # Setup connections and auto-connect devices
+            # CRITICAL: Setup connections and references BEFORE auto-connect
             self.setup_connections()
             
             # Setup debug connections for MIDI
@@ -133,7 +133,7 @@ class MainApplication:
             raise
 
     def create_windows(self):
-        """Create and setup UI windows - NO PREVIEW WINDOWS"""
+        """Create and setup UI windows"""
         try:
             logging.info("🖥️ Creating UI windows...")
             
@@ -141,7 +141,7 @@ class MainApplication:
             self.mixer_window = MixerWindow(self.visualizer_manager)
             logging.info("✅ Mixer window created")
             
-            # Create control panel (no preview functionality)
+            # Create control panel (rediseñado para operación MIDI)
             self.control_panel = ControlPanelWindow(
                 self.mixer_window,
                 self.settings_manager,
@@ -149,25 +149,26 @@ class MainApplication:
                 self.visualizer_manager,
                 self.audio_analyzer,
             )
-            logging.info("✅ Control panel created (no preview)")
-            
-            # Set application references in MIDI engine
-            self.midi_engine.set_application_references(
-                mixer_window=self.mixer_window,
-                control_panel=self.control_panel
-            )
-            logging.info("✅ MIDI engine references set")
+            logging.info("✅ Control panel created")
             
         except Exception as e:
             logging.error(f"❌ Error creating windows: {e}")
             raise
 
     def setup_connections(self):
-        """Setup all signal connections"""
+        """Setup all signal connections and references - CRITICAL ORDER"""
         try:
-            logging.info("🔗 Setting up connections...")
+            logging.info("🔗 Setting up connections and references...")
             
-            # Connect MIDI signals to control panel for UI updates
+            # STEP 1: Set application references in MIDI engine FIRST
+            logging.info("🔗 Setting MIDI engine references...")
+            self.midi_engine.set_application_references(
+                mixer_window=self.mixer_window,
+                control_panel=self.control_panel
+            )
+            
+            # STEP 2: Connect MIDI signals to control panel for UI updates
+            logging.info("🔗 Connecting MIDI signals...")
             if hasattr(self.midi_engine, 'device_connected'):
                 self.midi_engine.device_connected.connect(self.on_midi_device_connected)
             if hasattr(self.midi_engine, 'device_disconnected'):
@@ -175,10 +176,20 @@ class MainApplication:
             if hasattr(self.midi_engine, 'bpm_changed'):
                 self.midi_engine.bpm_changed.connect(self.on_bpm_changed)
             
-            logging.info("✅ MIDI connections established")
+            # STEP 3: Verify references are set
+            if not self.midi_engine.mixer_window:
+                logging.error("❌ CRITICAL: mixer_window reference not set in MIDI engine!")
+                raise Exception("MIDI engine mixer_window reference failed")
+            
+            if not self.midi_engine.control_panel:
+                logging.error("❌ CRITICAL: control_panel reference not set in MIDI engine!")
+                raise Exception("MIDI engine control_panel reference failed")
+            
+            logging.info("✅ All connections and references established")
             
         except Exception as e:
             logging.error(f"❌ Error setting up connections: {e}")
+            raise
 
     def setup_debug_connections(self):
         """Setup debug connections for MIDI monitoring"""
@@ -199,7 +210,7 @@ class MainApplication:
     def debug_midi_message(self, message_key):
         """Debug method to log all MIDI messages and check mappings"""
         try:
-            logging.info(f"🎹 MIDI Learning Signal: {message_key}")
+            logging.debug(f"🎹 MIDI Learning Signal: {message_key}")
             
             # Check if this message has a mapping
             mappings_found = 0
@@ -207,13 +218,13 @@ class MainApplication:
                 if mapping_data.get('midi') == message_key:
                     action_type = mapping_data.get('type', 'unknown')
                     params = mapping_data.get('params', {})
-                    logging.info(f"🎯 Found mapping: {action_id} -> {action_type} {params}")
+                    logging.debug(f"🎯 Found mapping: {action_id} -> {action_type} {params}")
                     mappings_found += 1
             
             if mappings_found == 0:
-                logging.info(f"❌ No mapping found for: {message_key}")
+                logging.debug(f"🔍 No mapping found for: {message_key}")
             else:
-                logging.info(f"✅ Found {mappings_found} mapping(s) for: {message_key}")
+                logging.debug(f"✅ Found {mappings_found} mapping(s) for: {message_key}")
                 
         except Exception as e:
             logging.error(f"Error in debug_midi_message: {e}")
@@ -252,7 +263,7 @@ class MainApplication:
             if hasattr(self, 'control_panel'):
                 # Update BPM display if control panel has this method
                 if hasattr(self.control_panel, 'update_bpm_display'):
-                    self.control_panel.update_bmp_display(bpm)
+                    self.control_panel.update_bpm_display(bpm)
             logging.debug(f"🥁 BPM updated: {bpm:.1f}")
         except Exception as e:
             logging.error(f"Error handling BPM change: {e}")
@@ -322,11 +333,11 @@ class MainApplication:
             # Show control panel
             self.control_panel.show()
             
-            # Auto-connect devices after everything is set up
-            QTimer.singleShot(500, self.auto_connect_devices)
-            
             # Apply saved window positions
             QTimer.singleShot(200, self.apply_window_positions)
+            
+            # IMPORTANT: Auto-connect devices AFTER windows are shown and connections established
+            QTimer.singleShot(1000, self.auto_connect_devices)
             
             logging.info("✅ Windows displayed")
             
@@ -346,8 +357,8 @@ class MainApplication:
                 self.control_panel.setGeometry(
                     cp_position.get('x', 50),
                     cp_position.get('y', 50),
-                    cp_position.get('width', 1200),
-                    cp_position.get('height', 800)
+                    cp_position.get('width', 1600),
+                    cp_position.get('height', 900)
                 )
             
             # Apply mixer window position

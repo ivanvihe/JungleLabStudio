@@ -10,6 +10,7 @@ class MidiEngine(QObject):
     control_changed = pyqtSignal(str, int)
     note_on_received = pyqtSignal(int, int)
     note_off_received = pyqtSignal(int)
+    preset_loaded_on_deck = pyqtSignal(str, str)
     
     # New signals for the mapping system
     midi_message_received_for_learning = pyqtSignal(str)  # New signal for MIDI learning (message key as string)
@@ -29,18 +30,11 @@ class MidiEngine(QObject):
                 self.midi_mappings = {}
             logging.info(f"🎹 Loaded {len(self.midi_mappings)} MIDI mappings from settings")
             
-            # Debug: Print loaded mappings
-            for action_id, mapping_data in self.midi_mappings.items():
-                midi_key = mapping_data.get('midi', 'no_midi')
-                action_type = mapping_data.get('type', 'unknown')
-                logging.debug(f"  📋 Loaded mapping: {midi_key} -> {action_type}")
-                
         except Exception as e:
             logging.warning(f"Could not load MIDI mappings: {e}")
             self.midi_mappings = {}
         
         self.input_port = None
-        self.input_thread = None
         self.running = False
         self._last_bpm_time = 0
         self._beat_intervals = []
@@ -49,13 +43,28 @@ class MidiEngine(QObject):
         self.mixer_window = None
         self.control_panel = None
         
+        # Crossfade animation variables
+        self.crossfade_timer = None
+        self.crossfade_start_value = 0.5
+        self.crossfade_target_value = 0.5
+        self.crossfade_duration = 1000
+        self.crossfade_start_time = 0
+        
+        # Processing flag to prevent recursive calls
+        self._processing_midi = False
+        
         logging.info("MidiEngine initialized")
+        
+        # Setup default mappings if none exist (delayed to ensure everything is loaded)
+        QTimer.singleShot(1000, self.setup_default_mappings)
 
     def set_application_references(self, mixer_window=None, control_panel=None):
         """Set references to application components for executing actions"""
         self.mixer_window = mixer_window
         self.control_panel = control_panel
-        logging.debug("Application references set in MidiEngine")
+        logging.info(f"✅ Application references set in MidiEngine:")
+        logging.info(f"   mixer_window: {type(self.mixer_window).__name__ if self.mixer_window else 'None'}")
+        logging.info(f"   control_panel: {type(self.control_panel).__name__ if self.control_panel else 'None'}")
 
     def list_input_ports(self):
         """List available MIDI input ports"""
@@ -66,11 +75,23 @@ class MidiEngine(QObject):
             return []
 
     def open_input_port(self, port_name):
-        """Open a MIDI input port"""
+        """Open a MIDI input port - ENHANCED DEBUG"""
         try:
+            logging.info(f"🔌 ATTEMPTING to open MIDI port: {port_name}")
+            
             # Close existing port if open
             self.close_input_port()
             
+            # List available ports for debugging
+            available_ports = mido.get_input_names()
+            logging.info(f"📋 Available MIDI ports: {available_ports}")
+            
+            if port_name not in available_ports:
+                logging.error(f"❌ Port '{port_name}' not in available ports!")
+                return False
+            
+            # Open the port with callback
+            logging.info(f"🔌 Opening port with callback: {self.handle_midi_message}")
             self.input_port = mido.open_input(port_name, callback=self.handle_midi_message)
             self.running = True
             
@@ -78,14 +99,26 @@ class MidiEngine(QObject):
             if self.settings_manager:
                 self.settings_manager.set_setting("last_midi_device", port_name)
             
+            # Test the connection
+            logging.info(f"✅ MIDI port opened successfully: {port_name}")
+            logging.info(f"   Port object: {self.input_port}")
+            logging.info(f"   Running: {self.running}")
+            logging.info("🎵 READY TO RECEIVE MIDI MESSAGES!")
+            
             self.device_connected.emit(port_name)
-            logging.info(f"🔌 Puerto MIDI de entrada abierto: {port_name}")
             print(f"Puerto MIDI de entrada abierto: {port_name}")
             return True
             
         except (IOError, ValueError) as e:
-            logging.error(f"❌ Error al abrir el puerto MIDI: {e}")
+            logging.error(f"❌ FAILED to open MIDI port: {e}")
             print(f"Error al abrir el puerto MIDI: {e}")
+            self.input_port = None
+            self.running = False
+            return False
+        except Exception as e:
+            logging.error(f"❌ UNEXPECTED error opening MIDI port: {e}")
+            import traceback
+            traceback.print_exc()
             self.input_port = None
             self.running = False
             return False
@@ -100,7 +133,6 @@ class MidiEngine(QObject):
                 self.running = False
                 self.device_disconnected.emit(old_port_name)
                 logging.info("🔌 Puerto MIDI de entrada cerrado.")
-                print("Puerto MIDI de entrada cerrado.")
             except Exception as e:
                 logging.error(f"Error closing MIDI port: {e}")
 
@@ -123,79 +155,135 @@ class MidiEngine(QObject):
         return None
 
     def handle_midi_message(self, msg):
-        """Handle incoming MIDI messages"""
+        """Handle incoming MIDI messages - FIXED for real MIDI input"""
         try:
-            # Emit original signal for backward compatibility
-            self.midi_message_received.emit(msg)
+            # CRITICAL: Log EVERY incoming message for debugging
+            logging.info(f"🎼 RAW MIDI RECEIVED: {msg}")
+            logging.info(f"   Type: {msg.type}")
+            logging.info(f"   Channel: {getattr(msg, 'channel', 'N/A')}")
+            logging.info(f"   Note: {getattr(msg, 'note', 'N/A')}")
+            logging.info(f"   Velocity: {getattr(msg, 'velocity', 'N/A')}")
+            logging.info(f"   Control: {getattr(msg, 'control', 'N/A')}")
+            logging.info(f"   Value: {getattr(msg, 'value', 'N/A')}")
             
-            # Create message key for the new mapping system
+            # Prevent recursive processing
+            if self._processing_midi:
+                logging.warning("⚠️ MIDI processing already in progress, skipping message")
+                return
+                    
+            self._processing_midi = True
+            
+            # Create message key for the new mapping system FIRST
             message_key = self.create_message_key(msg)
+            logging.info(f"🔑 Created message key: {message_key}")
             
-            # Emit new signal for MIDI learning
-            self.midi_message_received_for_learning.emit(message_key)
+            # Emit signals for monitoring (non-blocking) - BUT USE QTimer for thread safety
+            try:
+                # Use QTimer to emit signals in the main thread
+                from PyQt6.QtCore import QTimer
+                QTimer.singleShot(0, lambda: self.midi_message_received.emit(msg))
+                QTimer.singleShot(0, lambda: self.midi_message_received_for_learning.emit(message_key))
+                logging.debug("✅ MIDI signals scheduled for emission")
+            except Exception as signal_error:
+                logging.error(f"❌ Error scheduling MIDI signals: {signal_error}")
             
-            # Debug: Log all MIDI messages with current mappings
-            logging.debug(f"🎼 MIDI Message: {msg.type} -> Key: {message_key}")
-            
-            # Process the message for existing functionality
-            if msg.type == 'control_change':
-                control_id = f"cc_{msg.control}"
-                if control_id in self.midi_mappings:
-                    mapping_info = self.midi_mappings[control_id]
-                    deck = mapping_info['deck']
-                    parameter = mapping_info['parameter']
-                    if self.visualizer_manager:
-                        self.visualizer_manager.update_visualizer_parameter(deck, parameter, msg.value)
-                    self.control_changed.emit(f"{deck}.{parameter}", msg.value)
+            # Process different message types
+            if msg.type == 'note_on':
+                logging.info(f"🎵 Processing note_on: note={msg.note}, velocity={msg.velocity}")
                 
-                # Check new-style mappings
-                self.execute_mapped_action(message_key, msg.value)
-                
-            elif msg.type == 'note_on':
-                # Only process note_on with velocity > 0
                 if msg.velocity > 0:
-                    self.note_on_received.emit(msg.note, msg.velocity)
-                    self.process_bpm_from_note()
-                    # Execute mapped actions
+                    # Schedule signal emissions in main thread
+                    QTimer.singleShot(0, lambda: self.note_on_received.emit(msg.note, msg.velocity))
+                    QTimer.singleShot(0, lambda: self.process_bpm_from_note())
+                    
+                    # Execute mapped actions - THIS IS THE KEY PART
+                    logging.info(f"🚀 Executing mapped action immediately for {message_key}")
+                    # Direct execution instead of using QTimer for actions
                     self.execute_mapped_action(message_key, msg.velocity)
+                    
                 else:
                     # Velocity 0 is actually note_off
-                    note_off_key = self.create_note_off_key(msg)
-                    self.note_off_received.emit(msg.note)
-                    self.execute_mapped_action(note_off_key, 0)
-                
+                    logging.info("🎵 Note_on with velocity 0 treated as note_off")
+                    QTimer.singleShot(0, lambda: self.note_off_received.emit(msg.note))
+                    
             elif msg.type == 'note_off':
-                self.note_off_received.emit(msg.note)
-                self.execute_mapped_action(message_key, 0)
-                
+                logging.info(f"🎵 Processing note_off: note={msg.note}")
+                QTimer.singleShot(0, lambda: self.note_off_received.emit(msg.note))
+                # Don't execute actions on note_off for now
+                    
+            elif msg.type == 'control_change':
+                logging.info(f"🎛️ Processing control_change: cc={msg.control}, value={msg.value}")
+                QTimer.singleShot(0, lambda: self.control_changed.emit(f"cc_{msg.control}", msg.value))
+                self.execute_mapped_action(message_key, msg.value)
+                    
             elif msg.type == 'program_change':
+                logging.info(f"🎼 Processing program_change: program={msg.program}")
                 self.execute_mapped_action(message_key, msg.program)
-                
+            
+            else:
+                logging.info(f"❓ Unhandled MIDI message type: {msg.type}")
+                    
         except Exception as e:
-            logging.error(f"❌ Error handling MIDI message: {e}")
+            logging.error(f"❌ CRITICAL ERROR handling MIDI message: {e}")
+            import traceback
+            traceback.print_exc()
+        finally:
+            # Always reset the processing flag
+            self._processing_midi = False
+            logging.debug("🔃 MIDI processing completed, flag reset")
+
+    def execute_mapped_action_safe(self, message_key, value):
+        """Thread-safe wrapper for executing mapped actions"""
+        try:
+            logging.info(f"🎯 SAFE EXECUTION: Searching for mapping for key: {message_key}")
+            self.execute_mapped_action(message_key, value)
+        except Exception as e:
+            logging.error(f"❌ Error in execute_mapped_action_safe: {e}")
+            import traceback
+            traceback.print_exc()
 
     def create_message_key(self, msg):
-        """Create a unique key for a MIDI message"""
+        """Create a unique key for a MIDI message - IMPROVED to accept ALL channels"""
         try:
+            # CRITICAL: Log the key creation process
+            logging.debug(f"🔑 Creating message key for: {msg}")
+            
             if msg.type == 'note_on':
-                return f"note_on_ch{msg.channel}_note{msg.note}"
+                # Accept ANY channel - normalize to ch0 for mapping lookup
+                key = f"note_on_ch0_note{msg.note}"
+                logging.debug(f"🔑 Note_on key: {key} (original channel: {msg.channel})")
+                return key
+                
             elif msg.type == 'note_off':
-                return f"note_off_ch{msg.channel}_note{msg.note}"
+                key = f"note_off_ch0_note{msg.note}"
+                logging.debug(f"🔑 Note_off key: {key}")
+                return key
+                
             elif msg.type == 'control_change':
-                return f"cc_ch{msg.channel}_cc{msg.control}"
+                key = f"cc_ch0_cc{msg.control}"
+                logging.debug(f"🔑 CC key: {key}")
+                return key
+                
             elif msg.type == 'program_change':
-                return f"pc_ch{msg.channel}_prog{msg.program}"
+                key = f"pc_ch0_prog{msg.program}"
+                logging.debug(f"🔑 PC key: {key}")
+                return key
+                
             elif msg.type == 'pitchwheel':
-                return f"pitchwheel_ch{msg.channel}"
+                key = f"pitchwheel_ch0"
+                logging.debug(f"🔑 Pitchwheel key: {key}")
+                return key
+                
             else:
-                return f"{msg.type}_ch{msg.channel}"
+                key = f"{msg.type}_ch0"
+                logging.debug(f"🔑 Generic key: {key}")
+                return key
+                
         except Exception as e:
-            logging.error(f"Error creating message key: {e}")
-            return f"unknown_message_{time.time()}"
-
-    def create_note_off_key(self, msg):
-        """Create note_off key from note_on with velocity 0"""
-        return f"note_off_ch{msg.channel}_note{msg.note}"
+            logging.error(f"❌ Error creating message key: {e}")
+            fallback_key = f"unknown_message_{time.time()}"
+            logging.debug(f"🔑 Fallback key: {fallback_key}")
+            return fallback_key
 
     def process_bpm_from_note(self):
         """Process BPM calculation from note timing"""
@@ -225,43 +313,64 @@ class MidiEngine(QObject):
             logging.error(f"Error processing BPM: {e}")
 
     def execute_mapped_action(self, message_key, value):
-        """Execute action mapped to a MIDI message"""
+        """Execute action mapped to a MIDI message - ENHANCED DEBUG"""
         try:
+            logging.info(f"🔍 SEARCHING for mapping: {message_key}")
+            logging.info(f"📋 Available mappings: {len(self.midi_mappings)}")
+            
             # Find action mapped to this MIDI message
             mapped_action = None
             for action_id, mapping_data in self.midi_mappings.items():
-                if isinstance(mapping_data, dict) and mapping_data.get('midi') == message_key:
+                midi_key = mapping_data.get('midi', 'no_midi')
+                logging.debug(f"   Checking {action_id}: {midi_key} vs {message_key}")
+                
+                if isinstance(mapping_data, dict) and midi_key == message_key:
                     mapped_action = (action_id, mapping_data)
+                    logging.info(f"✅ FOUND MATCHING MAPPING: {action_id}")
                     break
             
             if not mapped_action:
-                # Debug: Log that no mapping was found
-                logging.debug(f"🔍 No mapping found for: {message_key}")
+                # Enhanced debugging for no mapping found
+                logging.warning(f"❌ NO MAPPING FOUND for: {message_key}")
+                logging.info("📋 Available MIDI keys:")
+                for action_id, mapping_data in self.midi_mappings.items():
+                    midi_key = mapping_data.get('midi', 'no_midi')
+                    logging.info(f"   {action_id}: {midi_key}")
                 return  # No action mapped to this message
             
             action_id, mapping_data = mapped_action
             action_type = mapping_data.get('type')
             params = mapping_data.get('params', {})
             
-            logging.info(f"🎹 EXECUTING MIDI action: {action_id} (type: {action_type}) for message: {message_key} with value: {value}")
+            logging.info(f"🎹 EXECUTING MIDI action: {action_id}")
+            logging.info(f"   Type: {action_type}")
+            logging.info(f"   Message: {message_key}")
+            logging.info(f"   Value: {value}")
+            logging.info(f"   Params: {params}")
             
             # Execute different types of actions
             if action_type == "load_preset":
+                logging.info("🎮 Executing load_preset action...")
                 self.execute_load_preset_action(params)
             elif action_type == "crossfade_action":
+                logging.info("🎛️ Executing crossfade action...")
                 self.execute_crossfade_action(params)
             elif action_type == "animate_crossfade":
+                logging.info("🎬 Executing animate_crossfade action...")
                 self.execute_animate_crossfade_action(params)
             elif action_type == "control_parameter":
+                logging.info("🎚️ Executing control_parameter action...")
                 self.execute_control_parameter_action(params, value)
             else:
                 logging.warning(f"⚠️ Unknown action type: {action_type}")
                 
         except Exception as e:
-            logging.error(f"❌ Error executing mapped action for {message_key}: {e}")
+            logging.error(f"❌ CRITICAL ERROR executing mapped action for {message_key}: {e}")
+            import traceback
+            traceback.print_exc()
 
     def execute_load_preset_action(self, params):
-        """Execute load preset action"""
+        """Execute load preset action - THREAD SAFE VERSION"""
         try:
             deck_id = params.get('deck_id')
             preset_name = params.get('preset_name')
@@ -269,33 +378,63 @@ class MidiEngine(QObject):
             
             logging.info(f"🎮 EXECUTING load preset: deck={deck_id}, preset={preset_name}, values={custom_values}")
             
+            # Check if we have mixer window reference
+            if not self.mixer_window:
+                logging.error("❌ Mixer window reference not available!")
+                logging.error("   Make sure set_application_references() was called")
+                return
+            
             if deck_id and preset_name:
-                if self.mixer_window and hasattr(self.mixer_window, 'safe_set_deck_visualizer'):
-                    # Use the thread-safe method
-                    logging.info(f"🔄 Calling safe_set_deck_visualizer({deck_id}, {preset_name})")
-                    self.mixer_window.safe_set_deck_visualizer(deck_id, preset_name)
+                # CRITICAL: Always use the thread-safe method directly
+                logging.info(f"🔄 Calling safe_set_deck_visualizer({deck_id}, {preset_name})")
+                
+                # This method already uses signals internally for thread safety
+                self.mixer_window.safe_set_deck_visualizer(deck_id, preset_name)
+                
+                # Parse and apply custom values if provided
+                if custom_values:
+                    # Also use thread-safe method for custom values
+                    from PyQt6.QtCore import QTimer
+                    QTimer.singleShot(300, lambda: self.apply_custom_values(deck_id, custom_values))
+                
+                logging.info(f"✅ Triggered preset load '{preset_name}' on deck {deck_id}")
+                
+                # Emit signal for UI update (thread-safe)
+                from PyQt6.QtCore import QTimer
+                QTimer.singleShot(0, lambda: self.preset_loaded_on_deck.emit(deck_id, preset_name))
+                
+                # Update control panel if available (thread-safe)
+                if self.control_panel:
+                    QTimer.singleShot(100, lambda: self.update_control_panel_safe(deck_id, preset_name))
                     
-                    # Parse and apply custom values if provided
-                    if custom_values:
-                        # Small delay to ensure visualizer is set first
-                        QTimer.singleShot(300, lambda: self.apply_custom_values(deck_id, custom_values))
-                    
-                    logging.info(f"✅ Triggered preset load '{preset_name}' on deck {deck_id}")
-                elif self.mixer_window:
-                    # Fallback to direct method
-                    logging.info(f"🔄 Calling direct set_deck_visualizer({deck_id}, {preset_name})")
-                    self.mixer_window.set_deck_visualizer(deck_id, preset_name)
-                    
-                    if custom_values:
-                        QTimer.singleShot(300, lambda: self.apply_custom_values(deck_id, custom_values))
-                        
-                    logging.info(f"✅ Direct preset load '{preset_name}' on deck {deck_id}")
-                else:
-                    logging.error("❌ Mixer window not available for load preset action")
-                    logging.error(f"❌ mixer_window reference: {self.mixer_window}")
+            # Handle special case of clearing deck (preset_name = None)
+            elif deck_id and preset_name is None:
+                logging.info(f"🚫 Clearing deck {deck_id}")
+                
+                # Use thread-safe method
+                self.mixer_window.safe_set_deck_visualizer(deck_id, None)
+                
+                logging.info(f"✅ Deck {deck_id} cleared")
+                
+                # Thread-safe signal emission
+                from PyQt6.QtCore import QTimer
+                QTimer.singleShot(0, lambda: self.preset_loaded_on_deck.emit(deck_id, "-- No preset selected --"))
+                
+                if self.control_panel:
+                    QTimer.singleShot(100, lambda: self.update_control_panel_safe(deck_id, "-- No preset selected --"))
                 
         except Exception as e:
             logging.error(f"❌ Error executing load preset action: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def update_control_panel_safe(self, deck_id, preset_name):
+        """Safely update control panel"""
+        try:
+            if self.control_panel and hasattr(self.control_panel, 'on_preset_loaded_on_deck'):
+                self.control_panel.on_preset_loaded_on_deck(deck_id, preset_name)
+        except Exception as e:
+            logging.error(f"Error updating control panel: {e}")
 
     def apply_custom_values(self, deck_id, custom_values):
         """Apply custom parameter values to a deck"""
@@ -330,65 +469,120 @@ class MidiEngine(QObject):
                         if hasattr(self.mixer_window, 'safe_update_deck_control'):
                             self.mixer_window.safe_update_deck_control(deck_id, param_name, param_value)
                         else:
-                            self.mixer_window.update_deck_control(deck_id, param_name, param_value)
+                            QTimer.singleShot(50, lambda d=deck_id, n=param_name, v=param_value: 
+                                            self.mixer_window.update_deck_control(d, n, v))
                         logging.info(f"✅ Applied custom value: {deck_id}.{param_name} = {param_value}")
                         
         except Exception as e:
             logging.error(f"❌ Error applying custom values: {e}")
 
     def execute_crossfade_action(self, params):
-        """Execute crossfade action"""
+        """Execute crossfade action - IMPROVED to use animation"""
         try:
             preset = params.get('preset', 'A to B')
             duration = params.get('duration', '')
             
-            logging.info(f"🎛️ Executing crossfade action: {preset}, duration: {duration}")
+            logging.info(f"🎛️ Executing crossfade: {preset} duration: {duration}")
             
-            if self.mixer_window:
-                # Map preset to mix value
-                if preset == "Instant A":
-                    mix_value = 0
-                elif preset == "Instant B":
-                    mix_value = 100
-                elif preset == "Cut to Center":
-                    mix_value = 50
-                elif preset == "A to B":
-                    mix_value = 100  # Full B
-                elif preset == "B to A":
-                    mix_value = 0    # Full A
-                else:
-                    mix_value = 50   # Default center
-                
-                # Use the thread-safe method
-                if hasattr(self.mixer_window, 'safe_set_mix_value'):
-                    self.mixer_window.safe_set_mix_value(mix_value)
-                else:
-                    self.mixer_window.set_mix_value(mix_value)
-                logging.info(f"✅ Set crossfade to: {mix_value}% ({preset})")
+            # Parse duration string to milliseconds
+            duration_ms = 1000  # Default 1 second
+            if duration:
+                if 'ms' in duration:
+                    duration_ms = int(duration.replace('ms', ''))
+                elif 's' in duration:
+                    duration_ms = int(float(duration.replace('s', '')) * 1000)
+            
+            # Map preset to target value
+            if preset == "Instant A":
+                target_value = 0.0
+                duration_ms = 50  # Almost instant
+            elif preset == "Instant B":
+                target_value = 1.0
+                duration_ms = 50  # Almost instant
+            elif preset == "Cut to Center":
+                target_value = 0.5
+                duration_ms = 50  # Almost instant
+            elif preset == "A to B":
+                target_value = 1.0  # Full B
+            elif preset == "B to A":
+                target_value = 0.0  # Full A
             else:
-                logging.warning("❌ Mixer window not available for crossfade action")
+                target_value = 0.5  # Default center
+            
+            # Use the animated crossfade
+            animation_params = {
+                'target_value': target_value,
+                'duration_ms': duration_ms,
+                'curve': 'linear'
+            }
+            
+            self.execute_animate_crossfade_action(animation_params)
             
         except Exception as e:
             logging.error(f"❌ Error executing crossfade action: {e}")
 
     def execute_animate_crossfade_action(self, params):
-        """Execute animated crossfade action"""
+        """Execute animated crossfade action - FIXED IMPLEMENTATION"""
         try:
             target_value = params.get('target_value', 0.5)
             duration_ms = params.get('duration_ms', 1000)
+            curve = params.get('curve', 'linear')
             
-            if self.mixer_window:
-                # For now, just set the value immediately
-                # TODO: Implement actual animation
-                mixer_value = int(target_value * 100)
-                if hasattr(self.mixer_window, 'safe_set_mix_value'):
-                    self.mixer_window.safe_set_mix_value(mixer_value)
-                else:
-                    self.mixer_window.set_mix_value(mixer_value)
-                logging.info(f"✅ Animated crossfade to {target_value} over {duration_ms}ms (immediate)")
+            if not self.mixer_window:
+                logging.error("❌ Mixer window not available for crossfade animation")
+                return
+            
+            # Get current mix value
+            current_value = self.mixer_window.get_mix_value() if hasattr(self.mixer_window, 'get_mix_value') else 0.5
+            
+            logging.info(f"🎛️ Animating crossfade from {current_value:.2f} to {target_value:.2f} over {duration_ms}ms")
+            
+            # Store animation parameters
+            self.crossfade_start_value = current_value
+            self.crossfade_target_value = target_value
+            self.crossfade_duration = duration_ms
+            self.crossfade_start_time = time.time() * 1000  # Convert to milliseconds
+            
+            # Stop any existing animation
+            if self.crossfade_timer:
+                self.crossfade_timer.stop()
+                self.crossfade_timer = None
+            
+            # Start animation timer (60 FPS = ~16ms intervals)
+            self.crossfade_timer = QTimer()
+            self.crossfade_timer.timeout.connect(self.update_crossfade_animation)
+            self.crossfade_timer.start(16)  # 60 FPS
             
         except Exception as e:
             logging.error(f"❌ Error executing animate crossfade action: {e}")
+
+    def update_crossfade_animation(self):
+        """Update crossfade animation frame"""
+        try:
+            current_time = time.time() * 1000
+            elapsed = current_time - self.crossfade_start_time
+            progress = min(elapsed / self.crossfade_duration, 1.0)
+            
+            # Calculate current value (linear interpolation for now)
+            current_value = self.crossfade_start_value + (self.crossfade_target_value - self.crossfade_start_value) * progress
+            
+            # Update mixer
+            mixer_value = int(current_value * 100)
+            if hasattr(self.mixer_window, 'safe_set_mix_value'):
+                self.mixer_window.safe_set_mix_value(mixer_value)
+            
+            # Check if animation is complete
+            if progress >= 1.0:
+                if self.crossfade_timer:
+                    self.crossfade_timer.stop()
+                    self.crossfade_timer = None
+                logging.info(f"✅ Crossfade animation completed at {self.crossfade_target_value:.2f}")
+            
+        except Exception as e:
+            logging.error(f"❌ Error updating crossfade animation: {e}")
+            if self.crossfade_timer:
+                self.crossfade_timer.stop()
+                self.crossfade_timer = None
 
     def execute_control_parameter_action(self, params, value):
         """Execute control parameter action"""
@@ -407,11 +601,205 @@ class MidiEngine(QObject):
                 if hasattr(self.mixer_window, 'safe_update_deck_control'):
                     self.mixer_window.safe_update_deck_control(deck_id, parameter_name, scaled_value)
                 else:
-                    self.mixer_window.update_deck_control(deck_id, parameter_name, scaled_value)
+                    QTimer.singleShot(50, lambda: self.mixer_window.update_deck_control(deck_id, parameter_name, scaled_value))
                 logging.info(f"✅ Updated {deck_id}.{parameter_name} to {scaled_value}")
             
         except Exception as e:
             logging.error(f"❌ Error executing control parameter action: {e}")
+
+    def create_default_midi_mappings(self):
+        """Create all default MIDI mappings for the drum rack setup - CORRECTED NAMES"""
+        mappings = {}
+        
+        # DECK A PRESETS (36-45) - NOMBRES EXACTOS del visualizer_manager
+        deck_a_presets = [
+            "Simple Test", "Wire Terrain", "Abstract Lines", "Geometric Particles", 
+            "Evolutive Particles", "Abstract Shapes", "Möbius Band", "Building Madness",
+            "Cosmic Flow", "Fluid Particles"
+        ]
+        
+        for i, preset_name in enumerate(deck_a_presets):
+            note = 36 + i
+            mappings[f"deck_a_preset_{i}"] = {
+                "type": "load_preset",
+                "params": {
+                    "deck_id": "A",
+                    "preset_name": preset_name,
+                    "custom_values": ""
+                },
+                "midi": f"note_on_ch0_note{note}"
+            }
+        
+        # DECK A CLEAR (46)
+        mappings["deck_a_clear"] = {
+            "type": "load_preset",
+            "params": {
+                "deck_id": "A",
+                "preset_name": None,
+                "custom_values": ""
+            },
+            "midi": "note_on_ch0_note46"
+        }
+        
+        # MIX ACTIONS (48-53)
+        mix_actions = [
+            {"preset": "A to B", "duration": "10s"},
+            {"preset": "B to A", "duration": "10s"},
+            {"preset": "A to B", "duration": "5s"},
+            {"preset": "B to A", "duration": "5s"},
+            {"preset": "A to B", "duration": "500ms"},
+            {"preset": "B to A", "duration": "500ms"}
+        ]
+        
+        for i, action in enumerate(mix_actions):
+            note = 48 + i
+            mappings[f"mix_action_{i}"] = {
+                "type": "crossfade_action",
+                "params": {
+                    "preset": action["preset"],
+                    "duration": action["duration"],
+                    "target": "Visual Mix"
+                },
+                "midi": f"note_on_ch0_note{note}"
+            }
+        
+        # DECK B PRESETS (54-63) - NOMBRES EXACTOS del visualizer_manager
+        deck_b_presets = [
+            "Simple Test", "Wire Terrain", "Abstract Lines", "Geometric Particles", 
+            "Evolutive Particles", "Abstract Shapes", "Möbius Band", "Building Madness",
+            "Cosmic Flow", "Fluid Particles"
+        ]
+        
+        for i, preset_name in enumerate(deck_b_presets):
+            note = 54 + i
+            mappings[f"deck_b_preset_{i}"] = {
+                "type": "load_preset",
+                "params": {
+                    "deck_id": "B",
+                    "preset_name": preset_name,
+                    "custom_values": ""
+                },
+                "midi": f"note_on_ch0_note{note}"
+            }
+        
+        # DECK B CLEAR (64)
+        mappings["deck_b_clear"] = {
+            "type": "load_preset",
+            "params": {
+                "deck_id": "B",
+                "preset_name": None,
+                "custom_values": ""
+            },
+            "midi": "note_on_ch0_note64"
+        }
+        
+        logging.info(f"🎹 Created {len(mappings)} default MIDI mappings with corrected preset names")
+        return mappings
+
+    def setup_default_mappings(self):
+        """Setup default MIDI mappings - call this after initialization"""
+        try:
+            # Only create default mappings if none exist
+            if not self.midi_mappings or len(self.midi_mappings) == 0:
+                logging.info("🎹 No existing MIDI mappings found, creating defaults...")
+                default_mappings = self.create_default_midi_mappings()
+                self.set_midi_mappings(default_mappings)
+                logging.info("✅ Default MIDI mappings created and saved")
+            else:
+                logging.info(f"🎹 Using existing MIDI mappings: {len(self.midi_mappings)} mappings loaded")
+                
+            # Debug: Print all current mappings
+            self.print_current_mappings()
+                
+        except Exception as e:
+            logging.error(f"❌ Error setting up default mappings: {e}")
+
+    def print_current_mappings(self):
+        """Print current MIDI mappings for debugging"""
+        try:
+            logging.info("🎹 CURRENT MIDI MAPPINGS:")
+            logging.info("=" * 60)
+            
+            # Group by type
+            deck_a_mappings = []
+            deck_b_mappings = []
+            mix_mappings = []
+            
+            for action_id, mapping_data in self.midi_mappings.items():
+                midi_key = mapping_data.get('midi', 'no_midi')
+                action_type = mapping_data.get('type', 'unknown')
+                params = mapping_data.get('params', {})
+                
+                if 'deck_a' in action_id or params.get('deck_id') == 'A':
+                    deck_a_mappings.append((action_id, midi_key, params))
+                elif 'deck_b' in action_id or params.get('deck_id') == 'B':
+                    deck_b_mappings.append((action_id, midi_key, params))
+                elif 'mix' in action_id or action_type == 'crossfade_action':
+                    mix_mappings.append((action_id, midi_key, params))
+            
+            # Print Deck A
+            logging.info("🔴 DECK A MAPPINGS:")
+            for action_id, midi_key, params in sorted(deck_a_mappings, key=lambda x: x[1]):
+                preset = params.get('preset_name', 'Clear') if params.get('preset_name') else 'Clear'
+                note_num = midi_key.split('note')[-1] if 'note' in midi_key else '?'
+                logging.info(f"  Note {note_num:2s}: {preset}")
+            
+            # Print Mix
+            logging.info("🟡 MIX MAPPINGS:")
+            for action_id, midi_key, params in sorted(mix_mappings, key=lambda x: x[1]):
+                preset = params.get('preset', 'Unknown')
+                duration = params.get('duration', 'instant')
+                note_num = midi_key.split('note')[-1] if 'note' in midi_key else '?'
+                logging.info(f"  Note {note_num:2s}: {preset} ({duration})")
+            
+            # Print Deck B
+            logging.info("🟢 DECK B MAPPINGS:")
+            for action_id, midi_key, params in sorted(deck_b_mappings, key=lambda x: x[1]):
+                preset = params.get('preset_name', 'Clear') if params.get('preset_name') else 'Clear'
+                note_num = midi_key.split('note')[-1] if 'note' in midi_key else '?'
+                logging.info(f"  Note {note_num:2s}: {preset}")
+                
+            logging.info("=" * 60)
+            
+        except Exception as e:
+            logging.error(f"❌ Error printing mappings: {e}")
+
+    def test_midi_mapping(self, note_number):
+        """Test a specific MIDI mapping by note number"""
+        try:
+            test_key = f"note_on_ch0_note{note_number}"
+            logging.info(f"🧪 TESTING MIDI mapping for note {note_number} (key: {test_key})")
+            
+            # Find the mapping
+            found_mapping = None
+            for action_id, mapping_data in self.midi_mappings.items():
+                if mapping_data.get('midi') == test_key:
+                    found_mapping = (action_id, mapping_data)
+                    break
+            
+            if found_mapping:
+                action_id, mapping_data = found_mapping
+                action_type = mapping_data.get('type')
+                params = mapping_data.get('params', {})
+                
+                logging.info(f"✅ Found mapping: {action_id}")
+                logging.info(f"  Type: {action_type}")
+                logging.info(f"  Params: {params}")
+                
+                # Simulate execution
+                logging.info(f"🚀 SIMULATING execution...")
+                self.execute_mapped_action(test_key, 127)  # Full velocity
+                
+            else:
+                logging.warning(f"❌ No mapping found for note {note_number}")
+                logging.info("Available mappings:")
+                for action_id, mapping_data in self.midi_mappings.items():
+                    midi_key = mapping_data.get('midi', 'no_midi')
+                    note_from_key = midi_key.split('note')[-1] if 'note' in midi_key else '?'
+                    logging.info(f"  {action_id}: Note {note_from_key}")
+                    
+        except Exception as e:
+            logging.error(f"❌ Error testing MIDI mapping: {e}")
 
     def set_midi_mappings(self, mappings):
         """Set MIDI mappings"""
@@ -420,13 +808,6 @@ class MidiEngine(QObject):
             if self.settings_manager:
                 self.settings_manager.save_midi_mappings(self.midi_mappings)
             logging.info(f"🎹 MIDI mappings updated and saved: {len(mappings)} mappings")
-            
-            # Debug: print the mappings
-            for action_id, mapping_data in self.midi_mappings.items():
-                midi_key = mapping_data.get('midi', 'no_midi')
-                action_type = mapping_data.get('type', 'unknown')
-                params = mapping_data.get('params', {})
-                logging.info(f"  📋 Mapping {action_id}: {midi_key} -> {action_type} {params}")
                 
         except Exception as e:
             logging.error(f"❌ Error setting MIDI mappings: {e}")
