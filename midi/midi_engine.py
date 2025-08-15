@@ -11,12 +11,14 @@ class MidiEngine(QObject):
     note_on_received = pyqtSignal(int, int)
     note_off_received = pyqtSignal(int)
     preset_loaded_on_deck = pyqtSignal(str, str)
-    
+
     # New signals for the mapping system
     midi_message_received_for_learning = pyqtSignal(str)  # New signal for MIDI learning (message key as string)
     bpm_changed = pyqtSignal(float)
     device_connected = pyqtSignal(str)
     device_disconnected = pyqtSignal(str)
+    # Signal used to execute mapped actions on the Qt main thread
+    mapped_action_triggered = pyqtSignal(str, int)
 
     def __init__(self, settings_manager, visualizer_manager):
         super().__init__()
@@ -54,7 +56,10 @@ class MidiEngine(QObject):
         self._processing_midi = False
         
         logging.info("MidiEngine initialized")
-        
+
+        # Route mapped_action_triggered through Qt's event loop to ensure thread safety
+        self.mapped_action_triggered.connect(self.execute_mapped_action_safe)
+
         # Setup default mappings if none exist (delayed to ensure everything is loaded)
         QTimer.singleShot(1000, self.setup_default_mappings)
 
@@ -177,48 +182,41 @@ class MidiEngine(QObject):
             message_key = self.create_message_key(msg)
             logging.info(f"🔑 Created message key: {message_key}")
             
-            # Emit signals for monitoring (non-blocking) - BUT USE QTimer for thread safety
-            try:
-                # Use QTimer to emit signals in the main thread
-                from PyQt6.QtCore import QTimer
-                QTimer.singleShot(0, lambda: self.midi_message_received.emit(msg))
-                QTimer.singleShot(0, lambda: self.midi_message_received_for_learning.emit(message_key))
-                logging.debug("✅ MIDI signals scheduled for emission")
-            except Exception as signal_error:
-                logging.error(f"❌ Error scheduling MIDI signals: {signal_error}")
+            # Emit signals for monitoring; Qt will queue them to the main thread if needed
+            self.midi_message_received.emit(msg)
+            self.midi_message_received_for_learning.emit(message_key)
             
             # Process different message types
             if msg.type == 'note_on':
                 logging.info(f"🎵 Processing note_on: note={msg.note}, velocity={msg.velocity}")
                 
                 if msg.velocity > 0:
-                    # Schedule signal emissions in main thread
-                    QTimer.singleShot(0, lambda: self.note_on_received.emit(msg.note, msg.velocity))
-                    QTimer.singleShot(0, lambda: self.process_bpm_from_note())
-                    
-                    # Execute mapped actions - THIS IS THE KEY PART
-                    logging.info(f"🚀 Executing mapped action immediately for {message_key}")
-                    # Direct execution instead of using QTimer for actions
-                    self.execute_mapped_action(message_key, msg.velocity)
+                    # Emit signals for downstream processing
+                    self.note_on_received.emit(msg.note, msg.velocity)
+                    self.process_bpm_from_note()
+
+                    # Execute mapped actions via Qt signal to ensure thread safety
+                    logging.info(f"🚀 Executing mapped action for {message_key}")
+                    self.mapped_action_triggered.emit(message_key, msg.velocity)
                     
                 else:
                     # Velocity 0 is actually note_off
                     logging.info("🎵 Note_on with velocity 0 treated as note_off")
-                    QTimer.singleShot(0, lambda: self.note_off_received.emit(msg.note))
+                    self.note_off_received.emit(msg.note)
                     
             elif msg.type == 'note_off':
                 logging.info(f"🎵 Processing note_off: note={msg.note}")
-                QTimer.singleShot(0, lambda: self.note_off_received.emit(msg.note))
+                self.note_off_received.emit(msg.note)
                 # Don't execute actions on note_off for now
                     
             elif msg.type == 'control_change':
                 logging.info(f"🎛️ Processing control_change: cc={msg.control}, value={msg.value}")
-                QTimer.singleShot(0, lambda: self.control_changed.emit(f"cc_{msg.control}", msg.value))
-                self.execute_mapped_action(message_key, msg.value)
+                self.control_changed.emit(f"cc_{msg.control}", msg.value)
+                self.mapped_action_triggered.emit(message_key, msg.value)
                     
             elif msg.type == 'program_change':
                 logging.info(f"🎼 Processing program_change: program={msg.program}")
-                self.execute_mapped_action(message_key, msg.program)
+                self.mapped_action_triggered.emit(message_key, msg.program)
             
             else:
                 logging.info(f"❓ Unhandled MIDI message type: {msg.type}")
@@ -387,54 +385,35 @@ class MidiEngine(QObject):
             if deck_id and preset_name:
                 # CRITICAL: Always use the thread-safe method directly
                 logging.info(f"🔄 Calling safe_set_deck_visualizer({deck_id}, {preset_name})")
-                
+
                 # This method already uses signals internally for thread safety
                 self.mixer_window.safe_set_deck_visualizer(deck_id, preset_name)
-                
+
                 # Parse and apply custom values if provided
                 if custom_values:
-                    # Also use thread-safe method for custom values
-                    from PyQt6.QtCore import QTimer
-                    QTimer.singleShot(300, lambda: self.apply_custom_values(deck_id, custom_values))
-                
+                    self.apply_custom_values(deck_id, custom_values)
+
                 logging.info(f"✅ Triggered preset load '{preset_name}' on deck {deck_id}")
-                
-                # Emit signal for UI update (thread-safe)
-                from PyQt6.QtCore import QTimer
-                QTimer.singleShot(0, lambda: self.preset_loaded_on_deck.emit(deck_id, preset_name))
-                
-                # Update control panel if available (thread-safe)
-                if self.control_panel:
-                    QTimer.singleShot(100, lambda: self.update_control_panel_safe(deck_id, preset_name))
-                    
+
+                # Emit signal for UI update
+                self.preset_loaded_on_deck.emit(deck_id, preset_name)
+
             # Handle special case of clearing deck (preset_name = None)
             elif deck_id and preset_name is None:
                 logging.info(f"🚫 Clearing deck {deck_id}")
-                
+
                 # Use thread-safe method
                 self.mixer_window.safe_set_deck_visualizer(deck_id, None)
-                
+
                 logging.info(f"✅ Deck {deck_id} cleared")
-                
-                # Thread-safe signal emission
-                from PyQt6.QtCore import QTimer
-                QTimer.singleShot(0, lambda: self.preset_loaded_on_deck.emit(deck_id, "-- No preset selected --"))
-                
-                if self.control_panel:
-                    QTimer.singleShot(100, lambda: self.update_control_panel_safe(deck_id, "-- No preset selected --"))
+
+                # Signal emission for cleared deck
+                self.preset_loaded_on_deck.emit(deck_id, "-- No preset selected --")
                 
         except Exception as e:
             logging.error(f"❌ Error executing load preset action: {e}")
             import traceback
             traceback.print_exc()
-
-    def update_control_panel_safe(self, deck_id, preset_name):
-        """Safely update control panel"""
-        try:
-            if self.control_panel and hasattr(self.control_panel, 'on_preset_loaded_on_deck'):
-                self.control_panel.on_preset_loaded_on_deck(deck_id, preset_name)
-        except Exception as e:
-            logging.error(f"Error updating control panel: {e}")
 
     def apply_custom_values(self, deck_id, custom_values):
         """Apply custom parameter values to a deck"""
@@ -465,12 +444,8 @@ class MidiEngine(QObject):
                         pass
                     
                     # Apply the parameter using thread-safe method
-                    if self.mixer_window:
-                        if hasattr(self.mixer_window, 'safe_update_deck_control'):
-                            self.mixer_window.safe_update_deck_control(deck_id, param_name, param_value)
-                        else:
-                            QTimer.singleShot(50, lambda d=deck_id, n=param_name, v=param_value: 
-                                            self.mixer_window.update_deck_control(d, n, v))
+                    if self.mixer_window and hasattr(self.mixer_window, 'safe_update_deck_control'):
+                        self.mixer_window.safe_update_deck_control(deck_id, param_name, param_value)
                         logging.info(f"✅ Applied custom value: {deck_id}.{param_name} = {param_value}")
                         
         except Exception as e:
@@ -600,9 +575,7 @@ class MidiEngine(QObject):
                 
                 if hasattr(self.mixer_window, 'safe_update_deck_control'):
                     self.mixer_window.safe_update_deck_control(deck_id, parameter_name, scaled_value)
-                else:
-                    QTimer.singleShot(50, lambda: self.mixer_window.update_deck_control(deck_id, parameter_name, scaled_value))
-                logging.info(f"✅ Updated {deck_id}.{parameter_name} to {scaled_value}")
+                    logging.info(f"✅ Updated {deck_id}.{parameter_name} to {scaled_value}")
             
         except Exception as e:
             logging.error(f"❌ Error executing control parameter action: {e}")
