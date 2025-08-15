@@ -3,6 +3,7 @@ import mido.backends.rtmidi
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer, Qt
 import time
 import logging
+import queue
 
 class MidiEngine(QObject):
     # Existing signals
@@ -40,27 +41,33 @@ class MidiEngine(QObject):
         self.running = False
         self._last_bpm_time = 0
         self._beat_intervals = []
-        
+
         # References to application components (set later)
         self.mixer_window = None
         self.control_panel = None
-        
+
         # Crossfade animation variables
         self.crossfade_timer = None
         self.crossfade_start_value = 0.5
         self.crossfade_target_value = 0.5
         self.crossfade_duration = 1000
         self.crossfade_start_time = 0
-        
-        # Processing flag to prevent recursive calls
-        self._processing_midi = False
-        
+
+        # Queue to decouple MIDI reception from processing
+        self._message_queue = queue.Queue()
+
         logging.info("MidiEngine initialized")
 
         # Route mapped_action_triggered through Qt's event loop to ensure thread safety
         self.mapped_action_triggered.connect(
             self.execute_mapped_action_safe, Qt.ConnectionType.QueuedConnection
         )
+
+        # Timer to process queued MIDI messages on the Qt thread
+        self._queue_timer = QTimer()
+        self._queue_timer.setInterval(1)
+        self._queue_timer.timeout.connect(self._process_midi_queue)
+        self._queue_timer.start()
 
         # Setup default mappings if none exist (delayed to ensure everything is loaded)
         QTimer.singleShot(1000, self.setup_default_mappings)
@@ -98,8 +105,8 @@ class MidiEngine(QObject):
                 return False
             
             # Open the port with callback
-            logging.info(f"🔌 Opening port with callback: {self.handle_midi_message}")
-            self.input_port = mido.open_input(port_name, callback=self.handle_midi_message)
+            logging.info(f"🔌 Opening port with callback: {self._enqueue_midi_message}")
+            self.input_port = mido.open_input(port_name, callback=self._enqueue_midi_message)
             self.running = True
             
             # Save the last used device
@@ -161,8 +168,24 @@ class MidiEngine(QObject):
             return str(self.input_port)
         return None
 
+    def _enqueue_midi_message(self, msg):
+        """Callback used by mido to enqueue incoming messages"""
+        try:
+            self._message_queue.put(msg)
+        except Exception as e:
+            logging.error(f"❌ Error enqueuing MIDI message: {e}")
+
+    def _process_midi_queue(self):
+        """Process all pending MIDI messages from the queue"""
+        try:
+            while not self._message_queue.empty():
+                msg = self._message_queue.get_nowait()
+                self.handle_midi_message(msg)
+        except Exception as e:
+            logging.error(f"❌ Error processing MIDI queue: {e}")
+
     def handle_midi_message(self, msg):
-        """Handle incoming MIDI messages - FIXED for real MIDI input"""
+        """Process a MIDI message from the internal queue"""
         try:
             # CRITICAL: Log EVERY incoming message for debugging
             logging.info(f"🎼 RAW MIDI RECEIVED: {msg}")
@@ -172,26 +195,19 @@ class MidiEngine(QObject):
             logging.info(f"   Velocity: {getattr(msg, 'velocity', 'N/A')}")
             logging.info(f"   Control: {getattr(msg, 'control', 'N/A')}")
             logging.info(f"   Value: {getattr(msg, 'value', 'N/A')}")
-            
-            # Prevent recursive processing
-            if self._processing_midi:
-                logging.warning("⚠️ MIDI processing already in progress, skipping message")
-                return
-                    
-            self._processing_midi = True
-            
+
             # Create message key for the new mapping system FIRST
             message_key = self.create_message_key(msg)
             logging.info(f"🔑 Created message key: {message_key}")
-            
+
             # Emit signals for monitoring; Qt will queue them to the main thread if needed
             self.midi_message_received.emit(msg)
             self.midi_message_received_for_learning.emit(message_key)
-            
+
             # Process different message types
             if msg.type == 'note_on':
                 logging.info(f"🎵 Processing note_on: note={msg.note}, velocity={msg.velocity}")
-                
+
                 if msg.velocity > 0:
                     # Emit signals for downstream processing
                     self.note_on_received.emit(msg.note, msg.velocity)
@@ -200,37 +216,35 @@ class MidiEngine(QObject):
                     # Execute mapped actions via Qt signal to ensure thread safety
                     logging.info(f"🚀 Executing mapped action for {message_key}")
                     self.mapped_action_triggered.emit(message_key, msg.velocity)
-                    
+
                 else:
                     # Velocity 0 is actually note_off
                     logging.info("🎵 Note_on with velocity 0 treated as note_off")
                     self.note_off_received.emit(msg.note)
-                    
+
             elif msg.type == 'note_off':
                 logging.info(f"🎵 Processing note_off: note={msg.note}")
                 self.note_off_received.emit(msg.note)
                 # Don't execute actions on note_off for now
-                    
+
             elif msg.type == 'control_change':
                 logging.info(f"🎛️ Processing control_change: cc={msg.control}, value={msg.value}")
                 self.control_changed.emit(f"cc_{msg.control}", msg.value)
                 self.mapped_action_triggered.emit(message_key, msg.value)
-                    
+
             elif msg.type == 'program_change':
                 logging.info(f"🎼 Processing program_change: program={msg.program}")
                 self.mapped_action_triggered.emit(message_key, msg.program)
-            
+
             else:
                 logging.info(f"❓ Unhandled MIDI message type: {msg.type}")
-                    
+
         except Exception as e:
             logging.error(f"❌ CRITICAL ERROR handling MIDI message: {e}")
             import traceback
             traceback.print_exc()
         finally:
-            # Always reset the processing flag
-            self._processing_midi = False
-            logging.debug("🔃 MIDI processing completed, flag reset")
+            logging.debug("🔃 MIDI processing completed")
 
     def execute_mapped_action_safe(self, message_key, value):
         """Thread-safe wrapper for executing mapped actions"""
