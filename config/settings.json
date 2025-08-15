@@ -1,5 +1,5 @@
 {
-    "last_midi_device": "virtual 4",
+    "last_midi_device": "virtual 7",
     "control_panel_monitor": 0,
     "main_window_monitor": 2,
     "auto_save_settings": true,
@@ -41,15 +41,5 @@
         "vsync": true,
         "quality": "high"
     },
-    "midi_mappings": {
-        "mapping_0": {
-            "type": "load_preset",
-            "params": {
-                "deck_id": "B",
-                "preset_name": "Wire Terrain",
-                "custom_values": ""
-            },
-            "midi": "note_on_ch8_note52"
-        }
-    }
+    "midi_mappings": {}
 }

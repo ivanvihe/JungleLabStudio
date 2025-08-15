@@ -32,6 +32,7 @@ class VisualizerManager:
                 'fluid_particles',
                 'vortex_particles',
                 'kaleido_tunney',
+                'science_analyzer',
             ]
             
             loaded_count = 0
