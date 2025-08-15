@@ -336,7 +336,7 @@
         "type": "load_preset",
         "params": {
             "deck_id": "A",
-            "preset_name": "Mobius Band",
+            "preset_name": "Fluid Particles",
             "custom_values": ""
         },
         "midi": "note_on_ch0_note42"
@@ -345,7 +345,7 @@
         "type": "load_preset",
         "params": {
             "deck_id": "A",
-            "preset_name": "Building Madness",
+            "preset_name": "Vortex Particles",
             "custom_values": ""
         },
         "midi": "note_on_ch0_note43"

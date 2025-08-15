@@ -5,14 +5,14 @@
     "auto_save_settings": true,
     "window_positions": {
         "control_panel": {
-            "x": 3838,
-            "y": 110,
+            "x": 1920,
+            "y": 23,
             "width": 1536,
-            "height": 842
+            "height": 793
         },
         "main_window": {
-            "x": 1786,
-            "y": 261,
+            "x": 0,
+            "y": 23,
             "width": 1536,
             "height": 793
         }
@@ -379,7 +379,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Mobius Band",
+                "preset_name": "Fluid Particles",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note42"
@@ -388,7 +388,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Building Madness",
+                "preset_name": "Vortex Particles",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note43"
