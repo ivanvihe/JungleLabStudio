@@ -69,17 +69,29 @@ class ControlPanelWindow(QMainWindow):
         """Setup MIDI signal connections"""
         try:
             if hasattr(self.midi_engine, 'midi_message_received'):
-                self.midi_engine.midi_message_received.connect(self.on_midi_activity)
+                self.midi_engine.midi_message_received.connect(
+                    self.on_midi_activity, Qt.ConnectionType.QueuedConnection
+                )
             if hasattr(self.midi_engine, 'note_on_received'):
-                self.midi_engine.note_on_received.connect(self.on_note_activity)
+                self.midi_engine.note_on_received.connect(
+                    self.on_note_activity, Qt.ConnectionType.QueuedConnection
+                )
             if hasattr(self.midi_engine, 'control_changed'):
-                self.midi_engine.control_changed.connect(self.on_cc_activity)
+                self.midi_engine.control_changed.connect(
+                    self.on_cc_activity, Qt.ConnectionType.QueuedConnection
+                )
             if hasattr(self.midi_engine, 'device_connected'):
-                self.midi_engine.device_connected.connect(self.on_midi_device_connected)
+                self.midi_engine.device_connected.connect(
+                    self.on_midi_device_connected, Qt.ConnectionType.QueuedConnection
+                )
             if hasattr(self.midi_engine, 'device_disconnected'):
-                self.midi_engine.device_disconnected.connect(self.on_midi_device_disconnected)
+                self.midi_engine.device_disconnected.connect(
+                    self.on_midi_device_disconnected, Qt.ConnectionType.QueuedConnection
+                )
             if hasattr(self.midi_engine, 'preset_loaded_on_deck'):
-                self.midi_engine.preset_loaded_on_deck.connect(self.on_preset_loaded_on_deck)
+                self.midi_engine.preset_loaded_on_deck.connect(
+                    self.on_preset_loaded_on_deck, Qt.ConnectionType.QueuedConnection
+                )
         except Exception as e:
             logging.warning(f"Could not connect MIDI activity signals: {e}")
 

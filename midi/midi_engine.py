@@ -1,6 +1,6 @@
 import mido
 import mido.backends.rtmidi
-from PyQt6.QtCore import QObject, pyqtSignal, QTimer
+from PyQt6.QtCore import QObject, pyqtSignal, QTimer, Qt
 import time
 import logging
 
@@ -58,7 +58,9 @@ class MidiEngine(QObject):
         logging.info("MidiEngine initialized")
 
         # Route mapped_action_triggered through Qt's event loop to ensure thread safety
-        self.mapped_action_triggered.connect(self.execute_mapped_action_safe)
+        self.mapped_action_triggered.connect(
+            self.execute_mapped_action_safe, Qt.ConnectionType.QueuedConnection
+        )
 
         # Setup default mappings if none exist (delayed to ensure everything is loaded)
         QTimer.singleShot(1000, self.setup_default_mappings)
