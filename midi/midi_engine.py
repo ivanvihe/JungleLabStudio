@@ -1087,31 +1087,31 @@ class MidiEngine(QObject):
             }
         return None
 
-        def process_midi_sync(self, msg):
+    def process_midi_sync(self, msg):
         """Procesar mensajes de MIDI clock/sync SIN spam de logs"""
         try:
             if msg.type == 'clock':
                 # Procesar MIDI clock para sincronización
                 # NO hacer logging - son 24 clocks por beat = mucho spam
                 self.process_midi_clock()
-                
+
             elif msg.type == 'start':
                 logging.info("▶️ MIDI Start received")
                 self.midi_transport_start()
-                
+
             elif msg.type == 'stop':
                 logging.info("⏹️ MIDI Stop received")
                 self.midi_transport_stop()
-                
+
             elif msg.type == 'continue':
                 logging.info("⏯️ MIDI Continue received")
                 self.midi_transport_continue()
-                
+
             elif msg.type == 'song_position':
                 position = getattr(msg, 'pos', 0)
                 logging.debug(f"🎶 MIDI Song Position: {position}")
                 self.midi_song_position(position)
-                
+
         except Exception as e:
             logging.error(f"Error processing MIDI sync: {e}")
 
