@@ -11,9 +11,9 @@ class Deck:
     def __init__(self, visualizer_manager, deck_id=""):
         self.visualizer_manager = visualizer_manager
         self.deck_id = deck_id  # For debugging
-        self.visualizer = None
+        self.current_visualizer = None  # Renamed for clarity
         self.fbo = None
-        self.visualizer_name = None
+        self.current_visualizer_name = None  # Renamed for clarity
         self.size = QSize(800, 600)
         
         # State tracking
@@ -30,6 +30,9 @@ class Deck:
         
         # Track if FBO has been rendered to
         self._fbo_dirty = True
+        
+        # Controls cache
+        self.controls = {}
         
         logging.debug(f"🎮 Deck {deck_id} initialized with size {self.size.width()}x{self.size.height()}")
 
@@ -48,45 +51,88 @@ class Deck:
             self._cleanup_current_visualizer()
             
             # Set new visualizer
-            self.visualizer_name = visualizer_name
+            self.current_visualizer_name = visualizer_name
             visualizer_class = self.visualizer_manager.get_visualizer_class(visualizer_name)
             
             if visualizer_class:
                 try:
                     # Create visualizer instance
-                    self.visualizer = visualizer_class()
+                    self.current_visualizer = visualizer_class()
                     self._gl_initialized = False
                     self._fbo_dirty = True
+                    
+                    # Update controls cache
+                    self._update_controls_cache()
+                    
                     logging.info(f"✅ Deck {self.deck_id}: Created visualizer instance: {visualizer_name}")
                     
                 except Exception as e:
                     logging.error(f"❌ Deck {self.deck_id}: Error creating visualizer {visualizer_name}: {e}")
                     import traceback
                     traceback.print_exc()
-                    self.visualizer = None
+                    self.current_visualizer = None
+                    self.controls = {}
             else:
                 logging.error(f"❌ Deck {self.deck_id}: Visualizer class not found: {visualizer_name}")
 
+    def clear_visualizer(self):
+        """Clear the current visualizer and show nothing (black)"""
+        with QMutexLocker(self._mutex):
+            try:
+                logging.info(f"🚫 Clearing visualizer for deck {self.deck_id}")
+                
+                # Cleanup current visualizer
+                self._cleanup_current_visualizer()
+                
+                # Clear all references
+                self.current_visualizer = None
+                self.current_visualizer_name = None
+                self.controls = {}
+                self._gl_initialized = False
+                self._fbo_dirty = True
+                
+                logging.info(f"✅ Deck {self.deck_id} visualizer cleared")
+                
+            except Exception as e:
+                logging.error(f"❌ Error clearing visualizer for deck {self.deck_id}: {e}")
+
+    def has_active_visualizer(self):
+        """Check if deck has an active visualizer"""
+        with QMutexLocker(self._mutex):
+            return self.current_visualizer is not None
+
     def _cleanup_current_visualizer(self):
         """Clean up current visualizer"""
-        if self.visualizer:
-            logging.debug(f"Deck {self.deck_id}: Cleaning up visualizer: {self.visualizer_name}")
+        if self.current_visualizer:
+            logging.debug(f"🧹 Deck {self.deck_id}: Cleaning up visualizer: {self.current_visualizer_name}")
             try:
-                if hasattr(self.visualizer, 'cleanup'):
-                    self.visualizer.cleanup()
+                if hasattr(self.current_visualizer, 'cleanup'):
+                    self.current_visualizer.cleanup()
             except Exception as e:
                 logging.error(f"❌ Deck {self.deck_id}: Error cleaning up visualizer: {e}")
             
-            self.visualizer = None
+            self.current_visualizer = None
             self._gl_initialized = False
+
+    def _update_controls_cache(self):
+        """Update the controls cache from current visualizer"""
+        try:
+            if self.current_visualizer and hasattr(self.current_visualizer, 'get_controls'):
+                self.controls = self.current_visualizer.get_controls() or {}
+                logging.debug(f"🎛️ Deck {self.deck_id}: Cached {len(self.controls)} controls")
+            else:
+                self.controls = {}
+        except Exception as e:
+            logging.error(f"❌ Deck {self.deck_id}: Error updating controls cache: {e}")
+            self.controls = {}
 
     def _initialize_visualizer_in_fbo(self):
         """Initialize the visualizer within the FBO context"""
-        if not self.visualizer:
+        if not self.current_visualizer:
             return False
             
         try:
-            logging.debug(f"🔧 Deck {self.deck_id}: Initializing visualizer {self.visualizer_name} in FBO")
+            logging.debug(f"🔧 Deck {self.deck_id}: Initializing visualizer {self.current_visualizer_name} in FBO")
             
             # Clear any existing GL errors
             while glGetError() != GL_NO_ERROR:
@@ -96,15 +142,19 @@ class Deck:
             glViewport(0, 0, self.size.width(), self.size.height())
             
             # Initialize visualizer
-            if hasattr(self.visualizer, 'initializeGL'):
-                self.visualizer.initializeGL()
+            if hasattr(self.current_visualizer, 'initializeGL'):
+                self.current_visualizer.initializeGL()
             
             # Resize visualizer
-            if hasattr(self.visualizer, 'resizeGL'):
-                self.visualizer.resizeGL(self.size.width(), self.size.height())
+            if hasattr(self.current_visualizer, 'resizeGL'):
+                self.current_visualizer.resizeGL(self.size.width(), self.size.height())
             
             self._gl_initialized = True
-            logging.info(f"✅ Deck {self.deck_id}: Visualizer {self.visualizer_name} initialized")
+            
+            # Update controls after initialization
+            self._update_controls_cache()
+            
+            logging.info(f"✅ Deck {self.deck_id}: Visualizer {self.current_visualizer_name} initialized")
             return True
             
         except Exception as e:
@@ -142,7 +192,7 @@ class Deck:
                 glClearColor(0.0, 0.0, 0.0, 1.0)
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
                 
-                if self.visualizer:
+                if self.current_visualizer:
                     # Initialize if needed
                     if not self._gl_initialized:
                         if not self._initialize_visualizer_in_fbo():
@@ -153,14 +203,14 @@ class Deck:
                             return False
                     
                     # Render the visualizer
-                    if hasattr(self.visualizer, 'paintGL'):
+                    if hasattr(self.current_visualizer, 'paintGL'):
                         try:
-                            # Paint visualizer directly without deprecated state saving
-                            self.visualizer.paintGL()
+                            # Paint visualizer directly
+                            self.current_visualizer.paintGL()
 
                             self._frame_count += 1
                             if self._frame_count % 300 == 0:
-                                logging.debug(f"🎬 Deck {self.deck_id}: {self.visualizer_name} - Frame {self._frame_count}")
+                                logging.debug(f"🎬 Deck {self.deck_id}: {self.current_visualizer_name} - Frame {self._frame_count}")
 
                         except Exception as e:
                             current_time = time.time()
@@ -174,10 +224,13 @@ class Deck:
                                 glUseProgram(0)
                                 glDisable(GL_DEPTH_TEST)
                                 glDisable(GL_CULL_FACE)
+                                glDepthMask(GL_TRUE)
+                                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
                             except Exception:
                                 pass
                 else:
-                    self._render_fallback()
+                    # No visualizer - render black (already cleared above)
+                    pass
                 
                 # Release our FBO
                 self.fbo.release()
@@ -206,23 +259,22 @@ class Deck:
         self.render_to_fbo()
 
     def _render_fallback(self):
-        """Render a fallback pattern"""
+        """Render a fallback pattern when visualizer fails"""
         try:
-            # Animated gradient based on deck ID
-            t = time.time()
+            # Static dark pattern for failed visualizers
             if self.deck_id == "A":
-                r = 0.1 + 0.05 * abs(math.sin(t * 0.5))
-                g = 0.2 + 0.1 * abs(math.sin(t * 0.7))
-                b = 0.1
+                glClearColor(0.1, 0.0, 0.0, 1.0)  # Dark red
             else:
-                r = 0.1
-                g = 0.1 + 0.05 * abs(math.sin(t * 0.7))
-                b = 0.2 + 0.1 * abs(math.sin(t * 0.5))
+                glClearColor(0.0, 0.0, 0.1, 1.0)  # Dark blue
             
-            glClearColor(r, g, b, 1.0)
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         except Exception:
-            pass
+            # Ultimate fallback - just black
+            try:
+                glClearColor(0.0, 0.0, 0.0, 1.0)
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+            except Exception:
+                pass
 
     def resize(self, size):
         """Resize the deck and recreate FBO if needed"""
@@ -235,7 +287,7 @@ class Deck:
             self._recreate_fbo()
             
             # Mark as needing re-initialization
-            if self.visualizer:
+            if self.current_visualizer:
                 self._gl_initialized = False
                 self._fbo_dirty = True
 
@@ -260,7 +312,7 @@ class Deck:
                 # Create FBO format
                 fbo_format = QOpenGLFramebufferObjectFormat()
                 fbo_format.setAttachment(QOpenGLFramebufferObject.Attachment.CombinedDepthStencil)
-                fbo_format.setSamples(0)  # No multisampling
+                fbo_format.setSamples(0)  # No multisampling for performance
                 
                 # Create FBO
                 self.fbo = QOpenGLFramebufferObject(self.size, fbo_format)
@@ -297,20 +349,33 @@ class Deck:
     def get_controls(self):
         """Get available controls from the current visualizer"""
         with QMutexLocker(self._mutex):
-            if self.visualizer and hasattr(self.visualizer, 'get_controls'):
+            # Return cached controls for performance
+            if self.controls:
+                return self.controls.copy()
+            
+            # Fallback: get directly from visualizer if cache is empty
+            if self.current_visualizer and hasattr(self.current_visualizer, 'get_controls'):
                 try:
-                    return self.visualizer.get_controls() or {}
+                    controls = self.current_visualizer.get_controls() or {}
+                    self.controls = controls  # Update cache
+                    return controls.copy()
                 except Exception as e:
                     logging.error(f"❌ Deck {self.deck_id}: Error getting controls: {e}")
+            
             return {}
 
     def update_control(self, name, value):
         """Update a control parameter on the current visualizer"""
         with QMutexLocker(self._mutex):
-            if self.visualizer and hasattr(self.visualizer, 'update_control'):
+            if self.current_visualizer and hasattr(self.current_visualizer, 'update_control'):
                 try:
-                    self.visualizer.update_control(name, value)
+                    self.current_visualizer.update_control(name, value)
                     self._fbo_dirty = True
+                    
+                    # Update cached control value
+                    if name in self.controls:
+                        self.controls[name]['value'] = value
+                    
                     logging.debug(f"🎛️ Deck {self.deck_id}: Updated {name} = {value}")
                 except Exception as e:
                     logging.error(f"❌ Deck {self.deck_id}: Error updating control {name}: {e}")
@@ -318,12 +383,34 @@ class Deck:
     def get_current_visualizer_name(self):
         """Get the name of the current visualizer"""
         with QMutexLocker(self._mutex):
-            return self.visualizer_name or "None"
+            return self.current_visualizer_name
 
     def is_ready(self):
         """Check if deck is ready for rendering"""
         with QMutexLocker(self._mutex):
             return self.fbo and self.fbo.isValid()
+
+    def get_deck_info(self):
+        """Get comprehensive deck information"""
+        with QMutexLocker(self._mutex):
+            return {
+                'deck_id': self.deck_id,
+                'has_visualizer': self.has_active_visualizer(),
+                'visualizer_name': self.current_visualizer_name,
+                'is_ready': self.is_ready(),
+                'fbo_size': f"{self.size.width()}x{self.size.height()}",
+                'frame_count': self._frame_count,
+                'controls_count': len(self.controls),
+                'gl_initialized': self._gl_initialized
+            }
+
+    def force_refresh(self):
+        """Force refresh of the visualizer (useful for parameter changes)"""
+        with QMutexLocker(self._mutex):
+            self._fbo_dirty = True
+            if self.current_visualizer:
+                # Update controls cache
+                self._update_controls_cache()
 
     def cleanup(self):
         """Clean up resources"""
@@ -339,3 +426,8 @@ class Deck:
                     self.fbo.release()
                 del self.fbo
                 self.fbo = None
+            
+            # Clear controls
+            self.controls = {}
+            
+            logging.debug(f"✅ Deck {self.deck_id}: Cleanup completed")

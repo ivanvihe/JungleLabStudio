@@ -1,39 +1,10 @@
 from OpenGL.GL import *
 import numpy as np
 import ctypes
-import os
-import logging
+import time
+import math
 
 from visuals.base_visualizer import BaseVisualizer
-
-# Import OpenGL safety functions
-try:
-    from opengl_fixes import OpenGLSafety
-except ImportError:
-    # Fallback if opengl_fixes is not available
-    class OpenGLSafety:
-        @staticmethod
-        def safe_line_width(width):
-            try:
-                # Clamp to reasonable range for compatibility
-                safe_width = max(1.0, min(width, 5.0))
-                glLineWidth(safe_width)
-            except Exception as e:
-                logging.error(f"Error setting line width: {e}")
-                try:
-                    glLineWidth(1.0)
-                except:
-                    pass
-        
-        @staticmethod
-        def check_gl_errors(context=""):
-            try:
-                error = glGetError()
-                if error != GL_NO_ERROR:
-                    logging.warning(f"OpenGL error in {context}: {error}")
-                return error
-            except:
-                return GL_NO_ERROR
 
 class AbstractLinesVisualizer(BaseVisualizer):
     visual_name = "Abstract Lines"
@@ -41,13 +12,15 @@ class AbstractLinesVisualizer(BaseVisualizer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.shader_program = None
-        self.VBO = None
-        self.VAO = None
-        self.num_lines = 1000
+        self.vao = None
+        self.vbo = None
+        self.num_lines = 150
         self.line_data = None
         self.time = 0.0
         self.line_width = 2.0
         self.pulsation_speed = 2.0
+        self.complexity = 1.0
+        self.initialized = False
 
     def get_controls(self):
         return {
@@ -59,8 +32,8 @@ class AbstractLinesVisualizer(BaseVisualizer):
             },
             "Number of Lines": {
                 "type": "slider",
-                "min": 100,
-                "max": 2000,
+                "min": 50,
+                "max": 300,
                 "value": self.num_lines,
             },
             "Pulsation Speed": {
@@ -68,6 +41,12 @@ class AbstractLinesVisualizer(BaseVisualizer):
                 "min": 1,
                 "max": 100,
                 "value": int(self.pulsation_speed * 10),
+            },
+            "Complexity": {
+                "type": "slider",
+                "min": 10,
+                "max": 300,
+                "value": int(self.complexity * 100),
             }
         }
 
@@ -81,74 +60,104 @@ class AbstractLinesVisualizer(BaseVisualizer):
                 self.setup_lines()
         elif name == "Pulsation Speed":
             self.pulsation_speed = float(value) / 10.0
+        elif name == "Complexity":
+            self.complexity = float(value) / 100.0
 
     def initializeGL(self):
         print("AbstractLinesVisualizer.initializeGL called")
-        # CLEAR WITH TRANSPARENT BACKGROUND
+        # Use working structure but keep some 3D effects
         glClearColor(0.0, 0.0, 0.0, 0.0)
-        glEnable(GL_DEPTH_TEST)
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-
-        # Load shaders and setup
-        if self.load_shaders():
-            self.setup_lines()
-            print("AbstractLines initialized successfully")
-        else:
-            print("Failed to initialize AbstractLines shaders")
+        glDisable(GL_DEPTH_TEST)  # Keep it simple like working ones
+        
+        if not self.load_shaders():
+            print("Failed to load shaders")
+            return
+        
+        if not self.setup_lines():
+            print("Failed to setup lines")
+            return
+            
+        self.initialized = True
+        print("AbstractLines initialized successfully")
 
     def load_shaders(self):
         try:
-            # Try to load from files first
-            script_dir = os.path.dirname(__file__)
-            shader_dir = os.path.join(script_dir, '..', '..', 'shaders')
+            # Simpler shaders that will definitely work, but with epic effects
+            vertex_shader_source = """
+            #version 330 core
+            layout (location = 0) in vec2 aPos;
+            layout (location = 1) in vec4 aColor;
+            layout (location = 2) in float aLineIndex;
             
-            vertex_src = None
-            fragment_src = None
+            uniform float time;
+            uniform float pulsation_speed;
+            uniform float complexity;
             
-            try:
-                with open(os.path.join(shader_dir, 'basic.vert'), 'r') as f:
-                    vertex_src = f.read()
-                with open(os.path.join(shader_dir, 'basic.frag'), 'r') as f:
-                    fragment_src = f.read()
-            except FileNotFoundError:
-                print("Shader files not found, using fallback shaders")
+            out vec4 vertexColor;
             
-            # Fallback shaders if files don't exist
-            if not vertex_src:
-                vertex_src = """
-                #version 330 core
-                layout (location = 0) in vec3 aPos;
-                layout (location = 1) in vec4 aColor;
+            void main()
+            {
+                vec2 pos = aPos;
+                float t = time * pulsation_speed;
+                float linePhase = aLineIndex * 0.2;
                 
-                uniform mat4 projection;
-                uniform mat4 view;
-                uniform mat4 model;
+                // EPIC PULSATION - grow from center
+                float pulsation = 0.3 + 1.2 * (0.5 + 0.5 * sin(t + linePhase));
+                pos *= pulsation;
                 
-                out vec4 vColor;
+                // SPIRAL FLOW - rotate and move inward/outward
+                float angle = atan(pos.y, pos.x);
+                float radius = length(pos);
                 
-                void main()
-                {
-                    gl_Position = projection * view * model * vec4(aPos, 1.0);
-                    vColor = aColor;
-                }
-                """
+                // Add spiral motion
+                angle += t * 0.5 + radius * complexity;
+                radius *= (0.8 + 0.4 * sin(t * 0.7 + linePhase));
+                
+                // Convert back to cartesian with epic movement
+                pos.x = cos(angle) * radius;
+                pos.y = sin(angle) * radius;
+                
+                // Add wave distortions
+                pos.x += sin(pos.y * complexity * 3.0 + t * 2.0) * 0.2;
+                pos.y += cos(pos.x * complexity * 2.5 + t * 1.5) * 0.2;
+                
+                // Rotation for the whole thing
+                float globalRotation = t * 0.3;
+                float cosR = cos(globalRotation);
+                float sinR = sin(globalRotation);
+                vec2 rotatedPos = vec2(
+                    pos.x * cosR - pos.y * sinR,
+                    pos.x * sinR + pos.y * cosR
+                );
+                
+                gl_Position = vec4(rotatedPos, 0.0, 1.0);
+                
+                // Epic color cycling
+                vec4 color = aColor;
+                float intensity = 0.5 + 0.5 * pulsation;
+                color.rgb *= intensity;
+                color.a *= (0.7 + 0.3 * sin(t * 2.0 + linePhase));
+                
+                vertexColor = color;
+            }
+            """
             
-            if not fragment_src:
-                fragment_src = """
-                #version 330 core
-                in vec4 vColor;
-                out vec4 FragColor;
-                
-                void main()
-                {
-                    FragColor = vColor;
-                }
-                """
+            fragment_shader_source = """
+            #version 330 core
+            in vec4 vertexColor;
+            out vec4 FragColor;
+            
+            void main()
+            {
+                FragColor = vertexColor;
+            }
+            """
 
-            # Compile vertex shader
+            # Compile shaders
             vertex_shader = glCreateShader(GL_VERTEX_SHADER)
-            glShaderSource(vertex_shader, vertex_src)
+            glShaderSource(vertex_shader, vertex_shader_source)
             glCompileShader(vertex_shader)
             
             if not glGetShaderiv(vertex_shader, GL_COMPILE_STATUS):
@@ -156,9 +165,8 @@ class AbstractLinesVisualizer(BaseVisualizer):
                 print(f"Vertex Shader Error: {error}")
                 return False
 
-            # Compile fragment shader
             fragment_shader = glCreateShader(GL_FRAGMENT_SHADER)
-            glShaderSource(fragment_shader, fragment_src)
+            glShaderSource(fragment_shader, fragment_shader_source)
             glCompileShader(fragment_shader)
             
             if not glGetShaderiv(fragment_shader, GL_COMPILE_STATUS):
@@ -177,11 +185,10 @@ class AbstractLinesVisualizer(BaseVisualizer):
                 print(f"Shader Program Link Error: {error}")
                 return False
 
-            # Clean up shaders
             glDeleteShader(vertex_shader)
             glDeleteShader(fragment_shader)
             
-            print("AbstractLines shaders compiled successfully")
+            print("AbstractLines epic shaders compiled successfully")
             return True
             
         except Exception as e:
@@ -191,209 +198,167 @@ class AbstractLinesVisualizer(BaseVisualizer):
     def setup_lines(self):
         try:
             # Clean up old resources
-            if self.VBO:
-                glDeleteBuffers(1, [self.VBO])
-                self.VBO = None
-            if self.VAO:
-                glDeleteVertexArrays(1, [self.VAO])
-                self.VAO = None
-                
-            # Create line data (position + color for each vertex)
-            self.line_data = np.zeros((self.num_lines * 2, 7), dtype=np.float32)
-
-            # Generate VAO and VBO
-            self.VAO = glGenVertexArrays(1)
-            self.VBO = glGenBuffers(1)
+            if self.vbo:
+                glDeleteBuffers(1, [self.vbo])
+                self.vbo = None
+            if self.vao:
+                glDeleteVertexArrays(1, [self.vao])
+                self.vao = None
             
-            glBindVertexArray(self.VAO)
-            glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
+            # Create epic line patterns in 2D but with awesome effects
+            vertices = []
+            
+            for i in range(self.num_lines):
+                line_index = float(i)
+                
+                # Different epic patterns
+                pattern_type = i % 4
+                
+                if pattern_type == 0:  # Radial lines from center
+                    angle = (i / self.num_lines) * 2 * math.pi
+                    
+                    # Start point (center)
+                    x1 = 0.0
+                    y1 = 0.0
+                    
+                    # End point (outside) - BIG
+                    x2 = math.cos(angle) * 1.5
+                    y2 = math.sin(angle) * 1.5
+                    
+                elif pattern_type == 1:  # Circular rings
+                    angle = (i / self.num_lines) * 8 * math.pi
+                    radius = 0.3 + (i % 8) * 0.15
+                    
+                    x1 = math.cos(angle) * radius
+                    y1 = math.sin(angle) * radius
+                    
+                    x2 = math.cos(angle + 0.3) * radius
+                    y2 = math.sin(angle + 0.3) * radius
+                    
+                elif pattern_type == 2:  # Spiral lines
+                    t = i * 0.15
+                    spiral_angle = t * 3
+                    spiral_radius = t * 0.5
+                    
+                    x1 = math.cos(spiral_angle) * spiral_radius
+                    y1 = math.sin(spiral_angle) * spiral_radius
+                    
+                    x2 = math.cos(spiral_angle + 0.5) * (spiral_radius + 0.3)
+                    y2 = math.sin(spiral_angle + 0.5) * (spiral_radius + 0.3)
+                    
+                else:  # Cross/star patterns
+                    angle1 = i * 0.4
+                    angle2 = angle1 + math.pi
+                    radius = 0.5 + (i % 5) * 0.2
+                    
+                    x1 = math.cos(angle1) * radius
+                    y1 = math.sin(angle1) * radius
+                    
+                    x2 = math.cos(angle2) * radius * 0.7
+                    y2 = math.sin(angle2) * radius * 0.7
+                
+                # Epic rainbow colors
+                hue_offset = i / self.num_lines
+                r1 = 0.5 + 0.5 * math.sin(hue_offset * 6.28)
+                g1 = 0.5 + 0.5 * math.sin(hue_offset * 6.28 + 2.094)
+                b1 = 0.5 + 0.5 * math.sin(hue_offset * 6.28 + 4.189)
+                
+                r2 = 0.5 + 0.5 * math.sin(hue_offset * 6.28 + 1.0)
+                g2 = 0.5 + 0.5 * math.sin(hue_offset * 6.28 + 3.094)
+                b2 = 0.5 + 0.5 * math.sin(hue_offset * 6.28 + 5.189)
+                
+                alpha = 0.9
+                
+                # Add line start point: x, y, r, g, b, a, line_index
+                vertices.extend([x1, y1, r1, g1, b1, alpha, line_index])
+                # Add line end point
+                vertices.extend([x2, y2, r2, g2, b2, alpha, line_index])
+
+            self.line_data = np.array(vertices, dtype=np.float32)
+
+            # Create VAO and VBO like working visualizers
+            self.vao = glGenVertexArrays(1)
+            glBindVertexArray(self.vao)
+            
+            self.vbo = glGenBuffers(1)
+            glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
             glBufferData(GL_ARRAY_BUFFER, self.line_data.nbytes, self.line_data, GL_DYNAMIC_DRAW)
 
-            # Position attribute (location 0)
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(0))
+            # Position attribute (location 0) - 2D
+            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 7 * 4, ctypes.c_void_p(0))
             glEnableVertexAttribArray(0)
 
             # Color attribute (location 1)
-            glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(3 * ctypes.sizeof(GLfloat)))
+            glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * 4, ctypes.c_void_p(2 * 4))
             glEnableVertexAttribArray(1)
+            
+            # Line index attribute (location 2)
+            glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 7 * 4, ctypes.c_void_p(6 * 4))
+            glEnableVertexAttribArray(2)
 
             glBindVertexArray(0)
-            glBindBuffer(GL_ARRAY_BUFFER, 0)
             
-            print(f"AbstractLines buffers created with {self.num_lines} lines")
+            print(f"AbstractLines epic setup complete with {self.num_lines} lines")
+            return True
             
         except Exception as e:
             print(f"Error setting up lines: {e}")
-
-    def update_lines(self):
-        if self.line_data is None:
-            return
-            
-        try:
-            for i in range(self.num_lines):
-                # Create circular pattern with pulsation
-                angle = i * (2 * np.pi / self.num_lines)
-                
-                # Pulsating radius
-                base_radius = 1.5
-                pulsation = 0.3 + 0.7 * np.sin(self.time * self.pulsation_speed + angle * 2)
-                
-                # First endpoint
-                radius1 = base_radius * pulsation
-                x1 = np.cos(angle) * radius1
-                y1 = np.sin(angle) * radius1
-                z1 = np.sin(self.time + angle * 3) * 0.2
-                
-                # Second endpoint (slightly rotated and different radius)
-                angle2 = angle + 0.1 + np.sin(self.time * 0.5) * 0.2
-                radius2 = base_radius * 0.7 * pulsation
-                x2 = np.cos(angle2) * radius2
-                y2 = np.sin(angle2) * radius2
-                z2 = np.cos(self.time * 1.2 + angle * 2) * 0.2
-
-                # Store line endpoints
-                self.line_data[i * 2, :3] = [x1, y1, z1]
-                self.line_data[i * 2 + 1, :3] = [x2, y2, z2]
-
-                # Color cycling based on time and position
-                hue_offset = self.time * 0.5 + angle
-                r = 0.5 + 0.5 * np.sin(hue_offset)
-                g = 0.5 + 0.5 * np.sin(hue_offset + 2.094)  # 120 degrees
-                b = 0.5 + 0.5 * np.sin(hue_offset + 4.189)  # 240 degrees
-                alpha = 0.8  # Semi-transparent
-                
-                # Apply colors to both endpoints
-                self.line_data[i * 2, 3:7] = [r, g, b, alpha]
-                self.line_data[i * 2 + 1, 3:7] = [r, g, b, alpha]
-
-            # Update the GPU buffer
-            glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
-            glBufferSubData(GL_ARRAY_BUFFER, 0, self.line_data.nbytes, self.line_data)
-            glBindBuffer(GL_ARRAY_BUFFER, 0)
-            
-        except Exception as e:
-            print(f"Error updating lines: {e}")
-
-    def resizeGL(self, width, height):
-        glViewport(0, 0, width, height)
+            return False
 
     def paintGL(self):
         try:
-            # Clear with transparent background
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+            glClear(GL_COLOR_BUFFER_BIT)
             
-            if not self.shader_program or not self.VAO:
+            if not self.initialized or not self.shader_program or not self.vao:
+                glClearColor(0.1, 0.0, 0.2, 0.0)
+                glClear(GL_COLOR_BUFFER_BIT)
                 return
                 
             # Update animation time
-            self.time += 0.016  # Assume ~60fps
-            
-            # Update line positions and colors
-            self.update_lines()
+            self.time += 0.016
             
             # Use shader program
             glUseProgram(self.shader_program)
-
-            # Set up transformation matrices
-            projection = self.create_perspective_matrix(45.0, 1.0, 0.1, 100.0)
-            view = self.create_view_matrix()
-            model = self.create_model_matrix()
-
-            # Send matrices to shader
-            glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE, projection)
-            glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, view)
-            glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, model)
-
-            # Set line width safely
-            OpenGLSafety.safe_line_width(self.line_width)
             
-            # Draw the lines
-            glBindVertexArray(self.VAO)
-            glDrawArrays(GL_LINES, 0, self.num_lines * 2)
-            glBindVertexArray(0)
+            # Send uniforms
+            glUniform1f(glGetUniformLocation(self.shader_program, "time"), self.time)
+            glUniform1f(glGetUniformLocation(self.shader_program, "pulsation_speed"), self.pulsation_speed)
+            glUniform1f(glGetUniformLocation(self.shader_program, "complexity"), self.complexity)
+
+            # Set line width
+            try:
+                glLineWidth(self.line_width)
+            except:
+                glLineWidth(1.0)
             
-            # Clean up
+            # Draw the epic lines
+            if self.vao:
+                glBindVertexArray(self.vao)
+                glDrawArrays(GL_LINES, 0, self.num_lines * 2)
+                glBindVertexArray(0)
+            
             glUseProgram(0)
-            
-            # Check for errors
-            OpenGLSafety.check_gl_errors("AbstractLines paintGL")
             
         except Exception as e:
             print(f"Error in paintGL: {e}")
+            glClearColor(0.2, 0.0, 0.0, 0.0)
+            glClear(GL_COLOR_BUFFER_BIT)
 
-    def create_perspective_matrix(self, fov, aspect, near, far):
-        """Create perspective projection matrix"""
-        f = 1.0 / np.tan(np.radians(fov / 2.0))
-        return np.array([
-            [f / aspect, 0.0, 0.0, 0.0],
-            [0.0, f, 0.0, 0.0],
-            [0.0, 0.0, (far + near) / (near - far), (2.0 * far * near) / (near - far)],
-            [0.0, 0.0, -1.0, 0.0]
-        ], dtype=np.float32)
-
-    def create_view_matrix(self):
-        """Create view matrix (camera)"""
-        eye = np.array([0.0, 0.0, 5.0])
-        center = np.array([0.0, 0.0, 0.0])
-        up = np.array([0.0, 1.0, 0.0])
-        
-        f = center - eye
-        f = f / np.linalg.norm(f)
-        
-        s = np.cross(f, up)
-        s = s / np.linalg.norm(s)
-        
-        u = np.cross(s, f)
-        
-        return np.array([
-            [s[0], u[0], -f[0], 0.0],
-            [s[1], u[1], -f[1], 0.0],
-            [s[2], u[2], -f[2], 0.0],
-            [-np.dot(s, eye), -np.dot(u, eye), np.dot(f, eye), 1.0]
-        ], dtype=np.float32)
-
-    def create_model_matrix(self):
-        """Create model matrix with rotation"""
-        # Rotate around Y and X axes
-        rot_y = self.time * 20.0  # degrees
-        rot_x = self.time * 15.0  # degrees
-        
-        # Convert to radians
-        ry = np.radians(rot_y)
-        rx = np.radians(rot_x)
-        
-        # Y rotation matrix
-        cos_ry, sin_ry = np.cos(ry), np.sin(ry)
-        rot_y_mat = np.array([
-            [cos_ry, 0, sin_ry, 0],
-            [0, 1, 0, 0],
-            [-sin_ry, 0, cos_ry, 0],
-            [0, 0, 0, 1]
-        ], dtype=np.float32)
-        
-        # X rotation matrix
-        cos_rx, sin_rx = np.cos(rx), np.sin(rx)
-        rot_x_mat = np.array([
-            [1, 0, 0, 0],
-            [0, cos_rx, -sin_rx, 0],
-            [0, sin_rx, cos_rx, 0],
-            [0, 0, 0, 1]
-        ], dtype=np.float32)
-        
-        # Combine rotations
-        return np.dot(rot_y_mat, rot_x_mat)
+    def resizeGL(self, width, height):
+        glViewport(0, 0, width, height)
 
     def cleanup(self):
         print("Cleaning up AbstractLinesVisualizer")
         try:
             if self.shader_program:
-                glDeleteProgram(self.shader_program)
+                if glIsProgram(self.shader_program):
+                    glDeleteProgram(self.shader_program)
                 self.shader_program = None
-            if self.VBO:
-                glDeleteBuffers(1, [self.VBO])
-                self.VBO = None
-            if self.VAO:
-                glDeleteVertexArrays(1, [self.VAO])
-                self.VAO = None
+            if self.vao:
+                glDeleteVertexArrays(1, [self.vao])
+                self.vao = None
+            if self.vbo:
+                glDeleteBuffers(1, [self.vbo])
+                self.vbo = None
         except Exception as e:
             print(f"Error during cleanup: {e}")

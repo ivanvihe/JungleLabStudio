@@ -1,11 +1,11 @@
 {
-    "last_midi_device": "virtual 7",
+    "last_midi_device": "Keystation 61 MK3 1",
     "control_panel_monitor": 0,
     "main_window_monitor": 2,
     "auto_save_settings": true,
     "window_positions": {
         "control_panel": {
-            "x": 1920,
+            "x": 0,
             "y": 23,
             "width": 1536,
             "height": 793
@@ -32,7 +32,7 @@
         "crossfader_curve": "linear"
     },
     "audio_settings": {
-        "input_device": "Microphone (2- Q9-1) (1 ch)",
+        "input_device": "Line (Reloop RMX-95) (10 ch)",
         "buffer_size": 1024,
         "sample_rate": 44100
     },
@@ -41,5 +41,15 @@
         "vsync": true,
         "quality": "high"
     },
-    "midi_mappings": {}
+    "midi_mappings": {
+        "mapping_0": {
+            "type": "load_preset",
+            "params": {
+                "deck_id": "B",
+                "preset_name": "Abstract Lines",
+                "custom_values": ""
+            },
+            "midi": "note_on_ch8_note55"
+        }
+    }
 }

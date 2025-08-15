@@ -133,7 +133,7 @@ class MainApplication:
             raise
 
     def create_windows(self):
-        """Create and setup UI windows with proper sequencing"""
+        """Create and setup UI windows - NO PREVIEW WINDOWS"""
         try:
             logging.info("🖥️ Creating UI windows...")
             
@@ -141,7 +141,7 @@ class MainApplication:
             self.mixer_window = MixerWindow(self.visualizer_manager)
             logging.info("✅ Mixer window created")
             
-            # Create control panel immediately (don't delay)
+            # Create control panel (no preview functionality)
             self.control_panel = ControlPanelWindow(
                 self.mixer_window,
                 self.settings_manager,
@@ -149,7 +149,7 @@ class MainApplication:
                 self.visualizer_manager,
                 self.audio_analyzer,
             )
-            logging.info("✅ Control panel created")
+            logging.info("✅ Control panel created (no preview)")
             
             # Set application references in MIDI engine
             self.midi_engine.set_application_references(
@@ -161,10 +161,6 @@ class MainApplication:
         except Exception as e:
             logging.error(f"❌ Error creating windows: {e}")
             raise
-
-    def create_control_panel(self):
-        """This method is no longer needed"""
-        pass
 
     def setup_connections(self):
         """Setup all signal connections"""
@@ -256,7 +252,7 @@ class MainApplication:
             if hasattr(self, 'control_panel'):
                 # Update BPM display if control panel has this method
                 if hasattr(self.control_panel, 'update_bpm_display'):
-                    self.control_panel.update_bpm_display(bpm)
+                    self.control_panel.update_bmp_display(bpm)
             logging.debug(f"🥁 BPM updated: {bpm:.1f}")
         except Exception as e:
             logging.error(f"Error handling BPM change: {e}")
@@ -305,10 +301,6 @@ class MainApplication:
                 
         except Exception as e:
             logging.error(f"Error in auto_connect_devices: {e}")
-
-    # Legacy helper methods for opening a separate MIDI mapping dialog have
-    # been removed. MIDI mappings are now managed directly within each deck of
-    # the control panel.
 
     def show_critical_error(self, title, message):
         """Show critical error dialog"""

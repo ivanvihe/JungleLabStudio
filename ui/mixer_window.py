@@ -13,8 +13,9 @@ from visuals.deck import Deck
 class MixerWindow(QMainWindow):
     # Custom signals for thread-safe communication
     signal_set_mix_value = pyqtSignal(int)
-    signal_set_deck_visualizer = pyqtSignal(str, str)
+    signal_set_deck_visualizer = pyqtSignal(str, object)  # Changed to object to handle None
     signal_update_deck_control = pyqtSignal(str, str, object)
+    signal_set_deck_opacity = pyqtSignal(str, float)
 
     def __init__(self, visualizer_manager):
         super().__init__()
@@ -27,6 +28,9 @@ class MixerWindow(QMainWindow):
         
         # Initialize variables first
         self.mix_value = 0.5
+        self.deck_a_opacity = 1.0  # New: Individual deck opacity
+        self.deck_b_opacity = 1.0
+        self.global_brightness = 1.0  # New: Global brightness control
         self.deck_a = None
         self.deck_b = None
         
@@ -53,13 +57,14 @@ class MixerWindow(QMainWindow):
         self.signal_set_mix_value.connect(self.set_mix_value)
         self.signal_set_deck_visualizer.connect(self.set_deck_visualizer)
         self.signal_update_deck_control.connect(self.update_deck_control)
+        self.signal_set_deck_opacity.connect(self.set_deck_opacity)
         
         # Set up timer for continuous animation
         self.animation_timer = QTimer()
         self.animation_timer.timeout.connect(self.animate)
         self.animation_timer.start(16)  # ~60 FPS
 
-        logging.info("🖥️ MixerWindow initialized")
+        logging.info("🖥️ MixerWindow initialized with transparency support")
 
     def initializeGL(self):
         """Initialize OpenGL context and resources"""
@@ -103,8 +108,8 @@ class MixerWindow(QMainWindow):
                 self.deck_a.resize(current_size)
                 self.deck_b.resize(current_size)
                 
-                # Setup initial visualizers
-                self.setup_initial_visualizers()
+                # Don't setup initial visualizers anymore - wait for user selection
+                logging.info("🎨 Decks created - waiting for user preset selection")
                 
                 self.gl_initialized = True
                 logging.info("✅ MixerWindow OpenGL initialized successfully")
@@ -115,33 +120,8 @@ class MixerWindow(QMainWindow):
                 traceback.print_exc()
                 self.gl_initialized = False
 
-    def setup_initial_visualizers(self):
-        """Setup initial visualizers"""
-        try:
-            visualizer_names = self.visualizer_manager.get_visualizer_names()
-            if not visualizer_names:
-                logging.warning("⚠️ No visualizers available")
-                return
-                
-            logging.info(f"🎨 Setting up initial visualizers from: {visualizer_names}")
-            
-            # Set default visualizers
-            deck_a_viz = "Simple Test" if "Simple Test" in visualizer_names else visualizer_names[0]
-            self.deck_a.set_visualizer(deck_a_viz)
-            
-            if len(visualizer_names) > 1:
-                deck_b_viz = "Wire Terrain" if "Wire Terrain" in visualizer_names else visualizer_names[1]
-                self.deck_b.set_visualizer(deck_b_viz)
-            else:
-                self.deck_b.set_visualizer(visualizer_names[0])
-                
-            logging.info(f"✅ Initial visualizers set")
-                
-        except Exception as e:
-            logging.error(f"❌ Error setting up initial visualizers: {e}")
-
     def load_shaders(self):
-        """Load and compile shaders for mixing"""
+        """Load and compile enhanced shaders for mixing with transparency support"""
         try:
             vs_src = """
             #version 330 core
@@ -162,17 +142,38 @@ class MixerWindow(QMainWindow):
             uniform sampler2D texture1;
             uniform sampler2D texture2;
             uniform float mixValue;
+            uniform float deck_a_opacity;
+            uniform float deck_b_opacity;
+            uniform float global_brightness;
+            uniform bool deck_a_active;
+            uniform bool deck_b_active;
             
             void main()
             {
-                vec4 color1 = texture(texture1, TexCoord);
-                vec4 color2 = texture(texture2, TexCoord);
+                vec4 color1 = vec4(0.0, 0.0, 0.0, 1.0);  // Default black
+                vec4 color2 = vec4(0.0, 0.0, 0.0, 1.0);  // Default black
                 
-                // Ensure alpha is 1.0
-                color1.a = 1.0;
-                color2.a = 1.0;
+                // Only sample texture if deck is active
+                if (deck_a_active) {
+                    color1 = texture(texture1, TexCoord);
+                    color1.a *= deck_a_opacity;  // Apply deck opacity
+                }
                 
-                FragColor = mix(color1, color2, mixValue);
+                if (deck_b_active) {
+                    color2 = texture(texture2, TexCoord);
+                    color2.a *= deck_b_opacity;  // Apply deck opacity
+                }
+                
+                // Mix the colors
+                vec4 mixed_color = mix(color1, color2, mixValue);
+                
+                // Apply global brightness
+                mixed_color.rgb *= global_brightness;
+                
+                // Ensure proper alpha
+                mixed_color.a = 1.0;
+                
+                FragColor = mixed_color;
             }
             """
 
@@ -219,7 +220,7 @@ class MixerWindow(QMainWindow):
             # Clean up individual shaders
             glDeleteShader(vs)
             glDeleteShader(fs)
-            logging.debug("✅ Mixer shaders compiled successfully")
+            logging.debug("✅ Enhanced mixer shaders compiled successfully")
             return True
             
         except Exception as e:
@@ -269,10 +270,10 @@ class MixerWindow(QMainWindow):
             self.gl_widget.update()
 
     def paintGL(self):
-        """Render the mixed output"""
+        """Render the mixed output with enhanced transparency support"""
         try:
             if not self.gl_initialized:
-                glClearColor(0.1, 0.1, 0.2, 1.0)
+                glClearColor(0.0, 0.0, 0.0, 1.0)
                 glClear(GL_COLOR_BUFFER_BIT)
                 return
                 
@@ -300,39 +301,33 @@ class MixerWindow(QMainWindow):
             if not self.shader_program or not self.quad_vao:
                 return
                 
-            # Use the mixing shader
+            # Use the enhanced mixing shader
             glUseProgram(self.shader_program)
             
+            # Check if decks are active (have visualizers)
+            deck_a_active = self.deck_a and self.deck_a.has_active_visualizer()
+            deck_b_active = self.deck_b and self.deck_b.has_active_visualizer()
+            
             # Get textures from decks
-            texture_a = self.deck_a.get_texture() if self.deck_a else 0
-            texture_b = self.deck_b.get_texture() if self.deck_b else 0
+            texture_a = self.deck_a.get_texture() if deck_a_active else 0
+            texture_b = self.deck_b.get_texture() if deck_b_active else 0
             
-            # If we don't have textures, show a fallback
-            if texture_a == 0 and texture_b == 0:
-                glClearColor(0.1, 0.0, 0.1, 1.0)
-                glClear(GL_COLOR_BUFFER_BIT)
-                glUseProgram(0)
-                return
-            
-            # Bind textures
+            # Bind textures (even if 0, for shader consistency)
             glActiveTexture(GL_TEXTURE0)
-            if texture_a > 0:
-                glBindTexture(GL_TEXTURE_2D, texture_a)
-            else:
-                # Create a dummy texture for deck A
-                glBindTexture(GL_TEXTURE_2D, 0)
+            glBindTexture(GL_TEXTURE_2D, texture_a if texture_a > 0 else 0)
             
             glActiveTexture(GL_TEXTURE1)
-            if texture_b > 0:
-                glBindTexture(GL_TEXTURE_2D, texture_b)
-            else:
-                # Create a dummy texture for deck B
-                glBindTexture(GL_TEXTURE_2D, 0)
+            glBindTexture(GL_TEXTURE_2D, texture_b if texture_b > 0 else 0)
             
             # Set shader uniforms
             glUniform1i(glGetUniformLocation(self.shader_program, "texture1"), 0)
             glUniform1i(glGetUniformLocation(self.shader_program, "texture2"), 1)
             glUniform1f(glGetUniformLocation(self.shader_program, "mixValue"), self.mix_value)
+            glUniform1f(glGetUniformLocation(self.shader_program, "deck_a_opacity"), self.deck_a_opacity)
+            glUniform1f(glGetUniformLocation(self.shader_program, "deck_b_opacity"), self.deck_b_opacity)
+            glUniform1f(glGetUniformLocation(self.shader_program, "global_brightness"), self.global_brightness)
+            glUniform1i(glGetUniformLocation(self.shader_program, "deck_a_active"), int(deck_a_active))
+            glUniform1i(glGetUniformLocation(self.shader_program, "deck_b_active"), int(deck_b_active))
 
             # Draw the full-screen quad
             glBindVertexArray(self.quad_vao)
@@ -358,7 +353,7 @@ class MixerWindow(QMainWindow):
             
         except Exception as e:
             logging.error(f"❌ Error in paintGL: {e}")
-            glClearColor(0.5, 0.0, 0.0, 1.0)
+            glClearColor(0.1, 0.0, 0.0, 1.0)
             glClear(GL_COLOR_BUFFER_BIT)
 
     def resizeGL(self, w, h):
@@ -388,11 +383,11 @@ class MixerWindow(QMainWindow):
         """Set crossfader mix value (0-100)"""
         with QMutexLocker(self._mutex):
             self.mix_value = max(0.0, min(1.0, value / 100.0))
-            logging.info(f"🎚️ Mix value set to: {self.mix_value:.2f} ({value}%)")
+            logging.debug(f"🎚️ Mix value set to: {self.mix_value:.2f} ({value}%)")
 
-    @pyqtSlot(str, str)
+    @pyqtSlot(str, object)
     def set_deck_visualizer(self, deck_id, visualizer_name):
-        """Set visualizer for a specific deck"""
+        """Set visualizer for a specific deck - now handles None"""
         with QMutexLocker(self._mutex):
             logging.info(f"🎮 Setting deck {deck_id} to visualizer: {visualizer_name}")
             
@@ -404,11 +399,22 @@ class MixerWindow(QMainWindow):
             self.gl_widget.makeCurrent()
             
             if deck_id == 'A' and self.deck_a:
-                self.deck_a.set_visualizer(visualizer_name)
-                logging.info(f"✅ Deck A set to: {visualizer_name}")
+                if visualizer_name is None or visualizer_name == "-- No preset selected --":
+                    # Clear the deck - set to None/empty visualizer
+                    self.deck_a.clear_visualizer()
+                    logging.info(f"🚫 Deck A cleared - no visualizer")
+                else:
+                    self.deck_a.set_visualizer(visualizer_name)
+                    logging.info(f"✅ Deck A set to: {visualizer_name}")
+                    
             elif deck_id == 'B' and self.deck_b:
-                self.deck_b.set_visualizer(visualizer_name)
-                logging.info(f"✅ Deck B set to: {visualizer_name}")
+                if visualizer_name is None or visualizer_name == "-- No preset selected --":
+                    # Clear the deck - set to None/empty visualizer
+                    self.deck_b.clear_visualizer()
+                    logging.info(f"🚫 Deck B cleared - no visualizer")
+                else:
+                    self.deck_b.set_visualizer(visualizer_name)
+                    logging.info(f"✅ Deck B set to: {visualizer_name}")
             else:
                 logging.warning(f"⚠️ Unknown deck ID: {deck_id}")
 
@@ -426,6 +432,18 @@ class MixerWindow(QMainWindow):
             elif deck_id == 'B' and self.deck_b:
                 self.deck_b.update_control(name, value)
 
+    @pyqtSlot(str, float)
+    def set_deck_opacity(self, deck_id, opacity):
+        """Set opacity for a specific deck (0.0-1.0)"""
+        with QMutexLocker(self._mutex):
+            opacity = max(0.0, min(1.0, opacity))
+            if deck_id == 'A':
+                self.deck_a_opacity = opacity
+                logging.debug(f"🎚️ Deck A opacity set to: {opacity:.2f}")
+            elif deck_id == 'B':
+                self.deck_b_opacity = opacity
+                logging.debug(f"🎚️ Deck B opacity set to: {opacity:.2f}")
+
     # Thread-safe public methods
     def safe_set_mix_value(self, value):
         """Thread-safe wrapper for setting mix value"""
@@ -438,6 +456,16 @@ class MixerWindow(QMainWindow):
     def safe_update_deck_control(self, deck_id, name, value):
         """Thread-safe wrapper for updating deck control"""
         self.signal_update_deck_control.emit(deck_id, name, value)
+
+    def safe_set_deck_opacity(self, deck_id, opacity):
+        """Thread-safe wrapper for setting deck opacity"""
+        self.signal_set_deck_opacity.emit(deck_id, opacity)
+
+    def safe_set_global_brightness(self, brightness):
+        """Set global brightness (0.0-1.0)"""
+        with QMutexLocker(self._mutex):
+            self.global_brightness = max(0.0, min(2.0, brightness))  # Allow up to 200% brightness
+            logging.debug(f"🔆 Global brightness set to: {self.global_brightness:.2f}")
 
     # Utility methods
     def get_deck_controls(self, deck_id):
@@ -473,6 +501,52 @@ class MixerWindow(QMainWindow):
         """Get current mix value as percentage (0-100)"""
         with QMutexLocker(self._mutex):
             return int(self.mix_value * 100)
+
+    def get_deck_opacity(self, deck_id):
+        """Get deck opacity (0.0-1.0)"""
+        with QMutexLocker(self._mutex):
+            if deck_id == 'A':
+                return self.deck_a_opacity
+            elif deck_id == 'B':
+                return self.deck_b_opacity
+            return 1.0
+
+    def get_deck_opacity_percent(self, deck_id):
+        """Get deck opacity as percentage (0-100)"""
+        return int(self.get_deck_opacity(deck_id) * 100)
+
+    def get_global_brightness(self):
+        """Get global brightness (0.0-2.0)"""
+        with QMutexLocker(self._mutex):
+            return self.global_brightness
+
+    def get_global_brightness_percent(self):
+        """Get global brightness as percentage (0-200)"""
+        return int(self.get_global_brightness() * 100)
+
+    def get_deck_status(self, deck_id):
+        """Get comprehensive deck status"""
+        with QMutexLocker(self._mutex):
+            if deck_id == 'A' and self.deck_a:
+                return {
+                    'active': self.deck_a.has_active_visualizer(),
+                    'visualizer': self.deck_a.get_current_visualizer_name(),
+                    'opacity': self.deck_a_opacity,
+                    'controls_count': len(self.deck_a.get_controls())
+                }
+            elif deck_id == 'B' and self.deck_b:
+                return {
+                    'active': self.deck_b.has_active_visualizer(),
+                    'visualizer': self.deck_b.get_current_visualizer_name(),
+                    'opacity': self.deck_b_opacity,
+                    'controls_count': len(self.deck_b.get_controls())
+                }
+            return {
+                'active': False,
+                'visualizer': None,
+                'opacity': 1.0,
+                'controls_count': 0
+            }
 
     def cleanup(self):
         """Clean up OpenGL resources"""

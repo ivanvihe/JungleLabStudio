@@ -1,3 +1,4 @@
+# visuals/presets/building_madness.py
 from OpenGL.GL import *
 from OpenGL.GLU import *
 import numpy as np
@@ -87,14 +88,36 @@ class BuildingMadnessVisualizer(BaseVisualizer):
         self.create_room()
 
     def load_shaders(self):
-        script_dir = os.path.dirname(__file__)
-        shader_dir = os.path.join(script_dir, '..', '..', 'shaders')
-
         try:
-            with open(os.path.join(shader_dir, 'basic.vert'), 'r') as f:
-                vertex_shader_source = f.read()
-            with open(os.path.join(shader_dir, 'basic.frag'), 'r') as f:
-                fragment_shader_source = f.read()
+            # Use inline shaders to avoid file loading issues
+            vertex_shader_source = """
+            #version 330 core
+            layout (location = 0) in vec3 aPos;
+            layout (location = 1) in vec4 aColor;
+            
+            uniform mat4 projection;
+            uniform mat4 view;
+            uniform mat4 model;
+            
+            out vec4 vColor;
+            
+            void main()
+            {
+                gl_Position = projection * view * model * vec4(aPos, 1.0);
+                vColor = aColor;
+            }
+            """
+            
+            fragment_shader_source = """
+            #version 330 core
+            in vec4 vColor;
+            out vec4 FragColor;
+            
+            void main()
+            {
+                FragColor = vColor;
+            }
+            """
 
             vertex_shader = glCreateShader(GL_VERTEX_SHADER)
             glShaderSource(vertex_shader, vertex_shader_source)
@@ -268,7 +291,6 @@ class BuildingMadnessVisualizer(BaseVisualizer):
         
         # Base of pyramid (square)
         base_verts = [[-size, -height, -size], [size, -height, -size], [size, -height, size], [-size, -height, size]]
-        apex = [0, height, 0]
         
         # Create base with subdivisions
         start_vertex = len(vertices) // 7

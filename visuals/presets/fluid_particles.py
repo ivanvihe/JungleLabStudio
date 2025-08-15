@@ -1,29 +1,10 @@
 from OpenGL.GL import *
-from OpenGL.GLU import *
 import numpy as np
 import ctypes
-import os
-import logging
+import time
 import math
 
 from visuals.base_visualizer import BaseVisualizer
-
-# Import OpenGL safety functions
-try:
-    from opengl_fixes import OpenGLSafety
-except ImportError:
-    # Fallback if opengl_fixes is not available
-    class OpenGLSafety:
-        @staticmethod
-        def safe_point_size(size):
-            try:
-                glPointSize(max(1.0, min(size, 64.0)))  # Clamp to reasonable range
-            except:
-                glPointSize(1.0)
-        
-        @staticmethod
-        def check_gl_errors(context=""):
-            pass
 
 class FluidParticlesVisualizer(BaseVisualizer):
     visual_name = "Fluid Particles"
@@ -31,34 +12,27 @@ class FluidParticlesVisualizer(BaseVisualizer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.shader_program = None
-        self.background_shader = None
         self.VBO = None
         self.VAO = None
-        self.bg_VBO = None
-        self.bg_VAO = None
-        self.num_particles = 800
+        self.num_particles = 1500  # Increased count for smaller particles
         self.particle_data = None
-        self.background_data = None
         self.time = 0.0
         self.flow_speed = 1.0
-        self.particle_size = 3.0
+        self.particle_size = 0.8  # Smaller default size
         self.turbulence = 0.8
         self.gravity_strength = 0.5
         self.color_mode = 0
-        self.blend_mode = 1  # Default to Alpha Blend for deck mixing
-        self.brightness = 1.5  # Increased default brightness
-        self.background_intensity = 0.3
+        self.brightness = 1.5
         
         # Particle physics properties
         self.particles = []
         self.attractors = []
-        self.background_elements = []
 
     def get_controls(self):
         return {
             "Particle Count": {
                 "type": "slider",
-                "min": 200,
+                "min": 500,
                 "max": 3000,
                 "value": self.num_particles,
             },
@@ -70,8 +44,8 @@ class FluidParticlesVisualizer(BaseVisualizer):
             },
             "Particle Size": {
                 "type": "slider",
-                "min": 10,
-                "max": 1000,
+                "min": 5,  # Much smaller minimum
+                "max": 200,  # Reduced maximum
                 "value": int(self.particle_size * 100),
             },
             "Turbulence": {
@@ -92,21 +66,10 @@ class FluidParticlesVisualizer(BaseVisualizer):
                 "max": 300,
                 "value": int(self.brightness * 100),
             },
-            "Background": {
-                "type": "slider",
-                "min": 0,
-                "max": 100,
-                "value": int(self.background_intensity * 100),
-            },
             "Color Mode": {
                 "type": "dropdown",
                 "options": ["Plasma Storm", "Aurora Dreams", "Deep Void", "Fire Galaxy", "Crystal Nebula", "Neon Pulse", "Rainbow Flow"],
                 "value": self.color_mode,
-            },
-            "Blend Mode": {
-                "type": "dropdown",
-                "options": ["Additive Glow", "Alpha Blend", "Screen Light", "Color Burn"],
-                "value": self.blend_mode,
             }
         }
 
@@ -127,13 +90,8 @@ class FluidParticlesVisualizer(BaseVisualizer):
             self.gravity_strength = float(value) / 100.0
         elif name == "Brightness":
             self.brightness = float(value) / 100.0
-        elif name == "Background":
-            self.background_intensity = float(value) / 100.0
         elif name == "Color Mode":
             self.color_mode = int(value)
-        elif name == "Blend Mode":
-            self.blend_mode = int(value)
-            self.set_blend_mode()
 
     def init_particles(self):
         self.particles = []
@@ -155,7 +113,7 @@ class FluidParticlesVisualizer(BaseVisualizer):
                 'max_life': np.random.uniform(0.8, 1.0),
                 'birth_time': np.random.uniform(0, 2 * np.pi),
                 'phase': np.random.uniform(0, 2 * np.pi),
-                'size_factor': np.random.uniform(0.3, 2.0),
+                'size_factor': np.random.uniform(0.2, 1.5),  # Smaller size range
                 'color_offset': np.random.uniform(0, 2 * np.pi)
             }
             self.particles.append(particle)
@@ -175,69 +133,83 @@ class FluidParticlesVisualizer(BaseVisualizer):
             }
             self.attractors.append(attractor)
 
-    def init_background(self):
-        # Create background cloud/nebula elements
-        self.background_elements = []
-        num_bg = 200
-        for i in range(num_bg):
-            element = {
-                'pos': np.array([
-                    np.random.uniform(-8, 8),
-                    np.random.uniform(-8, 8),
-                    np.random.uniform(-5, -1)
-                ]),
-                'size': np.random.uniform(0.5, 3.0),
-                'alpha': np.random.uniform(0.1, 0.4),
-                'phase': np.random.uniform(0, 2 * np.pi),
-                'drift_speed': np.random.uniform(0.001, 0.01)
-            }
-            self.background_elements.append(element)
-
     def initializeGL(self):
         print("FluidParticlesVisualizer.initializeGL called")
-        # TRANSPARENT BACKGROUND FOR MIXING
-        glClearColor(0.0, 0.0, 0.0, 0.0)  # Fixed: Alpha = 0 for transparency
-        glEnable(GL_DEPTH_TEST)
+        glClearColor(0.0, 0.0, 0.0, 0.0)
         glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         glEnable(GL_PROGRAM_POINT_SIZE)
-        # Removed: glDepthMask(GL_FALSE) - was causing issues
+        glDisable(GL_DEPTH_TEST)  # Like working visualizers
         
-        self.set_blend_mode()
         self.load_shaders()
         
-        # Initialize particles and backgrounds
+        # Initialize particles
         self.init_particles()
-        self.init_background()
-        
         self.setup_particle_buffers()
-        self.setup_background_buffers()
-
-    def set_blend_mode(self):
-        if self.blend_mode == 0:  # Additive Glow
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE)
-        elif self.blend_mode == 1:  # Alpha Blend - better for deck mixing
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-        elif self.blend_mode == 2:  # Screen Light
-            glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ONE)
-        else:  # Color Burn
-            glBlendFunc(GL_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA)
 
     def load_shaders(self):
-        # Use basic shaders
-        script_dir = os.path.dirname(__file__)
-        shader_dir = os.path.join(script_dir, '..', '..', 'shaders')
-
         try:
-            with open(os.path.join(shader_dir, 'basic.vert'), 'r') as f:
-                vertex_shader_source = f.read()
-            with open(os.path.join(shader_dir, 'basic.frag'), 'r') as f:
-                fragment_shader_source = f.read()
-
-            # Main particle shader
+            vertex_shader_source = """
+            #version 330 core
+            layout (location = 0) in vec3 aPos;
+            layout (location = 1) in vec4 aColor;
+            layout (location = 2) in float aSize;
+            layout (location = 3) in float aLife;
+            
+            uniform float time;
+            uniform float particle_size;
+            
+            out vec4 vColor;
+            out float vLife;
+            
+            void main()
+            {
+                // Add some subtle movement
+                vec3 pos = aPos;
+                pos.x += sin(time * 2.0 + aPos.y * 0.5) * 0.05;
+                pos.z += cos(time * 1.5 + aPos.x * 0.3) * 0.03;
+                
+                gl_Position = vec4(pos, 1.0);
+                
+                // Smaller, more refined point size
+                gl_PointSize = max(1.0, aSize * particle_size * 8.0 * aLife);
+                
+                vColor = aColor;
+                vLife = aLife;
+            }
+            """
+            
+            fragment_shader_source = """
+            #version 330 core
+            in vec4 vColor;
+            in float vLife;
+            out vec4 FragColor;
+            
+            void main()
+            {
+                // Create soft circular particles
+                vec2 coord = gl_PointCoord - vec2(0.5);
+                float dist = length(coord);
+                
+                // Softer falloff for better visual appeal
+                float alpha = 1.0 - smoothstep(0.2, 0.5, dist);
+                
+                // Add bright center for small particles
+                float center = 1.0 - smoothstep(0.0, 0.15, dist);
+                alpha = max(alpha * 0.7, center);
+                
+                // Fade based on life
+                alpha *= vLife;
+                
+                FragColor = vec4(vColor.rgb, vColor.a * alpha);
+            }
+            """
+            
+            # Compile shaders
             vertex_shader = glCreateShader(GL_VERTEX_SHADER)
             glShaderSource(vertex_shader, vertex_shader_source)
             glCompileShader(vertex_shader)
-
+            
             fragment_shader = glCreateShader(GL_FRAGMENT_SHADER)
             glShaderSource(fragment_shader, fragment_shader_source)
             glCompileShader(fragment_shader)
@@ -246,9 +218,6 @@ class FluidParticlesVisualizer(BaseVisualizer):
             glAttachShader(self.shader_program, vertex_shader)
             glAttachShader(self.shader_program, fragment_shader)
             glLinkProgram(self.shader_program)
-
-            # Background shader (same shaders, different usage)
-            self.background_shader = self.shader_program
 
             glDeleteShader(vertex_shader)
             glDeleteShader(fragment_shader)
@@ -263,7 +232,7 @@ class FluidParticlesVisualizer(BaseVisualizer):
             if self.VBO:
                 glDeleteBuffers(1, [self.VBO])
 
-            self.particle_data = np.zeros((self.num_particles, 7), dtype=np.float32)
+            self.particle_data = np.zeros((self.num_particles, 8), dtype=np.float32)
 
             self.VAO = glGenVertexArrays(1)
             glBindVertexArray(self.VAO)
@@ -272,46 +241,24 @@ class FluidParticlesVisualizer(BaseVisualizer):
             glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
             glBufferData(GL_ARRAY_BUFFER, self.particle_data.nbytes, self.particle_data, GL_DYNAMIC_DRAW)
 
+            stride = 8 * ctypes.sizeof(GLfloat)
+            
             # Position attribute
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(0))
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(0))
             glEnableVertexAttribArray(0)
-
+            
             # Color attribute  
-            glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(3 * ctypes.sizeof(GLfloat)))
+            glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(3 * ctypes.sizeof(GLfloat)))
             glEnableVertexAttribArray(1)
+            
+            # Size attribute
+            glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(7 * ctypes.sizeof(GLfloat)))
+            glEnableVertexAttribArray(2)
 
             glBindVertexArray(0)
             print(f"FluidParticles particle buffers set up with {self.num_particles} particles")
         except Exception as e:
             print(f"Error setting up particle buffers: {e}")
-
-    def setup_background_buffers(self):
-        try:
-            if self.bg_VAO:
-                glDeleteVertexArrays(1, [self.bg_VAO])
-            if self.bg_VBO:
-                glDeleteBuffers(1, [self.bg_VBO])
-
-            num_bg = len(self.background_elements)
-            self.background_data = np.zeros((num_bg, 7), dtype=np.float32)
-
-            self.bg_VAO = glGenVertexArrays(1)
-            glBindVertexArray(self.bg_VAO)
-
-            self.bg_VBO = glGenBuffers(1)
-            glBindBuffer(GL_ARRAY_BUFFER, self.bg_VBO)
-            glBufferData(GL_ARRAY_BUFFER, self.background_data.nbytes, self.background_data, GL_DYNAMIC_DRAW)
-
-            # Same attributes as particles
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(0))
-            glEnableVertexAttribArray(0)
-            glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(3 * ctypes.sizeof(GLfloat)))
-            glEnableVertexAttribArray(1)
-
-            glBindVertexArray(0)
-            print(f"FluidParticles background buffers set up with {num_bg} elements")
-        except Exception as e:
-            print(f"Error setting up background buffers: {e}")
 
     def update_physics(self):
         if not self.particles:
@@ -330,7 +277,7 @@ class FluidParticlesVisualizer(BaseVisualizer):
             # Pulsating strength
             attractor['strength'] = 1.0 + 0.5 * np.sin(self.time * 2 + i)
 
-        # Update particles with more complex physics
+        # Update particles with enhanced physics
         for particle in self.particles:
             # Multi-layered turbulence
             pos = particle['pos']
@@ -352,12 +299,11 @@ class FluidParticlesVisualizer(BaseVisualizer):
                 ]) * dt
                 turbulence_force += vortex_force
             
-            # Apply attractor forces with falloff
+            # Apply attractor forces
             for attractor in self.attractors:
                 diff = attractor['pos'] - pos
                 dist = np.linalg.norm(diff)
                 if dist > 0.1:
-                    # Smooth falloff
                     force_magnitude = attractor['strength'] * self.gravity_strength / (1 + dist * dist)
                     force = diff / dist * force_magnitude * dt
                     particle['vel'] += force
@@ -369,18 +315,18 @@ class FluidParticlesVisualizer(BaseVisualizer):
             # Update position
             particle['pos'] += particle['vel'] * dt
             
-            # Soft boundaries with wrapping
+            # Soft boundaries
             for i in range(3):
                 if particle['pos'][i] > 6:
                     particle['pos'][i] = -6 + (particle['pos'][i] - 6) * 0.1
                 elif particle['pos'][i] < -6:
                     particle['pos'][i] = 6 + (particle['pos'][i] + 6) * 0.1
             
-            # Update life with breathing effect
+            # Update life
             particle['life'] = particle['max_life'] * (0.7 + 0.3 * np.sin(self.time * 0.8 + particle['birth_time']))
 
     def get_particle_color(self, particle, velocity_mag, dist_to_center):
-        # More vibrant and responsive colors
+        """Enhanced colors for better visual appeal"""
         base_intensity = self.brightness
         time_factor = self.time + particle['color_offset']
         
@@ -437,142 +383,62 @@ class FluidParticlesVisualizer(BaseVisualizer):
             # Get color
             r, g, b = self.get_particle_color(particle, velocity_mag, dist_to_center)
             
-            # Enhanced alpha with more variation - better for mixing
-            alpha = particle['life'] * 0.8 * (0.7 + 0.3 * np.sin(self.time * 4 + particle['phase']))
+            # Enhanced alpha with more variation
+            alpha = particle['life'] * 0.9 * (0.7 + 0.3 * np.sin(self.time * 4 + particle['phase']))
             self.particle_data[i, 3:7] = [r, g, b, alpha]
+            
+            # Size (smaller particles)
+            self.particle_data[i, 7] = particle['size_factor']
 
         # Update buffer
         glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
         glBufferSubData(GL_ARRAY_BUFFER, 0, self.particle_data.nbytes, self.particle_data)
         glBindBuffer(GL_ARRAY_BUFFER, 0)
 
-    def update_background_data(self):
-        if not self.background_elements or self.background_data is None:
-            return
+    def paintGL(self):
+        try:
+            glClear(GL_COLOR_BUFFER_BIT)
             
-        for i, element in enumerate(self.background_elements):
-            # Slow drift
-            element['pos'][0] += element['drift_speed'] * np.cos(self.time * 0.1 + element['phase'])
-            element['pos'][1] += element['drift_speed'] * np.sin(self.time * 0.15 + element['phase'])
+            if not self.shader_program or not self.VAO:
+                glClearColor(0.1, 0.0, 0.2, 0.0)
+                glClear(GL_COLOR_BUFFER_BIT)
+                return
             
-            # Wrap around
-            for j in range(2):
-                if element['pos'][j] > 8:
-                    element['pos'][j] = -8
-                elif element['pos'][j] < -8:
-                    element['pos'][j] = 8
+            # Update time
+            self.time += 0.016 * self.flow_speed
             
-            # Position
-            self.background_data[i, 0:3] = element['pos']
-            
-            # Subtle color based on main color mode
-            if self.color_mode == 0:  # Plasma
-                r, g, b = 0.5, 0.2, 0.6
-            elif self.color_mode == 1:  # Aurora  
-                r, g, b = 0.2, 0.5, 0.6
-            elif self.color_mode == 2:  # Deep Void
-                r, g, b = 0.1, 0.2, 0.5
-            elif self.color_mode == 3:  # Fire
-                r, g, b = 0.6, 0.3, 0.1
-            elif self.color_mode == 4:  # Crystal
-                r, g, b = 0.4, 0.4, 0.5
-            elif self.color_mode == 5:  # Neon
-                r, g, b = 0.5, 0.1, 0.5
-            else:  # Rainbow
-                r, g, b = 0.4, 0.4, 0.4
-            
-            alpha = element['alpha'] * self.background_intensity * (0.8 + 0.2 * np.sin(self.time * 0.5 + element['phase']))
-            self.background_data[i, 3:7] = [r, g, b, alpha]
+            # Update physics and data
+            self.update_physics()
+            self.update_particle_data()
 
-        # Update buffer
-        glBindBuffer(GL_ARRAY_BUFFER, self.bg_VBO)
-        glBufferSubData(GL_ARRAY_BUFFER, 0, self.background_data.nbytes, self.background_data)
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
+            # Render particles
+            if len(self.particles) > 0:
+                glUseProgram(self.shader_program)
+                
+                # Send uniforms
+                glUniform1f(glGetUniformLocation(self.shader_program, "particle_size"), self.particle_size)
+                
+                # Draw particles
+                glBindVertexArray(self.VAO)
+                glDrawArrays(GL_POINTS, 0, len(self.particles))
+                glBindVertexArray(0)
+                
+                glUseProgram(0)
+            
+        except Exception as e:
+            print(f"Error in paintGL: {e}")
+            glClearColor(0.2, 0.0, 0.0, 0.0)
+            glClear(GL_COLOR_BUFFER_BIT)
 
     def resizeGL(self, width, height):
         glViewport(0, 0, width, height)
-
-    def paintGL(self):
-        # CLEAR WITH TRANSPARENT BACKGROUND
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        
-        if not self.shader_program:
-            return
-        
-        self.time += 0.016 * self.flow_speed
-        
-        # Update physics and data
-        self.update_physics()
-        self.update_background_data()
-        self.update_particle_data()
-
-        # Set matrices
-        projection = self.perspective(50, 1.0, 0.1, 100.0)
-        
-        # Simplified camera movement for deck context
-        cam_radius = 8
-        cam_height = 3
-        cam_x = np.cos(self.time * 0.05) * cam_radius
-        cam_y = cam_height
-        cam_z = np.sin(self.time * 0.05) * cam_radius
-        
-        view = self.lookAt(
-            np.array([cam_x, cam_y, cam_z]), 
-            np.array([0, 0, 0]), 
-            np.array([0, 1, 0])
-        )
-        
-        model = np.identity(4, dtype=np.float32)
-
-        glUseProgram(self.shader_program)
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE, projection)
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, view)
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, model)
-
-        # Set point size for particles - USING SAFE FUNCTION
-        OpenGLSafety.safe_point_size(max(self.particle_size * 3, 2.0))  # Ensure minimum visibility
-
-        # Draw background first
-        if self.background_intensity > 0.01 and self.background_elements:
-            glBindVertexArray(self.bg_VAO)
-            glDrawArrays(GL_POINTS, 0, len(self.background_elements))
-            glBindVertexArray(0)
-
-        # Draw particles
-        if self.particles:
-            particles_to_draw = min(len(self.particles), self.particle_data.shape[0])
-            glBindVertexArray(self.VAO)
-            glDrawArrays(GL_POINTS, 0, particles_to_draw)
-            glBindVertexArray(0)
-        
-        OpenGLSafety.check_gl_errors("FluidParticles paintGL")
-
-    def perspective(self, fov, aspect, near, far):
-        f = 1.0 / np.tan(np.radians(fov / 2.0))
-        return np.array([
-            [f / aspect, 0.0, 0.0, 0.0],
-            [0.0, f, 0.0, 0.0],
-            [0.0, 0.0, (far + near) / (near - far), -1.0],
-            [0.0, 0.0, (2.0 * far * near) / (near - far), 0.0]
-        ], dtype=np.float32)
-
-    def lookAt(self, eye, center, up):
-        f = (center - eye) / np.linalg.norm(center - eye)
-        s = np.cross(f, up) / np.linalg.norm(np.cross(f, up))
-        u = np.cross(s, f)
-
-        return np.array([
-            [s[0], u[0], -f[0], 0.0],
-            [s[1], u[1], -f[1], 0.0],
-            [s[2], u[2], -f[2], 0.0],
-            [-np.dot(s, eye), -np.dot(u, eye), np.dot(f, eye), 1.0]
-        ], dtype=np.float32).T
 
     def cleanup(self):
         print("Cleaning up FluidParticlesVisualizer")
         try:
             if self.shader_program:
-                glDeleteProgram(self.shader_program)
+                if glIsProgram(self.shader_program):
+                    glDeleteProgram(self.shader_program)
                 self.shader_program = None
             if self.VBO:
                 glDeleteBuffers(1, [self.VBO])
@@ -580,11 +446,5 @@ class FluidParticlesVisualizer(BaseVisualizer):
             if self.VAO:
                 glDeleteVertexArrays(1, [self.VAO])
                 self.VAO = None
-            if self.bg_VBO:
-                glDeleteBuffers(1, [self.bg_VBO])
-                self.bg_VBO = None
-            if self.bg_VAO:
-                glDeleteVertexArrays(1, [self.bg_VAO])
-                self.bg_VAO = None
         except Exception as e:
             print(f"Error during cleanup: {e}")

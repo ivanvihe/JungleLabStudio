@@ -1,1 +1,11 @@
-{}
+{
+    "mapping_0": {
+        "type": "load_preset",
+        "params": {
+            "deck_id": "B",
+            "preset_name": "Abstract Lines",
+            "custom_values": ""
+        },
+        "midi": "note_on_ch8_note55"
+    }
+}
