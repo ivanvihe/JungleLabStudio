@@ -4,6 +4,7 @@ from PyQt6.QtCore import QObject, pyqtSignal, QTimer, Qt
 import time
 import logging
 import queue
+import copy
 
 class MidiEngine(QObject):
     # Existing signals
@@ -28,14 +29,20 @@ class MidiEngine(QObject):
         
         # Load mappings from settings manager
         try:
-            self.midi_mappings = self.settings_manager.load_midi_mappings()
+            # Use deepcopy to avoid accidental shared references
+            self.midi_mappings = copy.deepcopy(self.settings_manager.load_midi_mappings())
             if not isinstance(self.midi_mappings, dict):
                 self.midi_mappings = {}
-            logging.info(f"🎹 Loaded {len(self.midi_mappings)} MIDI mappings from settings")
-            
+            logging.info(
+                f"🎹 Loaded {len(self.midi_mappings)} MIDI mappings from settings"
+            )
+
         except Exception as e:
             logging.warning(f"Could not load MIDI mappings: {e}")
             self.midi_mappings = {}
+
+        # Precompute lookup table {midi_key: (action_id, mapping)}
+        self._build_midi_lookup()
         
         self.input_port = None
         self.running = False
@@ -71,6 +78,23 @@ class MidiEngine(QObject):
 
         # Setup default mappings if none exist (delayed to ensure everything is loaded)
         QTimer.singleShot(1000, self.setup_default_mappings)
+
+    def _build_midi_lookup(self):
+        """Build lookup table for MIDI message keys"""
+        self.midi_lookup = {}
+        try:
+            for action_id, mapping_data in self.midi_mappings.items():
+                if not isinstance(mapping_data, dict):
+                    continue
+                midi_key = mapping_data.get("midi")
+                if midi_key:
+                    self.midi_lookup[midi_key] = (action_id, mapping_data)
+            logging.debug(
+                f"🎹 MIDI lookup table built with {len(self.midi_lookup)} entries"
+            )
+        except Exception as e:
+            logging.error(f"❌ Error building MIDI lookup: {e}")
+            self.midi_lookup = {}
 
     def set_application_references(self, mixer_window=None, control_panel=None):
         """Set references to application components for executing actions"""
@@ -330,28 +354,19 @@ class MidiEngine(QObject):
         """Execute action mapped to a MIDI message - ENHANCED DEBUG"""
         try:
             logging.info(f"🔍 SEARCHING for mapping: {message_key}")
-            logging.info(f"📋 Available mappings: {len(self.midi_mappings)}")
-            
-            # Find action mapped to this MIDI message
-            mapped_action = None
-            for action_id, mapping_data in self.midi_mappings.items():
-                midi_key = mapping_data.get('midi', 'no_midi')
-                logging.debug(f"   Checking {action_id}: {midi_key} vs {message_key}")
-                
-                if isinstance(mapping_data, dict) and midi_key == message_key:
-                    mapped_action = (action_id, mapping_data)
-                    logging.info(f"✅ FOUND MATCHING MAPPING: {action_id}")
-                    break
-            
+            logging.info(f"📋 Available mappings: {len(self.midi_lookup)}")
+
+            # Direct lookup for efficiency and correctness
+            mapped_action = self.midi_lookup.get(message_key)
+
             if not mapped_action:
                 # Enhanced debugging for no mapping found
                 logging.warning(f"❌ NO MAPPING FOUND for: {message_key}")
                 logging.info("📋 Available MIDI keys:")
-                for action_id, mapping_data in self.midi_mappings.items():
-                    midi_key = mapping_data.get('midi', 'no_midi')
-                    logging.info(f"   {action_id}: {midi_key}")
+                for midi_key in sorted(self.midi_lookup.keys()):
+                    logging.info(f"   {midi_key}")
                 return  # No action mapped to this message
-            
+
             action_id, mapping_data = mapped_action
             action_type = mapping_data.get('type')
             params = mapping_data.get('params', {})
@@ -793,10 +808,13 @@ class MidiEngine(QObject):
     def set_midi_mappings(self, mappings):
         """Set MIDI mappings"""
         try:
-            self.midi_mappings = mappings.copy()
+            self.midi_mappings = copy.deepcopy(mappings)
+            self._build_midi_lookup()
             if self.settings_manager:
                 self.settings_manager.save_midi_mappings(self.midi_mappings)
-            logging.info(f"🎹 MIDI mappings updated and saved: {len(mappings)} mappings")
+            logging.info(
+                f"🎹 MIDI mappings updated and saved: {len(self.midi_mappings)} mappings"
+            )
                 
         except Exception as e:
             logging.error(f"❌ Error setting MIDI mappings: {e}")
@@ -809,6 +827,7 @@ class MidiEngine(QObject):
         """Add a single MIDI mapping"""
         try:
             self.midi_mappings[action_id] = mapping_data
+            self._build_midi_lookup()
             if self.settings_manager:
                 self.settings_manager.save_midi_mappings(self.midi_mappings)
             logging.info(f"Added MIDI mapping: {action_id}")
@@ -820,6 +839,7 @@ class MidiEngine(QObject):
         try:
             if action_id in self.midi_mappings:
                 del self.midi_mappings[action_id]
+                self._build_midi_lookup()
                 if self.settings_manager:
                     self.settings_manager.save_midi_mappings(self.midi_mappings)
                 logging.info(f"Removed MIDI mapping: {action_id}")
@@ -830,6 +850,7 @@ class MidiEngine(QObject):
         """Clear all MIDI mappings"""
         try:
             self.midi_mappings.clear()
+            self._build_midi_lookup()
             if self.settings_manager:
                 self.settings_manager.save_midi_mappings(self.midi_mappings)
             logging.info("All MIDI mappings cleared")
