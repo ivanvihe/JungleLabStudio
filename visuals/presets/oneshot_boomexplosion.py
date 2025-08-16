@@ -19,7 +19,7 @@ class OneshotBoomExplosionVisualizer(BaseVisualizer):
         self.vao = None
         self.vbo = None
         self.initialized = False
-        
+
         # Explosion state
         self.explosions = []  # List of active explosions
         self.max_explosions = 5  # Maximum simultaneous explosions
@@ -33,6 +33,9 @@ class OneshotBoomExplosionVisualizer(BaseVisualizer):
         self.intensity = 1.0
         self.size_multiplier = 1.0
         self.color_mode = 0  # 0=fire, 1=electric, 2=rainbow
+
+        # Use relative timing to avoid float precision issues in shaders
+        self.start_time = time.time()
         
         logging.info("OneshotBoomExplosionVisualizer created")
 
@@ -61,7 +64,9 @@ class OneshotBoomExplosionVisualizer(BaseVisualizer):
             if not self.setup_particle_geometry():
                 logging.error("Failed to setup particle geometry")
                 return
-            
+
+            # Reset start time when GL is ready
+            self.start_time = time.time()
             self.initialized = True
             logging.info("✅ OneshotBoomExplosionVisualizer initialized successfully")
             
@@ -259,7 +264,7 @@ class OneshotBoomExplosionVisualizer(BaseVisualizer):
 
     def create_explosion(self, center_x=None, center_y=None):
         """Create a new explosion at specified position (or random if None)"""
-        current_time = time.time()
+        current_time = time.time() - self.start_time
         
         # Remove old explosions
         self.explosions = [exp for exp in self.explosions 
@@ -382,7 +387,7 @@ class OneshotBoomExplosionVisualizer(BaseVisualizer):
             particle_count = self.update_particle_buffer()
             
             if particle_count > 0:
-                current_time = time.time()
+                current_time = time.time() - self.start_time
                 
                 # Use shader program
                 glUseProgram(self.shader_program)
@@ -400,7 +405,7 @@ class OneshotBoomExplosionVisualizer(BaseVisualizer):
                     # Set explosion-specific uniforms
                     glUniform2f(glGetUniformLocation(self.shader_program, "explosionCenter"), 
                                explosion['center'][0], explosion['center'][1])
-                    glUniform1f(glGetUniformLocation(self.shader_program, "explosionTime"), 
+                    glUniform1f(glGetUniformLocation(self.shader_program, "explosionTime"),
                                explosion['birth_time'])
                     glUniform1f(glGetUniformLocation(self.shader_program, "explosionDuration"), 
                                explosion['duration'])

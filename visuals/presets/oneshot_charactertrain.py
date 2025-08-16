@@ -35,9 +35,12 @@ class OneshotCharacterTrainVisualizer(BaseVisualizer):
         self.trail_intensity = 1.0
         self.color_mode = 0  # 0=matrix, 1=rainbow, 2=fire
         self.trail_length = 5  # How many characters fade behind
-        
+
         # Character set (same as intro_background)
         self.charset = string.ascii_letters + string.digits + "!@#$%^&*()_+-=[]{}|;:,.<>?"
+
+        # Track start time for relative timing to maintain precision
+        self.start_time = time.time()
         
         logging.info("OneshotCharacterTrainVisualizer created")
 
@@ -65,7 +68,9 @@ class OneshotCharacterTrainVisualizer(BaseVisualizer):
             if not self.setup_character_geometry():
                 logging.error("Failed to setup character geometry")
                 return
-            
+
+            # Reset start time when GL context is ready
+            self.start_time = time.time()
             self.initialized = True
             logging.info("✅ OneshotCharacterTrainVisualizer initialized successfully")
             
@@ -321,7 +326,7 @@ class OneshotCharacterTrainVisualizer(BaseVisualizer):
 
     def create_train(self, start_x=None, start_y=None, direction=None):
         """Create a new character train"""
-        current_time = time.time()
+        current_time = time.time() - self.start_time
         
         # Remove old trains
         self.active_trains = [train for train in self.active_trains 
@@ -440,7 +445,7 @@ class OneshotCharacterTrainVisualizer(BaseVisualizer):
             vertex_count = self.update_character_buffer()
             
             if vertex_count > 0 and self.active_trains:
-                current_time = time.time()
+                current_time = time.time() - self.start_time
                 
                 # Use shader program
                 glUseProgram(self.shader_program)
