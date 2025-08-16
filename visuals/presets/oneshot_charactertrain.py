@@ -1,4 +1,4 @@
-# visuals/presets/character_train.py
+# visuals/presets/oneshot_charactertrain.py
 import logging
 import numpy as np
 import ctypes
@@ -9,10 +9,10 @@ import string
 from OpenGL.GL import *
 from ..base_visualizer import BaseVisualizer
 
-class CharacterTrainVisualizer(BaseVisualizer):
+class OneshotCharacterTrainVisualizer(BaseVisualizer):
     """One-shot character train visual - lines of characters crossing the screen"""
     
-    visual_name = "Character Train"
+    visual_name = "Oneshot Character Train"
     
     def __init__(self):
         super().__init__()
@@ -39,12 +39,12 @@ class CharacterTrainVisualizer(BaseVisualizer):
         # Character set (same as intro_background)
         self.charset = string.ascii_letters + string.digits + "!@#$%^&*()_+-=[]{}|;:,.<>?"
         
-        logging.info("CharacterTrainVisualizer created")
+        logging.info("OneshotCharacterTrainVisualizer created")
 
     def initializeGL(self):
         """Initialize OpenGL resources"""
         try:
-            logging.debug("CharacterTrainVisualizer.initializeGL called")
+            logging.debug("OneshotCharacterTrainVisualizer.initializeGL called")
             
             # Clear GL errors
             while glGetError() != GL_NO_ERROR:
@@ -67,10 +67,10 @@ class CharacterTrainVisualizer(BaseVisualizer):
                 return
             
             self.initialized = True
-            logging.info("✅ CharacterTrainVisualizer initialized successfully")
+            logging.info("✅ OneshotCharacterTrainVisualizer initialized successfully")
             
         except Exception as e:
-            logging.error(f"Error in CharacterTrainVisualizer.initializeGL: {e}")
+            logging.error(f"Error in OneshotCharacterTrainVisualizer.initializeGL: {e}")
             import traceback
             traceback.print_exc()
 
@@ -263,7 +263,7 @@ class CharacterTrainVisualizer(BaseVisualizer):
             glDeleteShader(vertex_shader)
             glDeleteShader(fragment_shader)
             
-            logging.debug("CharacterTrainVisualizer shaders compiled successfully")
+            logging.debug("OneshotCharacterTrainVisualizer shaders compiled successfully")
             return True
             
         except Exception as e:
@@ -496,7 +496,7 @@ class CharacterTrainVisualizer(BaseVisualizer):
     def cleanup(self):
         """Clean up OpenGL resources"""
         try:
-            logging.debug("Cleaning up CharacterTrainVisualizer")
+            logging.debug("Cleaning up OneshotCharacterTrainVisualizer")
             
             if self.shader_program:
                 try:

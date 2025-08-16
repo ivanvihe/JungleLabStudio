@@ -1,4 +1,4 @@
-# visuals/presets/boom_explosion.py
+# visuals/presets/oneshot_boomexplosion.py
 import logging
 import numpy as np
 import ctypes
@@ -8,10 +8,10 @@ import random
 from OpenGL.GL import *
 from ..base_visualizer import BaseVisualizer
 
-class BoomExplosionVisualizer(BaseVisualizer):
+class OneshotBoomExplosionVisualizer(BaseVisualizer):
     """One-shot explosion visual for dramatic booms and bass drops"""
     
-    visual_name = "Boom Explosion"
+    visual_name = "Oneshot Boom Explosion"
     
     def __init__(self):
         super().__init__()
@@ -34,12 +34,12 @@ class BoomExplosionVisualizer(BaseVisualizer):
         self.size_multiplier = 1.0
         self.color_mode = 0  # 0=fire, 1=electric, 2=rainbow
         
-        logging.info("BoomExplosionVisualizer created")
+        logging.info("OneshotBoomExplosionVisualizer created")
 
     def initializeGL(self):
         """Initialize OpenGL resources"""
         try:
-            logging.debug("BoomExplosionVisualizer.initializeGL called")
+            logging.debug("OneshotBoomExplosionVisualizer.initializeGL called")
             
             # Clear GL errors
             while glGetError() != GL_NO_ERROR:
@@ -63,10 +63,10 @@ class BoomExplosionVisualizer(BaseVisualizer):
                 return
             
             self.initialized = True
-            logging.info("✅ BoomExplosionVisualizer initialized successfully")
+            logging.info("✅ OneshotBoomExplosionVisualizer initialized successfully")
             
         except Exception as e:
-            logging.error(f"Error in BoomExplosionVisualizer.initializeGL: {e}")
+            logging.error(f"Error in OneshotBoomExplosionVisualizer.initializeGL: {e}")
             import traceback
             traceback.print_exc()
 
@@ -197,7 +197,7 @@ class BoomExplosionVisualizer(BaseVisualizer):
             glDeleteShader(vertex_shader)
             glDeleteShader(fragment_shader)
             
-            logging.debug("BoomExplosionVisualizer shaders compiled successfully")
+            logging.debug("OneshotBoomExplosionVisualizer shaders compiled successfully")
             return True
             
         except Exception as e:
@@ -429,7 +429,7 @@ class BoomExplosionVisualizer(BaseVisualizer):
     def cleanup(self):
         """Clean up OpenGL resources"""
         try:
-            logging.debug("Cleaning up BoomExplosionVisualizer")
+            logging.debug("Cleaning up OneshotBoomExplosionVisualizer")
             
             if self.shader_program:
                 try:

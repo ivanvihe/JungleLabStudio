@@ -340,5 +340,41 @@
       "custom_values": ""
     },
     "midi": "note_on_ch0_note64"
+  },
+  "deck_a_preset_15": {
+    "type": "load_preset",
+    "params": {
+      "deck_id": "A",
+      "preset_name": "Oneshot Character Train",
+      "custom_values": ""
+    },
+    "midi": "note_on_ch0_note47"
+  },
+  "deck_a_preset_16": {
+    "type": "load_preset",
+    "params": {
+      "deck_id": "A",
+      "preset_name": "Oneshot Boom Explosion",
+      "custom_values": ""
+    },
+    "midi": "note_on_ch0_note75"
+  },
+  "deck_b_preset_15": {
+    "type": "load_preset",
+    "params": {
+      "deck_id": "B",
+      "preset_name": "Oneshot Character Train",
+      "custom_values": ""
+    },
+    "midi": "note_on_ch0_note76"
+  },
+  "deck_b_preset_16": {
+    "type": "load_preset",
+    "params": {
+      "deck_id": "B",
+      "preset_name": "Oneshot Boom Explosion",
+      "custom_values": ""
+    },
+    "midi": "note_on_ch0_note77"
   }
 }
