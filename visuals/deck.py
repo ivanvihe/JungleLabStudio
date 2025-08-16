@@ -368,12 +368,19 @@ class Deck:
                     logging.error(f"❌ Deck {self.deck_id}: Failed to create valid FBO")
                     self.fbo = None
                 else:
-                    logging.debug(f"✅ Deck {self.deck_id}: Created FBO {self.size.width()}x{self.size.height()}, Texture: {self.fbo.texture()}")
-                    # Ensure linear filtering to avoid pixelated output when scaled
-                    glBindTexture(GL_TEXTURE_2D, self.fbo.texture())
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-                    glBindTexture(GL_TEXTURE_2D, 0)
+                    logging.debug(
+                        f"✅ Deck {self.deck_id}: Created FBO {self.size.width()}x{self.size.height()}, Texture: {self.fbo.texture()}"
+                    )
+                    # Only apply filtering when not multisampled
+                    if fbo_format.samples() <= 1:
+                        glBindTexture(GL_TEXTURE_2D, self.fbo.texture())
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+                        glBindTexture(GL_TEXTURE_2D, 0)
+                    else:
+                        logging.debug(
+                            f"Deck {self.deck_id}: Multisampled FBO - skipping texture filtering"
+                        )
                     self._fbo_dirty = True
                     
         except Exception as e:

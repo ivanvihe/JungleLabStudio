@@ -7,6 +7,7 @@ import ctypes
 from OpenGL.GL import (
     GL_ARRAY_BUFFER,
     GL_BLEND,
+    GL_MULTISAMPLE,
     GL_COLOR_BUFFER_BIT,
     GL_DEPTH_BUFFER_BIT,
     GL_FALSE,

@@ -71,6 +71,8 @@ class AbstractLinesVisualizer(BaseVisualizer):
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         glDisable(GL_DEPTH_TEST)  # Keep it simple like working ones
+        glEnable(GL_LINE_SMOOTH)
+        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
         
         if not self.load_shaders():
             print("Failed to load shaders")
