@@ -35,6 +35,7 @@ class IntroTextVisualizer(BaseVisualizer):
         self.fill_progress = 0.0  # How much of screen is filled (0.0 to 1.0)
         self.fill_speed = 0.5     # Characters per second during fill
         self.reveal_started = False
+        self.reveal_pending = False
         self.reveal_progress = 0.0
         
         # Control parameters
@@ -354,16 +355,15 @@ class IntroTextVisualizer(BaseVisualizer):
                         self.transition_progress[i] = 1.0
                         self.current_chars[i] = self.target_chars[i]
         
-        # Phase 3: Reveal ROBOTICA
-        if self.fill_progress >= 1.0 and current_time - self.start_time > 5.0:  # Wait 5 seconds after fill
-            if not self.reveal_started:
-                self.reveal_started = True
-                # Set ROBOTICA characters
-                for i, pos in enumerate(self.robotica_positions):
-                    if i < len(self.robotica_text):
-                        self.target_chars[pos] = self.robotica_text[i]
-                        self.transition_progress[pos] = 0.0
-                        self.last_change_time[pos] = current_time
+        # Phase 3: Reveal ROBOTICA when triggered
+        if self.reveal_pending and self.fill_progress >= 1.0 and not self.reveal_started:
+            self.reveal_started = True
+            anim_time = current_time  # use current animation time
+            for i, pos in enumerate(self.robotica_positions):
+                if i < len(self.robotica_text):
+                    self.target_chars[pos] = self.robotica_text[i]
+                    self.transition_progress[pos] = 0.0
+                    self.last_change_time[pos] = anim_time
 
     def update_vertex_data(self):
         """Update vertex buffer with current character data"""
@@ -527,3 +527,8 @@ class IntroTextVisualizer(BaseVisualizer):
                 logging.debug(f"Brightness updated to {self.brightness}")
         except Exception as e:
             logging.error(f"Error updating control {name}: {e}")
+
+    def trigger_action(self, action_name):
+        """Handle custom actions triggered via MIDI"""
+        if action_name == "show_ROBOTICA_text":
+            self.reveal_pending = True

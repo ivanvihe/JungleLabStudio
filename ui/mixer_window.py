@@ -16,6 +16,7 @@ class MixerWindow(QMainWindow):
     signal_set_deck_visualizer = pyqtSignal(str, object)  # Changed to object to handle None
     signal_update_deck_control = pyqtSignal(str, str, object)
     signal_set_deck_opacity = pyqtSignal(str, float)
+    signal_trigger_deck_action = pyqtSignal(str, str)
 
     def __init__(self, visualizer_manager):
         super().__init__()
@@ -58,6 +59,7 @@ class MixerWindow(QMainWindow):
         self.signal_set_deck_visualizer.connect(self.set_deck_visualizer)
         self.signal_update_deck_control.connect(self.update_deck_control)
         self.signal_set_deck_opacity.connect(self.set_deck_opacity)
+        self.signal_trigger_deck_action.connect(self.trigger_deck_action)
         
         # Set up timer for continuous animation
         self.animation_timer = QTimer()
@@ -100,9 +102,11 @@ class MixerWindow(QMainWindow):
                 self.deck_b = Deck(self.visualizer_manager, "B")
                 
                 # Initialize deck FBOs
+                # Consider device pixel ratio to avoid black bars on high-DPI displays
+                pixel_ratio = self.gl_widget.devicePixelRatio()
                 current_size = QSize(
-                    max(self.gl_widget.width(), 800), 
-                    max(self.gl_widget.height(), 600)
+                    max(int(self.gl_widget.width() * pixel_ratio), 800),
+                    max(int(self.gl_widget.height() * pixel_ratio), 600)
                 )
                 
                 self.deck_a.resize(current_size)
@@ -288,7 +292,8 @@ class MixerWindow(QMainWindow):
             
             # Now composite them in the main framebuffer
             glBindFramebuffer(GL_FRAMEBUFFER, self.gl_widget.defaultFramebufferObject())
-            glViewport(0, 0, self.gl_widget.width(), self.gl_widget.height())
+            pixel_ratio = self.gl_widget.devicePixelRatio()
+            glViewport(0, 0, int(self.gl_widget.width() * pixel_ratio), int(self.gl_widget.height() * pixel_ratio))
 
             # Clear main framebuffer and reset state that might be changed by visualizers
             glDisable(GL_DEPTH_TEST)
@@ -359,8 +364,9 @@ class MixerWindow(QMainWindow):
     def resizeGL(self, w, h):
         """Handle window resize"""
         try:
-            current_size = QSize(w, h)
-            logging.debug(f"📐 MixerWindow resized to {w}x{h}")
+            pixel_ratio = self.gl_widget.devicePixelRatio()
+            current_size = QSize(int(w * pixel_ratio), int(h * pixel_ratio))
+            logging.debug(f"📐 MixerWindow resized to {w}x{h} (px ratio {pixel_ratio})")
             
             if not self.gl_initialized:
                 return
@@ -432,6 +438,18 @@ class MixerWindow(QMainWindow):
             elif deck_id == 'B' and self.deck_b:
                 self.deck_b.update_control(name, value)
 
+    @pyqtSlot(str, str)
+    def trigger_deck_action(self, deck_id, action):
+        """Trigger a custom action for a specific deck"""
+        with QMutexLocker(self._mutex):
+            logging.debug(f"🎬 Triggering action {action} on deck {deck_id}")
+            if not self.gl_initialized:
+                return
+            if deck_id == 'A' and self.deck_a:
+                self.deck_a.trigger_action(action)
+            elif deck_id == 'B' and self.deck_b:
+                self.deck_b.trigger_action(action)
+
     @pyqtSlot(str, float)
     def set_deck_opacity(self, deck_id, opacity):
         """Set opacity for a specific deck (0.0-1.0)"""
@@ -460,6 +478,10 @@ class MixerWindow(QMainWindow):
     def safe_set_deck_opacity(self, deck_id, opacity):
         """Thread-safe wrapper for setting deck opacity"""
         self.signal_set_deck_opacity.emit(deck_id, opacity)
+
+    def safe_trigger_deck_action(self, deck_id, action):
+        """Thread-safe wrapper for triggering deck actions"""
+        self.signal_trigger_deck_action.emit(deck_id, action)
 
     def safe_set_global_brightness(self, brightness):
         """Set global brightness (0.0-1.0)"""
