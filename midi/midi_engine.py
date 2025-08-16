@@ -793,34 +793,34 @@ class MidiEngine(QObject):
         except Exception as e:
             logging.error(f"❌ Error applying custom values: {e}")
 
-    def process_bmp_from_note(self):
-        """Process BMP calculation from note timing"""
+    def process_bpm_from_note(self):
+        """Process BPM calculation from note timing"""
         try:
             current_time = time.time()
-            
-            if self._last_bmp_time > 0:
-                interval = current_time - self._last_bmp_time
+
+            if self._last_bpm_time > 0:
+                interval = current_time - self._last_bpm_time
                 self._beat_intervals.append(interval)
-                
+
                 if len(self._beat_intervals) > 8:
                     self._beat_intervals.pop(0)
-                
+
                 if len(self._beat_intervals) >= 2:
                     avg_interval = sum(self._beat_intervals) / len(self._beat_intervals)
                     bpm = 60.0 / avg_interval
-                    
+
                     if 40 <= bpm <= 200:
                         self.bpm_changed.emit(bpm)
-            
-            self._last_bmp_time = current_time
-            
-        except Exception as e:
-            logging.error(f"Error processing BMP: {e}")
 
-    # NUEVO: Corrección del nombre de función para consistency
-    def process_bpm_from_note(self):
-        """Process BPM calculation from note timing - Alias for backward compatibility"""
-        return self.process_bmp_from_note()
+            self._last_bpm_time = current_time
+
+        except Exception as e:
+            logging.error(f"Error processing BPM: {e}")
+
+    # Alias para compatibilidad retroactiva con el nombre anterior
+    def process_bmp_from_note(self):
+        """Backward compatible alias for misnamed function"""
+        return self.process_bpm_from_note()
 
     def setup_default_mappings(self):
         """Setup default MIDI mappings"""
