@@ -11,8 +11,8 @@
             "height": 824
         },
         "main_window": {
-            "x": -245,
-            "y": 118,
+            "x": -63,
+            "y": 38,
             "width": 1536,
             "height": 793
         }
@@ -334,7 +334,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Intro Text",
+                "preset_name": "",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note37"
@@ -343,7 +343,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Wire Terrain",
+                "preset_name": "Abstract Lines",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note38"
@@ -352,7 +352,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Abstract Lines",
+                "preset_name": "Geometric Particles",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note39"
