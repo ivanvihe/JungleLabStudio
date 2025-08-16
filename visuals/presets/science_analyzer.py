@@ -1,3 +1,4 @@
+# TODO: migrate to RenderBackend (ModernGL)
 from OpenGL.GL import *
 import numpy as np
 import ctypes

@@ -1,3 +1,4 @@
+# TODO: migrate to RenderBackend (ModernGL)
 # visuals/presets/building_madness.py
 from OpenGL.GL import *
 from OpenGL.GLU import *

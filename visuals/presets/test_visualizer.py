@@ -1,3 +1,4 @@
+# TODO: migrate to RenderBackend (ModernGL)
 from OpenGL.GL import *
 import math
 import time
