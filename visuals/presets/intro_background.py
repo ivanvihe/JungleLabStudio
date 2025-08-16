@@ -468,10 +468,11 @@ class IntroBackgroundVisualizer(BaseVisualizer):
             
         except Exception as e:
             # Only log errors occasionally to avoid spam
-            if not hasattr(self, '_last_error_time') or time.time() - self._last_error_time > 5:
-            logging.error(f"IntroBackground paint error: {e}")
+            if not hasattr(self, '_last_error_time') or \
+               time.time() - self._last_error_time > 5:
+                logging.error(f"IntroBackground paint error: {e}")
                 self._last_error_time = time.time()
-            
+
             # Fallback rendering
             glClearColor(0.0, 0.0, 0.0, 1.0)
             glClear(GL_COLOR_BUFFER_BIT)
