@@ -35,6 +35,7 @@ class VisualizerManager:
                 'vortex_particles',
                 'kaleido_tunney',
                 'science_analyzer',
+                'plasma_clouds',
                 'oneshot_charactertrain',
                 'oneshot_boomexplosion',
                 'oneshot_circuit_signal',
