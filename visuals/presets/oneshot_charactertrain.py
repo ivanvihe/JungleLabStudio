@@ -1,3 +1,4 @@
+# TODO: migrate to RenderBackend (ModernGL)
 # visuals/presets/oneshot_charactertrain.py
 import logging
 import numpy as np

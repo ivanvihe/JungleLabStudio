@@ -1,18 +1,17 @@
 import logging
-from OpenGL.GLU import gluErrorString # Import gluErrorString
+from OpenGL.GL import glGetError, GL_NO_ERROR
+from OpenGL.GLU import gluErrorString
 
-import logging
-from OpenGL.GLU import gluErrorString # Import gluErrorString
 
 class BaseVisualizer:
     visual_name = "Base Visualizer"
 
     def __init__(self, *args, **kwargs):
         # Accept any arguments to prevent constructor errors
-        # No longer inherit from QOpenGLWidget - just pure Python class
+        # Pure Python class, presets may extend this.
         pass
 
-    def _check_gl_error(self, context=""):
+    def _check_gl_error(self, context: str = ""):
         """Checks for OpenGL errors and logs them."""
         error = glGetError()
         if error != GL_NO_ERROR:
@@ -21,20 +20,23 @@ class BaseVisualizer:
             return True
         return False
 
-    def initializeGL(self):
-        """Initialize OpenGL state - called when visualizer is first set up"""
+    def initializeGL(self, backend=None):
+        """Initialize OpenGL state.
+
+        If *backend* is provided, use the RenderBackend API. Otherwise legacy
+        gl* calls are expected for backwards compatibility."""
         pass
 
-    def resizeGL(self, width, height):
-        """Handle resize events - called when the viewport changes size"""
+    def resizeGL(self, width: int, height: int, backend=None):
+        """Handle resize events."""
         pass
 
-    def paintGL(self):
-        """Main rendering function - called every frame"""
+    def paintGL(self, time: float = 0.0, size: tuple[int, int] | None = None, backend=None):
+        """Main rendering function."""
         pass
 
     def cleanup(self):
-        """Clean up OpenGL resources - called when visualizer is destroyed"""
+        """Clean up OpenGL resources."""
         pass
 
     def get_controls(self):

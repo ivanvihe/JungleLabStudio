@@ -1,3 +1,4 @@
+# TODO: migrate to RenderBackend (ModernGL)
 # vortex_particles.py
 from PyQt6.QtGui import QSurfaceFormat
 from OpenGL.GL import *

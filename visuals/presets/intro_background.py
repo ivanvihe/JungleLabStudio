@@ -1,3 +1,4 @@
+# TODO: migrate to RenderBackend (ModernGL)
 # visuals/presets/intro_background.py
 import logging
 import numpy as np

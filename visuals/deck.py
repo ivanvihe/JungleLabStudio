@@ -2,13 +2,15 @@
 import logging
 import time
 import math
+import os
 from PyQt6.QtOpenGL import QOpenGLFramebufferObject, QOpenGLFramebufferObjectFormat
 from PyQt6.QtCore import QSize, QMutex, QMutexLocker
 from PyQt6.QtGui import QOpenGLContext
 from OpenGL.GL import *
+from .render_backend import GLBackend, ModernGLBackend
 
 class Deck:
-    def __init__(self, visualizer_manager, deck_id=""):
+    def __init__(self, visualizer_manager, deck_id="", use_moderngl=False, use_post=False):
         self.visualizer_manager = visualizer_manager
         self.deck_id = deck_id  # For debugging
         self.current_visualizer = None  # Renamed for clarity
@@ -33,7 +35,11 @@ class Deck:
         
         # Controls cache
         self.controls = {}
-        
+
+        use_moderngl = use_moderngl or os.getenv("USE_MODERNGL") == "1"
+        self.backend = ModernGLBackend() if use_moderngl else GLBackend()
+        self.use_post = use_post
+
         logging.debug(f"🎮 Deck {deck_id} initialized with size {self.size.width()}x{self.size.height()}")
 
     def ensure_fbo(self):
@@ -137,17 +143,27 @@ class Deck:
             # Clear any existing GL errors
             while glGetError() != GL_NO_ERROR:
                 pass
-            
+
             # Set viewport for FBO
-            glViewport(0, 0, self.size.width(), self.size.height())
-            
+            self.backend.set_viewport(0, 0, self.size.width(), self.size.height())
+
             # Initialize visualizer
             if hasattr(self.current_visualizer, 'initializeGL'):
-                self.current_visualizer.initializeGL()
-            
+                try:
+                    self.current_visualizer.initializeGL(self.backend)
+                except TypeError:
+                    self.current_visualizer.initializeGL()
+
             # Resize visualizer
             if hasattr(self.current_visualizer, 'resizeGL'):
-                self.current_visualizer.resizeGL(self.size.width(), self.size.height())
+                try:
+                    self.current_visualizer.resizeGL(
+                        self.size.width(), self.size.height(), self.backend
+                    )
+                except TypeError:
+                    self.current_visualizer.resizeGL(
+                        self.size.width(), self.size.height()
+                    )
             
             self._gl_initialized = True
             
@@ -177,20 +193,20 @@ class Deck:
                 return False
                 
             try:
+                self.backend.ensure_context()
+
                 # Save current FBO binding
                 previous_fbo = glGetIntegerv(GL_FRAMEBUFFER_BINDING)
-                
+
                 # Bind our FBO
                 if not self.fbo.bind():
                     logging.error(f"❌ Deck {self.deck_id}: Failed to bind FBO")
                     return False
-                
-                # Set viewport for our FBO
-                glViewport(0, 0, self.size.width(), self.size.height())
-                
+
+                self.backend.begin_target((self.size.width(), self.size.height()))
+
                 # Clear the FBO
-                glClearColor(0.0, 0.0, 0.0, 1.0)
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                self.backend.clear(0.0, 0.0, 0.0, 1.0)
                 
                 if self.current_visualizer:
                     # Initialize if needed
@@ -206,7 +222,14 @@ class Deck:
                     if hasattr(self.current_visualizer, 'paintGL'):
                         try:
                             # Paint visualizer directly
-                            self.current_visualizer.paintGL()
+                            try:
+                                self.current_visualizer.paintGL(
+                                    time.time(),
+                                    (self.size.width(), self.size.height()),
+                                    self.backend,
+                                )
+                            except TypeError:
+                                self.current_visualizer.paintGL()
 
                             self._frame_count += 1
                             if self._frame_count % 300 == 0:
@@ -232,9 +255,15 @@ class Deck:
                     # No visualizer - render black (already cleared above)
                     pass
                 
+                if self.use_post and isinstance(self.backend, ModernGLBackend):
+                    # TODO: implement post-processing effects (FXAA/Bloom)
+                    pass
+
+                self.backend.end_target()
+
                 # Release our FBO
                 self.fbo.release()
-                
+
                 # Restore previous FBO binding
                 glBindFramebuffer(GL_FRAMEBUFFER, previous_fbo)
                 
@@ -263,16 +292,13 @@ class Deck:
         try:
             # Static dark pattern for failed visualizers
             if self.deck_id == "A":
-                glClearColor(0.1, 0.0, 0.0, 1.0)  # Dark red
+                self.backend.clear(0.1, 0.0, 0.0, 1.0)  # Dark red
             else:
-                glClearColor(0.0, 0.0, 0.1, 1.0)  # Dark blue
-            
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                self.backend.clear(0.0, 0.0, 0.1, 1.0)  # Dark blue
         except Exception:
             # Ultimate fallback - just black
             try:
-                glClearColor(0.0, 0.0, 0.0, 1.0)
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                self.backend.clear(0.0, 0.0, 0.0, 1.0)
             except Exception:
                 pass
 
@@ -440,5 +466,5 @@ class Deck:
             
             # Clear controls
             self.controls = {}
-            
+
             logging.debug(f"✅ Deck {self.deck_id}: Cleanup completed")

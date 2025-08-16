@@ -4,8 +4,9 @@ import numpy as np
 import ctypes
 import time
 import random
-from OpenGL.GL import *
+from OpenGL.GL import *  # Legacy fallback
 from ..base_visualizer import BaseVisualizer
+from ..render_backend import GLBackend
 
 class IntroTextRoboticaVisualizer(BaseVisualizer):
     """Overlay visualizer that displays the text 'R O B O T I C A' with a transparent background."""
@@ -113,33 +114,23 @@ class IntroTextRoboticaVisualizer(BaseVisualizer):
         
         logging.info("IntroTextRoboticaVisualizer created")
 
-    def initializeGL(self):
-        """Initialize OpenGL resources using modern OpenGL"""
+    def initializeGL(self, backend=None):
+        """Initialize OpenGL resources using the provided backend."""
+        self.backend = backend or GLBackend()
         try:
             logging.debug("IntroTextRoboticaVisualizer.initializeGL called")
-            
-            # Clear any existing GL errors
-            while glGetError() != GL_NO_ERROR:
-                pass
-            
-            # Set up OpenGL state
-            glEnable(GL_BLEND)
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-            glDisable(GL_DEPTH_TEST)
-            
-            # Load shaders
+
             if not self.load_shaders():
                 logging.error("Failed to load shaders")
                 return
-            
-            # Setup geometry
+
             if not self.setup_text_geometry():
                 logging.error("Failed to setup text geometry")
                 return
-            
+
             self.initialized = True
             logging.info("✅ IntroTextRoboticaVisualizer initialized successfully")
-            
+
         except Exception as e:
             logging.error(f"Error in IntroTextRoboticaVisualizer.initializeGL: {e}")
             import traceback
@@ -152,84 +143,53 @@ class IntroTextRoboticaVisualizer(BaseVisualizer):
             #version 330 core
             layout (location = 0) in vec2 aPos;
             layout (location = 1) in float aLetterIndex;
-            
+
             uniform float globalAlpha;
             uniform float scale;
             uniform vec3 color;
             uniform float letterAlphas[16];  // Max 16 letters including spaces
             uniform float time;
-            
+
             out vec3 textColor;
             out float textAlpha;
-            
+
             void main()
             {
                 vec2 scaledPos = aPos * scale;
                 gl_Position = vec4(scaledPos, 0.0, 1.0);
                 textColor = color;
-                
+
                 // Get individual letter alpha
                 int letterIdx = int(aLetterIndex);
                 float letterAlpha = (letterIdx >= 0 && letterIdx < 16) ? letterAlphas[letterIdx] : 0.0;
-                
+
                 // Add subtle glow effect during fade-in
                 float glow = 1.0 + 0.3 * sin(time * 4.0) * letterAlpha;
-                
+
                 textAlpha = globalAlpha * letterAlpha * glow;
             }
             """
-            
+
             fragment_shader_source = """
             #version 330 core
             in vec3 textColor;
             in float textAlpha;
-            
+
             out vec4 FragColor;
-            
+
             void main()
             {
                 FragColor = vec4(textColor, textAlpha);
             }
             """
-            
-            # Compile vertex shader
-            vertex_shader = glCreateShader(GL_VERTEX_SHADER)
-            glShaderSource(vertex_shader, vertex_shader_source)
-            glCompileShader(vertex_shader)
-            
-            if not glGetShaderiv(vertex_shader, GL_COMPILE_STATUS):
-                error = glGetShaderInfoLog(vertex_shader).decode()
-                logging.error(f"Vertex shader compilation failed: {error}")
-                return False
-            
-            # Compile fragment shader
-            fragment_shader = glCreateShader(GL_FRAGMENT_SHADER)
-            glShaderSource(fragment_shader, fragment_shader_source)
-            glCompileShader(fragment_shader)
-            
-            if not glGetShaderiv(fragment_shader, GL_COMPILE_STATUS):
-                error = glGetShaderInfoLog(fragment_shader).decode()
-                logging.error(f"Fragment shader compilation failed: {error}")
-                return False
-            
-            # Link program
-            self.shader_program = glCreateProgram()
-            glAttachShader(self.shader_program, vertex_shader)
-            glAttachShader(self.shader_program, fragment_shader)
-            glLinkProgram(self.shader_program)
-            
-            if not glGetProgramiv(self.shader_program, GL_LINK_STATUS):
-                error = glGetProgramInfoLog(self.shader_program).decode()
-                logging.error(f"Shader program linking failed: {error}")
-                return False
-            
-            # Clean up shaders
-            glDeleteShader(vertex_shader)
-            glDeleteShader(fragment_shader)
-            
+
+            self.shader_program = self.backend.program(
+                vertex_shader_source, fragment_shader_source
+            )
+
             logging.debug("IntroTextRoboticaVisualizer shaders compiled successfully")
             return True
-            
+
         except Exception as e:
             logging.error(f"Error loading shaders: {e}")
             return False
@@ -238,82 +198,58 @@ class IntroTextRoboticaVisualizer(BaseVisualizer):
         """Setup vertex data for the text 'ROBOTICA' - FIXED SIZE"""
         try:
             vertices = []
-            
-            # FIXED: Even smaller text to fit better and prevent clipping
-            letter_height = 0.18  # Reduced from 0.25 to 0.18
-            cell_size = letter_height / 7.0  # Each letter is 7 cells high
-            letter_width = 5 * cell_size  # Each letter is 5 cells wide
-            letter_spacing = cell_size * 0.6  # Even tighter spacing
-            word_spacing = cell_size * 1.8   # Reduced space for actual spaces in text
-            
-            # Calculate total text width
+
+            letter_height = 0.18
+            cell_size = letter_height / 7.0
+            letter_width = 5 * cell_size
+            letter_spacing = cell_size * 0.6
+            word_spacing = cell_size * 1.8
+
             total_width = 0.0
             for char in self.text:
                 if char == ' ':
                     total_width += word_spacing
                 else:
                     total_width += letter_width + letter_spacing
-            total_width -= letter_spacing  # Remove trailing spacing
-            
-            # Start position (center the text)
+            total_width -= letter_spacing
+
             start_x = -total_width / 2.0
             start_y = -letter_height / 2.0
-            
+
             current_x = start_x
             letter_index = 0
-            
-            # Generate vertices for each letter
+
             for char_idx, char in enumerate(self.text):
                 if char == ' ':
                     current_x += word_spacing
                     continue
-                
+
                 pattern = self.LETTER_PATTERNS.get(char)
                 if pattern:
-                    # Generate vertices for this letter with letter index
                     letter_vertices = self.generate_letter_vertices(
                         pattern, current_x, start_y, cell_size, char_idx
                     )
                     vertices.extend(letter_vertices)
-                
+
                 current_x += letter_width + letter_spacing
                 letter_index += 1
-            
+
             if not vertices:
                 logging.error("No vertices generated for text")
                 return False
-            
-            # Convert to numpy array
+
             self.vertices = np.array(vertices, dtype=np.float32)
-            self.vertex_count = len(vertices) // 3  # 3 values per vertex (x, y, letterIndex)
-            
-            # Create and bind VAO
-            self.vao = glGenVertexArrays(1)
-            glBindVertexArray(self.vao)
-            
-            # Create and bind VBO
-            self.vbo = glGenBuffers(1)
-            glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-            glBufferData(GL_ARRAY_BUFFER, self.vertices.nbytes, self.vertices, GL_STATIC_DRAW)
-            
-            # Set vertex attributes
-            stride = 3 * 4  # 3 floats per vertex
-            
-            # Position
-            glEnableVertexAttribArray(0)
-            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(0))
-            
-            # Letter index
-            glEnableVertexAttribArray(1)
-            glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(2 * 4))
-            
-            # Unbind
-            glBindVertexArray(0)
-            glBindBuffer(GL_ARRAY_BUFFER, 0)
-            
+            self.vertex_count = len(vertices) // 3
+
+            self.vbo = self.backend.buffer(self.vertices.tobytes())
+            self.vao = self.backend.vertex_array(
+                self.shader_program,
+                [(self.vbo, '2f 1f', 'aPos', 'aLetterIndex')],
+            )
+
             logging.debug(f"Text geometry setup complete: {self.vertex_count} vertices")
             return True
-            
+
         except Exception as e:
             logging.error(f"Error setting up text geometry: {e}")
             return False
@@ -383,107 +319,91 @@ class IntroTextRoboticaVisualizer(BaseVisualizer):
         self.letter_start_times = [None] * len(self.text)
         logging.info("Animation reset - all letters will restart")
 
-    def paintGL(self):
-        """Render the text using modern OpenGL with cinematic animation"""
+    def paintGL(self, current_time=0.0, size=None, backend=None):
+        """Render the text using the backend with cinematic animation"""
+        backend = backend or self.backend or GLBackend()
         try:
             if not self.initialized or not self.shader_program or not self.vao:
-                # Fallback: clear with transparent black
-                glClearColor(0.0, 0.0, 0.0, 0.0)
-                glClear(GL_COLOR_BUFFER_BIT)
+                backend.clear(0.0, 0.0, 0.0, 0.0)
                 return
 
-            # Clear with transparent background
-            glClearColor(0.0, 0.0, 0.0, 0.0)
-            glClear(GL_COLOR_BUFFER_BIT)
-            
-            # Update animation
-            current_time = time.time()
+            backend.clear(0.0, 0.0, 0.0, 0.0)
+
             self.update_animation(current_time)
-            
-            # Use shader program
-            glUseProgram(self.shader_program)
-            
-            # Set uniforms
-            global_alpha_location = glGetUniformLocation(self.shader_program, "globalAlpha")
-            scale_location = glGetUniformLocation(self.shader_program, "scale")
-            color_location = glGetUniformLocation(self.shader_program, "color")
-            letter_alphas_location = glGetUniformLocation(self.shader_program, "letterAlphas")
-            time_location = glGetUniformLocation(self.shader_program, "time")
-            
-            if global_alpha_location >= 0:
-                glUniform1f(global_alpha_location, self.text_alpha)
-            if scale_location >= 0:
-                glUniform1f(scale_location, self.text_scale)
-            if color_location >= 0:
-                glUniform3f(color_location, self.text_color[0], self.text_color[1], self.text_color[2])
-            if time_location >= 0:
-                glUniform1f(time_location, current_time)
-            
-            # Set letter alphas array
-            if letter_alphas_location >= 0:
-                # Ensure we have exactly 16 values for the uniform array
-                alphas_array = self.letter_alphas + [0.0] * (16 - len(self.letter_alphas))
-                glUniform1fv(letter_alphas_location, 16, alphas_array)
-            
-            # Draw the text
-            glBindVertexArray(self.vao)
-            glDrawArrays(GL_TRIANGLES, 0, self.vertex_count)
-            glBindVertexArray(0)
-            
-            # Clean up
-            glUseProgram(0)
-            
+
+            backend.uniform(self.shader_program, "globalAlpha", self.text_alpha)
+            backend.uniform(self.shader_program, "scale", self.text_scale)
+            backend.uniform(self.shader_program, "color", self.text_color)
+            backend.uniform(self.shader_program, "time", current_time)
+
+            alphas_array = self.letter_alphas + [0.0] * (16 - len(self.letter_alphas))
+            backend.uniform(self.shader_program, "letterAlphas", alphas_array)
+
+            self.vao.render()
+
         except Exception as e:
-            # Only log errors occasionally to avoid spam
             if not hasattr(self, '_last_error_time') or \
                time.time() - self._last_error_time > 5:
                 logging.error(f"IntroTextRobotica paint error: {e}")
                 self._last_error_time = time.time()
 
-            # Fallback rendering
-            glClearColor(0.0, 0.0, 0.0, 0.0)
-            glClear(GL_COLOR_BUFFER_BIT)
+            backend.clear(0.0, 0.0, 0.0, 0.0)
 
-    def resizeGL(self, width, height):
+    def resizeGL(self, width, height, backend=None):
         """Handle resize"""
-        glViewport(0, 0, width, height)
+        if backend:
+            backend.set_viewport(0, 0, width, height)
+        else:
+            glViewport(0, 0, width, height)
 
     def cleanup(self):
         """Clean up OpenGL resources"""
         try:
             logging.debug("Cleaning up IntroTextRoboticaVisualizer")
-            
-            # Delete shader program
-            if self.shader_program:
-                try:
-                    if glIsProgram(self.shader_program):
-                        glDeleteProgram(self.shader_program)
-                except:
-                    pass
-                finally:
-                    self.shader_program = None
-            
-            # Delete VAO
+
             if self.vao:
-                try:
-                    glDeleteVertexArrays(1, [self.vao])
-                except:
-                    pass
-                finally:
-                    self.vao = None
-            
-            # Delete VBO
+                if hasattr(self.vao, "release"):
+                    try:
+                        self.vao.release()
+                    except Exception:
+                        pass
+                else:
+                    try:
+                        glDeleteVertexArrays(1, [self.vao.vao])
+                    except Exception:
+                        pass
+                self.vao = None
+
             if self.vbo:
-                try:
-                    glDeleteBuffers(1, [self.vbo])
-                except:
-                    pass
-                finally:
-                    self.vbo = None
-            
+                if hasattr(self.vbo, "release"):
+                    try:
+                        self.vbo.release()
+                    except Exception:
+                        pass
+                else:
+                    try:
+                        glDeleteBuffers(1, [self.vbo.buffer_id])
+                    except Exception:
+                        pass
+                self.vbo = None
+
+            if self.shader_program:
+                if hasattr(self.shader_program, "release"):
+                    try:
+                        self.shader_program.release()
+                    except Exception:
+                        pass
+                else:
+                    try:
+                        if glIsProgram(self.shader_program):
+                            glDeleteProgram(self.shader_program)
+                    except Exception:
+                        pass
+                self.shader_program = None
+
             self.initialized = False
             logging.debug("IntroTextRoboticaVisualizer cleanup complete")
-            
+
         except Exception as e:
             logging.debug(f"Cleanup error (non-critical): {e}")
 
