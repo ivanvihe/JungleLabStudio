@@ -1,0 +1,37 @@
+=== CONFIGURACIÓN MIDI MAPPINGS ===
+
+Total mappings: 28
+Fecha: 2025-08-16 13:08:36
+
+=== PRESET MAPPINGS ===
+  _on_ch0_ -> Deck A: Simple Test
+  _on_ch0_ -> Deck A: Wire Terrain
+  _on_ch0_ -> Deck A: Abstract Lines
+  _on_ch0_ -> Deck A: Geometric Particles
+  _on_ch0_ -> Deck A: Evolutive Particles
+  _on_ch0_ -> Deck A: Abstract Shapes
+  _on_ch0_ -> Deck A: Mobius Band
+  _on_ch0_ -> Deck A: Building Madness
+  _on_ch0_ -> Deck A: Cosmic Flow
+  _on_ch0_ -> Deck A: Fluid Particles
+  _on_ch0_ -> Deck A: None
+  _on_ch0_ -> Deck B: Simple Test
+  _on_ch0_ -> Deck B: Wire Terrain
+  _on_ch0_ -> Deck B: Abstract Lines
+  _on_ch0_ -> Deck B: Geometric Particles
+  _on_ch0_ -> Deck B: Evolutive Particles
+  _on_ch0_ -> Deck B: Abstract Shapes
+  _on_ch0_ -> Deck B: Mobius Band
+  _on_ch0_ -> Deck B: Building Madness
+  _on_ch0_ -> Deck B: Cosmic Flow
+  _on_ch0_ -> Deck B: Fluid Particles
+  _on_ch0_ -> Deck B: None
+
+=== MIX ACTIONS ===
+  note_on_ch0_note48 -> A to B (10s)
+  note_on_ch0_note49 -> B to A (10s)
+  note_on_ch0_note50 -> A to B (5s)
+  note_on_ch0_note51 -> B to A (5s)
+  note_on_ch0_note52 -> A to B (500ms)
+  note_on_ch0_note53 -> B to A (500ms)
+
