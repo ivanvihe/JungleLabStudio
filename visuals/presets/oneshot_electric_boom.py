@@ -9,7 +9,7 @@ from OpenGL.GL import *
 from ..base_visualizer import BaseVisualizer
 
 class OneshotElectricBoomVisualizer(BaseVisualizer):
-    """One-shot electric explosion with shockwave for cinematic bass drops"""
+    """TouchDesigner-quality subwoofer shockwave visualization"""
     
     visual_name = "Oneshot Electric Boom"
     
@@ -21,23 +21,23 @@ class OneshotElectricBoomVisualizer(BaseVisualizer):
         self.start_time = time.time()
         self.initialized = False
 
-        # Electric explosion state
-        self.explosions = []
-        self.max_explosions = 2
+        # Shockwave state
+        self.shockwaves = []
+        self.max_shockwaves = 3
         
         # Visual parameters
         self.intensity = 1.0
         self.size_multiplier = 1.0
-        self.electric_mode = 0  # 0=blue, 1=white, 2=rainbow
+        self.wave_mode = 0  # 0=blue, 1=white, 2=warm
         
-        # Pre-generate explosion data
+        # Pre-generate data
         self.vertices = None
         self.vertex_count = 0
         
-        logging.info("OneshotElectricBoomVisualizer created")
+        logging.info("TouchDesigner-quality Electric Boom created")
         
-        # Auto-trigger the electric explosion on creation
-        self.create_electric_explosion()
+        # Auto-trigger on creation
+        self.create_shockwave()
 
     def initializeGL(self):
         """Initialize OpenGL resources"""
@@ -48,7 +48,7 @@ class OneshotElectricBoomVisualizer(BaseVisualizer):
             while glGetError() != GL_NO_ERROR:
                 pass
             
-            # Set up OpenGL state
+            # Set up OpenGL state for high quality
             glClearColor(0.0, 0.0, 0.0, 0.0)
             glEnable(GL_BLEND)
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
@@ -65,158 +65,191 @@ class OneshotElectricBoomVisualizer(BaseVisualizer):
                 return
             
             self.initialized = True
-            logging.info("⚡ OneshotElectricBoomVisualizer initialized successfully")
+            logging.info("🌊 TouchDesigner-quality shockwave initialized")
             
         except Exception as e:
-            logging.error(f"Error in OneshotElectricBoomVisualizer.initializeGL: {e}")
+            logging.error(f"Error in initialization: {e}")
             import traceback
             traceback.print_exc()
 
     def load_shaders(self):
-        """Load and compile electric explosion shaders"""
+        """Load TouchDesigner-quality shaders"""
         try:
-            # Electric explosion vertex shader
+            # High-quality vertex shader
             vertex_shader_source = """
             #version 330 core
             layout (location = 0) in vec2 aPos;
             layout (location = 1) in vec2 aTexCoord;
             layout (location = 2) in float aAge;
-            layout (location = 3) in vec3 aColor;
-            layout (location = 4) in float aType; // 0=lightning, 1=shockwave, 2=spark
+            layout (location = 3) in vec2 aCenter;
+            layout (location = 4) in vec3 aColor;
+            layout (location = 5) in float aRadius;
             
             uniform float time;
             uniform float intensity;
+            uniform vec2 resolution;
             
             out vec2 texCoord;
             out vec3 color;
             out float alpha;
-            out float effectType;
+            out vec2 center;
+            out float radius;
             out float age;
             
             void main()
             {
-                vec2 pos = aPos;
-                
-                // Add electric jitter for lightning bolts
-                if (aType < 0.5) { // Lightning
-                    float jitter = sin(time * 50.0 + aPos.x * 100.0) * 0.02 * (1.0 - aAge / 4.0);
-                    pos.x += jitter;
-                    pos.y += sin(time * 30.0 + aPos.y * 80.0) * 0.015 * (1.0 - aAge / 4.0);
-                }
-                
-                gl_Position = vec4(pos, 0.0, 1.0);
+                gl_Position = vec4(aPos, 0.0, 1.0);
                 texCoord = aTexCoord;
                 color = aColor;
-                effectType = aType;
+                center = aCenter;
+                radius = aRadius;
                 age = aAge;
                 
-                // Different fade patterns for different effects
-                if (aType < 0.5) { // Lightning - quick flash
-                    alpha = (1.0 - smoothstep(0.0, 1.5, aAge)) * intensity;
-                } else if (aType < 1.5) { // Shockwave - slower fade
-                    alpha = (1.0 - smoothstep(0.0, 3.0, aAge)) * intensity * 0.7;
-                } else { // Sparks - medium fade
-                    alpha = (1.0 - smoothstep(0.0, 2.0, aAge)) * intensity;
-                }
+                // Smooth fade with different curves for different wave types
+                float fade1 = 1.0 - smoothstep(0.0, 4.0, aAge);
+                float fade2 = exp(-aAge * 0.8);
+                alpha = mix(fade1, fade2, 0.6) * intensity;
             }
             """
             
-            # Electric explosion fragment shader
+            # TouchDesigner-quality fragment shader
             fragment_shader_source = """
             #version 330 core
             in vec2 texCoord;
             in vec3 color;
             in float alpha;
-            in float effectType;
+            in vec2 center;
+            in float radius;
             in float age;
             
             uniform float time;
+            uniform vec2 resolution;
             
             out vec4 FragColor;
             
-            // Electric noise function
-            float electricNoise(vec2 uv, float scale) {
-                return fract(sin(dot(uv * scale, vec2(12.9898, 78.233))) * 43758.5453);
+            // High-quality noise functions
+            float hash(vec2 p) {
+                return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
             }
             
-            // Lightning bolt pattern
-            float lightningBolt(vec2 uv) {
-                vec2 center = uv - vec2(0.5);
-                float angle = atan(center.y, center.x);
-                float dist = length(center);
-                
-                // Create jagged lightning pattern
-                float lightning = 0.0;
-                for (int i = 0; i < 3; i++) {
-                    float freq = float(i + 1) * 10.0;
-                    float noise = electricNoise(vec2(angle * freq, dist * freq + time * 2.0), 1.0);
-                    lightning += noise * (1.0 / float(i + 1));
+            float noise(vec2 p) {
+                vec2 i = floor(p);
+                vec2 f = fract(p);
+                vec2 u = f * f * (3.0 - 2.0 * f);
+                return mix(mix(hash(i + vec2(0.0, 0.0)), 
+                              hash(i + vec2(1.0, 0.0)), u.x),
+                          mix(hash(i + vec2(0.0, 1.0)), 
+                              hash(i + vec2(1.0, 1.0)), u.x), u.y);
+            }
+            
+            float fbm(vec2 p) {
+                float value = 0.0;
+                float amplitude = 0.5;
+                for (int i = 0; i < 6; i++) {
+                    value += amplitude * noise(p);
+                    p *= 2.0;
+                    amplitude *= 0.5;
                 }
-                
-                // Make it more bolt-like
-                float bolt = 1.0 - smoothstep(0.0, 0.3, abs(center.x + sin(center.y * 20.0 + time * 5.0) * 0.1));
-                bolt *= 1.0 - smoothstep(0.4, 0.8, dist);
-                bolt *= lightning;
-                
-                return bolt;
+                return value;
             }
             
-            // Shockwave ring
-            float shockwave(vec2 uv) {
-                vec2 center = uv - vec2(0.5);
-                float dist = length(center);
+            // TouchDesigner-style shockwave
+            float shockwave(vec2 uv, vec2 center, float age, float baseRadius) {
+                vec2 toCenter = uv - center;
+                float dist = length(toCenter);
                 
-                // Expanding ring
-                float ring_radius = age * 0.4;
-                float ring_thickness = 0.05 + age * 0.02;
-                float ring = 1.0 - smoothstep(ring_radius - ring_thickness, ring_radius, dist);
-                ring *= smoothstep(ring_radius, ring_radius + ring_thickness, dist);
+                // Multiple wave rings for complexity
+                float wave = 0.0;
                 
-                // Add electric distortion
-                float distortion = sin(atan(center.y, center.x) * 16.0 + time * 10.0) * 0.02;
-                ring *= 1.0 + distortion;
+                // Main shockwave
+                float waveRadius = age * 1.2 * baseRadius;
+                float waveThickness = 0.08 + age * 0.02;
+                float mainWave = exp(-pow(abs(dist - waveRadius) / waveThickness, 2.0));
                 
-                return ring;
+                // Secondary waves
+                float wave2Radius = age * 0.8 * baseRadius;
+                float wave2Thickness = 0.06;
+                float secondWave = exp(-pow(abs(dist - wave2Radius) / wave2Thickness, 2.0)) * 0.6;
+                
+                // Tertiary wave
+                float wave3Radius = age * 1.5 * baseRadius;
+                float wave3Thickness = 0.12;
+                float thirdWave = exp(-pow(abs(dist - wave3Radius) / wave3Thickness, 2.0)) * 0.3;
+                
+                wave = mainWave + secondWave + thirdWave;
+                
+                // Add high-frequency detail
+                float angle = atan(toCenter.y, toCenter.x);
+                float angleNoise = fbm(vec2(angle * 8.0, age * 2.0)) * 0.1;
+                float radiusNoise = fbm(vec2(dist * 12.0, time * 1.5)) * 0.05;
+                
+                // Apply noise modulation
+                wave *= (1.0 + angleNoise + radiusNoise);
+                
+                // Distance-based intensity falloff
+                float falloff = 1.0 / (1.0 + dist * 0.5);
+                wave *= falloff;
+                
+                // Frequency-based modulation (like audio visualization)
+                float freqMod = sin(dist * 30.0 - time * 15.0 + age * 10.0) * 0.1 + 1.0;
+                wave *= freqMod;
+                
+                return clamp(wave, 0.0, 1.0);
             }
             
-            // Electric spark
-            float electricSpark(vec2 uv) {
-                vec2 center = uv - vec2(0.5);
-                float dist = length(center);
+            // Inner energy core
+            float energyCore(vec2 uv, vec2 center, float age) {
+                vec2 toCenter = uv - center;
+                float dist = length(toCenter);
                 
-                // Pulsing electric sphere
-                float pulse = sin(time * 20.0 + dist * 50.0) * 0.3 + 0.7;
-                float spark = 1.0 - smoothstep(0.0, 0.2, dist);
-                spark *= pulse;
+                // Pulsing core
+                float pulse = sin(time * 12.0 + age * 8.0) * 0.3 + 0.7;
+                float coreRadius = 0.1 * (1.0 - age * 0.8);
+                float core = exp(-pow(dist / coreRadius, 2.0)) * pulse;
                 
-                // Add electric crackling
-                float crackle = electricNoise(uv * 20.0 + time * 5.0, 1.0);
-                spark *= 0.7 + crackle * 0.3;
+                // Add plasma-like distortion
+                float plasmaX = sin(time * 8.0 + uv.x * 20.0) * 0.02;
+                float plasmaY = cos(time * 6.0 + uv.y * 15.0) * 0.02;
+                vec2 plasmaUV = uv + vec2(plasmaX, plasmaY);
+                vec2 plasmaToCenter = plasmaUV - center;
+                float plasmaDist = length(plasmaToCenter);
                 
-                return spark;
+                float plasmaCore = exp(-pow(plasmaDist / (coreRadius * 1.5), 2.0)) * 0.5;
+                
+                return core + plasmaCore;
             }
             
             void main()
             {
-                float effect = 0.0;
+                // Convert texture coordinates to world space
+                vec2 uv = texCoord * 2.0 - 1.0;
+                uv.x *= resolution.x / resolution.y; // Aspect ratio correction
                 
-                if (effectType < 0.5) { // Lightning
-                    effect = lightningBolt(texCoord);
-                } else if (effectType < 1.5) { // Shockwave
-                    effect = shockwave(texCoord);
-                } else { // Sparks
-                    effect = electricSpark(texCoord);
-                }
+                vec2 worldCenter = center;
+                worldCenter.x *= resolution.x / resolution.y;
                 
-                // Add electric glow
+                // Calculate effects
+                float wave = shockwave(uv, worldCenter, age, radius);
+                float core = energyCore(uv, worldCenter, age);
+                
+                // Combine effects
+                float totalEffect = wave + core;
+                
+                // Color enhancement based on intensity
                 vec3 finalColor = color;
-                if (effectType < 0.5) { // Lightning - bright white core
-                    finalColor = mix(color, vec3(1.0), effect * 0.5);
-                } else if (effectType < 1.5) { // Shockwave - electric blue
-                    finalColor = mix(color, vec3(0.3, 0.7, 1.0), effect * 0.3);
+                
+                // Add energy glow based on effect intensity
+                if (totalEffect > 0.5) {
+                    finalColor = mix(color, vec3(1.0), (totalEffect - 0.5) * 0.8);
                 }
                 
-                FragColor = vec4(finalColor, effect * alpha);
+                // Add blue/white rim lighting for high-intensity areas
+                if (wave > 0.3) {
+                    vec3 rimColor = mix(vec3(0.5, 0.8, 1.0), vec3(1.0), wave);
+                    finalColor = mix(finalColor, rimColor, wave * 0.4);
+                }
+                
+                FragColor = vec4(finalColor, totalEffect * alpha);
             }
             """
             
@@ -252,7 +285,7 @@ class OneshotElectricBoomVisualizer(BaseVisualizer):
             glDeleteShader(vertex_shader)
             glDeleteShader(fragment_shader)
             
-            logging.debug("Electric explosion shaders compiled successfully")
+            logging.debug("TouchDesigner-quality shaders compiled")
             return True
             
         except Exception as e:
@@ -273,13 +306,13 @@ class OneshotElectricBoomVisualizer(BaseVisualizer):
             self.vbo = glGenBuffers(1)
             glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
             
-            # Reserve space for electric effects
-            max_elements = 200  # More elements for complex electric effects
-            vertex_size = 9 * 4  # 9 floats per vertex * 4 bytes
+            # Reserve space for high-quality shockwaves
+            max_elements = 50  # Fewer elements but higher quality
+            vertex_size = 12 * 4  # 12 floats per vertex * 4 bytes
             glBufferData(GL_ARRAY_BUFFER, max_elements * vertex_size * 6, None, GL_DYNAMIC_DRAW)
             
             # Set vertex attributes
-            stride = 9 * 4  # 9 floats per vertex
+            stride = 12 * 4  # 12 floats per vertex
             
             # Position (2 floats)
             glEnableVertexAttribArray(0)
@@ -290,179 +323,99 @@ class OneshotElectricBoomVisualizer(BaseVisualizer):
             # Age (1 float)
             glEnableVertexAttribArray(2)
             glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(4 * 4))
-            # Color (3 floats)
+            # Center (2 floats)
             glEnableVertexAttribArray(3)
-            glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(5 * 4))
-            # Effect type (1 float)
+            glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(5 * 4))
+            # Color (3 floats)
             glEnableVertexAttribArray(4)
-            glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(8 * 4))
+            glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(7 * 4))
+            # Radius (1 float)
+            glEnableVertexAttribArray(5)
+            glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(10 * 4))
             
             # Unbind
             glBindVertexArray(0)
             glBindBuffer(GL_ARRAY_BUFFER, 0)
             
-            logging.debug("Electric explosion geometry setup complete")
+            logging.debug("High-quality geometry setup complete")
             return True
             
         except Exception as e:
             logging.error(f"Error setting up geometry: {e}")
             return False
 
-    def create_electric_explosion(self, center_x=None, center_y=None):
-        """Create a new electric explosion with shockwave"""
+    def create_shockwave(self, center_x=None, center_y=None):
+        """Create a TouchDesigner-quality shockwave"""
         current_time = time.time() - self.start_time
         
-        # Remove old explosions
-        self.explosions = [exp for exp in self.explosions 
-                          if (current_time - exp['birth_time']) < 4.0]
+        # Remove old shockwaves
+        self.shockwaves = [wave for wave in self.shockwaves 
+                          if (current_time - wave['birth_time']) < 5.0]
         
         # Don't create if at max
-        if len(self.explosions) >= self.max_explosions:
-            self.explosions.pop(0)
+        if len(self.shockwaves) >= self.max_shockwaves:
+            self.shockwaves.pop(0)
         
         # Random position if not specified
         if center_x is None:
-            center_x = random.uniform(-0.3, 0.3)
+            center_x = random.uniform(-0.6, 0.6)
         if center_y is None:
-            center_y = random.uniform(-0.3, 0.3)
-        
-        # Create electric explosion
-        explosion = {
-            'center': (center_x, center_y),
-            'birth_time': current_time,
-            'elements': []
-        }
+            center_y = random.uniform(-0.6, 0.6)
         
         # Get colors based on mode
-        if self.electric_mode == 0:  # Blue electric
-            base_colors = [(0.2, 0.8, 1.0), (0.0, 0.5, 1.0), (0.6, 0.9, 1.0)]
-        elif self.electric_mode == 1:  # White electric
-            base_colors = [(1.0, 1.0, 1.0), (0.8, 0.8, 1.0), (0.9, 0.9, 0.9)]
-        else:  # Rainbow electric
-            base_colors = [(1.0, 0.0, 0.5), (0.0, 1.0, 0.8), (0.8, 0.0, 1.0)]
+        if self.wave_mode == 0:  # Blue energy
+            base_color = (0.2, 0.6, 1.0)
+        elif self.wave_mode == 1:  # White energy
+            base_color = (0.9, 0.95, 1.0)
+        else:  # Warm energy
+            base_color = (1.0, 0.6, 0.2)
         
-        # Create lightning bolts (type 0)
-        for i in range(8):
-            angle = random.uniform(0, 2 * math.pi)
-            length = random.uniform(0.3, 0.8)
-            
-            end_x = center_x + math.cos(angle) * length
-            end_y = center_y + math.sin(angle) * length
-            
-            color = random.choice(base_colors)
-            
-            element = {
-                'type': 0,  # Lightning
-                'start': (center_x, center_y),
-                'end': (end_x, end_y),
-                'color': color,
-                'birth_time': current_time
-            }
-            explosion['elements'].append(element)
-        
-        # Create shockwave (type 1)
+        # Create shockwave
         shockwave = {
-            'type': 1,  # Shockwave
             'center': (center_x, center_y),
-            'color': base_colors[0],
-            'birth_time': current_time
+            'birth_time': current_time,
+            'color': base_color,
+            'radius': 1.5 + random.uniform(-0.3, 0.3),  # Slight variation
+            'intensity': 1.0 + random.uniform(-0.2, 0.2)
         }
-        explosion['elements'].append(shockwave)
         
-        # Create electric sparks (type 2)
-        for i in range(12):
-            spark_x = center_x + random.uniform(-0.4, 0.4)
-            spark_y = center_y + random.uniform(-0.4, 0.4)
-            
-            spark = {
-                'type': 2,  # Spark
-                'pos': (spark_x, spark_y),
-                'color': random.choice(base_colors),
-                'birth_time': current_time + random.uniform(0, 0.5)  # Delayed sparks
-            }
-            explosion['elements'].append(spark)
-        
-        self.explosions.append(explosion)
-        logging.info(f"⚡ Created ELECTRIC explosion at ({center_x:.2f}, {center_y:.2f})")
+        self.shockwaves.append(shockwave)
+        logging.info(f"🌊 TouchDesigner shockwave at ({center_x:.2f}, {center_y:.2f})")
 
     def update_vertex_data(self):
-        """Update vertex buffer with electric effects"""
+        """Update vertex buffer with high-quality shockwaves"""
         try:
             current_time = time.time() - self.start_time
             vertices = []
             
-            for explosion in self.explosions:
-                for element in explosion['elements']:
-                    age = current_time - element['birth_time']
+            for shockwave in self.shockwaves:
+                age = current_time - shockwave['birth_time']
+                
+                # Skip old shockwaves
+                if age > 5.0:
+                    continue
+                
+                center_x, center_y = shockwave['center']
+                r, g, b = shockwave['color']
+                radius = shockwave['radius'] * self.size_multiplier
+                
+                # Create large quad covering the entire effect area
+                size = 2.0  # Cover entire screen
+                
+                # Create quad for shockwave
+                vertices.extend([
+                    -size, -size, 0.0, 0.0, age, center_x, center_y, r, g, b, radius, 0.0,
+                    size, -size, 1.0, 0.0, age, center_x, center_y, r, g, b, radius, 0.0,
+                    -size, size, 0.0, 1.0, age, center_x, center_y, r, g, b, radius, 0.0,
                     
-                    # Skip elements that haven't started or are too old
-                    if age < 0 or age > 4.0:
-                        continue
-                    
-                    element_type = float(element['type'])
-                    r, g, b = element['color']
-                    
-                    if element['type'] == 0:  # Lightning bolt
-                        start_x, start_y = element['start']
-                        end_x, end_y = element['end']
-                        
-                        # Create thick line as quad
-                        thickness = 0.02 * (1.0 - age / 2.0)  # Shrinking thickness
-                        
-                        # Calculate perpendicular vector
-                        dx = end_x - start_x
-                        dy = end_y - start_y
-                        length = math.sqrt(dx*dx + dy*dy)
-                        if length > 0:
-                            perpx = -dy / length * thickness
-                            perpy = dx / length * thickness
-                        else:
-                            perpx = perpy = 0
-                        
-                        # Create quad for lightning bolt
-                        vertices.extend([
-                            start_x - perpx, start_y - perpy, 0.0, 0.0, age, r, g, b, element_type,
-                            start_x + perpx, start_y + perpy, 1.0, 0.0, age, r, g, b, element_type,
-                            end_x - perpx, end_y - perpy, 0.0, 1.0, age, r, g, b, element_type,
-                            
-                            start_x + perpx, start_y + perpy, 1.0, 0.0, age, r, g, b, element_type,
-                            end_x + perpx, end_y + perpy, 1.0, 1.0, age, r, g, b, element_type,
-                            end_x - perpx, end_y - perpy, 0.0, 1.0, age, r, g, b, element_type
-                        ])
-                    
-                    elif element['type'] == 1:  # Shockwave
-                        center_x, center_y = element['center']
-                        size = 0.8  # Large shockwave
-                        
-                        # Create quad for shockwave
-                        vertices.extend([
-                            center_x - size, center_y - size, 0.0, 0.0, age, r, g, b, element_type,
-                            center_x + size, center_y - size, 1.0, 0.0, age, r, g, b, element_type,
-                            center_x - size, center_y + size, 0.0, 1.0, age, r, g, b, element_type,
-                            
-                            center_x + size, center_y - size, 1.0, 0.0, age, r, g, b, element_type,
-                            center_x + size, center_y + size, 1.0, 1.0, age, r, g, b, element_type,
-                            center_x - size, center_y + size, 0.0, 1.0, age, r, g, b, element_type
-                        ])
-                    
-                    elif element['type'] == 2:  # Electric spark
-                        spark_x, spark_y = element['pos']
-                        size = 0.06
-                        
-                        # Create quad for spark
-                        vertices.extend([
-                            spark_x - size, spark_y - size, 0.0, 0.0, age, r, g, b, element_type,
-                            spark_x + size, spark_y - size, 1.0, 0.0, age, r, g, b, element_type,
-                            spark_x - size, spark_y + size, 0.0, 1.0, age, r, g, b, element_type,
-                            
-                            spark_x + size, spark_y - size, 1.0, 0.0, age, r, g, b, element_type,
-                            spark_x + size, spark_y + size, 1.0, 1.0, age, r, g, b, element_type,
-                            spark_x - size, spark_y + size, 0.0, 1.0, age, r, g, b, element_type
-                        ])
+                    size, -size, 1.0, 0.0, age, center_x, center_y, r, g, b, radius, 0.0,
+                    size, size, 1.0, 1.0, age, center_x, center_y, r, g, b, radius, 0.0,
+                    -size, size, 0.0, 1.0, age, center_x, center_y, r, g, b, radius, 0.0
+                ])
             
             if vertices:
                 self.vertices = np.array(vertices, dtype=np.float32)
-                self.vertex_count = len(vertices) // 9
+                self.vertex_count = len(vertices) // 12
                 
                 # Upload to GPU
                 glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
@@ -476,7 +429,7 @@ class OneshotElectricBoomVisualizer(BaseVisualizer):
             self.vertex_count = 0
 
     def paintGL(self):
-        """Render electric explosion"""
+        """Render TouchDesigner-quality shockwaves"""
         try:
             if not self.initialized or not self.shader_program:
                 glClearColor(0.0, 0.0, 0.0, 0.0)
@@ -499,6 +452,7 @@ class OneshotElectricBoomVisualizer(BaseVisualizer):
                 # Update uniforms
                 glUniform1f(glGetUniformLocation(self.shader_program, "time"), current_time)
                 glUniform1f(glGetUniformLocation(self.shader_program, "intensity"), self.intensity)
+                glUniform2f(glGetUniformLocation(self.shader_program, "resolution"), 1920.0, 1080.0)  # Assume HD
                 
                 # Draw
                 if self.vao:
@@ -513,7 +467,7 @@ class OneshotElectricBoomVisualizer(BaseVisualizer):
             # Only log errors occasionally
             if not hasattr(self, '_last_error_time') or \
                time.time() - self._last_error_time > 5:
-                logging.error(f"ElectricBoom paint error: {e}")
+                logging.error(f"TouchDesigner shockwave paint error: {e}")
                 self._last_error_time = time.time()
 
             # Fallback rendering
@@ -527,7 +481,7 @@ class OneshotElectricBoomVisualizer(BaseVisualizer):
     def cleanup(self):
         """Clean up OpenGL resources"""
         try:
-            logging.debug("Cleaning up OneshotElectricBoomVisualizer")
+            logging.debug("Cleaning up TouchDesigner-quality visualizer")
             
             if self.shader_program:
                 try:
@@ -555,7 +509,7 @@ class OneshotElectricBoomVisualizer(BaseVisualizer):
                     self.vbo = None
             
             self.initialized = False
-            self.explosions = []
+            self.shockwaves = []
             
         except Exception as e:
             logging.debug(f"Cleanup error (non-critical): {e}")
@@ -577,11 +531,11 @@ class OneshotElectricBoomVisualizer(BaseVisualizer):
                 "value": int(self.size_multiplier * 100),
                 "default": 100
             },
-            "Electric Mode": {
+            "Wave Mode": {
                 "type": "slider",
                 "min": 0,
                 "max": 2,
-                "value": self.electric_mode,
+                "value": self.wave_mode,
                 "default": 0
             }
         }
@@ -593,13 +547,13 @@ class OneshotElectricBoomVisualizer(BaseVisualizer):
                 self.intensity = value / 100.0
             elif name == "Size":
                 self.size_multiplier = value / 100.0
-            elif name == "Electric Mode":
-                self.electric_mode = int(value)
+            elif name == "Wave Mode":
+                self.wave_mode = int(value)
         except Exception as e:
             logging.error(f"Error updating control {name}: {e}")
 
     def trigger_action(self, action_name):
         """Handle MIDI triggers"""
-        if action_name == "boom" or action_name == "explosion" or action_name == "electric":
-            self.create_electric_explosion()
-            logging.info("⚡ ELECTRIC BOOM! Triggered via MIDI")
+        if action_name == "boom" or action_name == "explosion" or action_name == "shockwave":
+            self.create_shockwave()
+            logging.info("🌊 TouchDesigner SHOCKWAVE! Triggered via MIDI")
