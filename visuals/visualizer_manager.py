@@ -37,6 +37,8 @@ class VisualizerManager:
                 'science_analyzer',
                 'oneshot_charactertrain',
                 'oneshot_boomexplosion',
+                'oneshot_circuit_signal',
+                'oneshot_electric_boom',
             ]
             
             loaded_count = 0
