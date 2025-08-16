@@ -155,19 +155,21 @@ class PreferencesDialog(QDialog):
         self.gpu_selector.clear()
         try:
             import moderngl
-            # Attempt to detect up to 4 GPUs
-            for i in range(4):
+            index = 0
+            # Try to create contexts sequentially until it fails
+            while True:
                 try:
                     ctx = moderngl.create_context(
-                        standalone=True, backend="egl", require=330, device_index=i
+                        standalone=True, require=330, device_index=index
                     )
-                    name = ctx.info.get("GL_RENDERER", f"GPU {i}")
+                    name = ctx.info.get("GL_RENDERER", f"GPU {index}")
                     ctx.release()
                     self.gpu_selector.addItem(name)
+                    index += 1
                 except Exception:
-                    if i == 0 and self.gpu_selector.count() == 0:
-                        self.gpu_selector.addItem("Default GPU")
                     break
+            if self.gpu_selector.count() == 0:
+                self.gpu_selector.addItem("Default GPU")
         except Exception:
             self.gpu_selector.addItem("Default GPU")
 

@@ -65,6 +65,10 @@
       {
         "preset": "Cut to Center",
         "duration": "50ms"
+      },
+      {
+        "preset": "Reset Mix",
+        "duration": "50ms"
       }
     ]
   }

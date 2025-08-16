@@ -254,7 +254,7 @@ class MidiMappingDialog(QDialog):
                 "description": "Carga un preset visual en un deck"
             },
             "Mix Fader": {
-                "presets": ["A to B", "B to A", "Cut to Center", "Instant A", "Instant B"],
+                "presets": ["A to B", "B to A", "Cut to Center", "Instant A", "Instant B", "Reset Mix"],
                 "targets": ["Visual Mix"],
                 "values_template": "duration:5s",
                 "description": "Controla el crossfader/mezclador"

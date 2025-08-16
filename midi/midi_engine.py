@@ -649,6 +649,9 @@ class MidiEngine(QObject):
             elif preset == "Cut to Center":
                 target_value = 0.5
                 duration_ms = 50
+            elif preset == "Reset Mix":
+                target_value = 0.5
+                duration_ms = 50
             elif preset == "A to B":
                 target_value = 1.0
             elif preset == "B to A":

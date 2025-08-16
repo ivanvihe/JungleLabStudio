@@ -534,9 +534,9 @@ class MidiConfigWidget(QWidget):
                 preset_combo.addItem("-- Seleccionar Acción --")
                 crossfade_actions = [
                     "A to B (10s)", "B to A (10s)",
-                    "A to B (5s)", "B to A (5s)", 
+                    "A to B (5s)", "B to A (5s)",
                     "A to B (500ms)", "B to A (500ms)",
-                    "Instant A", "Instant B", "Cut to Center"
+                    "Instant A", "Instant B", "Cut to Center", "Reset Mix"
                 ]
                 for action in crossfade_actions:
                     preset_combo.addItem(action)
@@ -622,6 +622,8 @@ class MidiConfigWidget(QWidget):
                     preset = "Instant B"
                 elif "Cut to Center" in preset_text:
                     preset = "Cut to Center"
+                elif "Reset Mix" in preset_text:
+                    preset = "Reset Mix"
                 else:
                     preset = "A to B"
                 
