@@ -120,7 +120,7 @@
     "type": "load_preset",
     "params": {
       "deck_id": "A",
-      "preset_name": "Kaleido Tunnel",
+      "preset_name": "Kaleido Tunney",
       "custom_values": ""
     },
     "midi": "note_on_ch0_note68"
@@ -318,7 +318,7 @@
     "type": "load_preset",
     "params": {
       "deck_id": "B",
-      "preset_name": "Kaleido Tunnel",
+      "preset_name": "Kaleido Tunney",
       "custom_values": ""
     },
     "midi": "note_on_ch0_note73"
@@ -412,6 +412,24 @@
       "custom_values": ""
     },
     "midi": "note_on_ch0_note81"
+  },
+  "deck_a_preset_19": {
+    "type": "load_preset",
+    "params": {
+      "deck_id": "A",
+      "preset_name": "Plasma Clouds",
+      "custom_values": ""
+    },
+    "midi": "note_on_ch0_note82"
+  },
+  "deck_b_preset_19": {
+    "type": "load_preset",
+    "params": {
+      "deck_id": "B",
+      "preset_name": "Plasma Clouds",
+      "custom_values": ""
+    },
+    "midi": "note_on_ch0_note83"
   },
   "mix_action_9": {
     "type": "crossfade_action",
