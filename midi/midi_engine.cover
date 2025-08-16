@@ -1,0 +1,1189 @@
+       # midi/midi_engine.py - VERSIÓN SIMPLIFICADA SIN LÓGICA DE VISUALES
+    1: import mido
+    1: import mido.backends.rtmidi
+    1: from PyQt6.QtCore import QObject, pyqtSignal, QTimer, Qt
+    1: import time
+    1: import logging
+    1: import queue
+    1: import copy
+    1: import json
+    1: import os
+       
+    1: from .midi_visual_mapper import MidiVisualMapper
+       
+    2: class MidiEngine(QObject):
+           # Existing signals
+    1:     midi_message_received = pyqtSignal(object)
+    1:     control_changed = pyqtSignal(str, int)
+    1:     note_on_received = pyqtSignal(int, int)
+    1:     note_off_received = pyqtSignal(int)
+    1:     preset_loaded_on_deck = pyqtSignal(str, str)
+       
+           # New signals for the mapping system
+    1:     midi_message_received_for_learning = pyqtSignal(str)
+    1:     bpm_changed = pyqtSignal(float)
+    1:     device_connected = pyqtSignal(str)
+    1:     device_disconnected = pyqtSignal(str)
+    1:     mapped_action_triggered = pyqtSignal(str, int)
+       
+    1:     def __init__(self, settings_manager, visualizer_manager):
+    1:         super().__init__()
+    1:         self.settings_manager = settings_manager
+    1:         self.visualizer_manager = visualizer_manager
+               
+               # NUEVO: Inicializar mapper de visuales
+    1:         self.visual_mapper = MidiVisualMapper(visualizer_manager)
+               
+               # CONFIGURACIÓN MEJORADA DE CANALES MIDI
+    1:         self.accepted_channels = list(range(16))  # Acepta todos los canales (0-15)
+    1:         self.default_channel = 0  # Canal por defecto para mappings
+               
+               # Cargar mappings con prioridad
+    1:         self.midi_mappings = {}
+    1:         self.load_mappings_with_priority()
+               
+               # Construir tabla de lookup
+    1:         self._build_midi_lookup()
+               
+               # DEBUG mejorado
+    1:         logging.info(f"🎹 MIDI ENGINE INITIALIZED:")
+    1:         logging.info(f"   Total mappings loaded: {len(self.midi_mappings)}")
+    1:         logging.info(f"   Accepted MIDI channels: {self.accepted_channels}")
+    1:         logging.info(f"   Default channel: {self.default_channel}")
+               
+    1:         self.input_port = None
+    1:         self.running = False
+    1:         self._last_bpm_time = 0
+    1:         self._beat_intervals = []
+       
+               # Referencias a componentes de aplicación
+    1:         self.mixer_window = None
+    1:         self.control_panel = None
+       
+               # Variables de animación de crossfade
+    1:         self.crossfade_timer = None
+    1:         self.crossfade_start_value = 0.5
+    1:         self.crossfade_target_value = 0.5
+    1:         self.crossfade_duration = 1000
+    1:         self.crossfade_start_time = 0
+       
+               # Cola para desacoplar recepción MIDI del procesamiento
+    1:         self._message_queue = queue.Queue()
+       
+    1:         logging.info("MidiEngine initialized")
+       
+               # Conectar señal para ejecución thread-safe
+    2:         self.mapped_action_triggered.connect(
+    1:             self.execute_mapped_action_safe, Qt.ConnectionType.QueuedConnection
+               )
+       
+               # Timer para procesar mensajes MIDI en cola
+    1:         self._queue_timer = QTimer()
+    1:         self._queue_timer.setInterval(1)
+    1:         self._queue_timer.timeout.connect(self._process_midi_queue)
+    1:         self._queue_timer.start()
+       
+               # Configurar mappings por defecto después de inicialización
+    1:         QTimer.singleShot(1000, self.setup_default_mappings)
+       
+    1:     def set_accepted_channels(self, channels):
+               """Configurar qué canales MIDI acepta el engine"""
+               if isinstance(channels, (list, tuple)):
+                   self.accepted_channels = list(channels)
+               elif isinstance(channels, int):
+                   self.accepted_channels = [channels]
+               else:
+                   self.accepted_channels = list(range(16))  # Todos los canales
+               
+               logging.info(f"🎹 MIDI channels updated: {self.accepted_channels}")
+               
+               # Reconstruir lookup table con nuevos canales
+               self._build_midi_lookup()
+               
+               # Actualizar canal en visual mapper
+               self.visual_mapper.set_default_channel(self.default_channel)
+       
+    1:     def set_default_channel(self, channel):
+               """Configurar canal MIDI por defecto para nuevos mappings"""
+               if 0 <= channel <= 15:
+                   self.default_channel = channel
+                   logging.info(f"🎹 Default MIDI channel set to: {channel}")
+                   # Actualizar en visual mapper
+                   self.visual_mapper.set_default_channel(channel)
+       
+    1:     def create_message_key(self, msg):
+               """FIXED: Crear clave única para mensaje MIDI - FILTRADO MEJORADO"""
+   28:         try:
+   28:             channel = getattr(msg, 'channel', 0)
+                   
+                   # FILTRAR MENSAJES QUE NO NECESITAN MAPPING
+   28:             if msg.type in ['clock', 'start', 'stop', 'continue', 'song_position']:
+                       return None
+                   
+                   # IMPORTANTE: Verificar si el canal está aceptado
+   28:             if channel not in self.accepted_channels:
+                       logging.debug(f"🚫 Channel {channel} not in accepted channels {self.accepted_channels}")
+                       return None
+                   
+   28:             logging.debug(f"🔑 Creating key for {msg.type} on channel {channel}")
+                   
+   28:             if msg.type == 'note_on':
+   14:                 note_on_key = f"note_on_ch{channel}_note{msg.note}"
+   14:                 logging.debug(f"🔑 Note_on key: {note_on_key}")
+   14:                 return note_on_key
+                       
+   14:             elif msg.type == 'note_off':
+   14:                 return None  # Ignorar note_off para reducir spam
+                       
+                   elif msg.type == 'control_change':
+                       cc_key = f"cc_ch{channel}_cc{msg.control}"
+                       logging.debug(f"🔑 CC key: {cc_key}")
+                       return cc_key
+                       
+                   elif msg.type == 'program_change':
+                       pc_key = f"pc_ch{channel}_prog{msg.program}"
+                       logging.debug(f"🔑 PC key: {pc_key}")
+                       return pc_key
+                       
+                   elif msg.type == 'pitchwheel':
+                       pw_key = f"pitchwheel_ch{channel}"
+                       logging.debug(f"🔑 Pitchwheel key: {pw_key}")
+                       return pw_key
+                   else:
+                       logging.debug(f"🔑 Unknown MIDI type: {msg.type}")
+                       return None
+                       
+               except Exception as e:
+                   logging.error(f"❌ Error creating message key: {e}")
+                   return None
+       
+    1:     def create_default_midi_mappings(self):
+               """NUEVO: Crear mappings usando el visual mapper dinámico"""
+               try:
+                   logging.info("🎨 Creating dynamic MIDI mappings using MidiVisualMapper...")
+                   
+                   # Sincronizar con visuales disponibles
+                   self.visual_mapper.sync_with_available_visuals()
+                   
+                   # Generar mappings dinámicos
+                   dynamic_mappings = self.visual_mapper.generate_all_visual_mappings()
+                   
+                   logging.info(f"✅ Generated {len(dynamic_mappings)} dynamic MIDI mappings")
+                   
+                   # Mostrar información de mappings
+                   self.visual_mapper.print_current_visual_mappings()
+                   
+                   return dynamic_mappings
+                   
+               except Exception as e:
+                   logging.error(f"❌ Error creating dynamic mappings: {e}")
+                   # Fallback a mappings vacíos
+                   return {}
+       
+    1:     def handle_midi_message(self, msg):
+               """FIXED: Procesar mensaje MIDI con filtrado mejorado"""
+ 3283:         try:
+                   # PROCESAR MIDI CLOCK/SYNC por separado (NO logging spam)
+ 3283:             if msg.type in ['clock', 'start', 'stop', 'continue', 'song_position']:
+ 3255:                 self.process_midi_sync(msg)
+ 3255:                 return
+                   
+                   # Log básico solo para note_on/note_off importantes
+   28:             if hasattr(msg, 'type') and msg.type == 'note_on':
+   14:                 channel = getattr(msg, 'channel', 0)
+   14:                 note = getattr(msg, 'note', 0)
+   14:                 velocity = getattr(msg, 'velocity', 0)
+                       
+   14:                 if velocity > 0:  # Solo note_on reales
+   14:                     logging.info(f"🎵 MIDI: {msg.type} Ch{channel+1} Note{note} Vel{velocity}")
+                   
+                   # Crear clave de mensaje
+   28:             message_key = self.create_message_key(msg)
+                   
+   28:             if message_key is None:
+   14:                 return
+                   
+                   # Emitir señales para monitoreo
+   14:             self.midi_message_received.emit(msg)
+   14:             self.midi_message_received_for_learning.emit(message_key)
+                   
+                   # Verificar si existe mapping
+   14:             mapping_exists = message_key in self.midi_lookup
+                   
+   14:             if mapping_exists:
+   14:                 action_id, mapping_data = self.midi_lookup[message_key]
+   14:                 action_type = mapping_data.get('type', 'unknown')
+   14:                 params = mapping_data.get('params', {})
+   14:                 logging.info(f"✅ FOUND MAPPING: {message_key} -> {action_id} ({action_type})")
+                   else:
+                       # Solo log debug para mappings no encontrados
+                       logging.debug(f"❌ NO MAPPING for: {message_key}")
+                   
+                   # Procesar diferentes tipos de mensaje
+   14:             if msg.type == 'note_on':
+   14:                 velocity = getattr(msg, 'velocity', 0)
+   14:                 note = getattr(msg, 'note', 0)
+                       
+   14:                 self.note_on_received.emit(note, velocity)
+                       
+   14:                 if velocity > 0:
+                           # Note on real
+   14:                     self.process_bpm_from_note()
+   14:                     if mapping_exists:
+   14:                         logging.info(f"🚀 EXECUTING note_on action for {message_key}")
+   14:                         self.mapped_action_triggered.emit(message_key, velocity)
+                       else:
+                           # Note on con velocity 0 = note off
+                           self.note_off_received.emit(note)
+                           
+                   elif msg.type == 'control_change':
+                       control = getattr(msg, 'control', 0)
+                       value = getattr(msg, 'value', 0)
+                       self.control_changed.emit(f"cc_{control}", value)
+                       if mapping_exists:
+                           self.mapped_action_triggered.emit(message_key, value)
+                           
+                   elif msg.type == 'program_change':
+                       program = getattr(msg, 'program', 0)
+                       if mapping_exists:
+                           self.mapped_action_triggered.emit(message_key, program)
+       
+               except Exception as e:
+                   logging.error(f"❌ Error handling MIDI message: {e}")
+                   import traceback
+                   traceback.print_exc()
+       
+    1:     def _build_midi_lookup(self):
+               """VERSIÓN MEJORADA: Construir tabla de lookup con soporte multi-canal"""
+    1:         self.midi_lookup = {}
+    1:         try:
+    1:             logging.info("🔨 BUILDING MIDI LOOKUP TABLE...")
+                   
+   47:             for action_id, mapping_data in self.midi_mappings.items():
+   46:                 if not isinstance(mapping_data, dict):
+                           continue
+                           
+   46:                 midi_key = mapping_data.get("midi")
+   46:                 if midi_key:
+                           # Verificar duplicados
+   46:                     if midi_key in self.midi_lookup:
+                               old_action_id, old_mapping = self.midi_lookup[midi_key]
+                               logging.warning(f"⚠️ DUPLICATE MIDI KEY: {midi_key}")
+                               logging.warning(f"   Old: {old_action_id}")
+                               logging.warning(f"   New: {action_id} (will overwrite)")
+                           
+   46:                     self.midi_lookup[midi_key] = (action_id, mapping_data)
+                               
+    1:             logging.info(f"✅ MIDI lookup table built with {len(self.midi_lookup)} entries")
+                   
+               except Exception as e:
+                   logging.error(f"❌ Error building MIDI lookup: {e}")
+                   self.midi_lookup = {}
+       
+           # === FUNCIONES PARA UI DE CONFIGURACIÓN ===
+           
+    1:     def get_available_channels(self):
+               """Obtener canales MIDI disponibles"""
+               return list(range(16))  # MIDI channels 1-16 (0-15 internally)
+           
+    1:     def get_channel_display_name(self, channel):
+               """Obtener nombre de display para canal MIDI"""
+               return f"Channel {channel + 1}"  # Display as 1-16
+           
+    1:     def add_custom_mapping(self, action_type, params, midi_key):
+               """Añadir mapping personalizado desde UI"""
+               try:
+                   # Generar ID único
+                   import uuid
+                   action_id = f"custom_{action_type}_{str(uuid.uuid4())[:8]}"
+                   
+                   mapping_data = {
+                       "type": action_type,
+                       "params": params,
+                       "midi": midi_key
+                   }
+                   
+                   self.midi_mappings[action_id] = mapping_data
+                   self._build_midi_lookup()
+                   
+                   # Guardar cambios
+                   if self.settings_manager:
+                       self.settings_manager.save_midi_mappings(self.midi_mappings)
+                   
+                   logging.info(f"✅ Custom mapping added: {action_id} -> {midi_key}")
+                   return action_id
+                   
+               except Exception as e:
+                   logging.error(f"❌ Error adding custom mapping: {e}")
+                   return None
+           
+    1:     def remove_mapping(self, action_id):
+               """Remover mapping específico"""
+               try:
+                   if action_id in self.midi_mappings:
+                       midi_key = self.midi_mappings[action_id].get('midi', 'unknown')
+                       del self.midi_mappings[action_id]
+                       self._build_midi_lookup()
+                       
+                       # Guardar cambios
+                       if self.settings_manager:
+                           self.settings_manager.save_midi_mappings(self.midi_mappings)
+                       
+                       logging.info(f"✅ Mapping removed: {action_id} ({midi_key})")
+                       return True
+               except Exception as e:
+                   logging.error(f"❌ Error removing mapping: {e}")
+               return False
+           
+    1:     def update_mapping(self, action_id, new_midi_key=None, new_params=None):
+               """Actualizar mapping existente"""
+               try:
+                   if action_id not in self.midi_mappings:
+                       return False
+                       
+                   mapping = self.midi_mappings[action_id]
+                   
+                   if new_midi_key:
+                       mapping['midi'] = new_midi_key
+                   if new_params:
+                       mapping['params'].update(new_params)
+                   
+                   self._build_midi_lookup()
+                   
+                   # Guardar cambios
+                   if self.settings_manager:
+                       self.settings_manager.save_midi_mappings(self.midi_mappings)
+                   
+                   logging.info(f"✅ Mapping updated: {action_id}")
+                   return True
+                   
+               except Exception as e:
+                   logging.error(f"❌ Error updating mapping: {e}")
+                   return False
+       
+    1:     def get_mappings_for_channel(self, channel):
+               """Obtener todos los mappings para un canal específico"""
+               channel_mappings = {}
+               for action_id, mapping_data in self.midi_mappings.items():
+                   midi_key = mapping_data.get('midi', '')
+                   if f'_ch{channel}_' in midi_key:
+                       channel_mappings[action_id] = mapping_data
+               return channel_mappings
+       
+    1:     def get_note_mapping_info(self, note, channel=None):
+               """Obtener información de mapping para una nota específica"""
+               if channel is None:
+                   channel = self.default_channel
+                   
+               note_on_key = f"note_on_ch{channel}_note{note}"
+               note_off_key = f"note_off_ch{channel}_note{note}"
+               
+               info = {
+                   'note': note,
+                   'channel': channel,
+                   'note_name': self.get_note_name(note),
+                   'note_on_mapping': None,
+                   'note_off_mapping': None,
+                   'has_mapping': False
+               }
+               
+               if note_on_key in self.midi_lookup:
+                   action_id, mapping_data = self.midi_lookup[note_on_key]
+                   info['note_on_mapping'] = {
+                       'action_id': action_id,
+                       'mapping_data': mapping_data
+                   }
+                   info['has_mapping'] = True
+                   
+               if note_off_key in self.midi_lookup:
+                   action_id, mapping_data = self.midi_lookup[note_off_key]
+                   info['note_off_mapping'] = {
+                       'action_id': action_id,
+                       'mapping_data': mapping_data
+                   }
+                   info['has_mapping'] = True
+                   
+               return info
+       
+    1:     def get_note_name(self, note_number):
+               """Convertir número de nota MIDI a nombre (ej: 69 -> A3)"""
+               note_names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+               octave = (note_number // 12) - 1
+               note_name = note_names[note_number % 12]
+               return f"{note_name}{octave}"
+       
+    1:     def export_mappings_to_file(self, filename):
+               """Exportar mappings a archivo JSON"""
+               try:
+                   with open(filename, 'w', encoding='utf-8') as f:
+                       json.dump(self.midi_mappings, f, indent=2, ensure_ascii=False)
+                   logging.info(f"✅ Mappings exported to {filename}")
+                   return True
+               except Exception as e:
+                   logging.error(f"❌ Error exporting mappings: {e}")
+                   return False
+       
+    1:     def import_mappings_from_file(self, filename):
+               """Importar mappings desde archivo JSON"""
+               try:
+                   with open(filename, 'r', encoding='utf-8') as f:
+                       imported_mappings = json.load(f)
+                   
+                   if isinstance(imported_mappings, dict):
+                       self.midi_mappings = imported_mappings
+                       self._build_midi_lookup()
+                       
+                       # Guardar cambios
+                       if self.settings_manager:
+                           self.settings_manager.save_midi_mappings(self.midi_mappings)
+                       
+                       logging.info(f"✅ Mappings imported from {filename}")
+                       return True
+               except Exception as e:
+                   logging.error(f"❌ Error importing mappings: {e}")
+               return False
+       
+           # === FUNCIONES HEREDADAS (mantenidas para compatibilidad) ===
+           
+    1:     def load_mappings_with_priority(self):
+               """Cargar mappings con prioridad"""
+    1:         try:
+    1:             config_mappings_path = 'config/midi_mappings.json'
+    1:             if os.path.exists(config_mappings_path):
+    1:                 try:
+    2:                     with open(config_mappings_path, 'r') as f:
+    1:                         config_mappings = json.load(f)
+                           
+    1:                     if isinstance(config_mappings, dict) and len(config_mappings) > 0:
+    1:                         self.midi_mappings = copy.deepcopy(config_mappings)
+    1:                         logging.info(f"✅ Loaded {len(self.midi_mappings)} mappings from {config_mappings_path}")
+    1:                         return
+                       except Exception as e:
+                           logging.error(f"❌ Error loading from {config_mappings_path}: {e}")
+                   
+                   # Fallback a settings_manager
+                   if self.settings_manager:
+                       try:
+                           settings_mappings = self.settings_manager.load_midi_mappings()
+                           if isinstance(settings_mappings, dict) and len(settings_mappings) > 0:
+                               self.midi_mappings = copy.deepcopy(settings_mappings)
+                               logging.info(f"✅ Loaded {len(self.midi_mappings)} mappings from settings")
+                               return
+                       except Exception as e:
+                           logging.error(f"❌ Error loading from settings: {e}")
+                   
+                   # Mappings vacíos
+                   self.midi_mappings = {}
+                   logging.warning("⚠️ No mappings found - will create defaults")
+                   
+               except Exception as e:
+                   logging.error(f"❌ Critical error loading mappings: {e}")
+                   self.midi_mappings = {}
+           
+    1:     def set_application_references(self, mixer_window=None, control_panel=None):
+               """Set references to application components for executing actions"""
+    1:         self.mixer_window = mixer_window
+    1:         self.control_panel = control_panel
+    1:         logging.info(f"✅ Application references set in MidiEngine")
+       
+    1:     def list_input_ports(self):
+               """List available MIDI input ports"""
+    3:         try:
+    3:             return mido.get_input_names()
+               except Exception as e:
+                   logging.error(f"Error listing MIDI input ports: {e}")
+                   return []
+       
+    1:     def open_input_port(self, port_name):
+               """Open a MIDI input port"""
+    1:         try:
+    1:             self.close_input_port()
+                   
+    1:             available_ports = mido.get_input_names()
+    1:             if port_name not in available_ports:
+                       logging.error(f"❌ Port '{port_name}' not available")
+                       return False
+                   
+    1:             self.input_port = mido.open_input(port_name, callback=self._enqueue_midi_message)
+    1:             self.running = True
+                   
+    1:             if self.settings_manager:
+    1:                 self.settings_manager.set_setting("last_midi_device", port_name)
+                   
+    1:             logging.info(f"✅ MIDI port opened: {port_name}")
+    1:             self.device_connected.emit(port_name)
+    1:             return True
+                   
+               except Exception as e:
+                   logging.error(f"❌ Failed to open MIDI port: {e}")
+                   return False
+       
+    1:     def close_input_port(self):
+               """Close the current MIDI input port"""
+    2:         if self.input_port:
+    1:             try:
+    1:                 old_port_name = str(self.input_port)
+    1:                 self.input_port.close()
+    1:                 self.input_port = None
+    1:                 self.running = False
+    1:                 self.device_disconnected.emit(old_port_name)
+    1:                 logging.info("✅ MIDI port closed")
+                   except Exception as e:
+                       logging.error(f"Error closing MIDI port: {e}")
+       
+    1:     def is_port_open(self):
+               """Check if a MIDI input port is currently open"""
+   24:         return self.input_port is not None and self.running
+       
+    1:     def get_connected_device_name(self):
+               """Get the name of the currently connected MIDI device"""
+               if self.input_port:
+                   return str(self.input_port)
+               return None
+       
+    1:     def _enqueue_midi_message(self, msg):
+               """Callback used by mido to enqueue incoming messages"""
+               try:
+                   self._message_queue.put(msg)
+               except Exception as e:
+                   logging.error(f"❌ Error enqueuing MIDI message: {e}")
+       
+    1:     def _process_midi_queue(self):
+               """Process all pending MIDI messages from the queue"""
+ 5166:         try:
+ 8449:             while not self._message_queue.empty():
+ 3283:                 msg = self._message_queue.get_nowait()
+ 3283:                 self.handle_midi_message(msg)
+               except Exception as e:
+                   logging.error(f"❌ Error processing MIDI queue: {e}")
+       
+    1:     def execute_mapped_action_safe(self, message_key, value):
+               """Thread-safe wrapper for executing mapped actions"""
+   14:         try:
+   14:             if message_key not in self.midi_lookup:
+                       logging.error(f"❌ Attempting to execute non-existent mapping: {message_key}")
+                       return
+                   
+   14:             self.execute_mapped_action(message_key, value)
+               except Exception as e:
+                   logging.error(f"❌ Error in execute_mapped_action_safe: {e}")
+       
+    1:     def execute_mapped_action(self, message_key, value):
+               """Execute action mapped to a MIDI message"""
+   14:         try:
+   14:             mapped_action = self.midi_lookup.get(message_key)
+   14:             if not mapped_action:
+                       return
+       
+   14:             action_id, mapping_data = mapped_action
+   14:             action_type = mapping_data.get('type')
+   14:             params = mapping_data.get('params', {})
+                   
+   14:             logging.info(f"🎹 EXECUTING: {action_id} ({action_type}) with value {value}")
+                   
+   14:             if action_type == "load_preset":
+    9:                 self.execute_load_preset_action(params)
+    5:             elif action_type == "crossfade_action":
+    5:                 self.execute_crossfade_action(params)
+                   elif action_type == "animate_crossfade":
+                       self.execute_animate_crossfade_action(params)
+                   elif action_type == "control_parameter":
+                       self.execute_control_parameter_action(params, value)
+                   elif action_type == "preset_action":
+                       self.execute_preset_action(params)
+                   else:
+                       logging.warning(f"⚠️ Unknown action type: {action_type}")
+                       
+               except Exception as e:
+                   logging.error(f"❌ Error executing mapped action: {e}")
+       
+    1:     def execute_load_preset_action(self, params):
+               """Execute load preset action"""
+    9:         try:
+    9:             deck_id = params.get('deck_id')
+    9:             preset_name = params.get('preset_name')
+    9:             custom_values = params.get('custom_values', '')
+                   
+    9:             if not self.mixer_window:
+                       logging.error("❌ Mixer window reference not available!")
+                       return
+                   
+    9:             if deck_id and preset_name is not None:
+    8:                 self.mixer_window.safe_set_deck_visualizer(deck_id, preset_name)
+       
+    8:                 if custom_values:
+                           self.apply_custom_values(deck_id, custom_values)
+       
+    8:                 if preset_name is None:
+                           logging.info(f"✅ Deck {deck_id} cleared")
+                           self.preset_loaded_on_deck.emit(deck_id, "-- No preset selected --")
+                       else:
+    8:                     logging.info(f"✅ Preset '{preset_name}' loaded on deck {deck_id}")
+    8:                     self.preset_loaded_on_deck.emit(deck_id, preset_name)
+                           
+               except Exception as e:
+                   logging.error(f"❌ Error in execute_load_preset_action: {e}")
+       
+    1:     def execute_crossfade_action(self, params):
+               """Execute crossfade action"""
+    5:         try:
+    5:             preset = params.get('preset', 'A to B')
+    5:             duration = params.get('duration', '')
+                   
+                   # Parse duration string to milliseconds
+    5:             duration_ms = 1000
+    5:             if duration:
+    5:                 if 'ms' in duration:
+    1:                     duration_ms = int(duration.replace('ms', ''))
+    4:                 elif 's' in duration:
+    4:                     duration_ms = int(float(duration.replace('s', '')) * 1000)
+                   
+                   # Map preset to target value
+    5:             target_value = 0.5
+    5:             if preset == "Instant A":
+                       target_value = 0.0
+                       duration_ms = 50
+    5:             elif preset == "Instant B":
+                       target_value = 1.0
+                       duration_ms = 50
+    5:             elif preset == "Cut to Center":
+                       target_value = 0.5
+                       duration_ms = 50
+    5:             elif preset == "A to B":
+    3:                 target_value = 1.0
+    2:             elif preset == "B to A":
+    2:                 target_value = 0.0
+                   
+                   # Use animated crossfade
+    5:             animation_params = {
+    5:                 'target_value': target_value,
+    5:                 'duration_ms': duration_ms,
+    5:                 'curve': 'linear'
+                   }
+                   
+    5:             self.execute_animate_crossfade_action(animation_params)
+                   
+               except Exception as e:
+                   logging.error(f"❌ Error executing crossfade action: {e}")
+       
+    1:     def execute_animate_crossfade_action(self, params):
+               """Execute animated crossfade action"""
+    5:         try:
+    5:             target_value = params.get('target_value', 0.5)
+    5:             duration_ms = params.get('duration_ms', 1000)
+                   
+    5:             if not self.mixer_window:
+                       logging.error("❌ Mixer window not available for crossfade animation")
+                       return
+                   
+    5:             current_value = self.mixer_window.get_mix_value() if hasattr(self.mixer_window, 'get_mix_value') else 0.5
+                   
+    5:             self.crossfade_start_value = current_value
+    5:             self.crossfade_target_value = target_value
+    5:             self.crossfade_duration = duration_ms
+    5:             self.crossfade_start_time = time.time() * 1000
+                   
+    5:             if self.crossfade_timer:
+    2:                 self.crossfade_timer.stop()
+    2:                 self.crossfade_timer = None
+                   
+    5:             self.crossfade_timer = QTimer()
+    5:             self.crossfade_timer.timeout.connect(self.update_crossfade_animation)
+    5:             self.crossfade_timer.start(16)  # 60 FPS
+                   
+               except Exception as e:
+                   logging.error(f"❌ Error executing animate crossfade action: {e}")
+       
+    1:     def update_crossfade_animation(self):
+               """Update crossfade animation frame"""
+  936:         try:
+  936:             current_time = time.time() * 1000
+  936:             elapsed = current_time - self.crossfade_start_time
+  936:             progress = min(elapsed / self.crossfade_duration, 1.0)
+                   
+  936:             current_value = self.crossfade_start_value + (self.crossfade_target_value - self.crossfade_start_value) * progress
+                   
+  936:             mixer_value = int(current_value * 100)
+  936:             if hasattr(self.mixer_window, 'safe_set_mix_value'):
+  936:                 self.mixer_window.safe_set_mix_value(mixer_value)
+                   
+  936:             if progress >= 1.0:
+    3:                 if self.crossfade_timer:
+    3:                     self.crossfade_timer.stop()
+    3:                     self.crossfade_timer = None
+    3:                 logging.info(f"✅ Crossfade animation completed at {self.crossfade_target_value:.2f}")
+                   
+               except Exception as e:
+                   logging.error(f"❌ Error updating crossfade animation: {e}")
+                   if self.crossfade_timer:
+                       self.crossfade_timer.stop()
+                       self.crossfade_timer = None
+       
+    1:     def execute_control_parameter_action(self, params, value):
+               """Execute control parameter action"""
+               try:
+                   deck_id = params.get('deck_id')
+                   parameter_name = params.get('parameter_name')
+                   
+                   if deck_id and parameter_name and self.mixer_window:
+                       scaled_value = value
+                       if 'min_value' in params and 'max_value' in params:
+                           min_val = params['min_value']
+                           max_val = params['max_value']
+                           scaled_value = min_val + (value / 127.0) * (max_val - min_val)
+                       
+                       if hasattr(self.mixer_window, 'safe_update_deck_control'):
+                           self.mixer_window.safe_update_deck_control(deck_id, parameter_name, scaled_value)
+                           logging.info(f"✅ Updated {deck_id}.{parameter_name} to {scaled_value}")
+                   
+               except Exception as e:
+                   logging.error(f"❌ Error executing control parameter action: {e}")
+       
+    1:     def execute_preset_action(self, params):
+               """Trigger a custom action on a deck's current preset"""
+               try:
+                   deck_id = params.get('deck_id')
+                   preset_name = params.get('preset_name')
+                   action = params.get('custom_values', '')
+       
+                   if not self.mixer_window:
+                       logging.error("❌ Mixer window reference not available!")
+                       return
+       
+                   target_deck = None
+                   if deck_id == 'A':
+                       target_deck = self.mixer_window.deck_a
+                   elif deck_id == 'B':
+                       target_deck = self.mixer_window.deck_b
+       
+                   if target_deck and target_deck.get_current_visualizer_name() == preset_name:
+                       self.mixer_window.safe_trigger_deck_action(deck_id, action)
+                       logging.info(f"✅ Triggered action '{action}' on deck {deck_id}")
+                   else:
+                       logging.debug(f"Deck {deck_id} not running preset {preset_name}")
+       
+               except Exception as e:
+                   logging.error(f"❌ Error executing preset action: {e}")
+       
+    1:     def apply_custom_values(self, deck_id, custom_values):
+               """Apply custom parameter values to a deck"""
+               try:
+                   if not custom_values:
+                       return
+                       
+                   pairs = custom_values.split(';')
+                   for pair in pairs:
+                       if ':' in pair:
+                           param_name, param_value = pair.split(':', 1)
+                           param_name = param_name.strip()
+                           param_value = param_value.strip()
+                           
+                           try:
+                               if param_value.isdigit() or (param_value.startswith('-') and param_value[1:].isdigit()):
+                                   param_value = int(param_value)
+                               elif '.' in param_value:
+                                   param_value = float(param_value)
+                           except ValueError:
+                               pass
+                           
+                           if self.mixer_window and hasattr(self.mixer_window, 'safe_update_deck_control'):
+                               self.mixer_window.safe_update_deck_control(deck_id, param_name, param_value)
+                               logging.info(f"✅ Applied custom value: {deck_id}.{param_name} = {param_value}")
+                               
+               except Exception as e:
+                   logging.error(f"❌ Error applying custom values: {e}")
+       
+    1:     def process_bpm_from_note(self):
+               """Process BPM calculation from note timing"""
+   14:         try:
+   14:             current_time = time.time()
+       
+   14:             if self._last_bpm_time > 0:
+   13:                 interval = current_time - self._last_bpm_time
+   13:                 self._beat_intervals.append(interval)
+       
+   13:                 if len(self._beat_intervals) > 8:
+    5:                     self._beat_intervals.pop(0)
+       
+   13:                 if len(self._beat_intervals) >= 2:
+   12:                     avg_interval = sum(self._beat_intervals) / len(self._beat_intervals)
+   12:                     bpm = 60.0 / avg_interval
+       
+   12:                     if 40 <= bpm <= 200:
+    1:                         self.bpm_changed.emit(bpm)
+       
+   14:             self._last_bpm_time = current_time
+       
+               except Exception as e:
+                   logging.error(f"Error processing BPM: {e}")
+       
+           # Alias para compatibilidad retroactiva con el nombre anterior
+    1:     def process_bmp_from_note(self):
+               """Backward compatible alias for misnamed function"""
+               return self.process_bpm_from_note()
+       
+    1:     def setup_default_mappings(self):
+               """Setup default MIDI mappings"""
+    1:         try:
+    1:             if not self.midi_mappings or len(self.midi_mappings) == 0:
+                       logging.info("🎹 Creating default MIDI mappings...")
+                       default_mappings = self.create_default_midi_mappings()
+                       self.set_midi_mappings(default_mappings)
+                       logging.info("✅ Default MIDI mappings created and saved")
+                   else:
+    1:                 logging.info(f"🎹 Using existing MIDI mappings: {len(self.midi_mappings)} mappings loaded")
+                       
+               except Exception as e:
+                   logging.error(f"❌ Error setting up default mappings: {e}")
+       
+    1:     def test_midi_mapping(self, note_number):
+               """Test a specific MIDI mapping by note number"""
+               try:
+                   test_key = f"note_on_ch{self.default_channel}_note{note_number}"
+                   logging.info(f"🧪 TESTING MIDI mapping for note {note_number} (key: {test_key})")
+                   
+                   found_mapping = None
+                   for action_id, mapping_data in self.midi_mappings.items():
+                       if mapping_data.get('midi') == test_key:
+                           found_mapping = (action_id, mapping_data)
+                           break
+                   
+                   if found_mapping:
+                       action_id, mapping_data = found_mapping
+                       action_type = mapping_data.get('type')
+                       params = mapping_data.get('params', {})
+                       
+                       logging.info(f"✅ Found mapping: {action_id}")
+                       logging.info(f"  Type: {action_type}")
+                       logging.info(f"  Params: {params}")
+                       
+                       logging.info(f"🚀 SIMULATING execution...")
+                       self.execute_mapped_action(test_key, 127)
+                       
+                   else:
+                       note_name = self.get_note_name(note_number)
+                       logging.warning(f"❌ No mapping found for {note_name} (note {note_number})")
+                       
+               except Exception as e:
+                   logging.error(f"❌ Error testing MIDI mapping: {e}")
+       
+    1:     def set_midi_mappings(self, mappings):
+               """Set MIDI mappings"""
+               try:
+                   self.midi_mappings = copy.deepcopy(mappings)
+                   self._build_midi_lookup()
+                   if self.settings_manager:
+                       self.settings_manager.save_midi_mappings(self.midi_mappings)
+                   logging.info(f"🎹 MIDI mappings updated and saved: {len(self.midi_mappings)} mappings")
+                       
+               except Exception as e:
+                   logging.error(f"❌ Error setting MIDI mappings: {e}")
+       
+    1:     def get_midi_mappings(self):
+               """Get current MIDI mappings"""
+   19:         return self.midi_mappings.copy()
+       
+    1:     def add_midi_mapping(self, action_id, mapping_data):
+               """Add a single MIDI mapping"""
+               try:
+                   self.midi_mappings[action_id] = mapping_data
+                   self._build_midi_lookup()
+                   if self.settings_manager:
+                       self.settings_manager.save_midi_mappings(self.midi_mappings)
+                   logging.info(f"Added MIDI mapping: {action_id}")
+               except Exception as e:
+                   logging.error(f"Error adding MIDI mapping: {e}")
+       
+    1:     def remove_midi_mapping(self, action_id):
+               """Remove a MIDI mapping"""
+               try:
+                   if action_id in self.midi_mappings:
+                       del self.midi_mappings[action_id]
+                       self._build_midi_lookup()
+                       if self.settings_manager:
+                           self.settings_manager.save_midi_mappings(self.midi_mappings)
+                       logging.info(f"Removed MIDI mapping: {action_id}")
+               except Exception as e:
+                   logging.error(f"Error removing MIDI mapping: {e}")
+       
+    1:     def clear_all_mappings(self):
+               """Clear all MIDI mappings"""
+               try:
+                   self.midi_mappings.clear()
+                   self._build_midi_lookup()
+                   if self.settings_manager:
+                       self.settings_manager.save_midi_mappings(self.midi_mappings)
+                   logging.info("All MIDI mappings cleared")
+               except Exception as e:
+                   logging.error(f"Error clearing MIDI mappings: {e}")
+       
+    1:     def simulate_midi_message(self, message_key):
+               """Simulate a MIDI message for testing purposes"""
+               try:
+                   self.midi_message_received.emit(message_key)
+                   logging.info(f"Simulated MIDI message: {message_key}")
+               except Exception as e:
+                   logging.error(f"Error simulating MIDI message: {e}")
+       
+    1:     def refresh_available_ports(self):
+               """Refresh the list of available MIDI ports"""
+               try:
+                   return self.list_input_ports()
+               except Exception as e:
+                   logging.error(f"Error refreshing MIDI ports: {e}")
+                   return []
+       
+    1:     def get_device_info(self):
+               """Get information about the current MIDI device"""
+               if self.input_port:
+                   return {
+                       'name': str(self.input_port),
+                       'connected': True,
+                       'type': 'MIDI Input'
+                   }
+               return None
+       
+    1:     def process_midi_sync(self, msg):
+               """Procesar mensajes de MIDI clock/sync SIN spam de logs"""
+ 3255:         try:
+ 3255:             if msg.type == 'clock':
+ 3255:                 self.process_midi_clock()
+                   elif msg.type == 'start':
+                       logging.info("▶️ MIDI Start received")
+                       self.midi_transport_start()
+                   elif msg.type == 'stop':
+                       logging.info("⏹️ MIDI Stop received")
+                       self.midi_transport_stop()
+                   elif msg.type == 'continue':
+                       logging.info("⏯️ MIDI Continue received")
+                       self.midi_transport_continue()
+                   elif msg.type == 'song_position':
+                       position = getattr(msg, 'pos', 0)
+                       logging.debug(f"🎶 MIDI Song Position: {position}")
+                       self.midi_song_position(position)
+       
+               except Exception as e:
+                   logging.error(f"Error processing MIDI sync: {e}")
+       
+    1:     def process_midi_clock(self):
+               """Procesar MIDI clock tick - SIN logging"""
+ 3255:         try:
+                   # Incrementar contador de clock interno
+ 3255:             if not hasattr(self, '_midi_clock_count'):
+    1:                 self._midi_clock_count = 0
+                   
+ 3255:             self._midi_clock_count += 1
+                   
+                   # 24 clocks = 1 beat
+ 3255:             if self._midi_clock_count >= 24:
+  135:                 self._midi_clock_count = 0
+                       # Aquí podemos emitir señal de beat para visuales
+                       # self.midi_beat_received.emit()
+                       
+               except Exception as e:
+                   logging.error(f"Error processing MIDI clock: {e}")
+       
+    1:     def midi_transport_start(self):
+               """MIDI transport start"""
+               try:
+                   self._midi_clock_count = 0
+                   # Reset timing para visuales
+               except Exception as e:
+                   logging.error(f"Error in MIDI transport start: {e}")
+       
+    1:     def midi_transport_stop(self):
+               """MIDI transport stop"""
+               try:
+                   self._midi_clock_count = 0
+                   # Parar timing para visuales
+                   pass
+               except Exception as e:
+                   logging.error(f"Error in MIDI transport stop: {e}")
+       
+    1:     def midi_transport_continue(self):
+               """MIDI transport continue"""
+               try:
+                   # Continuar desde posición actual
+                   pass
+               except Exception as e:
+                   logging.error(f"Error in MIDI transport continue: {e}")
+       
+    1:     def midi_song_position(self, position):
+               """MIDI song position"""
+               try:
+                   # Establecer posición en la canción
+                   pass
+               except Exception as e:
+                   logging.error(f"Error in MIDI song position: {e}")
+       
+    1:     def remove_duplicate_mappings(self):
+               """Eliminar mappings duplicados manteniendo los más recientes"""
+               try:
+                   # Limpiar mappings duplicados basados en pattern
+                   mappings = self.get_midi_mappings()
+                   clean_mappings = {}
+                   seen_midi_keys = {}
+                   
+                   # Priorizar IDs estándar sobre IDs automáticos
+                   priority_patterns = ['deck_a_preset_', 'deck_b_preset_', 'mix_action_', 'deck_a_clear', 'deck_b_clear']
+                   
+                   for action_id, mapping_data in mappings.items():
+                       midi_key = mapping_data.get('midi', '')
+                       
+                       if midi_key in seen_midi_keys:
+                           # Ya existe este MIDI key
+                           existing_id = seen_midi_keys[midi_key]
+                           
+                           # Determinar cuál mantener basado en prioridad
+                           keep_current = False
+                           for pattern in priority_patterns:
+                               if pattern in action_id:
+                                   keep_current = True
+                                   break
+                           
+                           if keep_current:
+                               # Reemplazar con el ID de mayor prioridad
+                               if existing_id in clean_mappings:
+                                   del clean_mappings[existing_id]
+                               clean_mappings[action_id] = mapping_data
+                               seen_midi_keys[midi_key] = action_id
+                               logging.info(f"🔄 Replaced duplicate {existing_id} with {action_id}")
+                           else:
+                               # Mantener el existente
+                               logging.debug(f"⏭️ Keeping existing {existing_id} over {action_id}")
+                       else:
+                           # Nuevo MIDI key
+                           clean_mappings[action_id] = mapping_data
+                           seen_midi_keys[midi_key] = action_id
+                   
+                   # Aplicar mappings limpios
+                   if len(clean_mappings) != len(mappings):
+                       logging.info(f"🧹 Cleaned mappings: {len(mappings)} -> {len(clean_mappings)}")
+                       self.set_midi_mappings(clean_mappings)
+                   
+               except Exception as e:
+                   logging.error(f"Error removing duplicate mappings: {e}")
+       
+           # === NUEVOS MÉTODOS PARA GESTIÓN DINÁMICA DE VISUALES ===
+       
+    1:     def refresh_visual_mappings(self):
+               """Refrescar mappings de visuales dinámicamente"""
+               try:
+                   logging.info("🔄 Refreshing visual mappings...")
+                   
+                   # Sincronizar con visuales disponibles
+                   self.visual_mapper.sync_with_available_visuals()
+                   
+                   # Regenerar mappings dinámicos
+                   new_visual_mappings = self.visual_mapper.generate_all_visual_mappings()
+                   
+                   # Mantener mappings personalizados que no sean de visuales
+                   custom_mappings = {}
+                   for action_id, mapping_data in self.midi_mappings.items():
+                       # Mantener mappings que no sean auto-generados
+                       if not any(pattern in action_id for pattern in ['deck_a_preset_', 'deck_b_preset_', 'mix_action_', 'deck_a_clear', 'deck_b_clear']):
+                           custom_mappings[action_id] = mapping_data
+                   
+                   # Combinar mappings
+                   combined_mappings = {}
+                   combined_mappings.update(new_visual_mappings)
+                   combined_mappings.update(custom_mappings)
+                   
+                   # Aplicar nuevos mappings
+                   self.set_midi_mappings(combined_mappings)
+                   
+                   logging.info(f"✅ Visual mappings refreshed: {len(new_visual_mappings)} visual + {len(custom_mappings)} custom")
+                   
+                   # Mostrar información actualizada
+                   self.visual_mapper.print_current_visual_mappings()
+                   
+               except Exception as e:
+                   logging.error(f"❌ Error refreshing visual mappings: {e}")
+       
+    1:     def add_visual_to_mappings(self, visual_name, priority_position=None):
+               """Añadir un nuevo visual a los mappings MIDI"""
+               try:
+                   # Añadir a la configuración del visual mapper
+                   success = self.visual_mapper.add_visual_to_config(visual_name, priority_position)
+                   
+                   if success:
+                       # Refrescar mappings
+                       self.refresh_visual_mappings()
+                       logging.info(f"✅ Visual '{visual_name}' added to MIDI mappings")
+                       return True
+                   else:
+                       logging.warning(f"⚠️ Failed to add visual '{visual_name}' to mappings")
+                       return False
+                       
+               except Exception as e:
+                   logging.error(f"❌ Error adding visual to mappings: {e}")
+                   return False
+       
+    1:     def remove_visual_from_mappings(self, visual_name):
+               """Remover un visual de los mappings MIDI"""
+               try:
+                   # Remover de la configuración del visual mapper
+                   success = self.visual_mapper.remove_visual_from_config(visual_name)
+                   
+                   if success:
+                       # Refrescar mappings
+                       self.refresh_visual_mappings()
+                       logging.info(f"✅ Visual '{visual_name}' removed from MIDI mappings")
+                       return True
+                   else:
+                       logging.warning(f"⚠️ Failed to remove visual '{visual_name}' from mappings")
+                       return False
+                       
+               except Exception as e:
+                   logging.error(f"❌ Error removing visual from mappings: {e}")
+                   return False
+       
+    1:     def update_visual_priority(self, visual_name, new_position):
+               """Actualizar la prioridad de un visual en los mappings"""
+               try:
+                   # Actualizar en la configuración del visual mapper
+                   success = self.visual_mapper.update_visual_priority(visual_name, new_position)
+                   
+                   if success:
+                       # Refrescar mappings
+                       self.refresh_visual_mappings()
+                       logging.info(f"✅ Visual '{visual_name}' priority updated to position {new_position}")
+                       return True
+                   else:
+                       logging.warning(f"⚠️ Failed to update visual '{visual_name}' priority")
+                       return False
+                       
+               except Exception as e:
+                   logging.error(f"❌ Error updating visual priority: {e}")
+                   return False
+       
+    1:     def get_visual_mapping_info(self):
+               """Obtener información detallada de los mappings visuales"""
+               try:
+                   return self.visual_mapper.get_visual_mapping_info()
+               except Exception as e:
+                   logging.error(f"❌ Error getting visual mapping info: {e}")
+                   return {}
+       
+    1:     def get_available_visuals(self):
+               """Obtener lista de visuales disponibles"""
+               try:
+                   return self.visual_mapper.get_available_visuals()
+               except Exception as e:
+                   logging.error(f"❌ Error getting available visuals: {e}")
+                   return []
+       
+    1:     def get_visual_priority_order(self):
+               """Obtener el orden de prioridad actual de los visuales"""
+               try:
+                   return self.visual_mapper.visual_mappings_config.get("visual_priority_order", [])
+               except Exception as e:
+                   logging.error(f"❌ Error getting visual priority order: {e}")
+                   return []
+       
+    1:     def __del__(self):
+               """Cleanup when object is destroyed"""
+               try:
+                   self.close_input_port()
+               except:
+                   pass

@@ -1,0 +1,350 @@
+       # TODO: migrate to RenderBackend (ModernGL)
+    1: from OpenGL.GL import *
+    1: import numpy as np
+    1: import ctypes
+    1: import time
+    1: import math
+       
+    1: from visuals.base_visualizer import BaseVisualizer
+       
+    2: class WireTerrainVisualizer(BaseVisualizer):
+    1:     visual_name = "Wire Terrain"
+           
+    1:     def __init__(self, *args, **kwargs):
+    1:         super().__init__(*args, **kwargs)
+    1:         self.shader_program = None
+    1:         self.vao = None
+    1:         self.vbo = None
+    1:         self.ebo = None
+    1:         self.start_time = time.time()
+       
+    1:         self.grid_size = 60
+    1:         self.amplitude = 0.5
+    1:         self.frequency = 1.0
+    1:         self.speed = 1.0
+    1:         self.wireframe = True
+       
+    1:         self.vertices = None
+    1:         self.indices = None
+    1:         self.initialized = False
+       
+    1:     def get_controls(self):
+    2:         return {
+    2:             "Grid Size": {"type": "slider", "min": 20, "max": 100, "value": self.grid_size},
+    2:             "Amplitude": {"type": "slider", "min": 10, "max": 200, "value": int(self.amplitude * 100)},
+    2:             "Frequency": {"type": "slider", "min": 10, "max": 300, "value": int(self.frequency * 100)},
+    2:             "Speed": {"type": "slider", "min": 0, "max": 300, "value": int(self.speed * 100)},
+    2:             "Wireframe": {"type": "dropdown", "options": ["Off", "On"], "value": int(self.wireframe)}
+               }
+       
+    1:     def update_control(self, name, value):
+               if name == "Grid Size":
+                   old_size = self.grid_size
+                   self.grid_size = int(value)
+                   if old_size != self.grid_size:
+                       self.generate_terrain()
+               elif name == "Amplitude":
+                   self.amplitude = float(value) / 100.0
+               elif name == "Frequency":
+                   self.frequency = float(value) / 100.0
+               elif name == "Speed":
+                   self.speed = float(value) / 100.0
+               elif name == "Wireframe":
+                   self.wireframe = bool(value)
+       
+    1:     def initializeGL(self):
+    1:         print("WireTerrainVisualizer.initializeGL called")
+               # Setup like working visualizers
+    1:         glClearColor(0.0, 0.0, 0.0, 0.0)
+    1:         glEnable(GL_BLEND)
+    1:         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+    1:         glEnable(GL_DEPTH_TEST)
+       
+    1:         if not self.load_shaders():
+                   print("Failed to load shaders")
+                   return
+               
+    1:         if not self.generate_terrain():
+                   print("Failed to generate terrain")
+                   return
+                   
+    1:         self.initialized = True
+    1:         print("WireTerrain initialized successfully")
+       
+    1:     def load_shaders(self):
+    1:         try:
+    1:             vertex_shader_source = """
+                   #version 330 core
+                   layout (location = 0) in vec3 aPos;
+                   layout (location = 1) in vec3 aColor;
+                   
+                   uniform mat4 projection;
+                   uniform mat4 view;
+                   uniform mat4 model;
+                   uniform float time;
+                   uniform float amplitude;
+                   uniform float frequency;
+                   
+                   out vec3 vertexColor;
+                   
+                   void main()
+                   {
+                       vec3 pos = aPos;
+                       
+                       // Add wave animation
+                       float wave = sin(pos.x * frequency + time) * cos(pos.z * frequency * 1.1 + time * 0.8);
+                       pos.y += wave * amplitude;
+                       
+                       gl_Position = projection * view * model * vec4(pos, 1.0);
+                       
+                       // Color based on height
+                       float height_factor = (wave * amplitude + amplitude) / (2.0 * amplitude);
+                       vertexColor = aColor * (0.5 + 0.5 * height_factor);
+                   }
+                   """
+                   
+    1:             fragment_shader_source = """
+                   #version 330 core
+                   in vec3 vertexColor;
+                   out vec4 FragColor;
+                   
+                   void main()
+                   {
+                       FragColor = vec4(vertexColor, 0.8);
+                   }
+                   """
+                   
+                   # Compile vertex shader
+    1:             vertex_shader = glCreateShader(GL_VERTEX_SHADER)
+    1:             glShaderSource(vertex_shader, vertex_shader_source)
+    1:             glCompileShader(vertex_shader)
+                   
+    1:             if not glGetShaderiv(vertex_shader, GL_COMPILE_STATUS):
+                       error = glGetShaderInfoLog(vertex_shader).decode()
+                       print(f"Vertex shader error: {error}")
+                       return False
+                   
+                   # Compile fragment shader
+    1:             fragment_shader = glCreateShader(GL_FRAGMENT_SHADER)
+    1:             glShaderSource(fragment_shader, fragment_shader_source)
+    1:             glCompileShader(fragment_shader)
+                   
+    1:             if not glGetShaderiv(fragment_shader, GL_COMPILE_STATUS):
+                       error = glGetShaderInfoLog(fragment_shader).decode()
+                       print(f"Fragment shader error: {error}")
+                       return False
+                   
+                   # Link program
+    1:             self.shader_program = glCreateProgram()
+    1:             glAttachShader(self.shader_program, vertex_shader)
+    1:             glAttachShader(self.shader_program, fragment_shader)
+    1:             glLinkProgram(self.shader_program)
+                   
+    1:             if not glGetProgramiv(self.shader_program, GL_LINK_STATUS):
+                       error = glGetProgramInfoLog(self.shader_program).decode()
+                       print(f"Shader program error: {error}")
+                       return False
+                   
+    1:             glDeleteShader(vertex_shader)
+    1:             glDeleteShader(fragment_shader)
+                   
+    1:             print("WireTerrain shaders compiled successfully")
+    1:             return True
+                   
+               except Exception as e:
+                   print(f"Error loading shaders: {e}")
+                   return False
+       
+    1:     def generate_terrain(self):
+    1:         try:
+    1:             vertices = []
+    1:             indices = []
+                   
+    1:             scale = 4.0 / self.grid_size
+                   
+                   # Generate grid vertices
+   61:             for z in range(self.grid_size):
+ 3660:                 for x in range(self.grid_size):
+ 3600:                     pos_x = (x - self.grid_size/2) * scale
+ 3600:                     pos_z = (z - self.grid_size/2) * scale
+ 3600:                     pos_y = 0.0
+                           
+                           # Color gradient
+ 3600:                     r = 0.2 + 0.6 * (x / self.grid_size)
+ 3600:                     g = 0.4 + 0.4 * (z / self.grid_size)
+ 3600:                     b = 0.8
+                           
+ 3600:                     vertices.extend([pos_x, pos_y, pos_z, r, g, b])
+                   
+                   # Generate indices for triangles
+   60:             for z in range(self.grid_size - 1):
+ 3540:                 for x in range(self.grid_size - 1):
+                           # Get the four corners of the current quad
+ 3481:                     top_left = z * self.grid_size + x
+ 3481:                     top_right = top_left + 1
+ 3481:                     bottom_left = (z + 1) * self.grid_size + x
+ 3481:                     bottom_right = bottom_left + 1
+                           
+                           # Two triangles per quad
+ 3481:                     indices.extend([top_left, bottom_left, top_right])
+ 3481:                     indices.extend([top_right, bottom_left, bottom_right])
+                   
+    1:             self.vertices = np.array(vertices, dtype=np.float32)
+    1:             self.indices = np.array(indices, dtype=np.uint32)
+                   
+    1:             return self.setup_buffers()
+                   
+               except Exception as e:
+                   print(f"Error generating terrain: {e}")
+                   return False
+       
+    1:     def setup_buffers(self):
+    1:         try:
+                   # Clean up old buffers
+    1:             if self.vao:
+                       glDeleteVertexArrays(1, [self.vao])
+    1:             if self.vbo:
+                       glDeleteBuffers(1, [self.vbo])
+    1:             if self.ebo:
+                       glDeleteBuffers(1, [self.ebo])
+                   
+                   # Create VAO
+    1:             self.vao = glGenVertexArrays(1)
+    1:             glBindVertexArray(self.vao)
+                   
+                   # Create VBO
+    1:             self.vbo = glGenBuffers(1)
+    1:             glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
+    1:             glBufferData(GL_ARRAY_BUFFER, self.vertices.nbytes, self.vertices, GL_STATIC_DRAW)
+                   
+                   # Create EBO
+    1:             self.ebo = glGenBuffers(1)
+    1:             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.ebo)
+    1:             glBufferData(GL_ELEMENT_ARRAY_BUFFER, self.indices.nbytes, self.indices, GL_STATIC_DRAW)
+                   
+                   # Set vertex attributes
+                   # Position
+    1:             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * 4, ctypes.c_void_p(0))
+    1:             glEnableVertexAttribArray(0)
+                   # Color
+    1:             glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * 4, ctypes.c_void_p(3 * 4))
+    1:             glEnableVertexAttribArray(1)
+                   
+    1:             glBindVertexArray(0)
+                   
+    1:             print("WireTerrain buffers setup complete")
+    1:             return True
+                   
+               except Exception as e:
+                   print(f"Error setting up buffers: {e}")
+                   return False
+       
+    1:     def paintGL(self):
+ 1066:         try:
+ 1066:             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                   
+ 1066:             if not self.initialized or not self.shader_program:
+                       glClearColor(0.1, 0.0, 0.2, 0.0)
+                       glClear(GL_COLOR_BUFFER_BIT)
+                       return
+                   
+ 1066:             glUseProgram(self.shader_program)
+                   
+                   # Update time
+ 1066:             current_time = time.time() - self.start_time
+                   
+                   # Set uniforms
+ 1066:             glUniform1f(glGetUniformLocation(self.shader_program, "time"), current_time * self.speed)
+ 1066:             glUniform1f(glGetUniformLocation(self.shader_program, "amplitude"), self.amplitude)
+ 1066:             glUniform1f(glGetUniformLocation(self.shader_program, "frequency"), self.frequency)
+                   
+                   # Set up matrices
+ 1066:             projection = self.perspective(45, 1.0, 0.1, 100.0)
+ 1066:             view = self.lookAt([0, 2, 5], [0, 0, 0], [0, 1, 0])
+ 1066:             model = self.rotateY(current_time * 10)
+                   
+ 1066:             glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE, projection)
+ 1066:             glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, view)
+ 1066:             glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, model)
+                   
+                   # Set wireframe mode
+ 1066:             if self.wireframe:
+ 1066:                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+ 1066:                 try:
+ 1066:                     glLineWidth(1.0)
+                       except:
+                           pass
+                   else:
+                       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+                   
+                   # Draw terrain
+ 1066:             if self.vao:
+ 1066:                 glBindVertexArray(self.vao)
+ 1066:                 glDrawElements(GL_TRIANGLES, len(self.indices), GL_UNSIGNED_INT, None)
+ 1066:                 glBindVertexArray(0)
+                   
+                   # Reset polygon mode
+ 1066:             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+ 1066:             glUseProgram(0)
+                   
+               except Exception as e:
+                   print(f"Error in paintGL: {e}")
+                   glClearColor(0.2, 0.0, 0.0, 0.0)
+                   glClear(GL_COLOR_BUFFER_BIT)
+       
+    1:     def perspective(self, fov, aspect, near, far):
+ 1066:         f = 1.0 / math.tan(math.radians(fov / 2.0))
+ 3198:         return np.array([
+ 1066:             [f / aspect, 0.0, 0.0, 0.0],
+ 1066:             [0.0, f, 0.0, 0.0],
+ 1066:             [0.0, 0.0, (far + near) / (near - far), -1.0],
+ 1066:             [0.0, 0.0, (2.0 * far * near) / (near - far), 0.0]
+ 1066:         ], dtype=np.float32)
+       
+    1:     def lookAt(self, eye, center, up):
+ 1066:         eye = np.array(eye, dtype=np.float32)
+ 1066:         center = np.array(center, dtype=np.float32)
+ 1066:         up = np.array(up, dtype=np.float32)
+               
+ 1066:         f = (center - eye) / np.linalg.norm(center - eye)
+ 1066:         s = np.cross(f, up) / np.linalg.norm(np.cross(f, up))
+ 1066:         u = np.cross(s, f)
+       
+ 4264:         return np.array([
+ 1066:             [s[0], u[0], -f[0], 0.0],
+ 1066:             [s[1], u[1], -f[1], 0.0],
+ 1066:             [s[2], u[2], -f[2], 0.0],
+ 1066:             [-np.dot(s, eye), -np.dot(u, eye), np.dot(f, eye), 1.0]
+ 2132:         ], dtype=np.float32).T
+       
+    1:     def rotateY(self, angle):
+ 1066:         angle = math.radians(angle)
+ 1066:         c, s = math.cos(angle), math.sin(angle)
+ 3198:         return np.array([
+ 1066:             [c, 0, s, 0],
+ 1066:             [0, 1, 0, 0],
+ 1066:             [-s, 0, c, 0],
+ 1066:             [0, 0, 0, 1]
+ 1066:         ], dtype=np.float32)
+       
+    1:     def resizeGL(self, width, height):
+    1:         glViewport(0, 0, width, height)
+       
+    1:     def cleanup(self):
+    1:         print("Cleaning up WireTerrainVisualizer")
+    1:         try:
+    1:             if self.shader_program:
+    1:                 if glIsProgram(self.shader_program):
+    1:                     glDeleteProgram(self.shader_program)
+    1:                 self.shader_program = None
+    1:             if self.vao:
+    1:                 glDeleteVertexArrays(1, [self.vao])
+    1:                 self.vao = None
+    1:             if self.vbo:
+    1:                 glDeleteBuffers(1, [self.vbo])
+    1:                 self.vbo = None
+    1:             if self.ebo:
+    1:                 glDeleteBuffers(1, [self.ebo])
+    1:                 self.ebo = None
+               except Exception as e:
+                   print(f"Error during cleanup: {e}")

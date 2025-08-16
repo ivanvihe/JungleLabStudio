@@ -1,0 +1,4 @@
+       # Audio module initialization
+    1: from .audio_analyzer import AudioAnalyzer
+       
+    1: __all__ = ['AudioAnalyzer']

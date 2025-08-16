@@ -1,0 +1,162 @@
+    1: from PyQt6.QtWidgets import (
+           QWidget, QVBoxLayout, QSplitter, QGroupBox, QTableWidget, QHeaderView,
+           QPushButton, QHBoxLayout, QLabel, QTextEdit
+       )
+    1: from PyQt6.QtCore import Qt
+       
+       
+    1: def create_monitor_tab(self):
+           """Tab de monitoreo y debug"""
+    1:     widget = QWidget()
+    1:     layout = QVBoxLayout(widget)
+       
+    1:     splitter = QSplitter(Qt.Orientation.Horizontal)
+    1:     midi_activity_section = create_midi_activity_section(self)
+    1:     splitter.addWidget(midi_activity_section)
+       
+    1:     system_section = create_system_info_section(self)
+    1:     splitter.addWidget(system_section)
+       
+    1:     layout.addWidget(splitter)
+    1:     return widget
+       
+       
+    1: def create_midi_activity_section(self):
+           """Crear sección de actividad MIDI para el tab de monitoreo"""
+    1:     section = QGroupBox("🎵 Actividad MIDI en Tiempo Real")
+    2:     section.setStyleSheet(
+    1:         """
+               QGroupBox {
+                   font-weight: bold;
+                   color: #ffffff;
+                   border: 2px solid #6600cc;
+                   border-radius: 5px;
+                   margin-top: 10px;
+                   padding-top: 10px;
+               }
+               QGroupBox::title {
+                   subcontrol-origin: margin;
+                   left: 10px;
+                   padding: 0 5px 0 5px;
+               }
+               """
+           )
+       
+    1:     layout = QVBoxLayout(section)
+       
+    1:     self.midi_activity_table = QTableWidget()
+    1:     self.midi_activity_table.setColumnCount(4)
+    1:     self.midi_activity_table.setHorizontalHeaderLabels(["Tiempo", "Tipo", "Dato", "Deck"])
+    1:     self.midi_activity_table.setMaximumHeight(200)
+       
+    1:     header = self.midi_activity_table.horizontalHeader()
+    1:     header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+    1:     header.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
+    1:     header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+    1:     header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
+       
+    1:     self.midi_activity_table.setColumnWidth(0, 80)
+    1:     self.midi_activity_table.setColumnWidth(1, 80)
+    1:     self.midi_activity_table.setColumnWidth(3, 100)
+       
+    1:     layout.addWidget(self.midi_activity_table)
+       
+    1:     controls_layout = QHBoxLayout()
+       
+    1:     clear_activity_btn = QPushButton("🗑️ Limpiar")
+    1:     clear_activity_btn.clicked.connect(self.clear_midi_activity)
+    1:     controls_layout.addWidget(clear_activity_btn)
+       
+    1:     pause_activity_btn = QPushButton("⏸️ Pausar")
+    1:     pause_activity_btn.clicked.connect(self.toggle_midi_activity_monitoring)
+    1:     controls_layout.addWidget(pause_activity_btn)
+       
+    1:     controls_layout.addStretch()
+       
+    1:     self.midi_stats_label = QLabel("Mensajes: 0 | Últimos 60s: 0")
+    1:     self.midi_stats_label.setStyleSheet("color: #ffffff; font-size: 10px;")
+    1:     controls_layout.addWidget(self.midi_stats_label)
+       
+    1:     layout.addLayout(controls_layout)
+       
+    1:     self.midi_activity_data = []
+    1:     self.midi_monitoring_paused = False
+    1:     self.midi_message_count = 0
+       
+    1:     return section
+       
+       
+    1: def create_system_info_section(self):
+           """Crear sección de información del sistema"""
+    1:     section = QGroupBox("📊 Información del Sistema")
+    2:     section.setStyleSheet(
+    1:         """
+               QGroupBox {
+                   font-weight: bold;
+                   color: #ffffff;
+                   border: 2px solid #ff6600;
+                   border-radius: 5px;
+                   margin-top: 10px;
+                   padding-top: 10px;
+               }
+               QGroupBox::title {
+                   subcontrol-origin: margin;
+                   left: 10px;
+                   padding: 0 5px 0 5px;
+               }
+               """
+           )
+       
+    1:     layout = QVBoxLayout(section)
+       
+    1:     self.system_info_text = QTextEdit()
+    1:     self.system_info_text.setMaximumHeight(150)
+    1:     self.system_info_text.setReadOnly(True)
+    2:     self.system_info_text.setStyleSheet(
+    1:         """
+               QTextEdit {
+                   background-color: #1a1a1a;
+                   color: #ffffff;
+                   border: 1px solid #666;
+                   font-family: 'Courier New', monospace;
+                   font-size: 10px;
+               }
+               """
+           )
+    1:     layout.addWidget(self.system_info_text)
+       
+    1:     events_label = QLabel("📝 Log de Eventos:")
+    1:     events_label.setStyleSheet("color: #ffffff; font-weight: bold; margin-top: 10px;")
+    1:     layout.addWidget(events_label)
+       
+    1:     self.events_log = QTextEdit()
+    1:     self.events_log.setMaximumHeight(100)
+    1:     self.events_log.setReadOnly(True)
+    2:     self.events_log.setStyleSheet(
+    1:         """
+               QTextEdit {
+                   background-color: #0a0a0a;
+                   color: #00ff00;
+                   border: 1px solid #666;
+                   font-family: 'Courier New', monospace;
+                   font-size: 9px;
+               }
+               """
+           )
+    1:     layout.addWidget(self.events_log)
+       
+    1:     log_controls = QHBoxLayout()
+       
+    1:     clear_log_btn = QPushButton("🗑️ Limpiar Log")
+    1:     clear_log_btn.clicked.connect(self.clear_events_log)
+    1:     log_controls.addWidget(clear_log_btn)
+       
+    1:     export_log_btn = QPushButton("💾 Exportar Log")
+    1:     export_log_btn.clicked.connect(self.export_events_log)
+    1:     log_controls.addWidget(export_log_btn)
+       
+    1:     log_controls.addStretch()
+    1:     layout.addLayout(log_controls)
+       
+    1:     self.update_system_info()
+    1:     return section

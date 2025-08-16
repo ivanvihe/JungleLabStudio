@@ -1,0 +1,36 @@
+       # UI module initialization
+    1: import logging
+       
+    1: try:
+    1:     from .main_application import MainApplication
+    1:     from .mixer_window import MixerWindow
+    1:     from .control_panel_window import ControlPanelWindow
+    1:     from .preferences_dialog import PreferencesDialog
+    1:     from .midi_mapping_dialog import MidiMappingDialog
+           
+    1:     __all__ = [
+               'MainApplication',
+               'MixerWindow', 
+               'ControlPanelWindow',
+               'PreferencesDialog',
+               'MidiMappingDialog'
+           ]
+           
+    1:     logging.info("UI modules loaded successfully")
+           
+       except ImportError as e:
+           logging.error(f"Error importing UI modules: {e}")
+           # Create dummy classes to prevent import errors
+           
+           class DummyClass:
+               def __init__(self, *args, **kwargs):
+                   logging.error(f"Attempted to create instance of dummy class")
+                   raise ImportError("UI module not properly loaded")
+           
+           MainApplication = DummyClass
+           MixerWindow = DummyClass
+           ControlPanelWindow = DummyClass
+           PreferencesDialog = DummyClass
+           MidiMappingDialog = DummyClass
+           
+           __all__ = []
