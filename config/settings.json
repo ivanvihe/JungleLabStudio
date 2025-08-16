@@ -5,10 +5,10 @@
     "auto_save_settings": true,
     "window_positions": {
         "control_panel": {
-            "x": 1920,
-            "y": 23,
+            "x": 3815,
+            "y": 118,
             "width": 1536,
-            "height": 793
+            "height": 824
         },
         "main_window": {
             "x": 0,
@@ -55,7 +55,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Wire Terrain",
+                "preset_name": "Intro Text",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note37"
@@ -64,7 +64,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Abstract Lines",
+                "preset_name": "Wire Terrain",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note38"
@@ -73,7 +73,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Geometric Particles",
+                "preset_name": "Abstract Lines",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note39"
@@ -82,7 +82,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Evolutive Particles",
+                "preset_name": "Geometric Particles",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note40"
@@ -91,7 +91,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Abstract Shapes",
+                "preset_name": "Evolutive Particles",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note41"
@@ -100,7 +100,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Mobius Band",
+                "preset_name": "Abstract Shapes",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note42"
@@ -109,7 +109,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Building Madness",
+                "preset_name": "Mobius Band",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note43"
@@ -118,7 +118,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Cosmic Flow",
+                "preset_name": "Building Madness",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note44"
@@ -127,7 +127,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Fluid Particles",
+                "preset_name": "Cosmic Flow",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note45"
@@ -176,15 +176,6 @@
                 "target": "Visual Mix"
             },
             "midi": "note_on_ch0_note51"
-        },
-        "mix_action_4": {
-            "type": "crossfade_action",
-            "params": {
-                "preset": "A to B",
-                "duration": "500ms",
-                "target": "Visual Mix"
-            },
-            "midi": "note_on_ch0_note52"
         },
         "mix_action_5": {
             "type": "crossfade_action",
@@ -235,7 +226,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "B",
-                "preset_name": "Wire Terrain",
+                "preset_name": "Intro Text",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note61"
@@ -244,7 +235,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "B",
-                "preset_name": "Abstract Lines",
+                "preset_name": "Wire Terrain",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note62"
@@ -253,7 +244,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "B",
-                "preset_name": "Geometric Particles",
+                "preset_name": "Abstract Lines",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note63"
@@ -262,7 +253,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "B",
-                "preset_name": "Evolutive Particles",
+                "preset_name": "Geometric Particles",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note64"
@@ -271,7 +262,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "B",
-                "preset_name": "Abstract Shapes",
+                "preset_name": "Evolutive Particles",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note65"
@@ -280,7 +271,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "B",
-                "preset_name": "Mobius Band",
+                "preset_name": "Abstract Shapes",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note66"
@@ -289,7 +280,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "B",
-                "preset_name": "Building Madness",
+                "preset_name": "Mobius Band",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note67"
@@ -298,7 +289,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "B",
-                "preset_name": "Cosmic Flow",
+                "preset_name": "Building Madness",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note68"
@@ -307,7 +298,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "B",
-                "preset_name": "Fluid Particles",
+                "preset_name": "Cosmic Flow",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note69"
@@ -334,7 +325,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Wire Terrain",
+                "preset_name": "Intro Text",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note37"
@@ -343,7 +334,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Abstract Lines",
+                "preset_name": "Vortex Particles",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note38"
@@ -352,7 +343,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Geometric Particles",
+                "preset_name": "Cosmic Flow",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note39"
@@ -361,7 +352,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Evolutive Particles",
+                "preset_name": "Geometric Particles",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note40"
@@ -370,7 +361,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Abstract Shapes",
+                "preset_name": "Evolutive Particles",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note41"
@@ -379,7 +370,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Fluid Particles",
+                "preset_name": "Building Madness",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note42"
@@ -388,7 +379,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Vortex Particles",
+                "preset_name": "Mobius Band",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note43"
@@ -397,7 +388,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Cosmic Flow",
+                "preset_name": "Building Madness",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note44"
@@ -406,7 +397,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Fluid Particles",
+                "preset_name": "Cosmic Flow",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note45"
@@ -456,20 +447,11 @@
             },
             "midi": "note_on_ch0_note51"
         },
-        "note_52_ch0": {
-            "type": "crossfade_action",
-            "params": {
-                "preset": "A to B",
-                "duration": "50ms",
-                "target": "Visual Mix"
-            },
-            "midi": "note_on_ch0_note52"
-        },
         "note_53_ch0": {
             "type": "crossfade_action",
             "params": {
                 "preset": "A to B",
-                "duration": "50ms",
+                "duration": "10s",
                 "target": "Visual Mix"
             },
             "midi": "note_on_ch0_note53"
@@ -514,7 +496,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "B",
-                "preset_name": "Wire Terrain",
+                "preset_name": "Intro Text",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note61"
@@ -523,7 +505,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "B",
-                "preset_name": "Abstract Lines",
+                "preset_name": "Wire Terrain",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note62"
@@ -532,7 +514,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "B",
-                "preset_name": "Geometric Particles",
+                "preset_name": "Abstract Lines",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note63"
@@ -541,7 +523,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "B",
-                "preset_name": "Evolutive Particles",
+                "preset_name": "Geometric Particles",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note64"
@@ -550,7 +532,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "B",
-                "preset_name": "Abstract Shapes",
+                "preset_name": "Evolutive Particles",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note65"
@@ -559,7 +541,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "B",
-                "preset_name": "Mobius Band",
+                "preset_name": "Abstract Shapes",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note66"
@@ -568,7 +550,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "B",
-                "preset_name": "Building Madness",
+                "preset_name": "Mobius Band",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note67"
@@ -577,7 +559,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "B",
-                "preset_name": "Cosmic Flow",
+                "preset_name": "Building Madness",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note68"
@@ -586,7 +568,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "B",
-                "preset_name": "Fluid Particles",
+                "preset_name": "Cosmic Flow",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note69"
@@ -599,6 +581,15 @@
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note70"
+        },
+        "note_52_ch0": {
+            "type": "crossfade_action",
+            "params": {
+                "preset": "A to B",
+                "duration": "50ms",
+                "target": "Visual Mix"
+            },
+            "midi": "note_on_ch0_note52"
         }
     }
 }

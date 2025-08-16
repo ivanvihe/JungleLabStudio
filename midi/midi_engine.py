@@ -1,4 +1,4 @@
-# midi/midi_engine.py - VERSIÓN CORREGIDA Y MEJORADA
+# midi/midi_engine.py - VERSIÓN SIMPLIFICADA SIN LÓGICA DE VISUALES
 import mido
 import mido.backends.rtmidi
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer, Qt
@@ -8,6 +8,8 @@ import queue
 import copy
 import json
 import os
+
+from .midi_visual_mapper import MidiVisualMapper
 
 class MidiEngine(QObject):
     # Existing signals
@@ -29,6 +31,9 @@ class MidiEngine(QObject):
         self.settings_manager = settings_manager
         self.visualizer_manager = visualizer_manager
         
+        # NUEVO: Inicializar mapper de visuales
+        self.visual_mapper = MidiVisualMapper(visualizer_manager)
+        
         # CONFIGURACIÓN MEJORADA DE CANALES MIDI
         self.accepted_channels = list(range(16))  # Acepta todos los canales (0-15)
         self.default_channel = 0  # Canal por defecto para mappings
@@ -48,7 +53,6 @@ class MidiEngine(QObject):
         
         self.input_port = None
         self.running = False
-        self.default_channel = 0 # Default MIDI channel for mappings
         self._last_bpm_time = 0
         self._beat_intervals = []
 
@@ -95,12 +99,17 @@ class MidiEngine(QObject):
         
         # Reconstruir lookup table con nuevos canales
         self._build_midi_lookup()
+        
+        # Actualizar canal en visual mapper
+        self.visual_mapper.set_default_channel(self.default_channel)
 
     def set_default_channel(self, channel):
         """Configurar canal MIDI por defecto para nuevos mappings"""
         if 0 <= channel <= 15:
             self.default_channel = channel
             logging.info(f"🎹 Default MIDI channel set to: {channel}")
+            # Actualizar en visual mapper
+            self.visual_mapper.set_default_channel(channel)
 
     def create_message_key(self, msg):
         """FIXED: Crear clave única para mensaje MIDI - FILTRADO MEJORADO"""
@@ -109,8 +118,6 @@ class MidiEngine(QObject):
             
             # FILTRAR MENSAJES QUE NO NECESITAN MAPPING
             if msg.type in ['clock', 'start', 'stop', 'continue', 'song_position']:
-                # Estos son mensajes de MIDI clock/sync - NO necesitan mapping
-                # Los procesaremos separadamente para sincronización
                 return None
             
             # IMPORTANTE: Verificar si el canal está aceptado
@@ -121,13 +128,11 @@ class MidiEngine(QObject):
             logging.debug(f"🔑 Creating key for {msg.type} on channel {channel}")
             
             if msg.type == 'note_on':
-                # Crear claves para AMBOS note_on Y note_off automáticamente
                 note_on_key = f"note_on_ch{channel}_note{msg.note}"
                 logging.debug(f"🔑 Note_on key: {note_on_key}")
                 return note_on_key
                 
             elif msg.type == 'note_off':
-                # FILTRAR note_off - NO necesitamos mappings para ellos normalmente
                 return None  # Ignorar note_off para reducir spam
                 
             elif msg.type == 'control_change':
@@ -145,7 +150,6 @@ class MidiEngine(QObject):
                 logging.debug(f"🔑 Pitchwheel key: {pw_key}")
                 return pw_key
             else:
-                # Otros tipos - solo log debug, no warning
                 logging.debug(f"🔑 Unknown MIDI type: {msg.type}")
                 return None
                 
@@ -154,133 +158,35 @@ class MidiEngine(QObject):
             return None
 
     def create_default_midi_mappings(self):
-        """FIXED: Crear mappings con las notas CORRECTAS sin duplicados"""
-        mappings = {}
-        
-        # 🎹 DRUM RACK STANDARD LAYOUT (Ableton Live)
-        # Fila inferior: C1-B1 (36-47) = Deck A
-        # Fila media: C2-B2 (48-59) = Mix Actions 
-        # Fila superior: C3-B3 (60-71) = Deck B
-        
-        # ===== DECK A PRESETS (36-47) =====
-        deck_a_presets = [
-            "Simple Test",      # C1  (36)
-            "Wire Terrain",     # C#1 (37)
-            "Abstract Lines",   # D1  (38)
-            "Geometric Particles", # D#1 (39)
-            "Evolutive Particles", # E1  (40)
-            "Abstract Shapes",  # F1  (41)
-            "Mobius Band",      # F#1 (42)
-            "Building Madness", # G1  (43)
-            "Cosmic Flow",      # G#1 (44)
-            "Fluid Particles",  # A1  (45)
-            None,              # A#1 (46) - Clear deck
-            None               # B1  (47) - Spare
-        ]
-        
-        for i, preset_name in enumerate(deck_a_presets):
-            note = 36 + i
-            if preset_name:
-                mappings[f"deck_a_preset_{i}"] = {
-                    "type": "load_preset",
-                    "params": {
-                        "deck_id": "A",
-                        "preset_name": preset_name,
-                        "custom_values": ""
-                    },
-                    "midi": f"note_on_ch{self.default_channel}_note{note}"
-                }
-            elif i == 10:  # A#1 (46) = Clear Deck A
-                mappings["deck_a_clear"] = {
-                    "type": "load_preset",
-                    "params": {
-                        "deck_id": "A",
-                        "preset_name": None,
-                        "custom_values": ""
-                    },
-                    "midi": f"note_on_ch{self.default_channel}_note{note}"
-                }
-        
-        # ===== MIX ACTIONS (48-59) =====
-        mix_actions = [
-            {"preset": "A to B", "duration": "10s"},      # C2  (48)
-            {"preset": "B to A", "duration": "10s"},      # C#2 (49)
-            {"preset": "A to B", "duration": "5s"},       # D2  (50)
-            {"preset": "B to A", "duration": "5s"},       # D#2 (51)
-            {"preset": "A to B", "duration": "500ms"},    # E2  (52)
-            {"preset": "B to A", "duration": "500ms"},    # F2  (53)
-            {"preset": "Instant A", "duration": "50ms"},  # F#2 (54)
-            {"preset": "Instant B", "duration": "50ms"},  # G2  (55)
-            {"preset": "Cut to Center", "duration": "50ms"}, # G#2 (56)
-            None, None, None  # A2, A#2, B2 (57-59) - Spare
-        ]
-        
-        for i, action in enumerate(mix_actions):
-            note = 48 + i
-            if action:
-                mappings[f"mix_action_{i}"] = {
-                    "type": "crossfade_action",
-                    "params": {
-                        "preset": action["preset"],
-                        "duration": action["duration"],
-                        "target": "Visual Mix"
-                    },
-                    "midi": f"note_on_ch{self.default_channel}_note{note}"
-                }
-        
-        # ===== DECK B PRESETS (60-71) - FIXED PARA ELIMINAR DUPLICADOS =====
-        deck_b_presets = [
-            "Simple Test",      # C3  (60)
-            "Wire Terrain",     # C#3 (61)
-            "Abstract Lines",   # D3  (62)
-            "Geometric Particles", # D#3 (63)
-            "Evolutive Particles", # E3  (64)
-            "Abstract Shapes",  # F3  (65)
-            "Mobius Band",      # F#3 (66)
-            "Building Madness", # G3  (67)
-            "Cosmic Flow",      # G#3 (68)
-            "Fluid Particles",  # A3  (69) ← AQUÍ ESTÁ TU A3!
-            None,              # A#3 (70) - Clear deck
-            None               # B3  (71) - Spare
-        ]
-        
-        for i, preset_name in enumerate(deck_b_presets):
-            note = 60 + i
-            action_id = f"deck_b_preset_{i}"  # FIX: ID único sin duplicar
+        """NUEVO: Crear mappings usando el visual mapper dinámico"""
+        try:
+            logging.info("🎨 Creating dynamic MIDI mappings using MidiVisualMapper...")
             
-            if preset_name:
-                mappings[action_id] = {
-                    "type": "load_preset",
-                    "params": {
-                        "deck_id": "B",
-                        "preset_name": preset_name,
-                        "custom_values": ""
-                    },
-                    "midi": f"note_on_ch{self.default_channel}_note{note}"
-                }
-            elif i == 10:  # A#3 (70) = Clear Deck B
-                mappings["deck_b_clear"] = {
-                    "type": "load_preset",
-                    "params": {
-                        "deck_id": "B",
-                        "preset_name": None,
-                        "custom_values": ""
-                    },
-                    "midi": f"note_on_ch{self.default_channel}_note{note}"
-                }
-        
-        logging.info(f"🎹 Created {len(mappings)} default MIDI mappings WITHOUT DUPLICATES")
-        logging.info(f"📍 A3 (note 69) mapped to: Deck B - Fluid Particles")
-        
-        return mappings
+            # Sincronizar con visuales disponibles
+            self.visual_mapper.sync_with_available_visuals()
+            
+            # Generar mappings dinámicos
+            dynamic_mappings = self.visual_mapper.generate_all_visual_mappings()
+            
+            logging.info(f"✅ Generated {len(dynamic_mappings)} dynamic MIDI mappings")
+            
+            # Mostrar información de mappings
+            self.visual_mapper.print_current_visual_mappings()
+            
+            return dynamic_mappings
+            
+        except Exception as e:
+            logging.error(f"❌ Error creating dynamic mappings: {e}")
+            # Fallback a mappings vacíos
+            return {}
 
     def handle_midi_message(self, msg):
         """FIXED: Procesar mensaje MIDI con filtrado mejorado"""
         try:
             # PROCESAR MIDI CLOCK/SYNC por separado (NO logging spam)
             if msg.type in ['clock', 'start', 'stop', 'continue', 'song_position']:
-                self.process_midi_sync(msg)  # Nueva función para sync
-                return  # No procesar como mapping
+                self.process_midi_sync(msg)
+                return
             
             # Log básico solo para note_on/note_off importantes
             if hasattr(msg, 'type') and msg.type == 'note_on':
@@ -295,7 +201,6 @@ class MidiEngine(QObject):
             message_key = self.create_message_key(msg)
             
             if message_key is None:
-                # Canal no aceptado, mensaje filtrado, o sync message
                 return
             
             # Emitir señales para monitoreo
@@ -368,30 +273,8 @@ class MidiEngine(QObject):
                         logging.warning(f"   New: {action_id} (will overwrite)")
                     
                     self.midi_lookup[midi_key] = (action_id, mapping_data)
-                    
-                    # Debug para claves importantes
-                    if any(note in midi_key for note in ['note69', 'note37', 'note60']):
-                        action_type = mapping_data.get('type', 'unknown')
-                        params = mapping_data.get('params', {})
-                        logging.info(f"🔑 IMPORTANT KEY {midi_key} -> {action_id} ({action_type}) {params}")
                         
             logging.info(f"✅ MIDI lookup table built with {len(self.midi_lookup)} entries")
-            
-            # Mostrar tabla de notas importantes
-            important_notes = [36, 37, 46, 48, 50, 60, 69, 70]  # Algunas claves importantes
-            logging.info("🎹 IMPORTANT NOTE MAPPINGS:")
-            for note in important_notes:
-                found_keys = [k for k in self.midi_lookup.keys() if f"note{note}" in k]
-                if found_keys:
-                    for key in found_keys:
-                        action_id, mapping_data = self.midi_lookup[key]
-                        action_type = mapping_data.get('type', 'unknown')
-                        params = mapping_data.get('params', {})
-                        preset_name = params.get('preset_name', params.get('preset', 'N/A'))
-                        deck_id = params.get('deck_id', 'N/A')
-                        logging.info(f"   Note {note}: {key} -> {action_type} (Deck {deck_id}, {preset_name})")
-                else:
-                    logging.info(f"   Note {note}: No mapping")
             
         except Exception as e:
             logging.error(f"❌ Error building MIDI lookup: {e}")
@@ -596,8 +479,6 @@ class MidiEngine(QObject):
         except Exception as e:
             logging.error(f"❌ Critical error loading mappings: {e}")
             self.midi_mappings = {}
-
-    # ... resto de funciones mantenidas igual ...
     
     def set_application_references(self, mixer_window=None, control_panel=None):
         """Set references to application components for executing actions"""
@@ -606,9 +487,8 @@ class MidiEngine(QObject):
         logging.info(f"✅ Application references set in MidiEngine")
 
     def list_input_ports(self):
-        """List available MIDI input ports - FIXED"""
+        """List available MIDI input ports"""
         try:
-            # FIX: Usar get_input_names() en lugar de get_input_ports()
             return mido.get_input_names()
         except Exception as e:
             logging.error(f"Error listing MIDI input ports: {e}")
@@ -740,10 +620,7 @@ class MidiEngine(QObject):
                     self.preset_loaded_on_deck.emit(deck_id, preset_name)
                     
         except Exception as e:
-            if visualizer_name:
-                logging.error(f"❌ Visualizer not found: {visualizer_name}")
-            else:
-                logging.debug(f"🚫 Deck cleared (no visualizer)")
+            logging.error(f"❌ Error in execute_load_preset_action: {e}")
 
     def execute_crossfade_action(self, params):
         """Execute crossfade action"""
@@ -888,13 +765,13 @@ class MidiEngine(QObject):
         except Exception as e:
             logging.error(f"❌ Error applying custom values: {e}")
 
-    def process_bpm_from_note(self):
-        """Process BPM calculation from note timing - FIXED TYPO"""
+    def process_bmp_from_note(self):
+        """Process BMP calculation from note timing"""
         try:
             current_time = time.time()
             
-            if self._last_bpm_time > 0:  # FIX: _last_bpm_time en lugar de _last_bmp_time
-                interval = current_time - self._last_bpm_time
+            if self._last_bmp_time > 0:
+                interval = current_time - self._last_bmp_time
                 self._beat_intervals.append(interval)
                 
                 if len(self._beat_intervals) > 8:
@@ -907,10 +784,15 @@ class MidiEngine(QObject):
                     if 40 <= bpm <= 200:
                         self.bpm_changed.emit(bpm)
             
-            self._last_bpm_time = current_time
+            self._last_bmp_time = current_time
             
         except Exception as e:
-            logging.error(f"Error processing BPM: {e}")
+            logging.error(f"Error processing BMP: {e}")
+
+    # NUEVO: Corrección del nombre de función para consistency
+    def process_bpm_from_note(self):
+        """Process BPM calculation from note timing - Alias for backward compatibility"""
+        return self.process_bmp_from_note()
 
     def setup_default_mappings(self):
         """Setup default MIDI mappings"""
@@ -923,62 +805,8 @@ class MidiEngine(QObject):
             else:
                 logging.info(f"🎹 Using existing MIDI mappings: {len(self.midi_mappings)} mappings loaded")
                 
-            self.print_current_mappings()
-                
         except Exception as e:
             logging.error(f"❌ Error setting up default mappings: {e}")
-
-    def print_current_mappings(self):
-        """Print current MIDI mappings for debugging"""
-        try:
-            logging.info("🎹 CURRENT MIDI MAPPINGS:")
-            logging.info("=" * 60)
-            
-            deck_a_mappings = []
-            deck_b_mappings = []
-            mix_mappings = []
-            
-            for action_id, mapping_data in self.midi_mappings.items():
-                midi_key = mapping_data.get('midi', 'no_midi')
-                action_type = mapping_data.get('type', 'unknown')
-                params = mapping_data.get('params', {})
-                
-                if 'deck_a' in action_id or params.get('deck_id') == 'A':
-                    deck_a_mappings.append((action_id, midi_key, params))
-                elif 'deck_b' in action_id or params.get('deck_id') == 'B':
-                    deck_b_mappings.append((action_id, midi_key, params))
-                elif 'mix' in action_id or action_type == 'crossfade_action':
-                    mix_mappings.append((action_id, midi_key, params))
-            
-            # Print Deck A
-            logging.info("🔴 DECK A MAPPINGS:")
-            for action_id, midi_key, params in sorted(deck_a_mappings, key=lambda x: x[1]):
-                preset = params.get('preset_name', 'Clear') if params.get('preset_name') else 'Clear'
-                note_num = midi_key.split('note')[-1] if 'note' in midi_key else '?'
-                note_name = self.get_note_name(int(note_num)) if note_num.isdigit() else '?'
-                logging.info(f"  {note_name} (Note {note_num}): {preset}")
-            
-            # Print Mix
-            logging.info("🟡 MIX MAPPINGS:")
-            for action_id, midi_key, params in sorted(mix_mappings, key=lambda x: x[1]):
-                preset = params.get('preset', 'Unknown')
-                duration = params.get('duration', 'instant')
-                note_num = midi_key.split('note')[-1] if 'note' in midi_key else '?'
-                note_name = self.get_note_name(int(note_num)) if note_num.isdigit() else '?'
-                logging.info(f"  {note_name} (Note {note_num}): {preset} ({duration})")
-            
-            # Print Deck B
-            logging.info("🟢 DECK B MAPPINGS:")
-            for action_id, midi_key, params in sorted(deck_b_mappings, key=lambda x: x[1]):
-                preset = params.get('preset_name', 'Clear') if params.get('preset_name') else 'Clear'
-                note_num = midi_key.split('note')[-1] if 'note' in midi_key else '?'
-                note_name = self.get_note_name(int(note_num)) if note_num.isdigit() else '?'
-                logging.info(f"  {note_name} (Note {note_num}): {preset}")
-                
-            logging.info("=" * 60)
-            
-        except Exception as e:
-            logging.error(f"❌ Error printing mappings: {e}")
 
     def test_midi_mapping(self, note_number):
         """Test a specific MIDI mapping by note number"""
@@ -1091,22 +919,16 @@ class MidiEngine(QObject):
         """Procesar mensajes de MIDI clock/sync SIN spam de logs"""
         try:
             if msg.type == 'clock':
-                # Procesar MIDI clock para sincronización
-                # NO hacer logging - son 24 clocks por beat = mucho spam
                 self.process_midi_clock()
-
             elif msg.type == 'start':
                 logging.info("▶️ MIDI Start received")
                 self.midi_transport_start()
-
             elif msg.type == 'stop':
                 logging.info("⏹️ MIDI Stop received")
                 self.midi_transport_stop()
-
             elif msg.type == 'continue':
                 logging.info("⏯️ MIDI Continue received")
                 self.midi_transport_continue()
-
             elif msg.type == 'song_position':
                 position = getattr(msg, 'pos', 0)
                 logging.debug(f"🎶 MIDI Song Position: {position}")
@@ -1169,12 +991,8 @@ class MidiEngine(QObject):
     def remove_duplicate_mappings(self):
         """Eliminar mappings duplicados manteniendo los más recientes"""
         try:
-            # Assuming self.midi_engine refers to self (the MidiEngine instance)
-            # If this function is intended to be called from another class,
-            # this part needs to be adjusted in that calling class.
-            
             # Limpiar mappings duplicados basados en pattern
-            mappings = self.get_midi_mappings() # Use self.get_midi_mappings()
+            mappings = self.get_midi_mappings()
             clean_mappings = {}
             seen_midi_keys = {}
             
@@ -1213,10 +1031,127 @@ class MidiEngine(QObject):
             # Aplicar mappings limpios
             if len(clean_mappings) != len(mappings):
                 logging.info(f"🧹 Cleaned mappings: {len(mappings)} -> {len(clean_mappings)}")
-                self.set_midi_mappings(clean_mappings) # Use self.set_midi_mappings()
+                self.set_midi_mappings(clean_mappings)
             
         except Exception as e:
             logging.error(f"Error removing duplicate mappings: {e}")
+
+    # === NUEVOS MÉTODOS PARA GESTIÓN DINÁMICA DE VISUALES ===
+
+    def refresh_visual_mappings(self):
+        """Refrescar mappings de visuales dinámicamente"""
+        try:
+            logging.info("🔄 Refreshing visual mappings...")
+            
+            # Sincronizar con visuales disponibles
+            self.visual_mapper.sync_with_available_visuals()
+            
+            # Regenerar mappings dinámicos
+            new_visual_mappings = self.visual_mapper.generate_all_visual_mappings()
+            
+            # Mantener mappings personalizados que no sean de visuales
+            custom_mappings = {}
+            for action_id, mapping_data in self.midi_mappings.items():
+                # Mantener mappings que no sean auto-generados
+                if not any(pattern in action_id for pattern in ['deck_a_preset_', 'deck_b_preset_', 'mix_action_', 'deck_a_clear', 'deck_b_clear']):
+                    custom_mappings[action_id] = mapping_data
+            
+            # Combinar mappings
+            combined_mappings = {}
+            combined_mappings.update(new_visual_mappings)
+            combined_mappings.update(custom_mappings)
+            
+            # Aplicar nuevos mappings
+            self.set_midi_mappings(combined_mappings)
+            
+            logging.info(f"✅ Visual mappings refreshed: {len(new_visual_mappings)} visual + {len(custom_mappings)} custom")
+            
+            # Mostrar información actualizada
+            self.visual_mapper.print_current_visual_mappings()
+            
+        except Exception as e:
+            logging.error(f"❌ Error refreshing visual mappings: {e}")
+
+    def add_visual_to_mappings(self, visual_name, priority_position=None):
+        """Añadir un nuevo visual a los mappings MIDI"""
+        try:
+            # Añadir a la configuración del visual mapper
+            success = self.visual_mapper.add_visual_to_config(visual_name, priority_position)
+            
+            if success:
+                # Refrescar mappings
+                self.refresh_visual_mappings()
+                logging.info(f"✅ Visual '{visual_name}' added to MIDI mappings")
+                return True
+            else:
+                logging.warning(f"⚠️ Failed to add visual '{visual_name}' to mappings")
+                return False
+                
+        except Exception as e:
+            logging.error(f"❌ Error adding visual to mappings: {e}")
+            return False
+
+    def remove_visual_from_mappings(self, visual_name):
+        """Remover un visual de los mappings MIDI"""
+        try:
+            # Remover de la configuración del visual mapper
+            success = self.visual_mapper.remove_visual_from_config(visual_name)
+            
+            if success:
+                # Refrescar mappings
+                self.refresh_visual_mappings()
+                logging.info(f"✅ Visual '{visual_name}' removed from MIDI mappings")
+                return True
+            else:
+                logging.warning(f"⚠️ Failed to remove visual '{visual_name}' from mappings")
+                return False
+                
+        except Exception as e:
+            logging.error(f"❌ Error removing visual from mappings: {e}")
+            return False
+
+    def update_visual_priority(self, visual_name, new_position):
+        """Actualizar la prioridad de un visual en los mappings"""
+        try:
+            # Actualizar en la configuración del visual mapper
+            success = self.visual_mapper.update_visual_priority(visual_name, new_position)
+            
+            if success:
+                # Refrescar mappings
+                self.refresh_visual_mappings()
+                logging.info(f"✅ Visual '{visual_name}' priority updated to position {new_position}")
+                return True
+            else:
+                logging.warning(f"⚠️ Failed to update visual '{visual_name}' priority")
+                return False
+                
+        except Exception as e:
+            logging.error(f"❌ Error updating visual priority: {e}")
+            return False
+
+    def get_visual_mapping_info(self):
+        """Obtener información detallada de los mappings visuales"""
+        try:
+            return self.visual_mapper.get_visual_mapping_info()
+        except Exception as e:
+            logging.error(f"❌ Error getting visual mapping info: {e}")
+            return {}
+
+    def get_available_visuals(self):
+        """Obtener lista de visuales disponibles"""
+        try:
+            return self.visual_mapper.get_available_visuals()
+        except Exception as e:
+            logging.error(f"❌ Error getting available visuals: {e}")
+            return []
+
+    def get_visual_priority_order(self):
+        """Obtener el orden de prioridad actual de los visuales"""
+        try:
+            return self.visual_mapper.visual_mappings_config.get("visual_priority_order", [])
+        except Exception as e:
+            logging.error(f"❌ Error getting visual priority order: {e}")
+            return []
 
     def __del__(self):
         """Cleanup when object is destroyed"""

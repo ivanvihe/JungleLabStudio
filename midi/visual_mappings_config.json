@@ -1,0 +1,70 @@
+{
+  "deck_layouts": {
+    "deck_a": {
+      "start_note": 36,
+      "end_note": 46,
+      "clear_note": 46
+    },
+    "deck_b": {
+      "start_note": 60,
+      "end_note": 70,
+      "clear_note": 70
+    }
+  },
+  "visual_priority_order": [
+    "Simple Test",
+    "Intro Text",
+    "Wire Terrain",
+    "Abstract Lines",
+    "Geometric Particles",
+    "Evolutive Particles",
+    "Abstract Shapes",
+    "Mobius Band",
+    "Building Madness",
+    "Cosmic Flow",
+    "Fluid Particles",
+    "Vortex Particles"
+  ],
+  "mix_actions": {
+    "start_note": 48,
+    "end_note": 59,
+    "actions": [
+      {
+        "preset": "A to B",
+        "duration": "10s"
+      },
+      {
+        "preset": "B to A",
+        "duration": "10s"
+      },
+      {
+        "preset": "A to B",
+        "duration": "5s"
+      },
+      {
+        "preset": "B to A",
+        "duration": "5s"
+      },
+      {
+        "preset": "A to B",
+        "duration": "500ms"
+      },
+      {
+        "preset": "B to A",
+        "duration": "500ms"
+      },
+      {
+        "preset": "Instant A",
+        "duration": "50ms"
+      },
+      {
+        "preset": "Instant B",
+        "duration": "50ms"
+      },
+      {
+        "preset": "Cut to Center",
+        "duration": "50ms"
+      }
+    ]
+  }
+}

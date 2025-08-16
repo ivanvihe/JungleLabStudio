@@ -21,6 +21,7 @@ class VisualizerManager:
             # List of visualizer modules to load (in order of preference)
             visualizer_modules = [
                 'simple_test',        # Simple test visualizer (should always work)
+                'intro_text',         # NEW: Intro Text visualizer
                 'wire_terrain',       # Wire terrain
                 'abstract_lines',     # Abstract lines
                 'geometric_particles',
