@@ -1,7 +1,7 @@
 === CONFIGURACIÓN MIDI MAPPINGS ===
 
-Total mappings: 46
-Fecha: 2025-08-16 13:45:50
+Total mappings: 48
+Fecha: 2025-08-16 18:11:46
 
 === PRESET MAPPINGS ===
   note_on_ch0_note36 -> Deck A: Simple Test
@@ -44,6 +44,8 @@ Fecha: 2025-08-16 13:45:50
   note_on_ch0_note79 -> Deck A: Oneshot Electric Boom
   note_on_ch0_note80 -> Deck B: Oneshot Circuit Signal
   note_on_ch0_note81 -> Deck B: Oneshot Electric Boom
+  note_on_ch0_note82 -> Deck A: Plasma Clouds
+  note_on_ch0_note83 -> Deck B: Plasma Clouds
 
 === MIX ACTIONS ===
   note_on_ch0_note48 -> A to B (10s)
