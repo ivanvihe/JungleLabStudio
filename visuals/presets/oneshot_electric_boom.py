@@ -249,7 +249,11 @@ class OneshotElectricBoomVisualizer(BaseVisualizer):
                     vec3 rimColor = mix(vec3(0.5, 0.8, 1.0), vec3(1.0), wave);
                     finalColor = mix(finalColor, rimColor, wave * 0.4);
                 }
-                
+                // Discard fragments with negligible effect to keep background transparent
+                if (totalEffect <= 0.001) {
+                    discard;
+                }
+
                 FragColor = vec4(finalColor, totalEffect * alpha);
             }
             """

@@ -213,16 +213,22 @@ class GLBackend(RenderBackend):
 class ModernGLBackend(RenderBackend):
     """Backend using moderngl. Context is created on demand."""
 
-    def __init__(self) -> None:
+    def __init__(self, device_index: int = 0) -> None:
         self.ctx = None
         self.mgl = None
+        self.device_index = device_index
 
     def ensure_context(self) -> None:
         if self.ctx is None:
             import moderngl
 
             self.mgl = moderngl
-            self.ctx = moderngl.create_context(require=330)
+            try:
+                self.ctx = moderngl.create_context(
+                    require=330, standalone=True, backend="egl", device_index=self.device_index
+                )
+            except Exception:
+                self.ctx = moderngl.create_context(require=330)
             self.ctx.enable(moderngl.BLEND)
 
     def begin_target(self, size: Tuple[int, int]) -> None:
