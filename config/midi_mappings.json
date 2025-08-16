@@ -412,5 +412,14 @@
       "custom_values": ""
     },
     "midi": "note_on_ch0_note81"
+  },
+  "mix_action_9": {
+    "type": "crossfade_action",
+    "params": {
+      "preset": "Reset Mix",
+      "duration": "50ms",
+      "target": "Visual Mix"
+    },
+    "midi": "note_on_ch0_note57"
   }
 }

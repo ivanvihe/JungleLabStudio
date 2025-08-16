@@ -222,6 +222,15 @@
             },
             "midi": "note_on_ch0_note56"
         },
+        "mix_action_9": {
+            "type": "crossfade_action",
+            "params": {
+                "preset": "Reset Mix",
+                "duration": "50ms",
+                "target": "Visual Mix"
+            },
+            "midi": "note_on_ch0_note57"
+        },
         "note_60_ch0": {
             "type": "load_preset",
             "params": {

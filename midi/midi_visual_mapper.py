@@ -90,7 +90,8 @@ class MidiVisualMapper:
                     {"preset": "B to A", "duration": "500ms"},
                     {"preset": "Instant A", "duration": "50ms"},
                     {"preset": "Instant B", "duration": "50ms"},
-                    {"preset": "Cut to Center", "duration": "50ms"}
+                    {"preset": "Cut to Center", "duration": "50ms"},
+                    {"preset": "Reset Mix", "duration": "50ms"}
                 ]
             }
         }
