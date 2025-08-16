@@ -42,20 +42,16 @@ class MidiConfigWidget(QWidget):
         
         # Tabs principales
         tabs = QTabWidget()
-        
-        # Tab 1: Configuración rápida por notas
-        quick_tab = self.create_quick_config_tab()
-        tabs.addTab(quick_tab, "🎹 Configuración Rápida")
-        
-        # Tab 2: Editor avanzado
+
+        # Editor único que muestra todos los mappings
         advanced_tab = self.create_advanced_tab()
-        tabs.addTab(advanced_tab, "⚙️ Editor Avanzado")
-        
-        # Tab 3: Configuración de canales
+        tabs.addTab(advanced_tab, "🎛️ Editor MIDI")
+
+        # Tab 2: Configuración de canales
         channels_tab = self.create_channels_tab()
         tabs.addTab(channels_tab, "📡 Canales MIDI")
-        
-        # Tab 4: Importar/Exportar
+
+        # Tab 3: Importar/Exportar
         import_export_tab = self.create_import_export_tab()
         tabs.addTab(import_export_tab, "💾 Importar/Exportar")
         
@@ -839,7 +835,6 @@ class MidiConfigWidget(QWidget):
     def load_current_mappings(self):
         """Cargar mappings actuales"""
         try:
-            self.update_notes_table()
             self.update_advanced_table()
             self.update_mappings_info()
         except Exception as e:
