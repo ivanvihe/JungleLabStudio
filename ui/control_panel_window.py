@@ -10,7 +10,7 @@ from PyQt6.QtCore import Qt, QTimer, QMutex, QMutexLocker, QSize
 from PyQt6.QtGui import QAction, QFont, QColor
 
 from .preferences_dialog import PreferencesDialog
-from .midi_config_widget import MidiConfigWidget, CompactMidiConfigWidget
+from .midi_config_widget import MidiConfigWidget
 
 class ControlPanelWindow(QMainWindow):
     def __init__(self, mixer_window, settings_manager, midi_engine, visualizer_manager, audio_analyzer):
@@ -423,7 +423,7 @@ class ControlPanelWindow(QMainWindow):
         # Tabla de actividad MIDI reciente
         self.midi_activity_table = QTableWidget()
         self.midi_activity_table.setColumnCount(4)
-        self.midi_activity_table.setHorizontalHeaderLabels(["Tiempo", "Tipo", "Dato", "Estado"])
+        self.midi_activity_table.setHorizontalHeaderLabels(["Tiempo", "Tipo", "Dato", "Deck"])
         self.midi_activity_table.setMaximumHeight(200)
         
         # Configurar tabla
@@ -576,42 +576,9 @@ class ControlPanelWindow(QMainWindow):
         status_group = self.create_deck_status_section(deck_id)
         deck_layout.addWidget(status_group)
         
-        # MIDI Configuration compacta integrada
-        midi_config_group = QGroupBox("🎹 MIDI Config")
-        midi_config_group.setStyleSheet("""
-            QGroupBox {
-                font-weight: bold;
-                color: #ffffff;
-                border: 1px solid #666;
-                border-radius: 5px;
-                margin-top: 10px;
-                padding-top: 10px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 5px 0 5px;
-            }
-        """)
-        
-        midi_config_layout = QVBoxLayout(midi_config_group)
-        
-        # Widget de configuración MIDI compacto
-        compact_midi_widget = CompactMidiConfigWidget(
-            self.midi_engine, 
-            self.visualizer_manager, 
-            deck_id,
-            midi_config_group
-        )
-        midi_config_layout.addWidget(compact_midi_widget)
-        
-        deck_layout.addWidget(midi_config_group)
-        
-        # Almacenar referencia
-        if deck_id == 'A':
-            self.deck_a_midi_widget = compact_midi_widget
-        else:
-            self.deck_b_midi_widget = compact_midi_widget
+        # Sección de actividad MIDI del deck
+        activity_group = self.create_deck_activity_section(deck_id)
+        deck_layout.addWidget(activity_group)
         
         return deck_frame
 
@@ -664,6 +631,59 @@ class ControlPanelWindow(QMainWindow):
         
         return status_group
 
+    def create_deck_activity_section(self, deck_id):
+        """Create MIDI activity section for a deck"""
+        activity_group = QGroupBox("🎵 Actividad MIDI")
+        activity_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                color: #ffffff;
+                border: 1px solid #666;
+                border-radius: 5px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px 0 5px;
+            }
+        """)
+
+        layout = QVBoxLayout(activity_group)
+
+        table = QTableWidget()
+        table.setColumnCount(3)
+        table.setHorizontalHeaderLabels(["Tiempo", "Tipo", "Dato"])
+        table.setMaximumHeight(150)
+
+        header = table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        table.setColumnWidth(0, 70)
+        table.setColumnWidth(1, 70)
+
+        layout.addWidget(table)
+
+        if deck_id == 'A':
+            self.deck_a_activity_table = table
+        else:
+            self.deck_b_activity_table = table
+
+        return activity_group
+
+    def _add_row_to_table(self, table, timestamp, msg_type, data_str, max_rows=20):
+        """Utility to append a row to a QTableWidget with limit"""
+        row = table.rowCount()
+        table.insertRow(row)
+        table.setItem(row, 0, QTableWidgetItem(timestamp))
+        table.setItem(row, 1, QTableWidgetItem(msg_type))
+        table.setItem(row, 2, QTableWidgetItem(data_str))
+        table.scrollToBottom()
+        if table.rowCount() > max_rows:
+            table.removeRow(0)
+
     def create_mix_section(self):
         """Create mix section"""
         mix_frame = QFrame()
@@ -689,47 +709,6 @@ class ControlPanelWindow(QMainWindow):
         # Mix Status
         status_group = self.create_mix_status_section()
         mix_layout.addWidget(status_group)
-        
-        # Mix MIDI Config
-        mix_midi_group = QGroupBox("🎹 Mix MIDI Config")
-        mix_midi_group.setStyleSheet("""
-            QGroupBox {
-                font-weight: bold;
-                color: #ffffff;
-                border: 1px solid #666;
-                border-radius: 5px;
-                margin-top: 10px;
-                padding-top: 10px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 5px 0 5px;
-            }
-        """)
-        
-        mix_midi_layout = QVBoxLayout(mix_midi_group)
-        
-        # Quick mix actions
-        mix_actions_layout = QGridLayout()
-        
-        mix_actions = [
-            ("A→B 10s", "note_on_ch0_note48"),
-            ("B→A 10s", "note_on_ch0_note49"),
-            ("A→B 5s", "note_on_ch0_note50"),
-            ("B→A 5s", "note_on_ch0_note51"),
-            ("A→B Fast", "note_on_ch0_note52"),
-            ("B→A Fast", "note_on_ch0_note53")
-        ]
-        
-        for i, (label, midi_key) in enumerate(mix_actions):
-            btn = QPushButton(label)
-            btn.setMaximumHeight(25)
-            btn.clicked.connect(lambda checked, key=midi_key: self.test_mix_action(key))
-            mix_actions_layout.addWidget(btn, i // 2, i % 2)
-        
-        mix_midi_layout.addLayout(mix_actions_layout)
-        mix_layout.addWidget(mix_midi_group)
         
         # Future Features (más compacto)
         future_group = QGroupBox("🚀 Próximamente")
@@ -1215,79 +1194,65 @@ Mappings: {len(self.midi_engine.get_midi_mappings()) if self.midi_engine else 0}
             logging.error(f"Error handling MIDI device disconnection: {e}")
 
     def on_midi_activity(self, msg):
-        """Handle raw MIDI activity for monitoring with enhanced feedback and LED"""
+        """Handle raw MIDI activity and update activity tables"""
         try:
-            # ✅ ENCENDER LED DE ACTIVIDAD
             self.turn_on_midi_led()
-            
-            # FIX: Usar datetime para obtener microsegundos correctamente
+
             from datetime import datetime
-            timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]  # Incluir milisegundos
-            
-            if hasattr(msg, 'type'):
-                # Log CRÍTICO - CADA mensaje debe aparecer aquí
-                logging.info(f"🎼 MIDI ACTIVITY DETECTED: {msg}")
-                logging.info(f"   ⏰ Timestamp: {timestamp}")
-                logging.info(f"   🔍 Type: {msg.type}")
-                logging.info(f"   📡 Channel: {getattr(msg, 'channel', 'N/A')}")
-                
-                if msg.type == 'note_on':
-                    velocity = getattr(msg, 'velocity', 0)
-                    note = getattr(msg, 'note', 0)
-                    
-                    logging.info(f"   🎵 NOTE_ON DETAILS:")
-                    logging.info(f"      Note: {note}")
-                    logging.info(f"      Velocity: {velocity}")
-                    
-                    # Solo procesar si velocity > 0
-                    if velocity > 0:
-                        note_names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
-                        octave = note // 12 - 1
-                        note_name = note_names[note % 12]
-                        
-                        logging.info(f"🎵 ACTIVE NOTE: {note_name}{octave} (#{note}) Ch:{msg.channel+1} Vel:{velocity}")
-                        
-                        # CRÍTICO: Verificar mapping
-                        if self.midi_engine:
-                            mappings = self.midi_engine.get_midi_mappings()
-                            expected_key = f"note_on_ch0_note{note}"
-                            
-                            logging.info(f"🔍 BUSCANDO MAPPING PARA: {expected_key}")
-                            
-                            found_mapping = False
-                            for action_id, mapping_data in mappings.items():
-                                midi_key = mapping_data.get('midi', 'no_midi')
-                                if midi_key == expected_key:
-                                    action_type = mapping_data.get('type', 'unknown')
-                                    params = mapping_data.get('params', {})
-                                    logging.info(f"✅ MAPPING ENCONTRADO!")
-                                    logging.info(f"   Action ID: {action_id}")
-                                    logging.info(f"   Type: {action_type}")
-                                    logging.info(f"   Params: {params}")
-                                    found_mapping = True
-                                    break
-                            
-                            if not found_mapping:
-                                logging.warning(f"❌ NO HAY MAPPING PARA: {expected_key}")
-                                logging.info(f"📋 Mappings disponibles:")
-                                for i, (aid, mdata) in enumerate(list(mappings.items())[:5]):
-                                    logging.info(f"   {aid}: {mdata.get('midi', 'no_midi')}")
-                                if len(mappings) > 5:
-                                    logging.info(f"   ... y {len(mappings) - 5} más")
-                    else:
-                        logging.info(f"   🎵 NOTE_ON with velocity 0 (note off)")
-                        
-                elif msg.type == 'note_off':
-                    note = getattr(msg, 'note', 0)
-                    logging.info(f"   🎵 NOTE_OFF: Note={note}")
-                    
-                elif msg.type == 'control_change':
-                    control = getattr(msg, 'control', 0)
-                    value = getattr(msg, 'value', 0)
-                    logging.info(f"   🎛️ CC: Control={control}, Value={value}")
-                    
-            logging.info(f"📃 MIDI ACTIVITY PROCESSING COMPLETE")
-                    
+            timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+
+            msg_type = getattr(msg, 'type', 'unknown')
+            data_str = str(msg)
+            midi_key = None
+            note = control = value = velocity = None
+
+            if msg_type == 'note_on':
+                note = getattr(msg, 'note', 0)
+                velocity = getattr(msg, 'velocity', 0)
+                data_str = f"Note {note} Vel {velocity}"
+                midi_key = f"note_on_ch{msg.channel}_note{note}"
+            elif msg_type == 'note_off':
+                note = getattr(msg, 'note', 0)
+                data_str = f"Note {note} off"
+                midi_key = f"note_off_ch{msg.channel}_note{note}"
+            elif msg_type == 'control_change':
+                control = getattr(msg, 'control', 0)
+                value = getattr(msg, 'value', 0)
+                data_str = f"CC {control} Val {value}"
+                midi_key = f"cc_ch{msg.channel}_control{control}"
+
+            deck_id = None
+            if midi_key and self.midi_engine:
+                mappings = self.midi_engine.get_midi_mappings()
+                for mapping_data in mappings.values():
+                    if mapping_data.get('midi') == midi_key:
+                        deck_id = mapping_data.get('params', {}).get('deck_id')
+                        break
+
+            if hasattr(self, 'midi_activity_table') and not getattr(self, 'midi_monitoring_paused', False):
+                row = self.midi_activity_table.rowCount()
+                self.midi_activity_table.insertRow(row)
+                self.midi_activity_table.setItem(row, 0, QTableWidgetItem(timestamp))
+                self.midi_activity_table.setItem(row, 1, QTableWidgetItem(msg_type))
+                self.midi_activity_table.setItem(row, 2, QTableWidgetItem(data_str))
+                self.midi_activity_table.setItem(row, 3, QTableWidgetItem(deck_id or '--'))
+                self.midi_activity_table.scrollToBottom()
+
+            if deck_id == 'A':
+                if hasattr(self, 'deck_a_activity_table'):
+                    self._add_row_to_table(self.deck_a_activity_table, timestamp, msg_type, data_str)
+                if hasattr(self, 'deck_a_activity_label'):
+                    self.deck_a_activity_label.setText(f"Última actividad: {timestamp}")
+                if msg_type == 'control_change' and hasattr(self, 'deck_a_controls_label'):
+                    self.deck_a_controls_label.setText(f"CC {control}={value}")
+            elif deck_id == 'B':
+                if hasattr(self, 'deck_b_activity_table'):
+                    self._add_row_to_table(self.deck_b_activity_table, timestamp, msg_type, data_str)
+                if hasattr(self, 'deck_b_activity_label'):
+                    self.deck_b_activity_label.setText(f"Última actividad: {timestamp}")
+                if msg_type == 'control_change' and hasattr(self, 'deck_b_controls_label'):
+                    self.deck_b_controls_label.setText(f"CC {control}={value}")
+
         except Exception as e:
             logging.error(f"❌ ERROR EN on_midi_activity: {e}")
             import traceback
