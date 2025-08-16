@@ -35,6 +35,8 @@ class VisualizerManager:
                 'vortex_particles',
                 'kaleido_tunney',
                 'science_analyzer',
+                'oneshot_charactertrain',
+                'oneshot_boomexplosion',
             ]
             
             loaded_count = 0

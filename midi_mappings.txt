@@ -1,7 +1,7 @@
 === CONFIGURACIÓN MIDI MAPPINGS ===
 
-Total mappings: 38
-Fecha: 2025-08-16 13:08:36
+Total mappings: 42
+Fecha: 2025-08-16 13:45:50
 
 === PRESET MAPPINGS ===
   note_on_ch0_note36 -> Deck A: Simple Test
@@ -36,6 +36,10 @@ Fecha: 2025-08-16 13:08:36
   note_on_ch0_note73 -> Deck B: Kaleido Tunnel
   note_on_ch0_note74 -> Deck B: Scientific Analyzer
   note_on_ch0_note64 -> Deck B: None
+  note_on_ch0_note47 -> Deck A: Oneshot Character Train
+  note_on_ch0_note75 -> Deck A: Oneshot Boom Explosion
+  note_on_ch0_note76 -> Deck B: Oneshot Character Train
+  note_on_ch0_note77 -> Deck B: Oneshot Boom Explosion
 
 === MIX ACTIONS ===
   note_on_ch0_note48 -> A to B (10s)
