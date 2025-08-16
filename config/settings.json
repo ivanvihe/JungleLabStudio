@@ -11,8 +11,8 @@
             "height": 824
         },
         "main_window": {
-            "x": 0,
-            "y": 23,
+            "x": -245,
+            "y": 118,
             "width": 1536,
             "height": 793
         }
@@ -140,6 +140,15 @@
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note46"
+        },
+        "intro_text_reveal": {
+            "type": "preset_action",
+            "params": {
+                "deck_id": "B",
+                "preset_name": "Intro Text",
+                "custom_values": "show_ROBOTICA_text"
+            },
+            "midi": "note_on_ch0_note47"
         },
         "mix_action_0": {
             "type": "crossfade_action",
@@ -334,7 +343,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Vortex Particles",
+                "preset_name": "Wire Terrain",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note38"
@@ -343,7 +352,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Cosmic Flow",
+                "preset_name": "Abstract Lines",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note39"
@@ -370,7 +379,7 @@
             "type": "load_preset",
             "params": {
                 "deck_id": "A",
-                "preset_name": "Building Madness",
+                "preset_name": "Abstract Shapes",
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note42"
@@ -451,7 +460,7 @@
             "type": "crossfade_action",
             "params": {
                 "preset": "A to B",
-                "duration": "10s",
+                "duration": "50ms",
                 "target": "Visual Mix"
             },
             "midi": "note_on_ch0_note53"
@@ -581,15 +590,6 @@
                 "custom_values": ""
             },
             "midi": "note_on_ch0_note70"
-        },
-        "note_52_ch0": {
-            "type": "crossfade_action",
-            "params": {
-                "preset": "A to B",
-                "duration": "50ms",
-                "target": "Visual Mix"
-            },
-            "midi": "note_on_ch0_note52"
         }
     }
 }
