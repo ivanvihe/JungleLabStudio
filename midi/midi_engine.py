@@ -589,6 +589,8 @@ class MidiEngine(QObject):
                 self.execute_animate_crossfade_action(params)
             elif action_type == "control_parameter":
                 self.execute_control_parameter_action(params, value)
+            elif action_type == "preset_action":
+                self.execute_preset_action(params)
             else:
                 logging.warning(f"⚠️ Unknown action type: {action_type}")
                 
@@ -736,6 +738,32 @@ class MidiEngine(QObject):
             
         except Exception as e:
             logging.error(f"❌ Error executing control parameter action: {e}")
+
+    def execute_preset_action(self, params):
+        """Trigger a custom action on a deck's current preset"""
+        try:
+            deck_id = params.get('deck_id')
+            preset_name = params.get('preset_name')
+            action = params.get('custom_values', '')
+
+            if not self.mixer_window:
+                logging.error("❌ Mixer window reference not available!")
+                return
+
+            target_deck = None
+            if deck_id == 'A':
+                target_deck = self.mixer_window.deck_a
+            elif deck_id == 'B':
+                target_deck = self.mixer_window.deck_b
+
+            if target_deck and target_deck.get_current_visualizer_name() == preset_name:
+                self.mixer_window.safe_trigger_deck_action(deck_id, action)
+                logging.info(f"✅ Triggered action '{action}' on deck {deck_id}")
+            else:
+                logging.debug(f"Deck {deck_id} not running preset {preset_name}")
+
+        except Exception as e:
+            logging.error(f"❌ Error executing preset action: {e}")
 
     def apply_custom_values(self, deck_id, custom_values):
         """Apply custom parameter values to a deck"""

@@ -380,6 +380,17 @@ class Deck:
                 except Exception as e:
                     logging.error(f"❌ Deck {self.deck_id}: Error updating control {name}: {e}")
 
+    def trigger_action(self, action_name):
+        """Trigger a custom action on the current visualizer"""
+        with QMutexLocker(self._mutex):
+            if self.current_visualizer and hasattr(self.current_visualizer, 'trigger_action'):
+                try:
+                    self.current_visualizer.trigger_action(action_name)
+                    self._fbo_dirty = True
+                    logging.debug(f"🎬 Deck {self.deck_id}: Triggered action {action_name}")
+                except Exception as e:
+                    logging.error(f"❌ Deck {self.deck_id}: Error triggering action {action_name}: {e}")
+
     def get_current_visualizer_name(self):
         """Get the name of the current visualizer"""
         with QMutexLocker(self._mutex):

@@ -98,6 +98,15 @@
         },
         "midi": "note_on_ch0_note46"
     },
+    "intro_text_reveal": {
+        "type": "preset_action",
+        "params": {
+            "deck_id": "A",
+            "preset_name": "Intro Text",
+            "custom_values": "show_ROBOTICA_text"
+        },
+        "midi": "note_on_ch0_note47"
+    },
     "mix_action_0": {
         "type": "crossfade_action",
         "params": {
