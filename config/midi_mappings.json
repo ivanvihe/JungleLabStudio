@@ -89,6 +89,51 @@
     },
     "midi": "note_on_ch0_note45"
   },
+  "deck_a_preset_10": {
+    "type": "load_preset",
+    "params": {
+      "deck_id": "A",
+      "preset_name": "Intro Background",
+      "custom_values": ""
+    },
+    "midi": "note_on_ch0_note65"
+  },
+  "deck_a_preset_11": {
+    "type": "load_preset",
+    "params": {
+      "deck_id": "A",
+      "preset_name": "Intro Text ROBOTICA",
+      "custom_values": ""
+    },
+    "midi": "note_on_ch0_note66"
+  },
+  "deck_a_preset_12": {
+    "type": "load_preset",
+    "params": {
+      "deck_id": "A",
+      "preset_name": "Vortex Particles",
+      "custom_values": ""
+    },
+    "midi": "note_on_ch0_note67"
+  },
+  "deck_a_preset_13": {
+    "type": "load_preset",
+    "params": {
+      "deck_id": "A",
+      "preset_name": "Kaleido Tunnel",
+      "custom_values": ""
+    },
+    "midi": "note_on_ch0_note68"
+  },
+  "deck_a_preset_14": {
+    "type": "load_preset",
+    "params": {
+      "deck_id": "A",
+      "preset_name": "Scientific Analyzer",
+      "custom_values": ""
+    },
+    "midi": "note_on_ch0_note69"
+  },
   "deck_a_clear": {
     "type": "load_preset",
     "params": {
@@ -241,6 +286,51 @@
       "custom_values": ""
     },
     "midi": "note_on_ch0_note63"
+  },
+  "deck_b_preset_10": {
+    "type": "load_preset",
+    "params": {
+      "deck_id": "B",
+      "preset_name": "Intro Background",
+      "custom_values": ""
+    },
+    "midi": "note_on_ch0_note70"
+  },
+  "deck_b_preset_11": {
+    "type": "load_preset",
+    "params": {
+      "deck_id": "B",
+      "preset_name": "Intro Text ROBOTICA",
+      "custom_values": ""
+    },
+    "midi": "note_on_ch0_note71"
+  },
+  "deck_b_preset_12": {
+    "type": "load_preset",
+    "params": {
+      "deck_id": "B",
+      "preset_name": "Vortex Particles",
+      "custom_values": ""
+    },
+    "midi": "note_on_ch0_note72"
+  },
+  "deck_b_preset_13": {
+    "type": "load_preset",
+    "params": {
+      "deck_id": "B",
+      "preset_name": "Kaleido Tunnel",
+      "custom_values": ""
+    },
+    "midi": "note_on_ch0_note73"
+  },
+  "deck_b_preset_14": {
+    "type": "load_preset",
+    "params": {
+      "deck_id": "B",
+      "preset_name": "Scientific Analyzer",
+      "custom_values": ""
+    },
+    "midi": "note_on_ch0_note74"
   },
   "deck_b_clear": {
     "type": "load_preset",
