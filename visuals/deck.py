@@ -416,10 +416,18 @@ class Deck:
                     )
                     # Only apply filtering when not multisampled
                     if fbo_format.samples() <= 1:
-                        glBindTexture(GL_TEXTURE_2D, self.fbo.texture())
-                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-                        glBindTexture(GL_TEXTURE_2D, 0)
+                        tex_id = self.fbo.texture()
+                        if tex_id and glIsTexture(tex_id):
+                            glBindTexture(GL_TEXTURE_2D, tex_id)
+                            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+                            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+                            glBindTexture(GL_TEXTURE_2D, 0)
+                        else:
+                            logging.debug(
+                                "Deck %s: skipping filter setup for invalid texture id %s",
+                                self.deck_id,
+                                tex_id,
+                            )
                     else:
                         logging.debug(
                             f"Deck {self.deck_id}: Multisampled FBO - skipping texture filtering"
@@ -445,7 +453,13 @@ class Deck:
                 self.render_to_fbo()
 
             if self.fbo and self.fbo.isValid():
-                return self.fbo.texture()
+                tex = self.fbo.texture()
+                if tex and glIsTexture(tex):
+                    return tex
+                # Texture ID is invalid; signal failure
+                logging.debug(
+                    "Deck %s: framebuffer returned invalid texture id %s", self.deck_id, tex
+                )
             return 0
 
     def get_controls(self):

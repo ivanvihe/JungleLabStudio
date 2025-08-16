@@ -333,14 +333,25 @@ class MixerWindow(QMainWindow):
             deck_a_active = self.deck_a and self.deck_a.has_active_visualizer()
             deck_b_active = self.deck_b and self.deck_b.has_active_visualizer()
             
-            # Get textures from decks
+            # Get textures from decks and verify validity
             texture_a = self.deck_a.get_texture() if deck_a_active else 0
+            if texture_a and not glIsTexture(texture_a):
+                logging.debug(
+                    "Deck A provided invalid texture id %s; falling back to 0", texture_a
+                )
+                texture_a = 0
+
             texture_b = self.deck_b.get_texture() if deck_b_active else 0
-            
+            if texture_b and not glIsTexture(texture_b):
+                logging.debug(
+                    "Deck B provided invalid texture id %s; falling back to 0", texture_b
+                )
+                texture_b = 0
+
             # Bind textures (even if 0, for shader consistency)
             glActiveTexture(GL_TEXTURE0)
             glBindTexture(GL_TEXTURE_2D, texture_a if texture_a > 0 else 0)
-            
+
             glActiveTexture(GL_TEXTURE1)
             glBindTexture(GL_TEXTURE_2D, texture_b if texture_b > 0 else 0)
             
