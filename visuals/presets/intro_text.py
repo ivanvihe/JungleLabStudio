@@ -62,8 +62,8 @@ class IntroTextVisualizer(BaseVisualizer):
             while glGetError() != GL_NO_ERROR:
                 pass
             
-            # Set up OpenGL state - WHITE BACKGROUND
-            glClearColor(1.0, 1.0, 1.0, 1.0)  # White background
+            # Set up OpenGL state - black background
+            glClearColor(0.0, 0.0, 0.0, 1.0)
             glEnable(GL_BLEND)
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
             glDisable(GL_DEPTH_TEST)
@@ -97,14 +97,14 @@ class IntroTextVisualizer(BaseVisualizer):
         self.last_change_time = [0.0] * self.total_chars
         
         # Calculate ROBOTICA positions (center of screen)
-        center_row = self.grid_height // 2
-        text_length = len(self.robotica_text)
-        start_col = (self.grid_width - text_length) // 2
-        
+        self.center_row = self.grid_height // 2
+        self.text_length = len(self.robotica_text)
+        self.start_col = (self.grid_width - self.text_length) // 2
+
         self.robotica_positions = []
         for i, char in enumerate(self.robotica_text):
-            col = start_col + i
-            index = center_row * self.grid_width + col
+            col = self.start_col + i
+            index = self.center_row * self.grid_width + col
             self.robotica_positions.append(index)
 
     def load_shaders(self):
@@ -132,9 +132,11 @@ class IntroTextVisualizer(BaseVisualizer):
                 charCode = aChar;
                 transition = aTransition;
                 
-                // Black text on white background
+                // Colorful characters on black background
+                float rand = fract(sin(dot(aPos.xy, vec2(12.9898, 78.233)) + aChar) * 43758.5453);
+                vec3 baseColor = vec3(fract(rand + 0.31), fract(rand + 0.63), fract(rand + 0.97));
                 float alpha = brightness * (0.8 + 0.2 * sin(time * 2.0 + aPos.x * 10.0));
-                color = vec3(0.0, 0.0, 0.0) * alpha;  // Black text
+                color = baseColor * alpha;
             }
             """
             
@@ -250,8 +252,10 @@ class IntroTextVisualizer(BaseVisualizer):
             # Create vertices for each character position
             vertices = []
             
-            char_width = 2.0 / self.grid_width
-            char_height = 2.0 / self.grid_height
+            self.char_width = 2.0 / self.grid_width
+            self.char_height = 2.0 / self.grid_height
+            char_width = self.char_width
+            char_height = self.char_height
             
             for row in range(self.grid_height):
                 for col in range(self.grid_width):
@@ -325,9 +329,9 @@ class IntroTextVisualizer(BaseVisualizer):
             self.fill_progress += self.fill_rate * dt
             chars_to_fill = int(self.fill_progress * self.total_chars)
             
-            # Add new random characters
+            # Add new random characters leaving occasional gaps
             for i in range(min(chars_to_fill, self.total_chars)):
-                if self.current_chars[i] == ' ':
+                if self.current_chars[i] == ' ' and random.random() > 0.15:
                     self.current_chars[i] = random.choice(self.charset)
                     self.target_chars[i] = self.current_chars[i]
                     self.transition_progress[i] = 1.0
@@ -390,24 +394,62 @@ class IntroTextVisualizer(BaseVisualizer):
         except Exception as e:
             logging.error(f"Error updating vertex data: {e}")
 
+    def draw_robotica_background(self):
+        """Draw semi-transparent backdrop and border for ROBOTICA text"""
+        try:
+            char_w = getattr(self, 'char_width', 2.0 / self.grid_width)
+            char_h = getattr(self, 'char_height', 2.0 / self.grid_height)
+            x_start = -1.0 + (self.start_col - 0.5) * char_w
+            x_end = x_start + (self.text_length + 1.0) * char_w
+            y_top = 1.0 - (self.center_row - 0.5) * char_h
+            y_bottom = y_top - (1.5 * char_h)
+
+            # Background rectangle
+            glColor4f(0.0, 0.0, 0.0, 0.5)
+            glBegin(GL_TRIANGLE_FAN)
+            glVertex2f(x_start, y_top)
+            glVertex2f(x_end, y_top)
+            glVertex2f(x_end, y_bottom)
+            glVertex2f(x_start, y_bottom)
+            glEnd()
+
+            # Border
+            glColor4f(1.0, 1.0, 1.0, 0.8)
+            glLineWidth(2.0)
+            glBegin(GL_LINE_LOOP)
+            glVertex2f(x_start, y_top)
+            glVertex2f(x_end, y_top)
+            glVertex2f(x_end, y_bottom)
+            glVertex2f(x_start, y_bottom)
+            glEnd()
+
+            glColor4f(1.0, 1.0, 1.0, 1.0)
+
+        except Exception as e:
+            logging.error(f"Error drawing ROBOTICA background: {e}")
+
     def paintGL(self):
         """Render the visualization"""
         try:
             if not self.initialized or not self.shader_program:
                 # Fallback rendering
-                glClearColor(1.0, 1.0, 1.0, 1.0)  # White background
+                glClearColor(0.0, 0.0, 0.0, 1.0)
                 glClear(GL_COLOR_BUFFER_BIT)
                 return
-            
-            # Clear with white background
-            glClearColor(1.0, 1.0, 1.0, 1.0)
+
+            # Clear with black background
+            glClearColor(0.0, 0.0, 0.0, 1.0)
             glClear(GL_COLOR_BUFFER_BIT)
             
             # Update animation
             current_time = time.time() - self.start_time
             self.update_animation(current_time)
             self.update_vertex_data()
-            
+
+            # Draw overlay background if revealing text
+            if self.reveal_started:
+                self.draw_robotica_background()
+
             # Use shader program
             glUseProgram(self.shader_program)
             
@@ -431,7 +473,7 @@ class IntroTextVisualizer(BaseVisualizer):
                 self._last_error_time = time.time()
             
             # Fallback rendering
-            glClearColor(1.0, 1.0, 1.0, 1.0)
+            glClearColor(0.0, 0.0, 0.0, 1.0)
             glClear(GL_COLOR_BUFFER_BIT)
 
     def resizeGL(self, width, height):
