@@ -9,6 +9,7 @@ from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 from OpenGL.GL import *
 
 from visuals.deck import Deck
+from opengl_fixes import OpenGLSafety
 
 class MixerWindow(QMainWindow):
     # Custom signals for thread-safe communication
@@ -77,7 +78,19 @@ class MixerWindow(QMainWindow):
                 
                 # Make context current
                 self.gl_widget.makeCurrent()
-                
+
+                # Log GL info for main context
+                try:
+                    OpenGLSafety.log_gl_info()
+                    info = OpenGLSafety.get_gl_info()
+                    renderer = (info.get('renderer') or '').lower()
+                    if 'llvmpipe' in renderer or 'software' in renderer:
+                        logging.warning(
+                            f"MixerWindow: Software renderer detected ({info.get('renderer')})"
+                        )
+                except Exception as e:
+                    logging.warning(f"Could not log GL info: {e}")
+
                 # Clear any existing GL errors
                 while glGetError() != GL_NO_ERROR:
                     pass
@@ -557,24 +570,21 @@ class MixerWindow(QMainWindow):
         """Get comprehensive deck status"""
         with QMutexLocker(self._mutex):
             if deck_id == 'A' and self.deck_a:
-                return {
-                    'active': self.deck_a.has_active_visualizer(),
-                    'visualizer': self.deck_a.get_current_visualizer_name(),
-                    'opacity': self.deck_a_opacity,
-                    'controls_count': len(self.deck_a.get_controls())
-                }
+                info = self.deck_a.get_deck_info()
+                info.update({'opacity': self.deck_a_opacity})
+                return info
             elif deck_id == 'B' and self.deck_b:
-                return {
-                    'active': self.deck_b.has_active_visualizer(),
-                    'visualizer': self.deck_b.get_current_visualizer_name(),
-                    'opacity': self.deck_b_opacity,
-                    'controls_count': len(self.deck_b.get_controls())
-                }
+                info = self.deck_b.get_deck_info()
+                info.update({'opacity': self.deck_b_opacity})
+                return info
             return {
                 'active': False,
                 'visualizer': None,
                 'opacity': 1.0,
-                'controls_count': 0
+                'controls_count': 0,
+                'frame_count': 0,
+                'fps': 0.0,
+                'gpu_renderer': None
             }
 
     def apply_gpu_selection(self, index):

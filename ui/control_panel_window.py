@@ -319,19 +319,30 @@ class ControlPanelWindow(QMainWindow):
                 try:
                     import psutil
                     import platform
-                    
-                    info = f"""Sistema: {platform.system()} {platform.release()}
-CPU: {psutil.cpu_percent()}%
-RAM: {psutil.virtual_memory().percent}%
-MIDI Engine: {'Activo' if self.midi_engine else 'Inactivo'}
-Mappings: {len(self.midi_engine.get_midi_mappings()) if self.midi_engine else 0}
-"""
+
+                    info = (
+                        f"Sistema: {platform.system()} {platform.release()}\n"
+                        f"CPU: {psutil.cpu_percent()}%\n"
+                        f"RAM: {psutil.virtual_memory().percent}%\n"
+                        f"MIDI Engine: {'Activo' if self.midi_engine else 'Inactivo'}\n"
+                        f"Mappings: {len(self.midi_engine.get_midi_mappings()) if self.midi_engine else 0}"
+                    )
                 except ImportError:
                     import platform
-                    info = f"""Sistema: Python {platform.python_version()}
-MIDI Engine: {'Activo' if self.midi_engine else 'Inactivo'}
-Mappings: {len(self.midi_engine.get_midi_mappings()) if self.midi_engine else 0}
-"""
+                    info = (
+                        f"Sistema: Python {platform.python_version()}\n"
+                        f"MIDI Engine: {'Activo' if self.midi_engine else 'Inactivo'}\n"
+                        f"Mappings: {len(self.midi_engine.get_midi_mappings()) if self.midi_engine else 0}"
+                    )
+
+                if self.mixer_window:
+                    status_a = self.mixer_window.get_deck_status('A')
+                    status_b = self.mixer_window.get_deck_status('B')
+                    info += (
+                        f"\nDeck A GPU: {status_a.get('gpu_renderer', 'N/A')} | FPS: {status_a.get('fps', 0):.1f}"
+                        f"\nDeck B GPU: {status_b.get('gpu_renderer', 'N/A')} | FPS: {status_b.get('fps', 0):.1f}"
+                    )
+
                 self.system_info_text.setPlainText(info)
         except Exception as e:
             logging.error(f"Error updating system info: {e}")
