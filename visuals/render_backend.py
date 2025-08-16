@@ -196,9 +196,18 @@ class GLBackend(RenderBackend):
         glViewport(x, y, w, h)
 
     def uniform(self, program: int, name: str, value: Any) -> None:
+        """Set a uniform value ensuring the program is bound."""
+
         loc = glGetUniformLocation(program, name)
         if loc < 0:
             return
+
+        # glUniform* calls require the program to be currently bound.
+        # Some visuals call this helper before invoking GLVertexArray.render,
+        # which binds/unbinds the program internally.  Without binding here
+        # the uniform update would raise GL_INVALID_OPERATION (1282).
+        glUseProgram(program)
+
         if isinstance(value, (float, int)):
             glUniform1f(loc, float(value))
         elif isinstance(value, (list, tuple)):
