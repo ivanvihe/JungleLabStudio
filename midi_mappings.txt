@@ -1,31 +1,41 @@
 === CONFIGURACIÓN MIDI MAPPINGS ===
 
-Total mappings: 28
+Total mappings: 38
 Fecha: 2025-08-16 13:08:36
 
 === PRESET MAPPINGS ===
-  _on_ch0_ -> Deck A: Simple Test
-  _on_ch0_ -> Deck A: Wire Terrain
-  _on_ch0_ -> Deck A: Abstract Lines
-  _on_ch0_ -> Deck A: Geometric Particles
-  _on_ch0_ -> Deck A: Evolutive Particles
-  _on_ch0_ -> Deck A: Abstract Shapes
-  _on_ch0_ -> Deck A: Mobius Band
-  _on_ch0_ -> Deck A: Building Madness
-  _on_ch0_ -> Deck A: Cosmic Flow
-  _on_ch0_ -> Deck A: Fluid Particles
-  _on_ch0_ -> Deck A: None
-  _on_ch0_ -> Deck B: Simple Test
-  _on_ch0_ -> Deck B: Wire Terrain
-  _on_ch0_ -> Deck B: Abstract Lines
-  _on_ch0_ -> Deck B: Geometric Particles
-  _on_ch0_ -> Deck B: Evolutive Particles
-  _on_ch0_ -> Deck B: Abstract Shapes
-  _on_ch0_ -> Deck B: Mobius Band
-  _on_ch0_ -> Deck B: Building Madness
-  _on_ch0_ -> Deck B: Cosmic Flow
-  _on_ch0_ -> Deck B: Fluid Particles
-  _on_ch0_ -> Deck B: None
+  note_on_ch0_note36 -> Deck A: Simple Test
+  note_on_ch0_note37 -> Deck A: Wire Terrain
+  note_on_ch0_note38 -> Deck A: Abstract Lines
+  note_on_ch0_note39 -> Deck A: Geometric Particles
+  note_on_ch0_note40 -> Deck A: Evolutive Particles
+  note_on_ch0_note41 -> Deck A: Abstract Shapes
+  note_on_ch0_note42 -> Deck A: Mobius Band
+  note_on_ch0_note43 -> Deck A: Building Madness
+  note_on_ch0_note44 -> Deck A: Cosmic Flow
+  note_on_ch0_note45 -> Deck A: Fluid Particles
+  note_on_ch0_note65 -> Deck A: Intro Background
+  note_on_ch0_note66 -> Deck A: Intro Text ROBOTICA
+  note_on_ch0_note67 -> Deck A: Vortex Particles
+  note_on_ch0_note68 -> Deck A: Kaleido Tunnel
+  note_on_ch0_note69 -> Deck A: Scientific Analyzer
+  note_on_ch0_note46 -> Deck A: None
+  note_on_ch0_note54 -> Deck B: Simple Test
+  note_on_ch0_note55 -> Deck B: Wire Terrain
+  note_on_ch0_note56 -> Deck B: Abstract Lines
+  note_on_ch0_note57 -> Deck B: Geometric Particles
+  note_on_ch0_note58 -> Deck B: Evolutive Particles
+  note_on_ch0_note59 -> Deck B: Abstract Shapes
+  note_on_ch0_note60 -> Deck B: Mobius Band
+  note_on_ch0_note61 -> Deck B: Building Madness
+  note_on_ch0_note62 -> Deck B: Cosmic Flow
+  note_on_ch0_note63 -> Deck B: Fluid Particles
+  note_on_ch0_note70 -> Deck B: Intro Background
+  note_on_ch0_note71 -> Deck B: Intro Text ROBOTICA
+  note_on_ch0_note72 -> Deck B: Vortex Particles
+  note_on_ch0_note73 -> Deck B: Kaleido Tunnel
+  note_on_ch0_note74 -> Deck B: Scientific Analyzer
+  note_on_ch0_note64 -> Deck B: None
 
 === MIX ACTIONS ===
   note_on_ch0_note48 -> A to B (10s)
@@ -34,4 +44,3 @@ Fecha: 2025-08-16 13:08:36
   note_on_ch0_note51 -> B to A (5s)
   note_on_ch0_note52 -> A to B (500ms)
   note_on_ch0_note53 -> B to A (500ms)
-

@@ -94,17 +94,17 @@ def test_preset_names():
     # Check matches
     missing_presets = mapping_presets - set(available_presets)
     extra_presets = set(available_presets) - mapping_presets
-    
+
     if missing_presets:
         print(f"❌ Missing presets in visualizer_manager: {missing_presets}")
-    
+
     if extra_presets:
-        print(f"ℹ️  Extra presets in visualizer_manager: {extra_presets}")
-    
-    if not missing_presets:
-        print("✅ All mapping presets found in visualizer_manager!")
-    
-    return len(missing_presets) == 0
+        print(f"❌ Presets without MIDI mapping: {extra_presets}")
+
+    if not missing_presets and not extra_presets:
+        print("✅ All mapping presets match visualizer_manager!")
+
+    return len(missing_presets) == 0 and len(extra_presets) == 0
 
 def main():
     """Main test function"""
