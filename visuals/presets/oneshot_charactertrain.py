@@ -10,7 +10,7 @@ from OpenGL.GL import *
 from ..base_visualizer import BaseVisualizer
 
 class OneshotCharacterTrainVisualizer(BaseVisualizer):
-    """One-shot character train visual - lines of characters crossing the screen"""
+    """One-shot character train visual - ULTRA SIMPLE VERSION"""
     
     visual_name = "Oneshot Character Train"
     
@@ -19,42 +19,44 @@ class OneshotCharacterTrainVisualizer(BaseVisualizer):
         self.shader_program = None
         self.vao = None
         self.vbo = None
+        self.start_time = time.time()
         self.initialized = False
         
-        # Train state
-        self.active_trains = []  # List of active character trains
-        self.max_trains = 8     # Maximum simultaneous trains
-        
-        # Train settings
-        self.train_length = 25        # Characters per train
-        self.train_duration = 4.0     # How long train takes to cross screen
-        self.character_spacing = 0.08 # Space between characters
+        # Train state - VERY SIMPLE
+        self.active_trains = []
+        self.max_trains = 3
         
         # Visual parameters
         self.speed_multiplier = 1.0
         self.trail_intensity = 1.0
-        self.color_mode = 0  # 0=matrix, 1=rainbow, 2=fire
-        self.trail_length = 5  # How many characters fade behind
+        self.color_mode = 0
 
-        # Character set (same as intro_background)
-        self.charset = string.ascii_letters + string.digits + "!@#$%^&*()_+-=[]{}|;:,.<>?"
-
-        # Track start time for relative timing to maintain precision
-        self.start_time = time.time()
+        # Character set
+        self.charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        
+        # Pre-generate data
+        self.vertices = None
+        self.vertex_count = 0
         
         logging.info("OneshotCharacterTrainVisualizer created")
+        
+        # Auto-trigger the train on creation for one-shot behavior
+        self.create_train()
+        
+        # Auto-trigger the train on creation for one-shot behavior
+        self.create_train()
 
     def initializeGL(self):
-        """Initialize OpenGL resources"""
+        """Initialize OpenGL resources - EXACTLY like intro_background"""
         try:
             logging.debug("OneshotCharacterTrainVisualizer.initializeGL called")
             
-            # Clear GL errors
+            # Clear any existing GL errors
             while glGetError() != GL_NO_ERROR:
                 pass
             
-            # Set up OpenGL state
-            glClearColor(0.0, 0.0, 0.0, 0.0)  # Transparent background
+            # Set up OpenGL state - EXACTLY like intro_background
+            glClearColor(0.0, 0.0, 0.0, 0.0)
             glEnable(GL_BLEND)
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
             glDisable(GL_DEPTH_TEST)
@@ -65,12 +67,10 @@ class OneshotCharacterTrainVisualizer(BaseVisualizer):
                 return
             
             # Setup geometry
-            if not self.setup_character_geometry():
-                logging.error("Failed to setup character geometry")
+            if not self.setup_geometry():
+                logging.error("Failed to setup geometry")
                 return
-
-            # Reset start time when GL context is ready
-            self.start_time = time.time()
+            
             self.initialized = True
             logging.info("✅ OneshotCharacterTrainVisualizer initialized successfully")
             
@@ -80,115 +80,56 @@ class OneshotCharacterTrainVisualizer(BaseVisualizer):
             traceback.print_exc()
 
     def load_shaders(self):
-        """Load and compile shaders for character rendering"""
+        """Load and compile shaders - ULTRA SIMPLE like intro_background"""
         try:
+            # VERY SIMPLE vertex shader - based on intro_background pattern
             vertex_shader_source = """
             #version 330 core
-            layout (location = 0) in vec2 aPos;           // Character quad position
-            layout (location = 1) in vec2 aTexCoord;      // Texture coordinates
-            layout (location = 2) in float aCharCode;     // Character code
-            layout (location = 3) in float aCharIndex;    // Index in train
-            layout (location = 4) in float aTrainId;      // Train ID
+            layout (location = 0) in vec2 aPos;
+            layout (location = 1) in vec2 aTexCoord;
+            layout (location = 2) in float aChar;
+            layout (location = 3) in float aAge;
+            layout (location = 4) in vec3 aColor;
             
             uniform float time;
-            uniform float speedMultiplier;
-            uniform float trailIntensity;
-            uniform int colorMode;
-            
-            // Train data (up to 8 trains)
-            uniform float trainStartTimes[8];
-            uniform vec2 trainStartPos[8];
-            uniform vec2 trainDirection[8];
-            uniform float trainSpeeds[8];
-            uniform int trainActive[8];
+            uniform float intensity;
             
             out vec2 texCoord;
             out float charCode;
-            out vec3 charColor;
-            out float charAlpha;
+            out vec3 color;
+            out float alpha;
             
             void main()
             {
-                int trainId = int(aTrainId);
-                
-                // Check if train is active
-                if (trainId >= 8 || trainActive[trainId] == 0) {
-                    gl_Position = vec4(10.0, 10.0, 10.0, 1.0); // Move offscreen
-                    charAlpha = 0.0;
-                    return;
-                }
-                
-                float trainTime = time - trainStartTimes[trainId];
-                
-                // Calculate character position along train path
-                vec2 direction = trainDirection[trainId];
-                float trainSpeed = trainSpeeds[trainId] * speedMultiplier;
-                
-                // Position of train head
-                vec2 trainHead = trainStartPos[trainId] + direction * trainSpeed * trainTime;
-                
-                // Position of this character (behind the head)
-                float charOffset = aCharIndex * 0.08; // Character spacing
-                vec2 charPos = trainHead - direction * charOffset;
-                
-                // Add character quad offset
-                vec2 finalPos = charPos + aPos * 0.03; // Character size
-                
-                gl_Position = vec4(finalPos, 0.0, 1.0);
-                
+                gl_Position = vec4(aPos, 0.0, 1.0);
                 texCoord = aTexCoord;
-                charCode = aCharCode;
+                charCode = aChar;
+                color = aColor;
                 
-                // Calculate trail effect (characters fade based on distance from head)
-                float distanceFromHead = aCharIndex;
-                float trailFade = 1.0 - smoothstep(0.0, float(5), distanceFromHead); // Trail length of 5
-                trailFade = pow(trailFade, 2.0); // More dramatic falloff
-                
-                // Color based on mode
-                vec3 baseColor;
-                if (colorMode == 0) {
-                    // Matrix green
-                    baseColor = vec3(0.0, 1.0, 0.2);
-                } else if (colorMode == 1) {
-                    // Rainbow based on character and time
-                    float hue = fract(aCharCode * 0.1 + trainTime * 0.5);
-                    baseColor = vec3(
-                        0.5 + 0.5 * sin(hue * 6.28318),
-                        0.5 + 0.5 * sin(hue * 6.28318 + 2.094),
-                        0.5 + 0.5 * sin(hue * 6.28318 + 4.189)
-                    );
-                } else {
-                    // Fire colors
-                    float heat = 1.0 - distanceFromHead / 5.0;
-                    baseColor = vec3(1.0, heat * 0.8, heat * 0.3);
-                }
-                
-                charColor = baseColor;
-                charAlpha = trailFade * trailIntensity;
-                
-                // Add brightness variation
-                float brightness = 0.8 + 0.4 * sin(time * 3.0 + aCharCode);
-                charColor *= brightness;
+                // Simple fade based on age
+                float fade = 1.0 - smoothstep(0.0, 4.0, aAge);
+                alpha = fade * intensity;
             }
             """
             
+            # VERY SIMPLE fragment shader - based on intro_background
             fragment_shader_source = """
             #version 330 core
             in vec2 texCoord;
             in float charCode;
-            in vec3 charColor;
-            in float charAlpha;
+            in vec3 color;
+            in float alpha;
             
             out vec4 FragColor;
             
-            // Simple character rendering function
+            // Simple character rendering function - like intro_background
             float drawChar(vec2 uv, float c) {
                 vec2 p = uv * 2.0 - 1.0; // Convert to -1,1 range
                 
                 float char_alpha = 0.0;
                 
                 // Different patterns for different character codes
-                float char_mod = mod(c, 12.0);
+                float char_mod = mod(c, 6.0);
                 
                 if (char_mod < 2.0) {
                     // Rectangle pattern
@@ -196,23 +137,9 @@ class OneshotCharacterTrainVisualizer(BaseVisualizer):
                 } else if (char_mod < 4.0) {
                     // Circle pattern
                     char_alpha = 1.0 - smoothstep(0.4, 0.6, length(p));
-                } else if (char_mod < 6.0) {
+                } else {
                     // Cross pattern
                     char_alpha = step(abs(p.x), 0.2) + step(abs(p.y), 0.2);
-                } else if (char_mod < 8.0) {
-                    // Diagonal lines
-                    float d1 = abs(p.x - p.y);
-                    float d2 = abs(p.x + p.y);
-                    char_alpha = step(d1, 0.2) + step(d2, 0.2);
-                } else if (char_mod < 10.0) {
-                    // Dots pattern
-                    vec2 grid = floor(p * 3.0);
-                    char_alpha = step(mod(grid.x + grid.y, 2.0), 0.5);
-                } else {
-                    // Complex pattern
-                    float r = length(p);
-                    float a = atan(p.y, p.x);
-                    char_alpha = step(abs(sin(a * 4.0 + r * 8.0)), 0.3);
                 }
                 
                 return clamp(char_alpha, 0.0, 1.0);
@@ -221,19 +148,11 @@ class OneshotCharacterTrainVisualizer(BaseVisualizer):
             void main()
             {
                 float char_alpha = drawChar(texCoord, charCode);
-                
-                vec3 finalColor = charColor;
-                float finalAlpha = char_alpha * charAlpha;
-                
-                // Add glow effect
-                float glow = 1.0 + 0.5 * (1.0 - length(texCoord - vec2(0.5)));
-                finalColor *= glow;
-                
-                FragColor = vec4(finalColor, finalAlpha);
+                FragColor = vec4(color, char_alpha * alpha);
             }
             """
             
-            # Compile vertex shader
+            # Compile exactly like intro_background
             vertex_shader = glCreateShader(GL_VERTEX_SHADER)
             glShaderSource(vertex_shader, vertex_shader_source)
             glCompileShader(vertex_shader)
@@ -243,7 +162,6 @@ class OneshotCharacterTrainVisualizer(BaseVisualizer):
                 logging.error(f"Vertex shader compilation failed: {error}")
                 return False
             
-            # Compile fragment shader
             fragment_shader = glCreateShader(GL_FRAGMENT_SHADER)
             glShaderSource(fragment_shader, fragment_shader_source)
             glCompileShader(fragment_shader)
@@ -253,7 +171,6 @@ class OneshotCharacterTrainVisualizer(BaseVisualizer):
                 logging.error(f"Fragment shader compilation failed: {error}")
                 return False
             
-            # Link program
             self.shader_program = glCreateProgram()
             glAttachShader(self.shader_program, vertex_shader)
             glAttachShader(self.shader_program, fragment_shader)
@@ -264,7 +181,6 @@ class OneshotCharacterTrainVisualizer(BaseVisualizer):
                 logging.error(f"Shader program linking failed: {error}")
                 return False
             
-            # Clean up shaders
             glDeleteShader(vertex_shader)
             glDeleteShader(fragment_shader)
             
@@ -275,43 +191,46 @@ class OneshotCharacterTrainVisualizer(BaseVisualizer):
             logging.error(f"Error loading shaders: {e}")
             return False
 
-    def setup_character_geometry(self):
-        """Setup vertex data for character quads"""
+    def setup_geometry(self):
+        """Setup vertex data - EXACTLY like intro_background pattern"""
         try:
-            # Create VAO and VBO (we'll update VBO data per frame)
+            # Start with NO characters - like intro_background starts empty
+            vertices = []
+            
+            # Create basic structure
+            self.vertices = np.array([0.0], dtype=np.float32)  # Empty but valid
+            
+            # Create and bind VAO
             self.vao = glGenVertexArrays(1)
             glBindVertexArray(self.vao)
             
+            # Create and bind VBO
             self.vbo = glGenBuffers(1)
             glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
             
-            # Reserve space for maximum characters across all trains
-            max_chars = self.max_trains * self.train_length * 6  # 6 vertices per character quad
-            vertex_size = 7 * 4  # 7 floats per vertex * 4 bytes
-            glBufferData(GL_ARRAY_BUFFER, max_chars * vertex_size, None, GL_DYNAMIC_DRAW)
+            # Reserve space for characters
+            max_chars = 50  # Much smaller number
+            vertex_size = 10 * 4  # 10 floats per vertex * 4 bytes
+            glBufferData(GL_ARRAY_BUFFER, max_chars * vertex_size * 6, None, GL_DYNAMIC_DRAW)  # 6 vertices per quad
             
             # Set vertex attributes
-            stride = 7 * 4  # 7 floats per vertex
+            stride = 10 * 4  # 10 floats per vertex
             
             # Position (2 floats)
             glEnableVertexAttribArray(0)
             glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(0))
-            
             # Texture coordinates (2 floats)
             glEnableVertexAttribArray(1)
             glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(2 * 4))
-            
             # Character code (1 float)
             glEnableVertexAttribArray(2)
             glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(4 * 4))
-            
-            # Character index (1 float)
+            # Age (1 float)
             glEnableVertexAttribArray(3)
             glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(5 * 4))
-            
-            # Train ID (1 float)
+            # Color (3 floats)
             glEnableVertexAttribArray(4)
-            glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(6 * 4))
+            glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(6 * 4))
             
             # Unbind
             glBindVertexArray(0)
@@ -321,118 +240,112 @@ class OneshotCharacterTrainVisualizer(BaseVisualizer):
             return True
             
         except Exception as e:
-            logging.error(f"Error setting up character geometry: {e}")
+            logging.error(f"Error setting up geometry: {e}")
             return False
 
     def create_train(self, start_x=None, start_y=None, direction=None):
-        """Create a new character train"""
+        """Create a new character train - VERY SIMPLE"""
         current_time = time.time() - self.start_time
         
         # Remove old trains
         self.active_trains = [train for train in self.active_trains 
-                             if (current_time - train['start_time']) < train['duration']]
+                             if (current_time - train['start_time']) < 4.0]
         
-        # Don't create new train if we're at max
+        # Don't create if at max
         if len(self.active_trains) >= self.max_trains:
-            self.active_trains.pop(0)  # Remove oldest
+            self.active_trains.pop(0)
         
-        # Determine train path (random if not specified)
-        if direction is None:
-            # Choose random direction: horizontal or vertical
-            if random.choice([True, False]):
-                # Horizontal movement
-                if random.choice([True, False]):
-                    # Left to right
-                    start_x = -1.2
-                    start_y = random.uniform(-0.8, 0.8)
-                    direction = (1.0, 0.0)
-                else:
-                    # Right to left
-                    start_x = 1.2
-                    start_y = random.uniform(-0.8, 0.8)
-                    direction = (-1.0, 0.0)
-            else:
-                # Vertical movement
-                if random.choice([True, False]):
-                    # Top to bottom
-                    start_x = random.uniform(-0.8, 0.8)
-                    start_y = 1.2
-                    direction = (0.0, -1.0)
-                else:
-                    # Bottom to top
-                    start_x = random.uniform(-0.8, 0.8)
-                    start_y = -1.2
-                    direction = (0.0, 1.0)
+        # Simple horizontal movement only
+        if random.choice([True, False]):
+            # Left to right
+            start_x = -1.2
+            start_y = random.uniform(-0.5, 0.5)
+            direction = (1.0, 0.0)
+        else:
+            # Right to left
+            start_x = 1.2
+            start_y = random.uniform(-0.5, 0.5)
+            direction = (-1.0, 0.0)
         
-        # Use provided values if given
-        if start_x is None:
-            start_x = random.uniform(-1.0, 1.0)
-        if start_y is None:
-            start_y = random.uniform(-1.0, 1.0)
-        
-        # Generate random characters for this train
-        characters = [random.choice(self.charset) for _ in range(self.train_length)]
+        # Generate simple characters
+        characters = [random.choice(self.charset) for _ in range(8)]  # Only 8 characters
         
         # Create train data
         train = {
             'start_pos': (start_x, start_y),
             'direction': direction,
             'start_time': current_time,
-            'duration': self.train_duration,
-            'speed': random.uniform(0.4, 0.8),  # Base speed
-            'characters': characters,
-            'train_id': len(self.active_trains)  # Use current length as ID
+            'speed': 0.6,  # Fixed speed
+            'characters': characters
         }
         
         self.active_trains.append(train)
-        direction_str = "horizontal" if abs(direction[0]) > abs(direction[1]) else "vertical"
-        logging.info(f"🚂 Created {direction_str} character train at ({start_x:.2f}, {start_y:.2f})")
+        logging.info(f"🚂 Created SIMPLE train at ({start_x:.2f}, {start_y:.2f})")
 
-    def update_character_buffer(self):
-        """Update the character buffer with current train data"""
+    def update_vertex_data(self):
+        """Update vertex buffer - EXACTLY like intro_background"""
         try:
+            current_time = time.time() - self.start_time
             vertices = []
             
-            for train_idx, train in enumerate(self.active_trains):
+            for train in self.active_trains:
+                train_age = current_time - train['start_time']
+                
                 for char_idx, char in enumerate(train['characters']):
                     char_code = ord(char)
                     
-                    # Create quad for this character (2 triangles = 6 vertices)
-                    # Each vertex: pos(2) + texcoord(2) + charcode(1) + charidx(1) + trainid(1)
+                    # Calculate position
+                    base_x, base_y = train['start_pos']
+                    dir_x, dir_y = train['direction']
+                    
+                    # Move train
+                    pos_x = base_x + dir_x * train['speed'] * train_age
+                    pos_y = base_y + dir_y * train['speed'] * train_age
+                    
+                    # Offset character
+                    char_x = pos_x - dir_x * char_idx * 0.1
+                    char_y = pos_y - dir_y * char_idx * 0.1
+                    
+                    # Color - simple green
+                    r, g, b = 0.0, 1.0, 0.3
+                    
+                    # Create a simple quad for this character
+                    size = 0.04
                     
                     # Triangle 1
                     vertices.extend([
-                        -0.5, -0.5, 0.0, 0.0, float(char_code), float(char_idx), float(train_idx),  # Bottom-left
-                         0.5, -0.5, 1.0, 0.0, float(char_code), float(char_idx), float(train_idx),  # Bottom-right
-                        -0.5,  0.5, 0.0, 1.0, float(char_code), float(char_idx), float(train_idx)   # Top-left
+                        char_x - size, char_y - size, 0.0, 0.0, float(char_code), train_age, r, g, b, 0.0,  # Bottom-left
+                        char_x + size, char_y - size, 1.0, 0.0, float(char_code), train_age, r, g, b, 0.0,  # Bottom-right
+                        char_x - size, char_y + size, 0.0, 1.0, float(char_code), train_age, r, g, b, 0.0   # Top-left
                     ])
                     
                     # Triangle 2
                     vertices.extend([
-                         0.5, -0.5, 1.0, 0.0, float(char_code), float(char_idx), float(train_idx),  # Bottom-right
-                         0.5,  0.5, 1.0, 1.0, float(char_code), float(char_idx), float(train_idx),  # Top-right
-                        -0.5,  0.5, 0.0, 1.0, float(char_code), float(char_idx), float(train_idx)   # Top-left
+                        char_x + size, char_y - size, 1.0, 0.0, float(char_code), train_age, r, g, b, 0.0,  # Bottom-right
+                        char_x + size, char_y + size, 1.0, 1.0, float(char_code), train_age, r, g, b, 0.0,  # Top-right
+                        char_x - size, char_y + size, 0.0, 1.0, float(char_code), train_age, r, g, b, 0.0   # Top-left
                     ])
             
             if vertices:
-                vertex_data = np.array(vertices, dtype=np.float32)
+                self.vertices = np.array(vertices, dtype=np.float32)
+                self.vertex_count = len(vertices) // 10
                 
+                # Upload to GPU
                 glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-                glBufferSubData(GL_ARRAY_BUFFER, 0, vertex_data.nbytes, vertex_data)
+                glBufferSubData(GL_ARRAY_BUFFER, 0, self.vertices.nbytes, self.vertices)
                 glBindBuffer(GL_ARRAY_BUFFER, 0)
-                
-                return len(vertices) // 7  # Number of vertices
-            
-            return 0
+            else:
+                self.vertex_count = 0
             
         except Exception as e:
-            logging.error(f"Error updating character buffer: {e}")
-            return 0
+            logging.error(f"Error updating vertex data: {e}")
+            self.vertex_count = 0
 
     def paintGL(self):
-        """Render the character trains"""
+        """Render - EXACTLY like intro_background pattern"""
         try:
-            if not self.initialized or not self.shader_program or not self.vao:
+            if not self.initialized or not self.shader_program:
+                # Fallback rendering
                 glClearColor(0.0, 0.0, 0.0, 0.0)
                 glClear(GL_COLOR_BUFFER_BIT)
                 return
@@ -441,56 +354,36 @@ class OneshotCharacterTrainVisualizer(BaseVisualizer):
             glClearColor(0.0, 0.0, 0.0, 0.0)
             glClear(GL_COLOR_BUFFER_BIT)
             
-            # Update character data
-            vertex_count = self.update_character_buffer()
-            
-            if vertex_count > 0 and self.active_trains:
+            # Update vertex data
+            self.update_vertex_data()
+
+            if self.vertex_count > 0:
                 current_time = time.time() - self.start_time
                 
                 # Use shader program
                 glUseProgram(self.shader_program)
                 
-                # Set uniforms
+                # Update uniforms
                 glUniform1f(glGetUniformLocation(self.shader_program, "time"), current_time)
-                glUniform1f(glGetUniformLocation(self.shader_program, "speedMultiplier"), self.speed_multiplier)
-                glUniform1f(glGetUniformLocation(self.shader_program, "trailIntensity"), self.trail_intensity)
-                glUniform1i(glGetUniformLocation(self.shader_program, "colorMode"), self.color_mode)
+                glUniform1f(glGetUniformLocation(self.shader_program, "intensity"), self.trail_intensity)
                 
-                # Prepare train data arrays
-                start_times = [0.0] * 8
-                start_positions = [0.0] * 16  # 8 trains * 2 components
-                directions = [0.0] * 16       # 8 trains * 2 components
-                speeds = [0.0] * 8
-                active_flags = [0] * 8
+                # Draw
+                if self.vao:
+                    glBindVertexArray(self.vao)
+                    glDrawArrays(GL_TRIANGLES, 0, self.vertex_count)
+                    glBindVertexArray(0)
                 
-                for i, train in enumerate(self.active_trains[:8]):  # Max 8 trains
-                    start_times[i] = train['start_time']
-                    start_positions[i*2] = train['start_pos'][0]
-                    start_positions[i*2+1] = train['start_pos'][1]
-                    directions[i*2] = train['direction'][0]
-                    directions[i*2+1] = train['direction'][1]
-                    speeds[i] = train['speed']
-                    active_flags[i] = 1
-                
-                # Set uniform arrays
-                glUniform1fv(glGetUniformLocation(self.shader_program, "trainStartTimes"), 8, start_times)
-                glUniform2fv(glGetUniformLocation(self.shader_program, "trainStartPos"), 8, start_positions)
-                glUniform2fv(glGetUniformLocation(self.shader_program, "trainDirection"), 8, directions)
-                glUniform1fv(glGetUniformLocation(self.shader_program, "trainSpeeds"), 8, speeds)
-                glUniform1iv(glGetUniformLocation(self.shader_program, "trainActive"), 8, active_flags)
-                
-                # Draw all characters
-                glBindVertexArray(self.vao)
-                glDrawArrays(GL_TRIANGLES, 0, vertex_count)
-                glBindVertexArray(0)
-                
+                # Clean up
                 glUseProgram(0)
             
         except Exception as e:
-            if not hasattr(self, '_last_error_time') or time.time() - self._last_error_time > 5:
+            # Only log errors occasionally
+            if not hasattr(self, '_last_error_time') or \
+               time.time() - self._last_error_time > 5:
                 logging.error(f"CharacterTrain paint error: {e}")
                 self._last_error_time = time.time()
-            
+
+            # Fallback rendering
             glClearColor(0.0, 0.0, 0.0, 0.0)
             glClear(GL_COLOR_BUFFER_BIT)
 
@@ -551,20 +444,6 @@ class OneshotCharacterTrainVisualizer(BaseVisualizer):
                 "value": int(self.trail_intensity * 100),
                 "default": 100
             },
-            "Train Length": {
-                "type": "slider",
-                "min": 10,
-                "max": 50,
-                "value": self.train_length,
-                "default": 25
-            },
-            "Duration": {
-                "type": "slider",
-                "min": 20,
-                "max": 100,
-                "value": int(self.train_duration * 10),
-                "default": 40
-            },
             "Color Mode": {
                 "type": "slider",
                 "min": 0,
@@ -581,10 +460,6 @@ class OneshotCharacterTrainVisualizer(BaseVisualizer):
                 self.speed_multiplier = value / 100.0
             elif name == "Trail Intensity":
                 self.trail_intensity = value / 100.0
-            elif name == "Train Length":
-                self.train_length = int(value)
-            elif name == "Duration":
-                self.train_duration = value / 10.0
             elif name == "Color Mode":
                 self.color_mode = int(value)
         except Exception as e:
@@ -594,4 +469,4 @@ class OneshotCharacterTrainVisualizer(BaseVisualizer):
         """Handle MIDI triggers"""
         if action_name == "train" or action_name == "character_train":
             self.create_train()
-            logging.info("🚂 Character train triggered via MIDI")
+            logging.info("🚂 SIMPLE Character train triggered via MIDI")
