@@ -1,6 +1,14 @@
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QFormLayout, QComboBox, QGroupBox, QDialogButtonBox, QApplication, QLabel
+    QDialog,
+    QVBoxLayout,
+    QFormLayout,
+    QComboBox,
+    QGroupBox,
+    QDialogButtonBox,
+    QApplication,
+    QLabel,
 )
+import logging
 
 class PreferencesDialog(QDialog):
     def __init__(self, settings_manager, midi_engine, audio_analyzer, parent=None):
@@ -9,7 +17,9 @@ class PreferencesDialog(QDialog):
         self.midi_engine = midi_engine
         self.audio_analyzer = audio_analyzer
         self.setWindowTitle("Preferences")
-        self.setFixedSize(500, 400)
+        # Slightly larger window to ensure all groups are visible on high DPI
+        # displays and small screens.
+        self.setFixedSize(600, 500)
         
         layout = QVBoxLayout(self)
         
@@ -156,15 +166,18 @@ class PreferencesDialog(QDialog):
         self.gpu_selector.clear()
         self.gpu_indices.clear()
 
+        logging.debug("Populating GPU devices")
+
         # First try using GPUtil for robust GPU detection
         try:
             import GPUtil
 
             for gpu in GPUtil.getGPUs():
+                logging.debug("Found GPU via GPUtil: %s (%s)", gpu.id, gpu.name)
                 self.gpu_selector.addItem(gpu.name)
                 self.gpu_indices.append(gpu.id)
-        except Exception:
-            pass
+        except Exception as e:
+            logging.debug("GPUtil detection failed: %s", e)
 
         # Fallback to probing devices via moderngl
         try:
@@ -177,6 +190,7 @@ class PreferencesDialog(QDialog):
                         standalone=True, require=330, device_index=index
                     )
                     name = ctx.info.get("GL_RENDERER", f"GPU {index}")
+                    logging.debug("Found GPU via moderngl: %s - %s", index, name)
                     ctx.release()
                     if index not in self.gpu_indices:
                         self.gpu_selector.addItem(name)
@@ -184,10 +198,11 @@ class PreferencesDialog(QDialog):
                     index += 1
                 except Exception:
                     break
-        except Exception:
-            pass
+        except Exception as e:
+            logging.debug("ModernGL detection failed: %s", e)
 
         if self.gpu_selector.count() == 0:
+            logging.debug("No GPUs detected, using default")
             self.gpu_selector.addItem("Default GPU")
             self.gpu_indices.append(0)
 

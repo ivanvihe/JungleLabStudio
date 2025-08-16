@@ -358,16 +358,22 @@ class Deck:
                 # Create FBO format
                 fbo_format = QOpenGLFramebufferObjectFormat()
                 fbo_format.setAttachment(QOpenGLFramebufferObject.Attachment.CombinedDepthStencil)
-                fbo_format.setSamples(0)  # No multisampling for performance
-                
+                # Enable multisampling for smoother visuals
+                fbo_format.setSamples(4)
+
                 # Create FBO
                 self.fbo = QOpenGLFramebufferObject(self.size, fbo_format)
-                
+
                 if not self.fbo.isValid():
                     logging.error(f"❌ Deck {self.deck_id}: Failed to create valid FBO")
                     self.fbo = None
                 else:
                     logging.debug(f"✅ Deck {self.deck_id}: Created FBO {self.size.width()}x{self.size.height()}, Texture: {self.fbo.texture()}")
+                    # Ensure linear filtering to avoid pixelated output when scaled
+                    glBindTexture(GL_TEXTURE_2D, self.fbo.texture())
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+                    glBindTexture(GL_TEXTURE_2D, 0)
                     self._fbo_dirty = True
                     
         except Exception as e:
