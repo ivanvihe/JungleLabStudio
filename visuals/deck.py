@@ -8,6 +8,7 @@ from PyQt6.QtCore import QSize, QMutex, QMutexLocker
 from PyQt6.QtGui import QOpenGLContext
 from OpenGL.GL import *
 from .render_backend import GLBackend, ModernGLBackend
+from opengl_fixes import OpenGLSafety
 
 class Deck:
     def __init__(
@@ -28,8 +29,16 @@ class Deck:
         
         # State tracking
         self._gl_initialized = False
-        self._frame_count = 0
         self._last_error_log = 0
+
+        # Performance tracking
+        self._total_frames = 0
+        self._fps_frames = 0
+        self._fps_start = time.time()
+        self._fps = 0.0
+
+        # GL info
+        self.gl_info = None
         
         # Thread safety
         self._mutex = QMutex()
@@ -67,6 +76,7 @@ class Deck:
             self.backend = ModernGLBackend(device_index=index)
             self._gl_initialized = False
             self._fbo_dirty = True
+            self.gl_info = None
 
     def set_visualizer(self, visualizer_name):
         """Set a new visualizer for this deck"""
@@ -167,6 +177,28 @@ class Deck:
             # Set viewport for FBO
             self.backend.set_viewport(0, 0, self.size.width(), self.size.height())
 
+            # Log GL information once
+            if self.gl_info is None:
+                try:
+                    self.backend.ensure_context()
+                    if isinstance(self.backend, ModernGLBackend) and getattr(self.backend, 'ctx', None):
+                        ctx_info = self.backend.ctx.info
+                        self.gl_info = {
+                            'vendor': ctx_info.get('GL_VENDOR'),
+                            'renderer': ctx_info.get('GL_RENDERER'),
+                            'version': ctx_info.get('GL_VERSION')
+                        }
+                    else:
+                        self.gl_info = OpenGLSafety.get_gl_info()
+                    OpenGLSafety.log_gl_info()
+                    renderer = (self.gl_info.get('renderer') or '').lower()
+                    if 'llvmpipe' in renderer or 'software' in renderer:
+                        logging.warning(
+                            f"Deck {self.deck_id}: Software renderer detected ({self.gl_info.get('renderer')})"
+                        )
+                except Exception as info_e:
+                    logging.error(f"Deck {self.deck_id}: Error obtaining GL info: {info_e}")
+
             # Initialize visualizer
             if hasattr(self.current_visualizer, 'initializeGL'):
                 try:
@@ -251,9 +283,12 @@ class Deck:
                             except TypeError:
                                 self.current_visualizer.paintGL()
 
-                            self._frame_count += 1
-                            if self._frame_count % 300 == 0:
-                                logging.debug(f"🎬 Deck {self.deck_id}: {self.current_visualizer_name} - Frame {self._frame_count}")
+                            self._total_frames += 1
+                            self._fps_frames += 1
+                            if self._total_frames % 300 == 0:
+                                logging.debug(
+                                    f"🎬 Deck {self.deck_id}: {self.current_visualizer_name} - Frame {self._total_frames}"
+                                )
 
                         except Exception as e:
                             current_time = time.time()
@@ -280,6 +315,14 @@ class Deck:
                     pass
 
                 self.backend.end_target()
+
+                # Update FPS counters
+                now = time.time()
+                elapsed = now - self._fps_start
+                if elapsed >= 1.0:
+                    self._fps = self._fps_frames / elapsed
+                    self._fps_frames = 0
+                    self._fps_start = now
 
                 # Release our FBO
                 self.fbo.release()
@@ -469,9 +512,11 @@ class Deck:
                 'visualizer_name': self.current_visualizer_name,
                 'is_ready': self.is_ready(),
                 'fbo_size': f"{self.size.width()}x{self.size.height()}",
-                'frame_count': self._frame_count,
+                'frame_count': self._total_frames,
+                'fps': round(self._fps, 1),
                 'controls_count': len(self.controls),
-                'gl_initialized': self._gl_initialized
+                'gl_initialized': self._gl_initialized,
+                'gpu_renderer': (self.gl_info or {}).get('renderer')
             }
 
     def force_refresh(self):
