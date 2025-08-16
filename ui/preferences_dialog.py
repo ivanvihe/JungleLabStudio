@@ -76,10 +76,11 @@ class PreferencesDialog(QDialog):
         render_layout = QFormLayout(render_group)
 
         self.gpu_selector = QComboBox()
+        self.gpu_indices = []
         self.populate_gpu_devices()
         current_gpu = self.settings_manager.get_setting("visual_settings.gpu_index", 0)
-        if current_gpu < self.gpu_selector.count():
-            self.gpu_selector.setCurrentIndex(current_gpu)
+        if current_gpu in self.gpu_indices:
+            self.gpu_selector.setCurrentIndex(self.gpu_indices.index(current_gpu))
         self.gpu_selector.currentIndexChanged.connect(self.on_gpu_device_changed)
         render_layout.addRow("GPU:", self.gpu_selector)
 
@@ -151,12 +152,25 @@ class PreferencesDialog(QDialog):
                     break
 
     def populate_gpu_devices(self):
-        """Populate GPU selector"""
+        """Populate GPU selector with available GPUs."""
         self.gpu_selector.clear()
+        self.gpu_indices.clear()
+
+        # First try using GPUtil for robust GPU detection
+        try:
+            import GPUtil
+
+            for gpu in GPUtil.getGPUs():
+                self.gpu_selector.addItem(gpu.name)
+                self.gpu_indices.append(gpu.id)
+        except Exception:
+            pass
+
+        # Fallback to probing devices via moderngl
         try:
             import moderngl
+
             index = 0
-            # Try to create contexts sequentially until it fails
             while True:
                 try:
                     ctx = moderngl.create_context(
@@ -164,17 +178,22 @@ class PreferencesDialog(QDialog):
                     )
                     name = ctx.info.get("GL_RENDERER", f"GPU {index}")
                     ctx.release()
-                    self.gpu_selector.addItem(name)
+                    if index not in self.gpu_indices:
+                        self.gpu_selector.addItem(name)
+                        self.gpu_indices.append(index)
                     index += 1
                 except Exception:
                     break
-            if self.gpu_selector.count() == 0:
-                self.gpu_selector.addItem("Default GPU")
         except Exception:
-            self.gpu_selector.addItem("Default GPU")
+            pass
 
-    def on_gpu_device_changed(self, index):
+        if self.gpu_selector.count() == 0:
+            self.gpu_selector.addItem("Default GPU")
+            self.gpu_indices.append(0)
+
+    def on_gpu_device_changed(self, row):
         """Handle GPU selection change"""
-        self.settings_manager.set_setting("visual_settings.gpu_index", index)
+        device_index = self.gpu_indices[row] if row < len(self.gpu_indices) else 0
+        self.settings_manager.set_setting("visual_settings.gpu_index", device_index)
         if hasattr(self.parent(), 'apply_gpu_selection'):
-            self.parent().apply_gpu_selection(index)
+            self.parent().apply_gpu_selection(device_index)
