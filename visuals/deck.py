@@ -417,17 +417,16 @@ class Deck:
                     # Only apply filtering when not multisampled
                     if fbo_format.samples() <= 1:
                         tex_id = self.fbo.texture()
-                        if tex_id and glIsTexture(tex_id):
+                        # glIsTexture checks introduced recently caused valid
+                        # framebuffer textures to be treated as invalid in some
+                        # drivers, resulting in missing visuals.  We now trust
+                        # Qt's framebuffer object and always apply the filtering
+                        # when a texture id is returned.
+                        if tex_id:
                             glBindTexture(GL_TEXTURE_2D, tex_id)
                             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
                             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
                             glBindTexture(GL_TEXTURE_2D, 0)
-                        else:
-                            logging.debug(
-                                "Deck %s: skipping filter setup for invalid texture id %s",
-                                self.deck_id,
-                                tex_id,
-                            )
                     else:
                         logging.debug(
                             f"Deck {self.deck_id}: Multisampled FBO - skipping texture filtering"
@@ -453,13 +452,13 @@ class Deck:
                 self.render_to_fbo()
 
             if self.fbo and self.fbo.isValid():
-                tex = self.fbo.texture()
-                if tex and glIsTexture(tex):
-                    return tex
-                # Texture ID is invalid; signal failure
-                logging.debug(
-                    "Deck %s: framebuffer returned invalid texture id %s", self.deck_id, tex
-                )
+                # Return the texture id directly. Previous commits attempted to
+                # validate the id with glIsTexture, but this proved unreliable on
+                # several systems and caused the renderer to fall back to a blank
+                # output.  Qt's framebuffer object guarantees the returned id is
+                # suitable for binding in the current context.
+                return self.fbo.texture()
+
             return 0
 
     def get_controls(self):
