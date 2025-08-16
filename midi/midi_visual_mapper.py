@@ -65,7 +65,8 @@ class MidiVisualMapper:
             },
             "visual_priority_order": [
                 "Simple Test",
-                "Intro Text",
+                "Intro Background",
+                "Intro Text ROBOTICA",
                 "Wire Terrain",
                 "Abstract Lines",
                 "Geometric Particles",

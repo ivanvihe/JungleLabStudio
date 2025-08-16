@@ -1,4 +1,4 @@
-# visuals/presets/intro_text.py
+# visuals/presets/intro_background.py
 import logging
 import numpy as np
 import ctypes
@@ -9,8 +9,8 @@ import string
 from OpenGL.GL import *
 from ..base_visualizer import BaseVisualizer
 
-class IntroTextVisualizer(BaseVisualizer):
-    visual_name = "Intro Text"
+class IntroBackgroundVisualizer(BaseVisualizer):
+    visual_name = "Intro Background"
     
     def __init__(self):
         super().__init__()
@@ -51,12 +51,12 @@ class IntroTextVisualizer(BaseVisualizer):
         self.robotica_text = "ROBOTICA"
         self.robotica_positions = []
         
-        logging.info("IntroTextVisualizer created")
+        logging.info("IntroBackgroundVisualizer created")
 
     def initializeGL(self):
         """Initialize OpenGL resources"""
         try:
-            logging.debug("IntroTextVisualizer.initializeGL called")
+            logging.debug("IntroBackgroundVisualizer.initializeGL called")
             
             # Clear any existing GL errors
             while glGetError() != GL_NO_ERROR:
@@ -82,10 +82,10 @@ class IntroTextVisualizer(BaseVisualizer):
                 return
             
             self.initialized = True
-            logging.info("✅ IntroTextVisualizer initialized successfully")
+            logging.info("✅ IntroBackgroundVisualizer initialized successfully")
             
         except Exception as e:
-            logging.error(f"Error in IntroTextVisualizer.initializeGL: {e}")
+            logging.error(f"Error in IntroBackgroundVisualizer.initializeGL: {e}")
             import traceback
             traceback.print_exc()
 
@@ -239,7 +239,7 @@ class IntroTextVisualizer(BaseVisualizer):
             glDeleteShader(vertex_shader)
             glDeleteShader(fragment_shader)
             
-            logging.debug("IntroTextVisualizer shaders compiled successfully")
+            logging.debug("IntroBackgroundVisualizer shaders compiled successfully")
             return True
             
         except Exception as e:
@@ -312,7 +312,7 @@ class IntroTextVisualizer(BaseVisualizer):
             glBindVertexArray(0)
             glBindBuffer(GL_ARRAY_BUFFER, 0)
             
-            logging.debug("IntroTextVisualizer geometry setup complete")
+            logging.debug("IntroBackgroundVisualizer geometry setup complete")
             return True
             
         except Exception as e:
@@ -469,7 +469,7 @@ class IntroTextVisualizer(BaseVisualizer):
         except Exception as e:
             # Only log errors occasionally to avoid spam
             if not hasattr(self, '_last_error_time') or time.time() - self._last_error_time > 5:
-                logging.error(f"IntroText paint error: {e}")
+            logging.error(f"IntroBackground paint error: {e}")
                 self._last_error_time = time.time()
             
             # Fallback rendering
@@ -483,7 +483,7 @@ class IntroTextVisualizer(BaseVisualizer):
     def cleanup(self):
         """Clean up OpenGL resources"""
         try:
-            logging.debug("Cleaning up IntroTextVisualizer")
+            logging.debug("Cleaning up IntroBackgroundVisualizer")
             
             # Delete shader program
             if self.shader_program:
@@ -514,7 +514,7 @@ class IntroTextVisualizer(BaseVisualizer):
                     self.vbo = None
             
             self.initialized = False
-            logging.debug("IntroTextVisualizer cleanup complete")
+            logging.debug("IntroBackgroundVisualizer cleanup complete")
             
         except Exception as e:
             logging.debug(f"Cleanup error (non-critical): {e}")
