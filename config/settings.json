@@ -1,18 +1,18 @@
 {
-    "last_midi_device": "virtual 4",
+    "last_midi_device": "virtual 2",
     "control_panel_monitor": 0,
     "main_window_monitor": 2,
     "auto_save_settings": true,
     "window_positions": {
         "control_panel": {
-            "x": 3815,
-            "y": 118,
+            "x": 3814,
+            "y": 85,
             "width": 1536,
             "height": 824
         },
         "main_window": {
-            "x": -63,
-            "y": 38,
+            "x": 0,
+            "y": 23,
             "width": 1536,
             "height": 793
         }

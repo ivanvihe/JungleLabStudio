@@ -96,13 +96,16 @@ class IntroTextRoboticaVisualizer(BaseVisualizer):
         
         # Animation parameters for cinematic effect
         self.start_time = None
-        self.animation_duration = 8.0  # Total animation duration in seconds
-        self.fade_duration = 1.2       # How long each letter takes to fade in
-        self.letter_delay = 0.8        # Base delay between letters
+        self.animation_duration = 15.0  # Total animation duration in seconds
+        self.fade_duration = 6.0        # How long each letter takes to fade in (5-10 seconds)
+        self.letter_delay = 0.3         # Much faster start between letters
         
         # Letter animation order (random as requested: O T B O I A C R)
-        self.animation_order = [1, 3, 5, 7, 9, 11, 13, 15, 0]  # indices in "R O B O T I C A"
-        # Corresponds to:     O  T  B  O  I  A   C   R (skipping spaces)
+        # "R O B O T I C A" -> indices: 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+        #  R   O   B   O   T   I   C   A  (skipping spaces at 1,3,5,7,9,11,13,15)
+        #  0   2   4   6   8  10  12  14
+        self.animation_order = [2, 8, 4, 6, 10, 14, 12, 0]  # O T B O I A C R
+        # Corresponds to:     O  T  B  O  I  A  C  R
         
         # Track individual letter alphas for animation
         self.letter_alphas = [0.0] * len(self.text)
@@ -236,12 +239,12 @@ class IntroTextRoboticaVisualizer(BaseVisualizer):
         try:
             vertices = []
             
-            # FIXED: Much smaller text to fit the entire width
-            letter_height = 0.25  # Reduced from 0.6 to 0.25
+            # FIXED: Even smaller text to fit better and prevent clipping
+            letter_height = 0.18  # Reduced from 0.25 to 0.18
             cell_size = letter_height / 7.0  # Each letter is 7 cells high
             letter_width = 5 * cell_size  # Each letter is 5 cells wide
-            letter_spacing = cell_size * 0.8  # Reduced spacing
-            word_spacing = cell_size * 2.0   # Space for actual spaces in text
+            letter_spacing = cell_size * 0.6  # Even tighter spacing
+            word_spacing = cell_size * 1.8   # Reduced space for actual spaces in text
             
             # Calculate total text width
             total_width = 0.0
@@ -352,9 +355,10 @@ class IntroTextRoboticaVisualizer(BaseVisualizer):
             # Initialize letter start times based on animation order
             for i, letter_idx in enumerate(self.animation_order):
                 if letter_idx < len(self.text) and self.text[letter_idx] != ' ':
-                    # Add some randomness to the timing
-                    delay = i * self.letter_delay + random.uniform(-0.2, 0.2)
+                    # Much faster start with less randomness
+                    delay = i * self.letter_delay + random.uniform(-0.1, 0.1)
                     self.letter_start_times[letter_idx] = self.start_time + delay
+                    logging.debug(f"Letter {self.text[letter_idx]} (idx {letter_idx}) will start at {delay:.2f}s")
         
         # Update each letter's alpha based on its start time
         for letter_idx, start_time in enumerate(self.letter_start_times):
@@ -364,15 +368,20 @@ class IntroTextRoboticaVisualizer(BaseVisualizer):
                 fade_progress = min(1.0, max(0.0, fade_progress))
                 
                 # Smooth fade curve (ease-out)
-                fade_progress = 1.0 - (1.0 - fade_progress) ** 3
+                fade_progress = 1.0 - (1.0 - fade_progress) ** 2
                 
                 self.letter_alphas[letter_idx] = fade_progress
+                
+                # Debug logging for first few seconds
+                if fade_progress < 1.0:
+                    logging.debug(f"Letter {self.text[letter_idx]} fade: {fade_progress:.2f}")
     
     def reset_animation(self):
         """Reset the animation to start from beginning"""
         self.start_time = None
         self.letter_alphas = [0.0] * len(self.text)
         self.letter_start_times = [None] * len(self.text)
+        logging.info("Animation reset - all letters will restart")
 
     def paintGL(self):
         """Render the text using modern OpenGL with cinematic animation"""
@@ -499,15 +508,15 @@ class IntroTextRoboticaVisualizer(BaseVisualizer):
                 "type": "slider",
                 "min": 10,
                 "max": 100,
-                "value": int((2.0 - self.letter_delay) * 50),
-                "default": 40
+                "value": int((1.0 - self.letter_delay) * 100),  # Fixed calculation
+                "default": 70
             },
             "Fade Duration": {
                 "type": "slider",
-                "min": 10,
-                "max": 50,
+                "min": 20,
+                "max": 100,
                 "value": int(self.fade_duration * 10),
-                "default": 12
+                "default": 60
             },
             "Red": {
                 "type": "slider",
@@ -542,7 +551,7 @@ class IntroTextRoboticaVisualizer(BaseVisualizer):
                 self.text_scale = value / 100.0
                 logging.debug(f"Text scale updated to {self.text_scale}")
             elif name == "Animation Speed":
-                self.letter_delay = 2.0 - (value / 50.0)  # Invert: higher value = faster
+                self.letter_delay = 1.0 - (value / 100.0)  # Fixed: higher value = faster
                 logging.debug(f"Animation speed updated: letter_delay = {self.letter_delay}")
             elif name == "Fade Duration":
                 self.fade_duration = value / 10.0
