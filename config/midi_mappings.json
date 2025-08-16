@@ -376,5 +376,41 @@
       "custom_values": ""
     },
     "midi": "note_on_ch0_note77"
+  },
+  "deck_a_preset_17": {
+    "type": "load_preset",
+    "params": {
+      "deck_id": "A",
+      "preset_name": "Oneshot Circuit Signal",
+      "custom_values": ""
+    },
+    "midi": "note_on_ch0_note78"
+  },
+  "deck_a_preset_18": {
+    "type": "load_preset",
+    "params": {
+      "deck_id": "A",
+      "preset_name": "Oneshot Electric Boom",
+      "custom_values": ""
+    },
+    "midi": "note_on_ch0_note79"
+  },
+  "deck_b_preset_17": {
+    "type": "load_preset",
+    "params": {
+      "deck_id": "B",
+      "preset_name": "Oneshot Circuit Signal",
+      "custom_values": ""
+    },
+    "midi": "note_on_ch0_note80"
+  },
+  "deck_b_preset_18": {
+    "type": "load_preset",
+    "params": {
+      "deck_id": "B",
+      "preset_name": "Oneshot Electric Boom",
+      "custom_values": ""
+    },
+    "midi": "note_on_ch0_note81"
   }
 }

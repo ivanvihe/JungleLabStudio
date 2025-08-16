@@ -1,6 +1,6 @@
 === CONFIGURACIÓN MIDI MAPPINGS ===
 
-Total mappings: 42
+Total mappings: 46
 Fecha: 2025-08-16 13:45:50
 
 === PRESET MAPPINGS ===
@@ -40,6 +40,10 @@ Fecha: 2025-08-16 13:45:50
   note_on_ch0_note75 -> Deck A: Oneshot Boom Explosion
   note_on_ch0_note76 -> Deck B: Oneshot Character Train
   note_on_ch0_note77 -> Deck B: Oneshot Boom Explosion
+  note_on_ch0_note78 -> Deck A: Oneshot Circuit Signal
+  note_on_ch0_note79 -> Deck A: Oneshot Electric Boom
+  note_on_ch0_note80 -> Deck B: Oneshot Circuit Signal
+  note_on_ch0_note81 -> Deck B: Oneshot Electric Boom
 
 === MIX ACTIONS ===
   note_on_ch0_note48 -> A to B (10s)
