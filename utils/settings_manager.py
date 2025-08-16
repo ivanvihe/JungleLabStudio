@@ -46,7 +46,8 @@ class SettingsManager:
             "visual_settings": {
                 "fps_limit": 60,
                 "vsync": True,
-                "quality": "high"
+                "quality": "high",
+                "gpu_index": 0
             },
             "midi_mappings": {}  # Default empty MIDI mappings
         }
@@ -368,7 +369,8 @@ class SettingsManager:
         return {
             'fps_limit': self.get_setting("visual_settings.fps_limit", 60),
             'vsync': self.get_setting("visual_settings.vsync", True),
-            'quality': self.get_setting("visual_settings.quality", "high")
+            'quality': self.get_setting("visual_settings.quality", "high"),
+            'gpu_index': self.get_setting("visual_settings.gpu_index", 0)
         }
 
     def set_visual_settings(self, visual_settings):

@@ -70,6 +70,20 @@ class PreferencesDialog(QDialog):
         device_layout.addRow("Audio Input:", self.audio_device_selector)
         
         layout.addWidget(device_group)
+
+        # Rendering section for GPU selection
+        render_group = QGroupBox("Rendering")
+        render_layout = QFormLayout(render_group)
+
+        self.gpu_selector = QComboBox()
+        self.populate_gpu_devices()
+        current_gpu = self.settings_manager.get_setting("visual_settings.gpu_index", 0)
+        if current_gpu < self.gpu_selector.count():
+            self.gpu_selector.setCurrentIndex(current_gpu)
+        self.gpu_selector.currentIndexChanged.connect(self.on_gpu_device_changed)
+        render_layout.addRow("GPU:", self.gpu_selector)
+
+        layout.addWidget(render_group)
         
         # Buttons
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
@@ -135,3 +149,30 @@ class PreferencesDialog(QDialog):
                     self.audio_analyzer.start_analysis()
                     self.settings_manager.set_setting("audio_settings.input_device", device_text)
                     break
+
+    def populate_gpu_devices(self):
+        """Populate GPU selector"""
+        self.gpu_selector.clear()
+        try:
+            import moderngl
+            # Attempt to detect up to 4 GPUs
+            for i in range(4):
+                try:
+                    ctx = moderngl.create_context(
+                        standalone=True, backend="egl", require=330, device_index=i
+                    )
+                    name = ctx.info.get("GL_RENDERER", f"GPU {i}")
+                    ctx.release()
+                    self.gpu_selector.addItem(name)
+                except Exception:
+                    if i == 0 and self.gpu_selector.count() == 0:
+                        self.gpu_selector.addItem("Default GPU")
+                    break
+        except Exception:
+            self.gpu_selector.addItem("Default GPU")
+
+    def on_gpu_device_changed(self, index):
+        """Handle GPU selection change"""
+        self.settings_manager.set_setting("visual_settings.gpu_index", index)
+        if hasattr(self.parent(), 'apply_gpu_selection'):
+            self.parent().apply_gpu_selection(index)

@@ -18,11 +18,12 @@ class MixerWindow(QMainWindow):
     signal_set_deck_opacity = pyqtSignal(str, float)
     signal_trigger_deck_action = pyqtSignal(str, str)
 
-    def __init__(self, visualizer_manager):
+    def __init__(self, visualizer_manager, settings_manager=None):
         super().__init__()
         self.setWindowTitle("Audio Visualizer Pro - Main Output")
         self.setGeometry(100, 100, 800, 600)
         self.visualizer_manager = visualizer_manager
+        self.settings_manager = settings_manager
 
         # Thread safety
         self._mutex = QMutex()
@@ -98,8 +99,13 @@ class MixerWindow(QMainWindow):
                 
                 # Create decks with proper IDs
                 logging.info("🎨 Creating decks...")
-                self.deck_a = Deck(self.visualizer_manager, "A")
-                self.deck_b = Deck(self.visualizer_manager, "B")
+                gpu_index = 0
+                if self.settings_manager:
+                    gpu_index = self.settings_manager.get_setting(
+                        "visual_settings.gpu_index", 0
+                    )
+                self.deck_a = Deck(self.visualizer_manager, "A", gpu_index=gpu_index)
+                self.deck_b = Deck(self.visualizer_manager, "B", gpu_index=gpu_index)
                 
                 # Initialize deck FBOs
                 # Consider device pixel ratio to avoid black bars on high-DPI displays
@@ -569,6 +575,14 @@ class MixerWindow(QMainWindow):
                 'opacity': 1.0,
                 'controls_count': 0
             }
+
+    def apply_gpu_selection(self, index):
+        """Apply GPU selection to decks"""
+        with QMutexLocker(self._mutex):
+            if self.deck_a:
+                self.deck_a.set_gpu_index(index)
+            if self.deck_b:
+                self.deck_b.set_gpu_index(index)
 
     def cleanup(self):
         """Clean up OpenGL resources"""

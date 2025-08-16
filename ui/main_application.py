@@ -138,7 +138,7 @@ class MainApplication:
             logging.info("🖥️ Creating UI windows...")
             
             # Create mixer window first
-            self.mixer_window = MixerWindow(self.visualizer_manager)
+            self.mixer_window = MixerWindow(self.visualizer_manager, self.settings_manager)
             logging.info("✅ Mixer window created")
             
             # Create control panel (rediseñado para operación MIDI)

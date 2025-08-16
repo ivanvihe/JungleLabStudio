@@ -429,6 +429,14 @@ Mappings: {len(self.midi_engine.get_midi_mappings()) if self.midi_engine else 0}
             logging.error(f"Error opening preferences: {e}")
             QMessageBox.critical(self, "Error", f"Could not open preferences: {str(e)}")
 
+    def apply_gpu_selection(self, index):
+        """Forward GPU selection changes to the mixer window"""
+        try:
+            if self.mixer_window:
+                self.mixer_window.apply_gpu_selection(index)
+        except Exception as e:
+            logging.error(f"Error applying GPU selection: {e}")
+
     def test_midi_mappings(self):
         """Test MIDI mappings"""
         try:

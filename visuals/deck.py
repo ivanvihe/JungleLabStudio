@@ -10,13 +10,21 @@ from OpenGL.GL import *
 from .render_backend import GLBackend, ModernGLBackend
 
 class Deck:
-    def __init__(self, visualizer_manager, deck_id="", use_moderngl=False, use_post=False):
+    def __init__(
+        self,
+        visualizer_manager,
+        deck_id="",
+        gpu_index=0,
+        use_moderngl=False,
+        use_post=False,
+    ):
         self.visualizer_manager = visualizer_manager
         self.deck_id = deck_id  # For debugging
         self.current_visualizer = None  # Renamed for clarity
         self.fbo = None
         self.current_visualizer_name = None  # Renamed for clarity
         self.size = QSize(800, 600)
+        self.gpu_index = gpu_index
         
         # State tracking
         self._gl_initialized = False
@@ -37,7 +45,11 @@ class Deck:
         self.controls = {}
 
         use_moderngl = use_moderngl or os.getenv("USE_MODERNGL") == "1"
-        self.backend = ModernGLBackend() if use_moderngl else GLBackend()
+        self.backend = (
+            ModernGLBackend(device_index=gpu_index)
+            if use_moderngl
+            else GLBackend()
+        )
         self.use_post = use_post
 
         logging.debug(f"🎮 Deck {deck_id} initialized with size {self.size.width()}x{self.size.height()}")
@@ -47,6 +59,14 @@ class Deck:
         if not self.fbo or not self.fbo.isValid():
             self._recreate_fbo()
         return self.fbo and self.fbo.isValid()
+
+    def set_gpu_index(self, index: int) -> None:
+        """Update GPU index and recreate backend context."""
+        self.gpu_index = index
+        if isinstance(self.backend, ModernGLBackend):
+            self.backend = ModernGLBackend(device_index=index)
+            self._gl_initialized = False
+            self._fbo_dirty = True
 
     def set_visualizer(self, visualizer_name):
         """Set a new visualizer for this deck"""
