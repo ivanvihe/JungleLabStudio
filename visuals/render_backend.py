@@ -110,6 +110,7 @@ class GLBackend(RenderBackend):
 
     def ensure_context(self) -> None:
         glEnable(GL_BLEND)
+        glEnable(GL_MULTISAMPLE)
         glBlendFunc(1, 771)  # GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA
         glDisable(0x0B71)  # GL_DEPTH_TEST
 
