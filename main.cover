@@ -1,6 +1,0 @@
-    1: import sys
-    1: from ui import MainApplication
-       
-    1: if __name__ == "__main__":
-    1:     app = MainApplication()
-    1:     sys.exit(app.run())

@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (
     QDialogButtonBox,
     QApplication,
     QLabel,
+    QMessageBox,
 )
 import logging
 
@@ -81,18 +82,33 @@ class PreferencesDialog(QDialog):
         
         layout.addWidget(device_group)
 
-        # Rendering section for GPU selection
+        # Rendering section for GPU selection - FIXED
         render_group = QGroupBox("Rendering")
         render_layout = QFormLayout(render_group)
 
         self.gpu_selector = QComboBox()
-        self.gpu_indices = []
+        self.gpu_info = []  # Store GPU info tuples (index, name, backend)
         self.populate_gpu_devices()
-        current_gpu = self.settings_manager.get_setting("visual_settings.gpu_index", 0)
-        if current_gpu in self.gpu_indices:
-            self.gpu_selector.setCurrentIndex(self.gpu_indices.index(current_gpu))
+        
+        # Get current GPU setting and apply it
+        current_gpu_index = self.settings_manager.get_setting("visual_settings.gpu_index", 0)
+        current_backend = self.settings_manager.get_setting("visual_settings.backend", "OpenGL")
+        
+        # Find matching GPU in our list
+        for i, (gpu_index, gpu_name, backend) in enumerate(self.gpu_info):
+            if gpu_index == current_gpu_index and backend == current_backend:
+                self.gpu_selector.setCurrentIndex(i)
+                break
+        
         self.gpu_selector.currentIndexChanged.connect(self.on_gpu_device_changed)
         render_layout.addRow("GPU:", self.gpu_selector)
+
+        # Add backend selector
+        self.backend_selector = QComboBox()
+        self.backend_selector.addItems(["OpenGL", "ModernGL"])
+        self.backend_selector.setCurrentText(current_backend)
+        self.backend_selector.currentTextChanged.connect(self.on_backend_changed)
+        render_layout.addRow("Backend:", self.backend_selector)
 
         layout.addWidget(render_group)
         
@@ -162,53 +178,248 @@ class PreferencesDialog(QDialog):
                     break
 
     def populate_gpu_devices(self):
-        """Populate GPU selector with available GPUs."""
+        """Populate GPU selector with available GPUs using multiple detection methods."""
         self.gpu_selector.clear()
-        self.gpu_indices.clear()
+        self.gpu_info.clear()
 
-        logging.debug("Populating GPU devices")
+        logging.info("🔍 Detecting GPU devices...")
 
-        # First try using GPUtil for robust GPU detection
+        # Method 1: Try PyOpenGL + WGL/GLX for NVIDIA/AMD detection
         try:
-            import GPUtil
-
-            for gpu in GPUtil.getGPUs():
-                logging.debug("Found GPU via GPUtil: %s (%s)", gpu.id, gpu.name)
-                self.gpu_selector.addItem(gpu.name)
-                self.gpu_indices.append(gpu.id)
+            self._detect_opengl_gpus()
         except Exception as e:
-            logging.debug("GPUtil detection failed: %s", e)
+            logging.debug(f"OpenGL GPU detection failed: {e}")
 
-        # Fallback to probing devices via moderngl
+        # Method 2: Try moderngl detection
+        try:
+            self._detect_moderngl_gpus()
+        except Exception as e:
+            logging.debug(f"ModernGL GPU detection failed: {e}")
+
+        # Method 3: Try GPUtil (NVIDIA focused)
+        try:
+            self._detect_gputil_gpus()
+        except Exception as e:
+            logging.debug(f"GPUtil detection failed: {e}")
+
+        # Method 4: Try wmi for Windows GPU detection
+        try:
+            self._detect_windows_gpus()
+        except Exception as e:
+            logging.debug(f"Windows GPU detection failed: {e}")
+
+        # Fallback: Add at least one default option
+        if not self.gpu_info:
+            logging.warning("⚠️ No GPUs detected, adding default option")
+            self.gpu_info.append((0, "Default GPU (Automatic)", "OpenGL"))
+            self.gpu_selector.addItem("Default GPU (Automatic)")
+
+        # Remove duplicates and populate selector
+        self._finalize_gpu_list()
+
+        logging.info(f"✅ GPU detection complete. Found {len(self.gpu_info)} options")
+        for i, (idx, name, backend) in enumerate(self.gpu_info):
+            logging.info(f"   {i}: GPU {idx} - {name} ({backend})")
+
+    def _detect_opengl_gpus(self):
+        """Detect GPUs using OpenGL context creation"""
+        try:
+            from PyQt6.QtOpenGL import QOpenGLContext
+            from PyQt6.QtGui import QOffscreenSurface, QSurfaceFormat
+            from PyQt6.QtCore import QCoreApplication
+            from OpenGL.GL import glGetString, GL_RENDERER, GL_VENDOR, GL_VERSION
+
+            # Ensure we have a QApplication instance
+            if not QCoreApplication.instance():
+                return
+
+            # Create offscreen surface for context creation
+            surface = QOffscreenSurface()
+            surface.create()
+
+            context = QOpenGLContext()
+            format = QSurfaceFormat()
+            format.setMajorVersion(3)
+            format.setMinorVersion(3)
+            context.setFormat(format)
+
+            if context.create() and context.makeCurrent(surface):
+                try:
+                    renderer = glGetString(GL_RENDERER).decode('utf-8')
+                    vendor = glGetString(GL_VENDOR).decode('utf-8')
+                    version = glGetString(GL_VERSION).decode('utf-8')
+                    
+                    gpu_name = f"{vendor} {renderer}"
+                    self.gpu_info.append((0, gpu_name, "OpenGL"))
+                    self.gpu_selector.addItem(f"{gpu_name} (OpenGL)")
+                    
+                    logging.info(f"🎮 OpenGL GPU detected: {gpu_name}")
+                    logging.debug(f"   Version: {version}")
+                    
+                except Exception as e:
+                    logging.error(f"Error querying OpenGL info: {e}")
+                finally:
+                    context.doneCurrent()
+
+        except Exception as e:
+            logging.debug(f"OpenGL detection method failed: {e}")
+
+    def _detect_moderngl_gpus(self):
+        """Detect GPUs using moderngl"""
         try:
             import moderngl
-
-            index = 0
-            while True:
+            
+            # Try different device indices
+            for device_index in range(4):  # Try first 4 devices
                 try:
                     ctx = moderngl.create_context(
-                        standalone=True, require=330, device_index=index
+                        standalone=True, 
+                        require=330, 
+                        device_index=device_index
                     )
-                    name = ctx.info.get("GL_RENDERER", f"GPU {index}")
-                    logging.debug("Found GPU via moderngl: %s - %s", index, name)
+                    
+                    info = ctx.info
+                    renderer = info.get('GL_RENDERER', f'Unknown GPU {device_index}')
+                    vendor = info.get('GL_VENDOR', 'Unknown')
+                    
+                    gpu_name = f"{vendor} {renderer}".strip()
+                    if gpu_name and gpu_name != "Unknown Unknown":
+                        # Check if we already have this GPU
+                        if not any(name == gpu_name for _, name, _ in self.gpu_info):
+                            self.gpu_info.append((device_index, gpu_name, "ModernGL"))
+                            self.gpu_selector.addItem(f"{gpu_name} (ModernGL)")
+                            logging.info(f"🎮 ModernGL GPU {device_index} detected: {gpu_name}")
+                    
                     ctx.release()
-                    if index not in self.gpu_indices:
-                        self.gpu_selector.addItem(name)
-                        self.gpu_indices.append(index)
-                    index += 1
-                except Exception:
+                    
+                except Exception as inner_e:
+                    # Expected when no more devices available
+                    if device_index == 0:
+                        logging.debug(f"ModernGL device {device_index} failed: {inner_e}")
                     break
+                    
+        except ImportError:
+            logging.debug("ModernGL not available for GPU detection")
         except Exception as e:
-            logging.debug("ModernGL detection failed: %s", e)
+            logging.debug(f"ModernGL detection failed: {e}")
 
-        if self.gpu_selector.count() == 0:
-            logging.debug("No GPUs detected, using default")
-            self.gpu_selector.addItem("Default GPU")
-            self.gpu_indices.append(0)
+    def _detect_gputil_gpus(self):
+        """Detect NVIDIA GPUs using GPUtil"""
+        try:
+            import GPUtil
+            
+            gpus = GPUtil.getGPUs()
+            for gpu in gpus:
+                gpu_name = f"NVIDIA {gpu.name}"
+                # Check if we already have this GPU
+                if not any(gpu_name in name for _, name, _ in self.gpu_info):
+                    self.gpu_info.append((gpu.id, gpu_name, "OpenGL"))
+                    self.gpu_selector.addItem(f"{gpu_name} (NVIDIA)")
+                    logging.info(f"🎮 NVIDIA GPU {gpu.id} detected: {gpu.name}")
+                    
+        except ImportError:
+            logging.debug("GPUtil not available")
+        except Exception as e:
+            logging.debug(f"GPUtil detection failed: {e}")
+
+    def _detect_windows_gpus(self):
+        """Detect GPUs on Windows using WMI"""
+        try:
+            import platform
+            if platform.system() != "Windows":
+                return
+                
+            import wmi
+            c = wmi.WMI()
+            
+            for gpu in c.Win32_VideoController():
+                if gpu.Name and "Microsoft" not in gpu.Name:
+                    gpu_name = gpu.Name
+                    # Check if we already have this GPU
+                    if not any(gpu_name in name for _, name, _ in self.gpu_info):
+                        self.gpu_info.append((0, gpu_name, "OpenGL"))
+                        self.gpu_selector.addItem(f"{gpu_name} (Windows)")
+                        logging.info(f"🎮 Windows GPU detected: {gpu_name}")
+                        
+        except ImportError:
+            logging.debug("WMI not available")
+        except Exception as e:
+            logging.debug(f"Windows GPU detection failed: {e}")
+
+    def _finalize_gpu_list(self):
+        """Remove duplicates and ensure we have at least one option"""
+        # Remove duplicates based on GPU name
+        seen_names = set()
+        unique_gpus = []
+        
+        for gpu_index, gpu_name, backend in self.gpu_info:
+            # Normalize name for comparison
+            normalized_name = gpu_name.lower().strip()
+            if normalized_name not in seen_names and normalized_name != "unknown unknown":
+                seen_names.add(normalized_name)
+                unique_gpus.append((gpu_index, gpu_name, backend))
+        
+        # Clear and repopulate
+        self.gpu_info = unique_gpus
+        self.gpu_selector.clear()
+        
+        for gpu_index, gpu_name, backend in self.gpu_info:
+            display_name = f"{gpu_name} ({backend})"
+            self.gpu_selector.addItem(display_name)
 
     def on_gpu_device_changed(self, row):
         """Handle GPU selection change"""
-        device_index = self.gpu_indices[row] if row < len(self.gpu_indices) else 0
-        self.settings_manager.set_setting("visual_settings.gpu_index", device_index)
-        if hasattr(self.parent(), 'apply_gpu_selection'):
-            self.parent().apply_gpu_selection(device_index)
+        if row < len(self.gpu_info):
+            device_index, gpu_name, backend = self.gpu_info[row]
+            
+            # Save both GPU index and backend
+            self.settings_manager.set_setting("visual_settings.gpu_index", device_index)
+            self.settings_manager.set_setting("visual_settings.backend", backend)
+            self.settings_manager.set_setting("visual_settings.gpu_name", gpu_name)
+            
+            logging.info(f"🎮 GPU selection changed: {gpu_name} (Index: {device_index}, Backend: {backend})")
+            
+            # Apply changes to application
+            if hasattr(self.parent(), 'apply_gpu_selection'):
+                self.parent().apply_gpu_selection(device_index, backend)
+            
+            # Show message to user about restart
+            QMessageBox.information(
+                self, 
+                "GPU Selection", 
+                f"GPU cambiada a: {gpu_name}\n\n"
+                f"Backend: {backend}\n"
+                f"Reinicia la aplicación para que los cambios surtan efecto completamente."
+            )
+
+    def on_backend_changed(self, backend_name):
+        """Handle backend selection change"""
+        self.settings_manager.set_setting("visual_settings.backend", backend_name)
+        logging.info(f"🔧 Backend changed to: {backend_name}")
+        
+        # Re-populate GPU list for the new backend
+        self.populate_gpu_devices()
+
+    def on_midi_device_changed(self, device_name):
+        """Handle MIDI device selection change"""
+        if device_name == "No Device":
+            self.midi_engine.close_input_port()
+            self.settings_manager.set_setting("last_midi_device", "")
+        else:
+            self.midi_engine.open_input_port(device_name)
+            self.settings_manager.set_setting("last_midi_device", device_name)
+
+    def on_audio_device_changed(self, device_text):
+        """Handle audio device selection change"""
+        if device_text == "No Device":
+            self.audio_analyzer.stop_analysis()
+            self.settings_manager.set_setting("audio_settings.input_device", "")
+        else:
+            # Extract device index from the text
+            devices = self.audio_analyzer.get_available_devices()
+            for i, device in enumerate(devices):
+                if device_text.startswith(device['name']):
+                    self.audio_analyzer.set_input_device(device['index'])
+                    self.audio_analyzer.start_analysis()
+                    self.settings_manager.set_setting("audio_settings.input_device", device_text)
+                    break

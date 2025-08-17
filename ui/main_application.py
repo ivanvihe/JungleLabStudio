@@ -1,4 +1,4 @@
-# ui/main_application.py
+# ui/main_application.py - FIXED VERSION
 import sys
 import logging
 from PyQt6.QtWidgets import QApplication, QMessageBox
@@ -127,6 +127,12 @@ class MainApplication:
             # Check settings
             settings = self.settings_manager.get_all_settings()
             logging.info(f"📋 Loaded settings with {len(settings)} entries")
+            
+            # Log GPU configuration
+            gpu_index = self.settings_manager.get_setting("visual_settings.gpu_index", 0)
+            backend = self.settings_manager.get_setting("visual_settings.backend", "OpenGL")
+            gpu_name = self.settings_manager.get_setting("visual_settings.gpu_name", "Unknown")
+            logging.info(f"🎮 GPU Configuration: {gpu_name} (Index: {gpu_index}, Backend: {backend})")
             
         except Exception as e:
             logging.error(f"❌ Validation failed: {e}")
@@ -339,11 +345,110 @@ class MainApplication:
             # IMPORTANT: Auto-connect devices AFTER windows are shown and connections established
             QTimer.singleShot(1000, self.auto_connect_devices)
             
+            # CRITICAL: Wait a bit more before trying to load any test visualizers
+            QTimer.singleShot(2000, self.load_test_visualizers)
+            
             logging.info("✅ Windows displayed")
             
         except Exception as e:
             logging.error(f"Error showing windows: {e}")
             raise
+
+    def load_test_visualizers(self):
+        """Load test visualizers to verify the system is working"""
+        try:
+            logging.info("🎨 Loading test visualizers...")
+            
+            # Get available visualizers
+            visualizers = self.visualizer_manager.get_visualizer_names()
+            if not visualizers:
+                logging.error("❌ No visualizers available for testing!")
+                return
+            
+            # Try to load a simple visualizer on Deck A for testing
+            test_visualizer = None
+            preferred_order = ['Simple Test', 'Intro Background', 'Abstract Lines', 'Geometric Particles']
+            
+            for preferred in preferred_order:
+                if preferred in visualizers:
+                    test_visualizer = preferred
+                    break
+            
+            if not test_visualizer:
+                # Use the first available visualizer
+                test_visualizer = visualizers[0]
+            
+            logging.info(f"🧪 Loading test visualizer '{test_visualizer}' on Deck A")
+            
+            # Load the test visualizer on Deck A
+            self.mixer_window.safe_set_deck_visualizer('A', test_visualizer)
+            
+            # Wait a bit and check if it worked
+            QTimer.singleShot(1000, lambda: self.verify_test_visualizer(test_visualizer))
+            
+        except Exception as e:
+            logging.error(f"Error loading test visualizers: {e}")
+
+    def verify_test_visualizer(self, expected_visualizer):
+        """Verify that the test visualizer loaded correctly"""
+        try:
+            current_visualizers = self.mixer_window.get_current_visualizers()
+            deck_a_visualizer = current_visualizers.get('A')
+            
+            if deck_a_visualizer == expected_visualizer:
+                logging.info(f"✅ Test visualizer '{expected_visualizer}' loaded successfully on Deck A")
+                
+                # Get deck status for additional verification
+                deck_status = self.mixer_window.get_deck_status('A')
+                logging.info(f"🎮 Deck A Status: {deck_status}")
+                
+                if deck_status.get('is_ready'):
+                    logging.info("✅ Deck A is ready and should be rendering")
+                else:
+                    logging.warning("⚠️ Deck A loaded visualizer but is not ready")
+                    
+            else:
+                logging.error(f"❌ Test visualizer failed to load. Expected: '{expected_visualizer}', Got: '{deck_a_visualizer}'")
+                
+                # Try troubleshooting
+                self.troubleshoot_visualizer_loading()
+                
+        except Exception as e:
+            logging.error(f"Error verifying test visualizer: {e}")
+
+    def troubleshoot_visualizer_loading(self):
+        """Troubleshoot visualizer loading issues"""
+        try:
+            logging.info("🔧 Troubleshooting visualizer loading...")
+            
+            # Check OpenGL status
+            if self.mixer_window.gl_initialized:
+                logging.info("✅ Mixer window OpenGL is initialized")
+            else:
+                logging.error("❌ Mixer window OpenGL is NOT initialized")
+            
+            # Check deck status
+            if self.mixer_window.deck_a:
+                deck_info = self.mixer_window.deck_a.get_deck_info()
+                logging.info(f"🎮 Deck A Info: {deck_info}")
+                
+                if deck_info.get('gl_initialized'):
+                    logging.info("✅ Deck A OpenGL is initialized")
+                else:
+                    logging.error("❌ Deck A OpenGL is NOT initialized")
+                    
+                # Try to force initialization
+                logging.info("🔄 Attempting to force Deck A refresh...")
+                self.mixer_window.deck_a.force_refresh()
+            else:
+                logging.error("❌ Deck A is None!")
+            
+            # Check visualizer manager
+            available = self.visualizer_manager.get_visualizer_names()
+            logging.info(f"🎨 Available visualizers: {len(available)} - {available[:5]}...")
+            
+        except Exception as e:
+            logging.error(f"Error in troubleshooting: {e}")
 
     def apply_window_positions(self):
         """Apply saved window positions"""
@@ -403,6 +508,24 @@ class MainApplication:
             
         except Exception as e:
             logging.error(f"Error saving window positions: {e}")
+
+    def apply_gpu_selection(self, device_index, backend_type=None):
+        """Apply GPU selection changes to the mixer window"""
+        try:
+            logging.info(f"🎮 Applying GPU selection: index={device_index}, backend={backend_type}")
+            
+            if self.mixer_window:
+                self.mixer_window.apply_gpu_selection(device_index, backend_type)
+                
+            # Save the settings
+            if backend_type:
+                self.settings_manager.set_setting("visual_settings.backend", backend_type)
+            self.settings_manager.set_setting("visual_settings.gpu_index", device_index)
+            
+            logging.info("✅ GPU selection applied")
+            
+        except Exception as e:
+            logging.error(f"Error applying GPU selection: {e}")
 
     def cleanup(self):
         """Cleanup application resources"""

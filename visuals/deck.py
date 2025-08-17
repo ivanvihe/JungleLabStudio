@@ -1,4 +1,4 @@
-# visuals/deck.py
+# visuals/deck.py - FIXED TEXTURE BINDING ISSUES
 import logging
 import time
 import math
@@ -16,7 +16,7 @@ class Deck:
         visualizer_manager,
         deck_id="",
         gpu_index=0,
-        use_moderngl=False,
+        use_moderngl=None,  # Changed to None for auto-detection
         use_post=False,
     ):
         self.visualizer_manager = visualizer_manager
@@ -53,30 +53,232 @@ class Deck:
         # Controls cache
         self.controls = {}
 
-        use_moderngl = use_moderngl or os.getenv("USE_MODERNGL") == "1"
-        self.backend = (
-            ModernGLBackend(device_index=gpu_index)
-            if use_moderngl
-            else GLBackend()
-        )
+        # Backend selection logic - FIXED
+        if use_moderngl is None:
+            # Auto-detect from settings or environment
+            try:
+                from utils.settings_manager import SettingsManager
+                settings = SettingsManager()
+                backend_setting = settings.get_setting("visual_settings.backend", "OpenGL")
+                use_moderngl = (backend_setting == "ModernGL")
+            except:
+                use_moderngl = os.getenv("USE_MODERNGL") == "1"
+
+        self.use_moderngl = use_moderngl
+        
+        # Create backend
+        try:
+            if use_moderngl:
+                logging.info(f"🎮 Deck {deck_id}: Creating ModernGL backend with GPU {gpu_index}")
+                self.backend = ModernGLBackend(device_index=gpu_index)
+            else:
+                logging.info(f"🎮 Deck {deck_id}: Creating OpenGL backend")
+                self.backend = GLBackend()
+        except Exception as e:
+            logging.error(f"❌ Deck {deck_id}: Failed to create backend: {e}")
+            # Fallback to OpenGL
+            logging.info(f"🔄 Deck {deck_id}: Falling back to OpenGL backend")
+            self.backend = GLBackend()
+            self.use_moderngl = False
+            
         self.use_post = use_post
 
-        logging.debug(f"🎮 Deck {deck_id} initialized with size {self.size.width()}x{self.size.height()}")
+        logging.info(f"🎮 Deck {deck_id} initialized with size {self.size.width()}x{self.size.height()}, Backend: {'ModernGL' if self.use_moderngl else 'OpenGL'}")
 
+    def _check_gl_context(self):
+        """Check if OpenGL context is valid"""
+        context = QOpenGLContext.currentContext()
+        return context is not None
+
+    def _clear_gl_errors(self):
+        """Clear any existing OpenGL errors"""
+        error_count = 0
+        while glGetError() != GL_NO_ERROR:
+            error_count += 1
+            if error_count > 10:  # Prevent infinite loop
+                break
+        if error_count > 0:
+            logging.debug(f"Deck {self.deck_id}: Cleared {error_count} GL errors")
+
+    def _recreate_fbo(self):
+        """Recreate the framebuffer object with the current size - FIXED"""
+        try:
+            # Check for valid context
+            if not self._check_gl_context():
+                logging.debug(f"Deck {self.deck_id}: No context for FBO creation")
+                return
+            
+            # Clear any existing errors before we start
+            self._clear_gl_errors()
+            
+            # Clean up old FBO
+            if self.fbo:
+                if self.fbo.isBound():
+                    self.fbo.release()
+                del self.fbo
+                self.fbo = None
+                
+            # Create new FBO only if size is valid
+            if self.size.width() > 0 and self.size.height() > 0:
+                # Create FBO format with reduced multisampling for compatibility
+                fbo_format = QOpenGLFramebufferObjectFormat()
+                fbo_format.setAttachment(QOpenGLFramebufferObject.Attachment.CombinedDepthStencil)
+                
+                # Start with no multisampling and try to enable it if supported
+                fbo_format.setSamples(0)
+
+                # Create FBO
+                self.fbo = QOpenGLFramebufferObject(self.size, fbo_format)
+
+                if not self.fbo.isValid():
+                    logging.error(f"❌ Deck {self.deck_id}: Failed to create valid FBO")
+                    self.fbo = None
+                    return
+
+                # Get texture ID BEFORE attempting to modify it
+                tex_id = self.fbo.texture()
+                
+                logging.debug(
+                    f"✅ Deck {self.deck_id}: Created FBO {self.size.width()}x{self.size.height()}, Texture: {tex_id}"
+                )
+                
+                # FIXED: Only apply texture filtering if we have a valid texture ID and context
+                if tex_id and tex_id > 0 and self._check_gl_context():
+                    try:
+                        # Clear errors before texture operations
+                        self._clear_gl_errors()
+                        
+                        # Check if texture actually exists
+                        if glIsTexture(tex_id):
+                            # Save current texture binding
+                            current_texture = glGetIntegerv(GL_TEXTURE_BINDING_2D)
+                            
+                            # Bind our texture
+                            glBindTexture(GL_TEXTURE_2D, tex_id)
+                            
+                            # Check for errors after binding
+                            error = glGetError()
+                            if error == GL_NO_ERROR:
+                                # Apply texture parameters
+                                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+                                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+                                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+                                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+                                
+                                # Check for errors after setting parameters
+                                error = glGetError()
+                                if error == GL_NO_ERROR:
+                                    logging.debug(f"✅ Deck {self.deck_id}: Applied texture filtering to FBO texture {tex_id}")
+                                else:
+                                    logging.warning(f"⚠️ Deck {self.deck_id}: Error setting texture parameters: {error}")
+                            else:
+                                logging.warning(f"⚠️ Deck {self.deck_id}: Error binding texture {tex_id}: {error}")
+                            
+                            # Restore previous texture binding
+                            glBindTexture(GL_TEXTURE_2D, current_texture)
+                        else:
+                            logging.warning(f"⚠️ Deck {self.deck_id}: Texture {tex_id} is not a valid GL texture")
+                            
+                    except Exception as tex_e:
+                        logging.error(f"❌ Deck {self.deck_id}: Exception during texture filtering: {tex_e}")
+                        # Clear any errors that might have been set
+                        self._clear_gl_errors()
+                else:
+                    if tex_id <= 0:
+                        logging.warning(f"⚠️ Deck {self.deck_id}: Invalid texture ID: {tex_id}")
+                    if not self._check_gl_context():
+                        logging.warning(f"⚠️ Deck {self.deck_id}: No OpenGL context for texture operations")
+                
+                self._fbo_dirty = True
+                    
+        except Exception as e:
+            logging.error(f"❌ Deck {self.deck_id}: Error recreating FBO: {e}")
+            import traceback
+            traceback.print_exc()
+            self.fbo = None
+            # Clear any errors that might have been set
+            self._clear_gl_errors()
+
+    def get_texture(self):
+        """Return the texture ID of the framebuffer - FIXED"""
+        with QMutexLocker(self._mutex):
+            # Make sure we have a valid context
+            if not self._check_gl_context():
+                logging.debug(f"Deck {self.deck_id}: No GL context for get_texture")
+                return 0
+            
+            # Make sure we have a valid FBO
+            if not self.fbo or not self.fbo.isValid():
+                # Try to recreate the FBO when invalid
+                logging.debug(f"Deck {self.deck_id}: FBO invalid, trying to recreate")
+                self._recreate_fbo()
+                self._gl_initialized = False
+
+            # Ensure the framebuffer has the latest rendering
+            if self._fbo_dirty and self.fbo and self.fbo.isValid():
+                # Only render if we have time budget
+                current_time = time.time()
+                if current_time - self._last_render_time >= self._render_interval:
+                    self.render_to_fbo()
+
+            if self.fbo and self.fbo.isValid():
+                tex_id = self.fbo.texture()
+                
+                # Validate texture ID before returning it
+                if tex_id and tex_id > 0:
+                    # Additional validation: check if texture exists in OpenGL
+                    if glIsTexture(tex_id):
+                        return tex_id
+                    else:
+                        logging.debug(f"Deck {self.deck_id}: FBO texture {tex_id} is not a valid GL texture")
+                        return 0
+                else:
+                    logging.debug(f"Deck {self.deck_id}: FBO valid but texture ID is {tex_id}")
+                    return 0
+
+            return 0
+
+    # ... (rest of the methods remain the same as in the previous version)
+    
     def ensure_fbo(self):
         """Ensure we have a valid FBO"""
         if not self.fbo or not self.fbo.isValid():
             self._recreate_fbo()
         return self.fbo and self.fbo.isValid()
 
-    def set_gpu_index(self, index: int) -> None:
+    def set_gpu_index(self, index: int, backend_type: str = None) -> None:
         """Update GPU index and recreate backend context."""
         self.gpu_index = index
+        
+        # Update backend type if provided
+        if backend_type:
+            use_moderngl = (backend_type == "ModernGL")
+            if use_moderngl != self.use_moderngl:
+                self.use_moderngl = use_moderngl
+                # Recreate backend with new type
+                try:
+                    if use_moderngl:
+                        logging.info(f"🔄 Deck {self.deck_id}: Switching to ModernGL backend")
+                        self.backend = ModernGLBackend(device_index=index)
+                    else:
+                        logging.info(f"🔄 Deck {self.deck_id}: Switching to OpenGL backend")
+                        self.backend = GLBackend()
+                except Exception as e:
+                    logging.error(f"❌ Deck {self.deck_id}: Failed to switch backend: {e}")
+                    # Keep current backend
+                    return
+        
+        # Update GPU index for ModernGL backend
         if isinstance(self.backend, ModernGLBackend):
-            self.backend = ModernGLBackend(device_index=index)
-            self._gl_initialized = False
-            self._fbo_dirty = True
-            self.gl_info = None
+            try:
+                self.backend = ModernGLBackend(device_index=index)
+                logging.info(f"🎮 Deck {self.deck_id}: ModernGL backend updated to GPU {index}")
+            except Exception as e:
+                logging.error(f"❌ Deck {self.deck_id}: Failed to update ModernGL backend: {e}")
+                
+        self._gl_initialized = False
+        self._fbo_dirty = True
+        self.gl_info = None
 
     def set_visualizer(self, visualizer_name):
         """Set a new visualizer for this deck"""
@@ -171,8 +373,10 @@ class Deck:
             logging.debug(f"🔧 Deck {self.deck_id}: Initializing visualizer {self.current_visualizer_name} in FBO")
             
             # Clear any existing GL errors
-            while glGetError() != GL_NO_ERROR:
-                pass
+            self._clear_gl_errors()
+
+            # Ensure backend context
+            self.backend.ensure_context()
 
             # Set viewport for FBO
             self.backend.set_viewport(0, 0, self.size.width(), self.size.height())
@@ -180,7 +384,6 @@ class Deck:
             # Log GL information once
             if self.gl_info is None:
                 try:
-                    self.backend.ensure_context()
                     if isinstance(self.backend, ModernGLBackend) and getattr(self.backend, 'ctx', None):
                         ctx_info = self.backend.ctx.info
                         self.gl_info = {
@@ -190,8 +393,10 @@ class Deck:
                         }
                     else:
                         self.gl_info = OpenGLSafety.get_gl_info()
-                    OpenGLSafety.log_gl_info()
+                    
                     renderer = (self.gl_info.get('renderer') or '').lower()
+                    logging.info(f"🎮 Deck {self.deck_id}: GPU Renderer: {self.gl_info.get('renderer')}")
+                    
                     if 'llvmpipe' in renderer or 'software' in renderer:
                         logging.warning(
                             f"Deck {self.deck_id}: Software renderer detected ({self.gl_info.get('renderer')})"
@@ -199,23 +404,42 @@ class Deck:
                 except Exception as info_e:
                     logging.error(f"Deck {self.deck_id}: Error obtaining GL info: {info_e}")
 
-            # Initialize visualizer
+            # Initialize visualizer with proper parameters
             if hasattr(self.current_visualizer, 'initializeGL'):
                 try:
-                    self.current_visualizer.initializeGL(self.backend)
-                except TypeError:
-                    self.current_visualizer.initializeGL()
+                    # Try with backend first
+                    if hasattr(self.current_visualizer.initializeGL, '__code__') and self.current_visualizer.initializeGL.__code__.co_argcount > 1:
+                        self.current_visualizer.initializeGL(self.backend)
+                    else:
+                        self.current_visualizer.initializeGL()
+                except Exception as init_e:
+                    logging.error(f"❌ Deck {self.deck_id}: Error in initializeGL: {init_e}")
+                    # Try without backend
+                    try:
+                        self.current_visualizer.initializeGL()
+                    except Exception as fallback_e:
+                        logging.error(f"❌ Deck {self.deck_id}: Fallback initializeGL also failed: {fallback_e}")
+                        return False
 
             # Resize visualizer
             if hasattr(self.current_visualizer, 'resizeGL'):
                 try:
-                    self.current_visualizer.resizeGL(
-                        self.size.width(), self.size.height(), self.backend
-                    )
-                except TypeError:
-                    self.current_visualizer.resizeGL(
-                        self.size.width(), self.size.height()
-                    )
+                    # Try with backend and size parameters
+                    if hasattr(self.current_visualizer.resizeGL, '__code__') and self.current_visualizer.resizeGL.__code__.co_argcount > 3:
+                        self.current_visualizer.resizeGL(
+                            self.size.width(), self.size.height(), self.backend
+                        )
+                    else:
+                        self.current_visualizer.resizeGL(
+                            self.size.width(), self.size.height()
+                        )
+                except Exception as resize_e:
+                    logging.error(f"❌ Deck {self.deck_id}: Error in resizeGL: {resize_e}")
+                    # Try basic resize
+                    try:
+                        self.current_visualizer.resizeGL(self.size.width(), self.size.height())
+                    except Exception as fallback_resize_e:
+                        logging.error(f"❌ Deck {self.deck_id}: Fallback resizeGL also failed: {fallback_resize_e}")
             
             self._gl_initialized = True
             
@@ -231,20 +455,27 @@ class Deck:
             traceback.print_exc()
             return False
 
+    # Continue with the rest of the methods from the previous fixed version...
+    # (render_to_fbo, paint, _render_fallback, resize, get_controls, etc.)
+    
     def render_to_fbo(self):
         """Render the visualizer to the FBO"""
         with QMutexLocker(self._mutex):
             # Ensure we have an FBO
             if not self.ensure_fbo():
+                logging.debug(f"Deck {self.deck_id}: No valid FBO available")
                 return False
                 
             # Check if we have a valid context
-            context = QOpenGLContext.currentContext()
-            if not context:
+            if not self._check_gl_context():
                 logging.debug(f"Deck {self.deck_id}: No OpenGL context available")
                 return False
                 
             try:
+                # Clear any errors before we start
+                self._clear_gl_errors()
+                
+                # Ensure backend context is ready
                 self.backend.ensure_context()
 
                 # Save current FBO binding
@@ -255,9 +486,10 @@ class Deck:
                     logging.error(f"❌ Deck {self.deck_id}: Failed to bind FBO")
                     return False
 
+                # Set viewport and begin target
                 self.backend.begin_target((self.size.width(), self.size.height()))
 
-                # Clear the FBO
+                # Clear the FBO with black background
                 self.backend.clear(0.0, 0.0, 0.0, 1.0)
                 
                 if self.current_visualizer:
@@ -273,18 +505,32 @@ class Deck:
                     # Render the visualizer
                     if hasattr(self.current_visualizer, 'paintGL'):
                         try:
-                            # Paint visualizer directly
-                            try:
+                            current_time = time.time()
+                            
+                            # Determine paintGL signature and call appropriately
+                            paintgl_func = self.current_visualizer.paintGL
+                            argcount = paintgl_func.__code__.co_argcount if hasattr(paintgl_func, '__code__') else 1
+                            
+                            if argcount > 3:  # self, time, size, backend
                                 self.current_visualizer.paintGL(
-                                    time.time(),
+                                    current_time,
                                     (self.size.width(), self.size.height()),
                                     self.backend,
                                 )
-                            except TypeError:
+                            elif argcount > 2:  # self, time, size
+                                self.current_visualizer.paintGL(
+                                    current_time,
+                                    (self.size.width(), self.size.height())
+                                )
+                            elif argcount > 1:  # self, time
+                                self.current_visualizer.paintGL(current_time)
+                            else:  # self only
                                 self.current_visualizer.paintGL()
 
                             self._total_frames += 1
                             self._fps_frames += 1
+                            
+                            # Log frame info every 300 frames for debugging
                             if self._total_frames % 300 == 0:
                                 logging.debug(
                                     f"🎬 Deck {self.deck_id}: {self.current_visualizer_name} - Frame {self._total_frames}"
@@ -294,26 +540,32 @@ class Deck:
                             current_time = time.time()
                             if current_time - self._last_error_log > 5.0:
                                 logging.error(f"❌ Deck {self.deck_id}: Error in paintGL: {e}")
+                                import traceback
+                                traceback.print_exc()
                                 self._last_error_log = current_time
                             self._render_fallback()
                         finally:
-                            # Reset GL state changed by visualizers
+                            # Reset GL state that might be changed by visualizers
                             try:
                                 glUseProgram(0)
                                 glDisable(GL_DEPTH_TEST)
                                 glDisable(GL_CULL_FACE)
                                 glDepthMask(GL_TRUE)
                                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+                                # Clear any GL errors
+                                self._clear_gl_errors()
                             except Exception:
                                 pass
                 else:
                     # No visualizer - render black (already cleared above)
-                    pass
+                    logging.debug(f"Deck {self.deck_id}: No visualizer, rendering black")
                 
+                # Apply post-processing if enabled
                 if self.use_post and isinstance(self.backend, ModernGLBackend):
                     # TODO: implement post-processing effects (FXAA/Bloom)
                     pass
 
+                # End target
                 self.backend.end_target()
 
                 # Update FPS counters
@@ -335,8 +587,12 @@ class Deck:
                 
             except Exception as e:
                 logging.error(f"❌ Deck {self.deck_id}: Error rendering to FBO: {e}")
+                import traceback
+                traceback.print_exc()
                 if self.fbo and self.fbo.isBound():
                     self.fbo.release()
+                # Clear any errors
+                self._clear_gl_errors()
                 return False
 
     def paint(self):
@@ -348,7 +604,9 @@ class Deck:
         self._last_render_time = current_time
         
         # Render to FBO
-        self.render_to_fbo()
+        result = self.render_to_fbo()
+        if not result:
+            logging.debug(f"Deck {self.deck_id}: render_to_fbo failed")
 
     def _render_fallback(self):
         """Render a fallback pattern when visualizer fails"""
@@ -371,7 +629,7 @@ class Deck:
             if self.size == size:
                 return
                 
-            logging.debug(f"📐 Deck {self.deck_id}: Resizing from {self.size.width()}x{self.size.height()} to {size.width()}x{size.height()}")
+            logging.debug(f"📏 Deck {self.deck_id}: Resizing from {self.size.width()}x{self.size.height()} to {size.width()}x{size.height()}")
             self.size = size
             self._recreate_fbo()
             
@@ -379,87 +637,6 @@ class Deck:
             if self.current_visualizer:
                 self._gl_initialized = False
                 self._fbo_dirty = True
-
-    def _recreate_fbo(self):
-        """Recreate the framebuffer object with the current size"""
-        try:
-            # Check for valid context
-            context = QOpenGLContext.currentContext()
-            if not context:
-                logging.debug(f"Deck {self.deck_id}: No context for FBO creation")
-                return
-            
-            # Clean up old FBO
-            if self.fbo:
-                if self.fbo.isBound():
-                    self.fbo.release()
-                del self.fbo
-                self.fbo = None
-                
-            # Create new FBO only if size is valid
-            if self.size.width() > 0 and self.size.height() > 0:
-                # Create FBO format
-                fbo_format = QOpenGLFramebufferObjectFormat()
-                fbo_format.setAttachment(QOpenGLFramebufferObject.Attachment.CombinedDepthStencil)
-                # Enable multisampling for smoother visuals
-                fbo_format.setSamples(4)
-
-                # Create FBO
-                self.fbo = QOpenGLFramebufferObject(self.size, fbo_format)
-
-                if not self.fbo.isValid():
-                    logging.error(f"❌ Deck {self.deck_id}: Failed to create valid FBO")
-                    self.fbo = None
-                else:
-                    logging.debug(
-                        f"✅ Deck {self.deck_id}: Created FBO {self.size.width()}x{self.size.height()}, Texture: {self.fbo.texture()}"
-                    )
-                    # Only apply filtering when not multisampled
-                    if fbo_format.samples() <= 1:
-                        tex_id = self.fbo.texture()
-                        # glIsTexture checks introduced recently caused valid
-                        # framebuffer textures to be treated as invalid in some
-                        # drivers, resulting in missing visuals.  We now trust
-                        # Qt's framebuffer object and always apply the filtering
-                        # when a texture id is returned.
-                        if tex_id:
-                            glBindTexture(GL_TEXTURE_2D, tex_id)
-                            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-                            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-                            glBindTexture(GL_TEXTURE_2D, 0)
-                    else:
-                        logging.debug(
-                            f"Deck {self.deck_id}: Multisampled FBO - skipping texture filtering"
-                        )
-                    self._fbo_dirty = True
-                    
-        except Exception as e:
-            logging.error(f"❌ Deck {self.deck_id}: Error recreating FBO: {e}")
-            self.fbo = None
-
-    def get_texture(self):
-        """Return the texture ID of the framebuffer"""
-        with QMutexLocker(self._mutex):
-            # Make sure we have a valid FBO
-            if not self.fbo or not self.fbo.isValid():
-                # Try to recreate the FBO when invalid – this can happen
-                # when the context wasn't ready during initialization.
-                self._recreate_fbo()
-                self._gl_initialized = False
-
-            # Ensure the framebuffer has the latest rendering
-            if self._fbo_dirty and self.fbo and self.fbo.isValid():
-                self.render_to_fbo()
-
-            if self.fbo and self.fbo.isValid():
-                # Return the texture id directly. Previous commits attempted to
-                # validate the id with glIsTexture, but this proved unreliable on
-                # several systems and caused the renderer to fall back to a blank
-                # output.  Qt's framebuffer object guarantees the returned id is
-                # suitable for binding in the current context.
-                return self.fbo.texture()
-
-            return 0
 
     def get_controls(self):
         """Get available controls from the current visualizer"""
@@ -529,7 +706,9 @@ class Deck:
                 'fps': round(self._fps, 1),
                 'controls_count': len(self.controls),
                 'gl_initialized': self._gl_initialized,
-                'gpu_renderer': (self.gl_info or {}).get('renderer')
+                'gpu_renderer': (self.gl_info or {}).get('renderer'),
+                'backend_type': 'ModernGL' if self.use_moderngl else 'OpenGL',
+                'gpu_index': self.gpu_index
             }
 
     def force_refresh(self):
@@ -554,6 +733,13 @@ class Deck:
                     self.fbo.release()
                 del self.fbo
                 self.fbo = None
+            
+            # Clean up backend
+            if hasattr(self.backend, 'cleanup'):
+                try:
+                    self.backend.cleanup()
+                except Exception as e:
+                    logging.error(f"❌ Deck {self.deck_id}: Error cleaning up backend: {e}")
             
             # Clear controls
             self.controls = {}

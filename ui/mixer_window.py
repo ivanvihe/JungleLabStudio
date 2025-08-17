@@ -1,4 +1,4 @@
-# ui/mixer_window.py
+# ui/mixer_window.py - FIXED VERSION
 import logging
 import numpy as np
 import ctypes
@@ -31,9 +31,9 @@ class MixerWindow(QMainWindow):
         
         # Initialize variables first
         self.mix_value = 0.5
-        self.deck_a_opacity = 1.0  # New: Individual deck opacity
+        self.deck_a_opacity = 1.0  # Individual deck opacity
         self.deck_b_opacity = 1.0
-        self.global_brightness = 1.0  # New: Global brightness control
+        self.global_brightness = 1.0  # Global brightness control
         self.deck_a = None
         self.deck_b = None
         
@@ -88,6 +88,8 @@ class MixerWindow(QMainWindow):
                         logging.warning(
                             f"MixerWindow: Software renderer detected ({info.get('renderer')})"
                         )
+                    else:
+                        logging.info(f"🎮 MixerWindow: Using GPU renderer: {info.get('renderer')}")
                 except Exception as e:
                     logging.warning(f"Could not log GL info: {e}")
 
@@ -111,15 +113,31 @@ class MixerWindow(QMainWindow):
                     logging.error("❌ Failed to setup quad geometry")
                     return
                 
-                # Create decks with proper IDs
+                # Create decks with proper configuration
                 logging.info("🎨 Creating decks...")
+                
+                # Get GPU settings
                 gpu_index = 0
+                use_moderngl = False
                 if self.settings_manager:
-                    gpu_index = self.settings_manager.get_setting(
-                        "visual_settings.gpu_index", 0
-                    )
-                self.deck_a = Deck(self.visualizer_manager, "A", gpu_index=gpu_index)
-                self.deck_b = Deck(self.visualizer_manager, "B", gpu_index=gpu_index)
+                    gpu_index = self.settings_manager.get_setting("visual_settings.gpu_index", 0)
+                    backend = self.settings_manager.get_setting("visual_settings.backend", "OpenGL")
+                    use_moderngl = (backend == "ModernGL")
+                    logging.info(f"🎮 Using GPU {gpu_index} with {backend} backend")
+
+                # Create decks
+                self.deck_a = Deck(
+                    self.visualizer_manager, 
+                    "A", 
+                    gpu_index=gpu_index,
+                    use_moderngl=use_moderngl
+                )
+                self.deck_b = Deck(
+                    self.visualizer_manager, 
+                    "B", 
+                    gpu_index=gpu_index,
+                    use_moderngl=use_moderngl
+                )
                 
                 # Initialize deck FBOs
                 # Consider device pixel ratio to avoid black bars on high-DPI displays
@@ -129,20 +147,39 @@ class MixerWindow(QMainWindow):
                     max(int(self.gl_widget.height() * pixel_ratio), 600)
                 )
                 
+                logging.info(f"📏 Initializing decks with size: {current_size.width()}x{current_size.height()}")
                 self.deck_a.resize(current_size)
                 self.deck_b.resize(current_size)
                 
-                # Don't setup initial visualizers anymore - wait for user selection
-                logging.info("🎨 Decks created - waiting for user preset selection")
+                # Verify deck initialization
+                if not self.deck_a.is_ready():
+                    logging.warning("⚠️ Deck A not ready after initialization")
+                if not self.deck_b.is_ready():
+                    logging.warning("⚠️ Deck B not ready after initialization")
                 
                 self.gl_initialized = True
                 logging.info("✅ MixerWindow OpenGL initialized successfully")
+                
+                # Force initial render
+                QTimer.singleShot(100, self.force_initial_render)
                 
             except Exception as e:
                 logging.error(f"❌ Error in initializeGL: {e}")
                 import traceback
                 traceback.print_exc()
                 self.gl_initialized = False
+
+    def force_initial_render(self):
+        """Force an initial render to avoid black screen"""
+        try:
+            if self.gl_initialized and self.deck_a and self.deck_b:
+                # Force both decks to render even if they don't have visualizers
+                self.deck_a._fbo_dirty = True
+                self.deck_b._fbo_dirty = True
+                self.gl_widget.update()
+                logging.debug("🔄 Forced initial render")
+        except Exception as e:
+            logging.error(f"❌ Error in force_initial_render: {e}")
 
     def load_shaders(self):
         """Load and compile enhanced shaders for mixing with transparency support"""
@@ -305,10 +342,22 @@ class MixerWindow(QMainWindow):
             self.gl_widget.makeCurrent()
             
             # First, render both decks to their FBOs
+            deck_a_rendered = False
+            deck_b_rendered = False
+            
             if self.deck_a:
-                self.deck_a.paint()
+                try:
+                    self.deck_a.paint()
+                    deck_a_rendered = True
+                except Exception as e:
+                    logging.error(f"❌ Error painting deck A: {e}")
+                    
             if self.deck_b:
-                self.deck_b.paint()
+                try:
+                    self.deck_b.paint()
+                    deck_b_rendered = True
+                except Exception as e:
+                    logging.error(f"❌ Error painting deck B: {e}")
             
             # Now composite them in the main framebuffer
             glBindFramebuffer(GL_FRAMEBUFFER, self.gl_widget.defaultFramebufferObject())
@@ -324,40 +373,74 @@ class MixerWindow(QMainWindow):
             glDepthMask(GL_TRUE)
 
             if not self.shader_program or not self.quad_vao:
+                logging.debug("Shader program or quad VAO not available")
                 return
                 
             # Use the enhanced mixing shader
             glUseProgram(self.shader_program)
             
-            # Check if decks are active (have visualizers)
-            deck_a_active = self.deck_a and self.deck_a.has_active_visualizer()
-            deck_b_active = self.deck_b and self.deck_b.has_active_visualizer()
+            # Check if decks are active (have visualizers) and rendered successfully
+            deck_a_active = (self.deck_a and 
+                           self.deck_a.has_active_visualizer() and 
+                           deck_a_rendered)
+            deck_b_active = (self.deck_b and 
+                           self.deck_b.has_active_visualizer() and 
+                           deck_b_rendered)
             
             # Get textures from decks
-            texture_a = self.deck_a.get_texture() if deck_a_active else 0
-            texture_b = self.deck_b.get_texture() if deck_b_active else 0
+            texture_a = 0
+            texture_b = 0
+            
+            if deck_a_active:
+                texture_a = self.deck_a.get_texture()
+                if texture_a == 0:
+                    logging.debug("Deck A has active visualizer but texture is 0")
+                    deck_a_active = False
+                    
+            if deck_b_active:
+                texture_b = self.deck_b.get_texture()
+                if texture_b == 0:
+                    logging.debug("Deck B has active visualizer but texture is 0")
+                    deck_b_active = False
 
-            # Bind textures (even if 0, for shader consistency)
+            # Debug logging
+            if self.frame_count % 300 == 0:  # Every 5 seconds at 60fps
+                logging.debug(f"🎬 Frame {self.frame_count}: A_active={deck_a_active}, B_active={deck_b_active}, "
+                            f"A_tex={texture_a}, B_tex={texture_b}, mix={self.mix_value:.2f}")
+
+            # Bind textures
             glActiveTexture(GL_TEXTURE0)
-            glBindTexture(GL_TEXTURE_2D, texture_a if texture_a > 0 else 0)
+            if texture_a > 0:
+                glBindTexture(GL_TEXTURE_2D, texture_a)
+            else:
+                glBindTexture(GL_TEXTURE_2D, 0)
 
             glActiveTexture(GL_TEXTURE1)
-            glBindTexture(GL_TEXTURE_2D, texture_b if texture_b > 0 else 0)
+            if texture_b > 0:
+                glBindTexture(GL_TEXTURE_2D, texture_b)
+            else:
+                glBindTexture(GL_TEXTURE_2D, 0)
             
             # Set shader uniforms
-            glUniform1i(glGetUniformLocation(self.shader_program, "texture1"), 0)
-            glUniform1i(glGetUniformLocation(self.shader_program, "texture2"), 1)
-            glUniform1f(glGetUniformLocation(self.shader_program, "mixValue"), self.mix_value)
-            glUniform1f(glGetUniformLocation(self.shader_program, "deck_a_opacity"), self.deck_a_opacity)
-            glUniform1f(glGetUniformLocation(self.shader_program, "deck_b_opacity"), self.deck_b_opacity)
-            glUniform1f(glGetUniformLocation(self.shader_program, "global_brightness"), self.global_brightness)
-            glUniform1i(glGetUniformLocation(self.shader_program, "deck_a_active"), int(deck_a_active))
-            glUniform1i(glGetUniformLocation(self.shader_program, "deck_b_active"), int(deck_b_active))
+            try:
+                glUniform1i(glGetUniformLocation(self.shader_program, "texture1"), 0)
+                glUniform1i(glGetUniformLocation(self.shader_program, "texture2"), 1)
+                glUniform1f(glGetUniformLocation(self.shader_program, "mixValue"), self.mix_value)
+                glUniform1f(glGetUniformLocation(self.shader_program, "deck_a_opacity"), self.deck_a_opacity)
+                glUniform1f(glGetUniformLocation(self.shader_program, "deck_b_opacity"), self.deck_b_opacity)
+                glUniform1f(glGetUniformLocation(self.shader_program, "global_brightness"), self.global_brightness)
+                glUniform1i(glGetUniformLocation(self.shader_program, "deck_a_active"), int(deck_a_active))
+                glUniform1i(glGetUniformLocation(self.shader_program, "deck_b_active"), int(deck_b_active))
+            except Exception as e:
+                logging.error(f"❌ Error setting shader uniforms: {e}")
 
             # Draw the full-screen quad
-            glBindVertexArray(self.quad_vao)
-            glDrawArrays(GL_TRIANGLES, 0, 6)
-            glBindVertexArray(0)
+            try:
+                glBindVertexArray(self.quad_vao)
+                glDrawArrays(GL_TRIANGLES, 0, 6)
+                glBindVertexArray(0)
+            except Exception as e:
+                logging.error(f"❌ Error drawing quad: {e}")
             
             # Clean up
             glUseProgram(0)
@@ -378,6 +461,9 @@ class MixerWindow(QMainWindow):
             
         except Exception as e:
             logging.error(f"❌ Error in paintGL: {e}")
+            import traceback
+            traceback.print_exc()
+            # Render fallback
             glClearColor(0.1, 0.0, 0.0, 1.0)
             glClear(GL_COLOR_BUFFER_BIT)
 
@@ -386,7 +472,7 @@ class MixerWindow(QMainWindow):
         try:
             pixel_ratio = self.gl_widget.devicePixelRatio()
             current_size = QSize(int(w * pixel_ratio), int(h * pixel_ratio))
-            logging.debug(f"📐 MixerWindow resized to {w}x{h} (px ratio {pixel_ratio})")
+            logging.debug(f"📏 MixerWindow resized to {w}x{h} (px ratio {pixel_ratio})")
             
             if not self.gl_initialized:
                 return
@@ -418,7 +504,9 @@ class MixerWindow(QMainWindow):
             logging.info(f"🎮 Setting deck {deck_id} to visualizer: {visualizer_name}")
             
             if not self.gl_initialized:
-                logging.warning("⚠️ OpenGL not initialized")
+                logging.warning("⚠️ OpenGL not initialized, queuing visualizer change")
+                # Queue the change for when GL is ready
+                QTimer.singleShot(500, lambda: self.set_deck_visualizer(deck_id, visualizer_name))
                 return
                 
             # Make sure we have OpenGL context
@@ -587,42 +675,55 @@ class MixerWindow(QMainWindow):
                 'gpu_renderer': None
             }
 
-    def apply_gpu_selection(self, index):
+    def apply_gpu_selection(self, index, backend_type=None):
         """Apply GPU selection to decks"""
         with QMutexLocker(self._mutex):
+            logging.info(f"🎮 Applying GPU selection: index={index}, backend={backend_type}")
+            
             if self.deck_a:
-                self.deck_a.set_gpu_index(index)
+                self.deck_a.set_gpu_index(index, backend_type)
             if self.deck_b:
-                self.deck_b.set_gpu_index(index)
+                self.deck_b.set_gpu_index(index, backend_type)
+                
+            # Force refresh
+            if self.gl_initialized:
+                self.gl_widget.update()
 
     def cleanup(self):
         """Clean up OpenGL resources"""
         with QMutexLocker(self._mutex):
             if self.gl_initialized:
-                self.gl_widget.makeCurrent()
-                
-                if self.shader_program:
-                    glDeleteProgram(self.shader_program)
-                    self.shader_program = None
+                try:
+                    self.gl_widget.makeCurrent()
                     
-                if self.quad_vao:
-                    glDeleteVertexArrays(1, [self.quad_vao])
-                    self.quad_vao = None
+                    if self.shader_program:
+                        glDeleteProgram(self.shader_program)
+                        self.shader_program = None
+                        
+                    if self.quad_vao:
+                        glDeleteVertexArrays(1, [self.quad_vao])
+                        self.quad_vao = None
+                        
+                    if self.quad_vbo:
+                        glDeleteBuffers(1, [self.quad_vbo])
+                        self.quad_vbo = None
                     
-                if self.quad_vbo:
-                    glDeleteBuffers(1, [self.quad_vbo])
-                    self.quad_vbo = None
-                
-                # Clean up decks
-                if self.deck_a:
-                    self.deck_a.cleanup()
-                if self.deck_b:
-                    self.deck_b.cleanup()
-                    
-                logging.info("✅ OpenGL resources cleaned up")
+                    # Clean up decks
+                    if self.deck_a:
+                        self.deck_a.cleanup()
+                    if self.deck_b:
+                        self.deck_b.cleanup()
+                        
+                    logging.info("✅ OpenGL resources cleaned up")
+                except Exception as e:
+                    logging.error(f"❌ Error during cleanup: {e}")
 
     def closeEvent(self, event):
         """Handle window close event"""
-        self.animation_timer.stop()
-        self.cleanup()
-        super().closeEvent(event)
+        try:
+            self.animation_timer.stop()
+            self.cleanup()
+            super().closeEvent(event)
+        except Exception as e:
+            logging.error(f"❌ Error in closeEvent: {e}")
+            super().closeEvent(event)
