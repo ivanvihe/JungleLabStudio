@@ -1,636 +1,238 @@
-# TODO: migrate to RenderBackend (ModernGL)
-# visuals/presets/building_madness.py
-from OpenGL.GL import *
-from OpenGL.GLU import *
+import logging
 import numpy as np
 import ctypes
-import os
-import logging
+from OpenGL.GL import (
+    glClearColor, glClear, GL_COLOR_BUFFER_BIT,
+    glEnable, glBlendFunc, glDisable, GL_BLEND, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA,
+    GL_DEPTH_TEST, glGenVertexArrays, glBindVertexArray,
+    glGenBuffers, glBindBuffer, GL_ARRAY_BUFFER, glBufferData, GL_DYNAMIC_DRAW,
+    glVertexAttribPointer, glEnableVertexAttribArray, GLfloat,
+    glUseProgram,
+    glDrawArrays, GL_TRIANGLES, glDeleteBuffers, glDeleteVertexArrays,
+    glDeleteProgram
+)
 
-from visuals.base_visualizer import BaseVisualizer
+from ..base_visualizer import BaseVisualizer
+
 
 class BuildingMadnessVisualizer(BaseVisualizer):
+    """Audio reactive skyline visualizer."""
+
     visual_name = "Building Madness"
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.shader_program = None
-        self.VBO = None
-        self.VAO = None
-        self.EBO = None
-        self.vertices = None
-        self.indices = None
-        self.original_vertices = None
+        self.vao = None
+        self.vbo = None
         self.time = 0.0
-        self.room_type = 0
-        self.speed = 1.0
-        self.intensity = 1.0
-        self.complexity = 1.0
-        self.effect_mode = 0
+        self.building_count = 20
+        self.max_height = 1.2
+        self.x_positions: np.ndarray | None = None
+        self.width = 0.0
 
-    def get_controls(self):
-        return {
-            "Room Type": {
-                "type": "dropdown",
-                "options": ["Cube Room", "Sphere Room", "Tunnel Room", "Pyramid Room", "Crystal Room"],
-                "value": self.room_type,
-            },
-            "Speed": {
-                "type": "slider",
-                "min": 1,
-                "max": 100,
-                "value": int(self.speed * 20),
-            },
-            "Intensity": {
-                "type": "slider",
-                "min": 1,
-                "max": 100,
-                "value": int(self.intensity * 50),
-            },
-            "Complexity": {
-                "type": "slider",
-                "min": 1,
-                "max": 100,
-                "value": int(self.complexity * 50),
-            },
-            "Effect Mode": {
-                "type": "dropdown",
-                "options": ["Wave Patterns", "Fractal Growth", "Mirror Kaleidoscope", "Digital Rain", "Plasma Flow"],
-                "value": self.effect_mode,
-            }
-        }
-
-    def update_control(self, name, value):
-        if name == "Room Type":
-            if self.room_type != int(value):
-                self.room_type = int(value)
-                self.create_room()
-        elif name == "Speed":
-            self.speed = float(value) / 20.0
-        elif name == "Intensity":
-            self.intensity = float(value) / 50.0
-        elif name == "Complexity":
-            if abs(self.complexity - float(value) / 50.0) > 0.1:
-                self.complexity = float(value) / 50.0
-                self.create_room()
-        elif name == "Effect Mode":
-            self.effect_mode = int(value)
-
+    # ------------------------------------------------------------------
+    # Setup
+    # ------------------------------------------------------------------
     def initializeGL(self):
-        print("BuildingMadnessVisualizer.initializeGL called")
-        # TRANSPARENT BACKGROUND FOR MIXING
-        glClearColor(0.0, 0.0, 0.0, 0.0)  # Alpha = 0 for transparency
-        glEnable(GL_DEPTH_TEST)
-        glEnable(GL_BLEND)
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-        glDisable(GL_CULL_FACE)  # Important to see inside faces
-
-        self.load_shaders()
-        self.create_room()
-
-    def load_shaders(self):
+        """Initialize OpenGL resources."""
         try:
-            # Use inline shaders to avoid file loading issues
-            vertex_shader_source = """
+            glClearColor(0.95, 0.98, 1.0, 0.0)  # blueprint style background
+            glDisable(GL_DEPTH_TEST)
+            glEnable(GL_BLEND)
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
+            if not self._load_shaders():
+                logging.error("BuildingMadness: shader compilation failed")
+                return
+            self._setup_geometry()
+        except Exception as exc:  # pragma: no cover - defensive
+            logging.error(f"BuildingMadness.initializeGL error: {exc}")
+
+    def _load_shaders(self) -> bool:
+        """Compile and link shaders."""
+        try:
+            vertex_src = """
             #version 330 core
-            layout (location = 0) in vec3 aPos;
-            layout (location = 1) in vec4 aColor;
-            
-            uniform mat4 projection;
-            uniform mat4 view;
-            uniform mat4 model;
-            
+            layout(location = 0) in vec2 aPos;
+            layout(location = 1) in vec4 aColor;
             out vec4 vColor;
-            
-            void main()
-            {
-                gl_Position = projection * view * model * vec4(aPos, 1.0);
+            void main(){
+                gl_Position = vec4(aPos, 0.0, 1.0);
                 vColor = aColor;
             }
             """
-            
-            fragment_shader_source = """
+
+            fragment_src = """
             #version 330 core
             in vec4 vColor;
             out vec4 FragColor;
-            
-            void main()
-            {
+            void main(){
                 FragColor = vColor;
             }
             """
 
-            vertex_shader = glCreateShader(GL_VERTEX_SHADER)
-            glShaderSource(vertex_shader, vertex_shader_source)
-            glCompileShader(vertex_shader)
+            vs = glCreateShader(GL_VERTEX_SHADER)  # type: ignore
+            glShaderSource(vs, vertex_src)
+            glCompileShader(vs)
+            if not glGetShaderiv(vs, GL_COMPILE_STATUS):  # type: ignore
+                err = glGetShaderInfoLog(vs).decode()
+                logging.error(f"BuildingMadness vertex shader error: {err}")
+                return False
 
-            fragment_shader = glCreateShader(GL_FRAGMENT_SHADER)
-            glShaderSource(fragment_shader, fragment_shader_source)
-            glCompileShader(fragment_shader)
+            fs = glCreateShader(GL_FRAGMENT_SHADER)  # type: ignore
+            glShaderSource(fs, fragment_src)
+            glCompileShader(fs)
+            if not glGetShaderiv(fs, GL_COMPILE_STATUS):  # type: ignore
+                err = glGetShaderInfoLog(fs).decode()
+                logging.error(f"BuildingMadness fragment shader error: {err}")
+                return False
 
-            self.shader_program = glCreateProgram()
-            glAttachShader(self.shader_program, vertex_shader)
-            glAttachShader(self.shader_program, fragment_shader)
+            self.shader_program = glCreateProgram()  # type: ignore
+            glAttachShader(self.shader_program, vs)
+            glAttachShader(self.shader_program, fs)
             glLinkProgram(self.shader_program)
+            if not glGetProgramiv(self.shader_program, GL_LINK_STATUS):  # type: ignore
+                err = glGetProgramInfoLog(self.shader_program).decode()
+                logging.error(f"BuildingMadness program link error: {err}")
+                return False
 
-            glDeleteShader(vertex_shader)
-            glDeleteShader(fragment_shader)
-            print("BuildingMadness shaders loaded successfully")
-        except Exception as e:
-            print(f"BuildingMadness shader loading error: {e}")
+            glDeleteShader(vs)
+            glDeleteShader(fs)
+            return True
+        except Exception as exc:  # pragma: no cover - defensive
+            logging.error(f"BuildingMadness shader load error: {exc}")
+            return False
 
-    def create_cube_room(self):
-        """Create a cube room with subdivided walls for effects"""
-        vertices = []
-        indices = []
-        
-        size = 10.0
-        subdivisions = max(10, int(20 * self.complexity))
-        
-        # Define the 6 walls of the cube (inside faces)
-        walls = [
-            # Floor (looking up at it)
-            {'vertices': [[-size, -size, -size], [size, -size, -size], [size, -size, size], [-size, -size, size]], 'normal': [0, 1, 0]},
-            # Ceiling (looking down at it) 
-            {'vertices': [[-size, size, -size], [-size, size, size], [size, size, size], [size, size, -size]], 'normal': [0, -1, 0]},
-            # Front wall
-            {'vertices': [[-size, -size, size], [size, -size, size], [size, size, size], [-size, size, size]], 'normal': [0, 0, -1]},
-            # Back wall
-            {'vertices': [[size, -size, -size], [-size, -size, -size], [-size, size, -size], [size, size, -size]], 'normal': [0, 0, 1]},
-            # Left wall
-            {'vertices': [[-size, -size, -size], [-size, -size, size], [-size, size, size], [-size, size, -size]], 'normal': [1, 0, 0]},
-            # Right wall
-            {'vertices': [[size, -size, size], [size, -size, -size], [size, size, -size], [size, size, size]], 'normal': [-1, 0, 0]}
-        ]
-        
-        for wall in walls:
-            start_vertex = len(vertices) // 7
-            wall_verts = wall['vertices']
-            
-            # Create subdivided grid for this wall
-            for i in range(subdivisions + 1):
-                for j in range(subdivisions + 1):
-                    u = i / subdivisions
-                    v = j / subdivisions
-                    
-                    # Bilinear interpolation
-                    p1 = np.array(wall_verts[0]) * (1-u) * (1-v)
-                    p2 = np.array(wall_verts[1]) * u * (1-v)
-                    p3 = np.array(wall_verts[2]) * u * v
-                    p4 = np.array(wall_verts[3]) * (1-u) * v
-                    
-                    pos = p1 + p2 + p3 + p4
-                    
-                    # Initial color based on position and wall with transparency
-                    r = 0.5 + 0.3 * np.sin(u * np.pi)
-                    g = 0.5 + 0.3 * np.cos(v * np.pi)
-                    b = 0.7
-                    alpha = 0.8  # Semi-transparent for mixing
-                    
-                    vertices.extend([pos[0], pos[1], pos[2], r, g, b, alpha])
-            
-            # Create triangles for this wall
-            for i in range(subdivisions):
-                for j in range(subdivisions):
-                    base = start_vertex + i * (subdivisions + 1) + j
-                    
-                    # Two triangles per quad
-                    indices.extend([base, base + 1, base + subdivisions + 1])
-                    indices.extend([base + 1, base + subdivisions + 2, base + subdivisions + 1])
-        
-        return vertices, indices
+    def _setup_geometry(self):
+        """Prepare buffers for building geometry."""
+        spacing = 2.0 / self.building_count
+        self.width = spacing * 0.8
+        # compute left x positions for each building
+        self.x_positions = np.linspace(-1.0, 1.0 - self.width, self.building_count)
 
-    def create_sphere_room(self):
-        """Create a spherical room"""
-        vertices = []
-        indices = []
-        
-        radius = 8.0
-        lat_segments = max(20, int(30 * self.complexity))
-        lon_segments = max(30, int(40 * self.complexity))
-        
-        # Create sphere vertices (inside view)
-        for lat in range(lat_segments + 1):
-            theta = lat * np.pi / lat_segments
-            for lon in range(lon_segments + 1):
-                phi = lon * 2 * np.pi / lon_segments
-                
-                x = radius * np.sin(theta) * np.cos(phi)
-                y = radius * np.cos(theta)
-                z = radius * np.sin(theta) * np.sin(phi)
-                
-                # Color based on spherical coordinates
-                r = 0.5 + 0.5 * np.sin(theta * 2)
-                g = 0.5 + 0.5 * np.cos(phi)
-                b = 0.5 + 0.5 * np.sin(phi * 2)
-                alpha = 0.8  # Semi-transparent
-                
-                vertices.extend([x, y, z, r, g, b, alpha])
-        
-        # Create triangles (note reversed winding for inside view)
-        for lat in range(lat_segments):
-            for lon in range(lon_segments):
-                first = lat * (lon_segments + 1) + lon
-                second = first + lon_segments + 1
-                
-                # Reverse winding for inside view
-                indices.extend([first, second, first + 1])
-                indices.extend([second, second + 1, first + 1])
-        
-        return vertices, indices
+        self.vao = glGenVertexArrays(1)
+        glBindVertexArray(self.vao)
 
-    def create_tunnel_room(self):
-        """Create a cylindrical tunnel"""
-        vertices = []
-        indices = []
-        
-        radius = 6.0
-        length = 20.0
-        segments = max(30, int(50 * self.complexity))
-        rings = max(20, int(30 * self.complexity))
-        
-        # Create tunnel
-        for ring in range(rings + 1):
-            z = -length/2 + (ring / rings) * length
-            
-            for seg in range(segments + 1):
-                angle = seg * 2 * np.pi / segments
-                
-                x = radius * np.cos(angle)
-                y = radius * np.sin(angle)
-                
-                # Color based on position
-                r = 0.5 + 0.5 * np.sin(angle * 3)
-                g = 0.5 + 0.5 * np.cos(z * 0.2)
-                b = 0.8
-                alpha = 0.7  # Semi-transparent
-                
-                vertices.extend([x, y, z, r, g, b, alpha])
-        
-        # Create triangles (inside view)
-        for ring in range(rings):
-            for seg in range(segments):
-                current = ring * (segments + 1) + seg
-                next_ring = (ring + 1) * (segments + 1) + seg
-                next_seg = ring * (segments + 1) + ((seg + 1) % (segments + 1))
-                next_both = (ring + 1) * (segments + 1) + ((seg + 1) % (segments + 1))
-                
-                # Reverse winding for inside view
-                indices.extend([current, next_seg, next_ring])
-                indices.extend([next_seg, next_both, next_ring])
-        
-        return vertices, indices
+        self.vbo = glGenBuffers(1)
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
+        # allocate empty buffer; will be filled each frame
+        glBufferData(GL_ARRAY_BUFFER, 0, None, GL_DYNAMIC_DRAW)
 
-    def create_pyramid_room(self):
-        """Create a pyramid room"""
-        vertices = []
-        indices = []
-        
-        size = 8.0
-        height = 10.0
-        subdivisions = max(15, int(25 * self.complexity))
-        
-        # Base of pyramid (square)
-        base_verts = [[-size, -height, -size], [size, -height, -size], [size, -height, size], [-size, -height, size]]
-        
-        # Create base with subdivisions
-        start_vertex = len(vertices) // 7
-        for i in range(subdivisions + 1):
-            for j in range(subdivisions + 1):
-                u = i / subdivisions
-                v = j / subdivisions
-                
-                # Base position
-                p1 = np.array(base_verts[0]) * (1-u) * (1-v)
-                p2 = np.array(base_verts[1]) * u * (1-v)
-                p3 = np.array(base_verts[2]) * u * v
-                p4 = np.array(base_verts[3]) * (1-u) * v
-                
-                pos = p1 + p2 + p3 + p4
-                
-                r = 0.8 * (1 - u * 0.3)
-                g = 0.6 * (1 - v * 0.3)
-                b = 0.9
-                alpha = 0.75  # Semi-transparent
-                
-                vertices.extend([pos[0], pos[1], pos[2], r, g, b, alpha])
-        
-        # Base triangles
-        for i in range(subdivisions):
-            for j in range(subdivisions):
-                base = start_vertex + i * (subdivisions + 1) + j
-                indices.extend([base, base + subdivisions + 1, base + 1])
-                indices.extend([base + 1, base + subdivisions + 1, base + subdivisions + 2])
-        
-        return vertices, indices
+        stride = 6 * ctypes.sizeof(GLfloat)
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(0))
+        glEnableVertexAttribArray(0)
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(2 * ctypes.sizeof(GLfloat)))
+        glEnableVertexAttribArray(1)
 
-    def create_crystal_room(self):
-        """Create a crystalline room"""
-        vertices = []
-        indices = []
-        
-        # Create multiple crystal faces
-        num_faces = max(8, int(12 * self.complexity))
-        radius = 8.0
-        
-        for face in range(num_faces):
-            angle = face * 2 * np.pi / num_faces
-            height_variation = np.sin(face * 1.5) * 2
-            
-            # Create crystal face
-            subdivisions = max(8, int(15 * self.complexity))
-            face_start = len(vertices) // 7
-            
-            for i in range(subdivisions + 1):
-                for j in range(subdivisions + 1):
-                    u = i / subdivisions
-                    v = j / subdivisions
-                    
-                    # Create faceted surface
-                    x = radius * np.cos(angle) * (1 - u) + radius * np.cos(angle + 2*np.pi/num_faces) * u
-                    y = -radius + v * (2 * radius + height_variation)
-                    z = radius * np.sin(angle) * (1 - u) + radius * np.sin(angle + 2*np.pi/num_faces) * u
-                    
-                    # Crystal colors
-                    r = 0.3 + 0.7 * np.sin(angle + u * np.pi)
-                    g = 0.4 + 0.6 * np.cos(v * np.pi)
-                    b = 0.8 + 0.2 * np.sin(angle * 2)
-                    alpha = 0.6  # More transparent for crystal effect
-                    
-                    vertices.extend([x, y, z, r, g, b, alpha])
-            
-            # Create triangles for this face
-            for i in range(subdivisions):
-                for j in range(subdivisions):
-                    base = face_start + i * (subdivisions + 1) + j
-                    indices.extend([base, base + 1, base + subdivisions + 1])
-                    indices.extend([base + 1, base + subdivisions + 2, base + subdivisions + 1])
-        
-        return vertices, indices
+        glBindVertexArray(0)
 
-    def create_room(self):
-        """Create the room geometry based on selected type"""
-        try:
-            if self.room_type == 0:
-                vertices, indices = self.create_cube_room()
-            elif self.room_type == 1:
-                vertices, indices = self.create_sphere_room()
-            elif self.room_type == 2:
-                vertices, indices = self.create_tunnel_room()
-            elif self.room_type == 3:
-                vertices, indices = self.create_pyramid_room()
-            else:
-                vertices, indices = self.create_crystal_room()
-            
-            self.vertices = np.array(vertices, dtype=np.float32)
-            self.indices = np.array(indices, dtype=np.uint32)
-            self.original_vertices = self.vertices.copy()
-            
-            self.setup_buffers()
-            
-        except Exception as e:
-            print(f"Error creating room: {e}")
-            # Fallback geometry
-            self.vertices = np.array([
-                -5, -5, -5, 1, 0, 0, 0.8,
-                 5, -5, -5, 0, 1, 0, 0.8,
-                 5,  5, -5, 0, 0, 1, 0.8,
-                -5,  5, -5, 1, 1, 0, 0.8
-            ], dtype=np.float32)
-            self.indices = np.array([0, 1, 2, 0, 2, 3], dtype=np.uint32)
-            self.original_vertices = self.vertices.copy()
-            self.setup_buffers()
-
-    def setup_buffers(self):
-        """Setup OpenGL buffers"""
-        try:
-            if self.VAO:
-                glDeleteVertexArrays(1, [self.VAO])
-            if self.VBO:
-                glDeleteBuffers(1, [self.VBO])
-            if self.EBO:
-                glDeleteBuffers(1, [self.EBO])
-
-            self.VAO = glGenVertexArrays(1)
-            glBindVertexArray(self.VAO)
-
-            self.VBO = glGenBuffers(1)
-            glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
-            glBufferData(GL_ARRAY_BUFFER, self.vertices.nbytes, self.vertices, GL_DYNAMIC_DRAW)
-
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(0))
-            glEnableVertexAttribArray(0)
-            
-            glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * ctypes.sizeof(GLfloat), ctypes.c_void_p(3 * ctypes.sizeof(GLfloat)))
-            glEnableVertexAttribArray(1)
-
-            self.EBO = glGenBuffers(1)
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.EBO)
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, self.indices.nbytes, self.indices, GL_STATIC_DRAW)
-
-            glBindVertexArray(0)
-        except Exception as e:
-            print(f"Buffer setup error: {e}")
-
-    def apply_wall_effects(self):
-        """Apply visual effects to the walls based on effect mode"""
-        if self.original_vertices is None:
+    # ------------------------------------------------------------------
+    # Main rendering
+    # ------------------------------------------------------------------
+    def paintGL(self):  # pragma: no cover - heavy OpenGL usage
+        glClear(GL_COLOR_BUFFER_BIT)
+        if not self.shader_program or self.vbo is None or self.vao is None:
             return
-            
-        try:
-            vertex_count = len(self.vertices) // 7
-            
-            for i in range(vertex_count):
-                idx = i * 7
-                if idx + 6 >= len(self.vertices):
-                    break
-                
-                # Get original position and color
-                orig_x = self.original_vertices[idx]
-                orig_y = self.original_vertices[idx + 1]
-                orig_z = self.original_vertices[idx + 2]
-                orig_r = self.original_vertices[idx + 3]
-                orig_g = self.original_vertices[idx + 4]
-                orig_b = self.original_vertices[idx + 5]
-                orig_a = self.original_vertices[idx + 6]
-                
-                # Apply different effects based on mode
-                if self.effect_mode == 0:  # Wave Patterns
-                    wave_x = np.sin(self.time * self.speed + orig_x * 0.5) * 0.3 * self.intensity
-                    wave_y = np.cos(self.time * self.speed + orig_y * 0.5) * 0.3 * self.intensity
-                    wave_z = np.sin(self.time * self.speed + orig_z * 0.5) * 0.3 * self.intensity
-                    
-                    color_wave = 0.5 + 0.5 * np.sin(self.time * self.speed * 2 + orig_x + orig_y + orig_z)
-                    
-                elif self.effect_mode == 1:  # Fractal Growth
-                    distance = np.sqrt(orig_x**2 + orig_y**2 + orig_z**2)
-                    fractal = np.sin(distance * 0.3 + self.time * self.speed) * self.intensity
-                    
-                    wave_x = fractal * 0.2
-                    wave_y = fractal * 0.2
-                    wave_z = fractal * 0.2
-                    
-                    color_wave = 0.5 + 0.5 * fractal
-                    
-                elif self.effect_mode == 2:  # Mirror Kaleidoscope
-                    angle = np.arctan2(orig_z, orig_x)
-                    radius = np.sqrt(orig_x**2 + orig_z**2)
-                    
-                    mirror_angle = angle * 3 + self.time * self.speed
-                    kaleidoscope = np.sin(mirror_angle) * np.cos(radius * 0.2 + self.time * self.speed)
-                    
-                    wave_x = kaleidoscope * 0.5 * self.intensity
-                    wave_y = kaleidoscope * 0.3 * self.intensity
-                    wave_z = kaleidoscope * 0.5 * self.intensity
-                    
-                    color_wave = 0.5 + 0.5 * kaleidoscope
-                    
-                elif self.effect_mode == 3:  # Digital Rain
-                    rain = np.sin(self.time * self.speed * 5 + orig_x * 2 + orig_z * 2) * self.intensity
-                    
-                    wave_x = 0
-                    wave_y = rain * 0.2
-                    wave_z = 0
-                    
-                    # Digital green effect
-                    color_wave = 0.3 + 0.7 * np.abs(rain)
-                    
-                else:  # Plasma Flow
-                    plasma_x = np.sin(orig_x * 0.2 + self.time * self.speed)
-                    plasma_y = np.cos(orig_y * 0.2 + self.time * self.speed * 1.3)
-                    plasma_z = np.sin(orig_z * 0.2 + self.time * self.speed * 0.7)
-                    
-                    plasma = plasma_x * plasma_y * plasma_z * self.intensity
-                    
-                    wave_x = plasma * 0.3
-                    wave_y = plasma * 0.3
-                    wave_z = plasma * 0.3
-                    
-                    color_wave = 0.5 + 0.5 * plasma
-                
-                # Apply position changes (subtle, just on surface)
-                self.vertices[idx] = orig_x + wave_x
-                self.vertices[idx + 1] = orig_y + wave_y
-                self.vertices[idx + 2] = orig_z + wave_z
-                
-                # Apply color changes
-                if self.effect_mode == 3:  # Digital Rain - green
-                    self.vertices[idx + 3] = 0.1 * color_wave
-                    self.vertices[idx + 4] = 0.9 * color_wave
-                    self.vertices[idx + 5] = 0.3 * color_wave
-                else:
-                    self.vertices[idx + 3] = np.clip(orig_r * (0.5 + 0.5 * color_wave), 0, 1)
-                    self.vertices[idx + 4] = np.clip(orig_g * (0.5 + 0.5 * np.sin(color_wave + 2)), 0, 1)
-                    self.vertices[idx + 5] = np.clip(orig_b * (0.5 + 0.5 * np.cos(color_wave + 4)), 0, 1)
-                
-                # Keep original alpha for transparency
-                self.vertices[idx + 6] = orig_a
 
-            # Update buffer
-            glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
-            glBufferSubData(GL_ARRAY_BUFFER, 0, self.vertices.nbytes, self.vertices)
-            glBindBuffer(GL_ARRAY_BUFFER, 0)
-            
-        except Exception as e:
-            print(f"Effect application error: {e}")
+        # obtain audio data or generate demo pattern
+        if hasattr(self, "analyzer") and self.analyzer and self.analyzer.is_active():
+            fft = self.analyzer.get_fft_data().astype(np.float32)
+        else:
+            # demo sine pattern
+            bins = self.building_count
+            t = self.time
+            fft = (0.5 + 0.5 * np.sin(np.linspace(0, 2*np.pi, bins) + t)) * 50
 
-    def resizeGL(self, width, height):
-        if height == 0:
-            height = 1
-        glViewport(0, 0, width, height)
+        # compute heights from FFT bins
+        heights = []
+        total_bins = len(fft)
+        for i in range(self.building_count):
+            start = int(i * total_bins / self.building_count)
+            end = int((i + 1) * total_bins / self.building_count)
+            amp = float(np.mean(fft[start:end])) if end > start else 0.0
+            h = 0.1 + np.clip(amp / 50.0, 0.0, 1.0) * self.max_height
+            heights.append(h)
 
-    def paintGL(self):
-        # CLEAR WITH TRANSPARENT BACKGROUND
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        
-        if self.shader_program is None or self.VAO is None:
-            return
-            
-        try:
-            glUseProgram(self.shader_program)
+        vertex_data = self._build_vertices(heights)
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
+        glBufferData(GL_ARRAY_BUFFER, vertex_data.nbytes, vertex_data, GL_DYNAMIC_DRAW)
+        glBindBuffer(GL_ARRAY_BUFFER, 0)
 
-            # Update time and effects
-            self.time += 0.016
-            self.apply_wall_effects()
+        glUseProgram(self.shader_program)
+        glBindVertexArray(self.vao)
+        glDrawArrays(GL_TRIANGLES, 0, len(vertex_data) // 6)
+        glBindVertexArray(0)
+        glUseProgram(0)
 
-            # FIXED CAMERA - you're inside looking around
-            # Camera is at origin, looking in different directions slightly
-            camera_pos = [0, 0, 0]  # Fixed at center
-            
-            # Slight rotation to see the room better
-            look_x = np.sin(self.time * 0.1) * 0.3
-            look_y = np.cos(self.time * 0.07) * 0.2
-            look_z = np.cos(self.time * 0.13) * 0.3
-            
-            look_at = [look_x, look_y, look_z]
+        self.time += 0.016  # assume ~60 FPS for demo mode
 
-            # Fixed matrices - room doesn't move
-            projection = self.perspective(90, 1.0, 0.1, 50.0)  # Wide FOV to see the room
-            view = self.lookAt(
-                np.array(camera_pos),
-                np.array(look_at),
-                np.array([0, 1, 0])
-            )
-            model = np.identity(4, dtype=np.float32)  # No movement
+    def _build_vertices(self, heights: list[float]) -> np.ndarray:
+        """Create vertex data for current building heights."""
+        if self.x_positions is None:
+            return np.array([], dtype=np.float32)
 
-            # Set uniforms
-            proj_loc = glGetUniformLocation(self.shader_program, "projection")
-            view_loc = glGetUniformLocation(self.shader_program, "view")
-            model_loc = glGetUniformLocation(self.shader_program, "model")
-            
-            if proj_loc != -1:
-                glUniformMatrix4fv(proj_loc, 1, GL_FALSE, projection)
-            if view_loc != -1:
-                glUniformMatrix4fv(view_loc, 1, GL_FALSE, view)
-            if model_loc != -1:
-                glUniformMatrix4fv(model_loc, 1, GL_FALSE, model)
+        data: list[float] = []
+        ground = -0.4
+        for x, h in zip(self.x_positions, heights):
+            x0 = x
+            x1 = x + self.width
+            y0 = ground
+            y1 = ground + h
+            r, g, b = 0.2, 0.4, 0.7
+            # main building (two triangles)
+            data.extend([
+                x0, y0, r, g, b, 1.0,
+                x1, y0, r, g, b, 1.0,
+                x1, y1, r, g, b, 1.0,
+                x0, y0, r, g, b, 1.0,
+                x1, y1, r, g, b, 1.0,
+                x0, y1, r, g, b, 1.0,
+            ])
+            # reflection
+            rf = 0.35
+            data.extend([
+                x0, y0, r, g, b, rf,
+                x1, y0, r, g, b, rf,
+                x1, y0 - h, r, g, b, 0.0,
+                x0, y0, r, g, b, rf,
+                x1, y0 - h, r, g, b, 0.0,
+                x0, y0 - h, r, g, b, 0.0,
+            ])
+        return np.array(data, dtype=np.float32)
 
-            # Draw the room
-            glBindVertexArray(self.VAO)
-            glDrawElements(GL_TRIANGLES, len(self.indices), GL_UNSIGNED_INT, None)
-            glBindVertexArray(0)
+    # ------------------------------------------------------------------
+    # Controls
+    # ------------------------------------------------------------------
+    def get_controls(self):
+        return {
+            "Building Count": {
+                "type": "slider",
+                "min": 5,
+                "max": 50,
+                "value": int(self.building_count),
+            }
+        }
 
-        except Exception as e:
-            print(f"Paint error: {e}")
+    def update_control(self, name, value):
+        if name == "Building Count":
+            self.building_count = max(5, int(value))
+            self._setup_geometry()
 
-    def perspective(self, fov, aspect, near, far):
-        f = 1.0 / np.tan(np.radians(fov / 2.0))
-        return np.array([
-            [f / aspect, 0.0, 0.0, 0.0],
-            [0.0, f, 0.0, 0.0],
-            [0.0, 0.0, (far + near) / (near - far), -1.0],
-            [0.0, 0.0, (2.0 * far * near) / (near - far), 0.0]
-        ], dtype=np.float32)
-
-    def lookAt(self, eye, center, up):
-        try:
-            f = (center - eye) / np.linalg.norm(center - eye)
-            s = np.cross(f, up) / np.linalg.norm(np.cross(f, up))
-            u = np.cross(s, f)
-
-            return np.array([
-                [s[0], u[0], -f[0], 0.0],
-                [s[1], u[1], -f[1], 0.0],
-                [s[2], u[2], -f[2], 0.0],
-                [-np.dot(s, eye), -np.dot(u, eye), np.dot(f, eye), 1.0]
-            ], dtype=np.float32).T
-        except:
-            return np.identity(4, dtype=np.float32)
-
-    def cleanup(self):
-        print("Cleaning up BuildingMadnessVisualizer")
+    # ------------------------------------------------------------------
+    # Cleanup
+    # ------------------------------------------------------------------
+    def cleanup(self):  # pragma: no cover - heavy OpenGL usage
         try:
             if self.shader_program:
                 glDeleteProgram(self.shader_program)
                 self.shader_program = None
-            if self.VBO:
-                glDeleteBuffers(1, [self.VBO])
-                self.VBO = None
-            if self.VAO:
-                glDeleteVertexArrays(1, [self.VAO])
-                self.VAO = None
-            if self.EBO:
-                glDeleteBuffers(1, [self.EBO])
-                self.EBO = None
-        except Exception as e:
-            print(f"Error during cleanup: {e}")
+            if self.vbo:
+                glDeleteBuffers(1, [self.vbo])
+                self.vbo = None
+            if self.vao:
+                glDeleteVertexArrays(1, [self.vao])
+                self.vao = None
+        except Exception as exc:
+            logging.error(f"BuildingMadness.cleanup error: {exc}")
+
