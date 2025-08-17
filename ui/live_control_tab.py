@@ -89,11 +89,21 @@ def create_improved_deck_grid(self, container):
         # Sort visuals by assigned MIDI note, falling back to high value
         visuals = sorted(visuals, key=lambda v: midi_info.get(v, 9999))
 
+        deck_channels = {"A": 12, "B": 13, "C": 14, "D": 15}
+        if (
+            hasattr(self, "midi_engine")
+            and self.midi_engine
+            and getattr(self.midi_engine, "visual_mapper", None)
+        ):
+            deck_channels = self.midi_engine.visual_mapper.config.get(
+                "deck_channels", deck_channels
+            )
+
         deck_config = {
-            "A": {"channel": 13, "color": "#ff6b6b", "name": "DECK A"},
-            "B": {"channel": 14, "color": "#4ecdc4", "name": "DECK B"},
-            "C": {"channel": 15, "color": "#45b7d1", "name": "DECK C"},
-            "D": {"channel": 16, "color": "#96ceb4", "name": "DECK D"},
+            "A": {"channel": deck_channels.get("A", 0) + 1, "color": "#ff6b6b", "name": "DECK A"},
+            "B": {"channel": deck_channels.get("B", 1) + 1, "color": "#4ecdc4", "name": "DECK B"},
+            "C": {"channel": deck_channels.get("C", 2) + 1, "color": "#45b7d1", "name": "DECK C"},
+            "D": {"channel": deck_channels.get("D", 3) + 1, "color": "#96ceb4", "name": "DECK D"},
         }
 
         # Store grid info for interactions
