@@ -478,21 +478,12 @@ class ControlPanelWindow(QMainWindow):
             logging.info("3. VERIFICANDO MAPPINGS:")
             logging.info(f"   Total mappings: {len(self.midi_engine.midi_mappings)}")
             
-            # Mostrar mappings críticos
-            critical_notes = [36, 37, 48, 54, 55, 69]  # Incluye A3 (69)
+            # Mostrar mappings críticos basados en nota única por visual
+            critical_notes = [56, 57]
             for note in critical_notes:
-                test_key = f"note_on_ch0_note{note}"
-                found = False
-                for action_id, mapping_data in self.midi_engine.midi_mappings.items():
-                    # Some mappings may be stored as simple integers; skip those
-                    if isinstance(mapping_data, dict) and mapping_data.get('midi') == test_key:
-                        action_type = mapping_data.get('type', 'unknown')
-                        params = mapping_data.get('params', {})
-                        preset = params.get('preset_name', 'N/A')
-                        logging.info(f"   ✅ Note {note}: {action_id} -> {action_type} ({preset})")
-                        found = True
-                        break
-                if not found:
+                if note in self.midi_engine.midi_mappings.values():
+                    logging.info(f"   ✅ Note {note}: mapping found")
+                else:
                     logging.warning(f"   ❌ Note {note}: No mapping found")
             
             # 5. Test de referencias
