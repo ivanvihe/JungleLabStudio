@@ -38,7 +38,7 @@ def test_system():
             
             # Test deck A
             logging.info("\n🎮 Testing Deck A...")
-            app.mixer_window.safe_set_deck_visualizer('A', 'Simple Test')
+            app.mixer_window.safe_set_deck_visualizer('A', 'Intro Background')
             
             # Test deck B  
             logging.info("\n🎮 Testing Deck B...")
@@ -46,7 +46,7 @@ def test_system():
             if len(visualizers) > 1:
                 app.mixer_window.safe_set_deck_visualizer('B', visualizers[1])
             else:
-                app.mixer_window.safe_set_deck_visualizer('B', 'Simple Test')
+                app.mixer_window.safe_set_deck_visualizer('B', 'Intro Background')
             
             # Test crossfader
             logging.info("\n🎚️ Testing Crossfader...")

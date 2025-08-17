@@ -1,10 +1,9 @@
 === CONFIGURACIÓN MIDI MAPPINGS ===
 
-Total mappings: 48
+Total mappings: 42
 Fecha: 2025-08-16 18:11:46
 
 === PRESET MAPPINGS ===
-  note_on_ch0_note36 -> Deck A: Simple Test
   note_on_ch0_note37 -> Deck A: Wire Terrain
   note_on_ch0_note38 -> Deck A: Abstract Lines
   note_on_ch0_note39 -> Deck A: Geometric Particles
@@ -18,9 +17,7 @@ Fecha: 2025-08-16 18:11:46
   note_on_ch0_note66 -> Deck A: Intro Text ROBOTICA
   note_on_ch0_note67 -> Deck A: Vortex Particles
   note_on_ch0_note68 -> Deck A: Kaleido Tunnel
-  note_on_ch0_note69 -> Deck A: Scientific Analyzer
   note_on_ch0_note46 -> Deck A: None
-  note_on_ch0_note54 -> Deck B: Simple Test
   note_on_ch0_note55 -> Deck B: Wire Terrain
   note_on_ch0_note56 -> Deck B: Abstract Lines
   note_on_ch0_note57 -> Deck B: Geometric Particles
@@ -34,11 +31,8 @@ Fecha: 2025-08-16 18:11:46
   note_on_ch0_note71 -> Deck B: Intro Text ROBOTICA
   note_on_ch0_note72 -> Deck B: Vortex Particles
   note_on_ch0_note73 -> Deck B: Kaleido Tunnel
-  note_on_ch0_note74 -> Deck B: Scientific Analyzer
   note_on_ch0_note64 -> Deck B: None
-  note_on_ch0_note47 -> Deck A: Oneshot Character Train
   note_on_ch0_note75 -> Deck A: Oneshot Boom Explosion
-  note_on_ch0_note76 -> Deck B: Oneshot Character Train
   note_on_ch0_note77 -> Deck B: Oneshot Boom Explosion
   note_on_ch0_note78 -> Deck A: Oneshot Circuit Signal
   note_on_ch0_note79 -> Deck A: Oneshot Electric Boom

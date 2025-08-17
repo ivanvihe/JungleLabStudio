@@ -71,7 +71,7 @@ def create_improved_deck_grid(self, container):
                 logging.info(f"🎨 Found {len(visuals)} visuals for live control grid")
             except Exception as e:
                 logging.error(f"Error getting visualizer names: {e}")
-                visuals = ["Simple Test", "Abstract Lines", "Wire Terrain", "Geometric Particles"]
+                visuals = ["Abstract Lines", "Wire Terrain", "Geometric Particles"]
         if not visuals:
             create_fallback_grid(container)
             return

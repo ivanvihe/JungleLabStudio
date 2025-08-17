@@ -374,7 +374,7 @@ class MainApplication:
             
             # Try to load a simple visualizer on Deck A for testing
             test_visualizer = None
-            preferred_order = ['Simple Test', 'Intro Background', 'Abstract Lines', 'Geometric Particles']
+            preferred_order = ['Intro Background', 'Abstract Lines', 'Geometric Particles']
             
             for preferred in preferred_order:
                 if preferred in visualizers:

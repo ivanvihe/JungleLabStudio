@@ -1194,7 +1194,7 @@ class MidiConfigWidget(QWidget):
             # Parámetros (JSON)
             params_edit = QTextEdit()
             params_edit.setMaximumHeight(100)
-            params_edit.setPlainText('{"deck_id": "A", "preset_name": "Simple Test"}')
+            params_edit.setPlainText('{"deck_id": "A", "preset_name": "Abstract Lines"}')
             layout.addRow("Parámetros (JSON):", params_edit)
             
             # Botones

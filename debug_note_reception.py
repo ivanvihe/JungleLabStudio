@@ -119,7 +119,6 @@ def analyze_note_mapping_table():
     # Mappings esperados según el documento
     expected_mappings = {
         # Deck A (36-45)
-        36: ("A", "Simple Test"),
         37: ("A", "Wire Terrain"),
         38: ("A", "Abstract Lines"),
         39: ("A", "Geometric Particles"),
@@ -140,7 +139,6 @@ def analyze_note_mapping_table():
         53: ("Mix", "B to A 500ms"),
         
         # Deck B (54-63)
-        54: ("B", "Simple Test"),
         55: ("B", "Wire Terrain"),
         56: ("B", "Abstract Lines"),
         57: ("B", "Geometric Particles"),  # ← ESTA ES LA NOTA QUE ENVÍAS
