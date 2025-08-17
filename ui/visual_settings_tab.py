@@ -12,6 +12,11 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QToolButton,
     QFileDialog,
+    QDialog,
+    QDialogButtonBox,
+    QCheckBox,
+    QFormLayout,
+    QSlider,
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import (
@@ -24,6 +29,7 @@ import json
 import logging
 
 from .thumbnail_utils import generate_visual_thumbnail, set_custom_thumbnail_path
+from utils.visual_properties import load_visual_properties, save_visual_properties
 
 # ---------------------------------------------------------------------------
 # Visual settings tab
@@ -279,6 +285,25 @@ def create_visual_settings_cell(self, visual_name, current_mappings):
 
     layout.addWidget(midi_section)
 
+    # Properties button to configure visual parameters
+    prop_button = QPushButton("Properties")
+    prop_button.setStyleSheet(
+        """
+        QPushButton {
+            background-color: #555555;
+            color: #ffffff;
+            border: 1px solid #777777;
+            border-radius: 5px;
+            padding: 4px;
+        }
+        QPushButton:hover {
+            background-color: #666666;
+        }
+        """
+    )
+    prop_button.clicked.connect(lambda _, vn=visual_name: open_visual_properties_dialog(self, vn))
+    layout.addWidget(prop_button)
+
     return cell
 
 
@@ -340,6 +365,58 @@ def create_midi_note_editor(visual_name, current_note):
 
     note_edit.editingFinished.connect(validate_and_save)
     return note_edit
+
+
+def open_visual_properties_dialog(self, visual_name):
+    """Open dialog to edit visual property values."""
+    try:
+        vis_class = None
+        if hasattr(self, "visualizer_manager") and self.visualizer_manager:
+            vis_class = self.visualizer_manager.get_visualizer_class(visual_name)
+        if not vis_class:
+            QMessageBox.warning(None, "Error", f"Visualizer not found: {visual_name}")
+            return
+
+        visualizer = vis_class()
+        controls = visualizer.get_controls() or {}
+        saved = load_visual_properties(visual_name) or {}
+
+        dialog = QDialog()
+        dialog.setWindowTitle(f"{visual_name} Properties")
+        form = QFormLayout(dialog)
+
+        widgets = {}
+        for name, info in controls.items():
+            ctype = info.get("type")
+            if ctype == "slider":
+                slider = QSlider(Qt.Orientation.Horizontal)
+                slider.setMinimum(int(info.get("min", 0)))
+                slider.setMaximum(int(info.get("max", 100)))
+                slider.setValue(int(saved.get(name, info.get("value", 0))))
+                form.addRow(QLabel(name), slider)
+                widgets[name] = slider
+            elif ctype == "checkbox":
+                check = QCheckBox()
+                check.setChecked(bool(saved.get(name, info.get("value", False))))
+                form.addRow(check, QLabel(name))
+                widgets[name] = check
+
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok |
+                                   QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        form.addRow(buttons)
+
+        if dialog.exec():
+            new_props = {}
+            for name, widget in widgets.items():
+                if isinstance(widget, QSlider):
+                    new_props[name] = int(widget.value())
+                elif isinstance(widget, QCheckBox):
+                    new_props[name] = bool(widget.isChecked())
+            save_visual_properties(visual_name, new_props)
+    except Exception as e:
+        logging.error(f"Error opening properties dialog for {visual_name}: {e}")
 
 
 def load_current_midi_mappings():

@@ -16,6 +16,8 @@ class BaseVisualizer:
         self.audio_level: float = 0.0
         self.audio_fft: np.ndarray = np.array([])
         self.audio_reactive: bool = True
+        # Generic audio sensitivity factor (0-100)
+        self.audio_sensitivity: float = 50.0
 
     def _check_gl_error(self, context: str = ""):
         """Checks for OpenGL errors and logs them."""
@@ -51,13 +53,25 @@ class BaseVisualizer:
             "Audio Reactive": {
                 "type": "checkbox",
                 "value": self.audio_reactive,
-            }
+            },
+            "Audio Sensitivity": {
+                "type": "slider",
+                "min": 0,
+                "max": 100,
+                "value": int(self.audio_sensitivity),
+            },
         }
 
     def update_control(self, name, value):
         """Update a control parameter"""
         if name == "Audio Reactive":
             self.audio_reactive = bool(value)
+            return True
+        elif name == "Audio Sensitivity":
+            try:
+                self.audio_sensitivity = float(value)
+            except Exception:
+                self.audio_sensitivity = 50.0
             return True
         return False
 
@@ -112,4 +126,6 @@ class BaseVisualizer:
         """Return normalized frequency bands (0-1) when audio reactivity is enabled."""
         if not self.audio_reactive:
             return np.zeros(bands)
-        return self.get_frequency_bands(bands) / 100.0
+        bands_vals = self.get_frequency_bands(bands) / 100.0
+        sensitivity = max(self.audio_sensitivity, 0.0) / 50.0
+        return np.clip(bands_vals * sensitivity, 0.0, 1.0)
