@@ -11,8 +11,17 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QMessageBox,
 )
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QIntValidator, QFont, QPixmap, QPainter, QColor, QBrush, QPen
+from PyQt6.QtCore import Qt, QPoint
+from PyQt6.QtGui import (
+    QIntValidator,
+    QFont,
+    QPixmap,
+    QPainter,
+    QColor,
+    QBrush,
+    QPen,
+    QPolygon,
+)
 
 from pathlib import Path
 import json
@@ -267,7 +276,13 @@ def create_visual_thumbnail_large(visual_name):
         painter.setBrush(QBrush(secondary_color))
         painter.drawEllipse(45, 15, 20, 20)
         painter.setBrush(QBrush(primary_color))
-        painter.drawPolygon([(20, 40), (35, 45), (30, 55), (15, 50)])
+        polygon = QPolygon([
+            QPoint(20, 40),
+            QPoint(35, 45),
+            QPoint(30, 55),
+            QPoint(15, 50),
+        ])
+        painter.drawPolygon(polygon)
     elif "fluid" in visual_name.lower() or "flow" in visual_name.lower():
         painter.setPen(QPen(primary_color, 3))
         painter.drawPath(create_wave_path())
