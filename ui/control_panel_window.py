@@ -440,11 +440,11 @@ class ControlPanelWindow(QMainWindow):
             logging.error(f"Error opening preferences: {e}")
             QMessageBox.critical(self, "Error", f"Could not open preferences: {str(e)}")
 
-    def apply_gpu_selection(self, index):
+    def apply_gpu_selection(self, index, backend_type=None):
         """Forward GPU selection changes to the mixer window"""
         try:
             if self.mixer_window:
-                self.mixer_window.apply_gpu_selection(index)
+                self.mixer_window.apply_gpu_selection(index, backend_type)
         except Exception as e:
             logging.error(f"Error applying GPU selection: {e}")
 
