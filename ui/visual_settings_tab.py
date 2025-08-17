@@ -151,7 +151,7 @@ def create_visual_settings_grid(self, container):
         for idx, visual_name in enumerate(visuals):
             row = idx // columns
             col = idx % columns
-            visual_cell = create_visual_settings_cell(self, visual_name, current_mappings)
+            visual_cell = create_visual_settings_cell_v2(self, visual_name, current_mappings)
             grid.addWidget(visual_cell, row, col)
 
         self.visual_settings_grid = grid
@@ -164,10 +164,12 @@ def create_visual_settings_grid(self, container):
         create_fallback_visual_grid(container)
 
 
-def create_visual_settings_cell(self, visual_name, current_mappings):
-    """Create a visual settings cell with editable MIDI note."""
+
+
+def create_visual_settings_cell_v2(self, visual_name, current_mappings):
+    """Create a visual settings cell with editable MIDI note and controls."""
     cell = QFrame()
-    cell.setFixedSize(140, 160)
+    cell.setFixedSize(300, 180)
     cell.setFrameStyle(QFrame.Shape.StyledPanel)
     cell.setStyleSheet(
         """
@@ -183,10 +185,14 @@ def create_visual_settings_cell(self, visual_name, current_mappings):
         """
     )
 
-    layout = QVBoxLayout(cell)
-    layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-    layout.setContentsMargins(8, 8, 8, 8)
-    layout.setSpacing(4)
+    main_layout = QHBoxLayout(cell)
+    main_layout.setContentsMargins(8, 8, 8, 8)
+    main_layout.setSpacing(6)
+
+    # Left side (thumbnail, name, MIDI)
+    left_layout = QVBoxLayout()
+    left_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+    left_layout.setSpacing(4)
 
     thumb_container = QFrame()
     thumb_container.setFixedSize(80, 60)
@@ -249,7 +255,7 @@ def create_visual_settings_cell(self, visual_name, current_mappings):
     open_btn.clicked.connect(choose_thumbnail)
     clear_btn.clicked.connect(remove_thumbnail)
 
-    layout.addWidget(thumb_container)
+    left_layout.addWidget(thumb_container)
 
     name_label = QLabel(visual_name)
     name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -266,44 +272,79 @@ def create_visual_settings_cell(self, visual_name, current_mappings):
     )
     name_label.setWordWrap(True)
     name_label.setMaximumHeight(30)
-    layout.addWidget(name_label)
+    left_layout.addWidget(name_label)
 
     midi_section = QFrame()
     midi_layout = QVBoxLayout(midi_section)
     midi_layout.setContentsMargins(0, 0, 0, 0)
     midi_layout.setSpacing(2)
-
     midi_label = QLabel("MIDI Note:")
     midi_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
     midi_label.setFont(QFont("Arial", 8))
     midi_label.setStyleSheet("color: #cccccc;")
     midi_layout.addWidget(midi_label)
-
     current_note = get_midi_note_from_mappings(visual_name, current_mappings)
     note_edit = create_midi_note_editor(visual_name, current_note)
     midi_layout.addWidget(note_edit)
+    left_layout.addWidget(midi_section)
 
-    layout.addWidget(midi_section)
+    main_layout.addLayout(left_layout, 1)
 
-    # Properties button to configure visual parameters
-    prop_button = QPushButton("Properties")
-    prop_button.setStyleSheet(
-        """
-        QPushButton {
-            background-color: #555555;
-            color: #ffffff;
-            border: 1px solid #777777;
-            border-radius: 5px;
-            padding: 4px;
-        }
-        QPushButton:hover {
-            background-color: #666666;
-        }
-        """
-    )
-    prop_button.clicked.connect(lambda _, vn=visual_name: open_visual_properties_dialog(self, vn))
-    layout.addWidget(prop_button)
+    # Right side controls
+    controls_frame = QFrame()
+    controls_layout = QVBoxLayout(controls_frame)
+    controls_layout.setContentsMargins(0, 0, 0, 0)
+    controls_layout.setSpacing(4)
 
+    saved_props = load_visual_properties(visual_name) or {}
+    vis_class = None
+    if hasattr(self, "visualizer_manager") and self.visualizer_manager:
+        try:
+            vis_class = self.visualizer_manager.get_visualizer_class(visual_name)
+        except Exception:
+            vis_class = None
+    controls = {}
+    if vis_class:
+        try:
+            visualizer = vis_class()
+            controls = visualizer.get_controls() or {}
+        except Exception:
+            controls = {}
+
+    def save_prop(name, value):
+        props = load_visual_properties(visual_name) or {}
+        props[name] = value
+        save_visual_properties(visual_name, props)
+
+    for name, info in controls.items():
+        ctype = info.get("type")
+        if ctype == "slider":
+            row = QHBoxLayout()
+            label = QLabel(name)
+            label.setStyleSheet("color: #cccccc;")
+            slider = QSlider(Qt.Orientation.Horizontal)
+            slider.setMinimum(int(info.get("min", 0)))
+            slider.setMaximum(int(info.get("max", 100)))
+            current = int(saved_props.get(name, info.get("value", 0)))
+            slider.setValue(current)
+            value_label = QLabel(str(current))
+            value_label.setFixedWidth(24)
+            slider.valueChanged.connect(
+                lambda v, n=name, lbl=value_label: (lbl.setText(str(v)), save_prop(n, int(v)))
+            )
+            row.addWidget(label)
+            row.addWidget(slider)
+            row.addWidget(value_label)
+            controls_layout.addLayout(row)
+        elif ctype == "checkbox":
+            check = QCheckBox(name)
+            check.setChecked(bool(saved_props.get(name, info.get("value", False))))
+            check.stateChanged.connect(lambda state, n=name: save_prop(n, bool(state)))
+            controls_layout.addWidget(check)
+
+    main_layout.addWidget(controls_frame, 1)
+
+    cell.thumb_label = thumb_label
     return cell
 
 
