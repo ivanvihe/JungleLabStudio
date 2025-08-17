@@ -19,14 +19,23 @@ import mido
 from .thumbnail_utils import generate_visual_thumbnail
 
 # Base style for visual cells
+# Only the outer cell frame should display a border. Child widgets like the
+# thumbnail, title and note labels inherit from QFrame (e.g. QLabel) and would
+# otherwise also render a border. We scope the style to a specific object name
+# and explicitly clear borders on any QLabel children so the inner elements
+# appear as a single, unified container.
 BASE_CELL_STYLE = """
-QFrame {
+QFrame#visual-cell {
     background-color: #1a1a1a;
     border: 2px solid #444444;
     border-radius: 8px;
 }
-QFrame:hover {
+QFrame#visual-cell:hover {
     border-color: #00ff00;
+}
+QLabel {
+    border: none;
+    background: transparent;
 }
 """
 def create_live_control_tab(self):
@@ -185,6 +194,7 @@ def create_improved_deck_grid(self, container):
 def create_visual_cell(parent, deck_id, visual_name, midi_info, deck_color):
     """Create a 100x100 cell with thumbnail, name and MIDI note."""
     cell = QFrame()
+    cell.setObjectName("visual-cell")
     cell.setFixedSize(100, 100)
     cell.setStyleSheet(BASE_CELL_STYLE)
 
