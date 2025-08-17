@@ -584,10 +584,32 @@ class ControlPanelWindow(QMainWindow):
                     self.deck_b_preset_label.setText(f"Preset: {preset_name}")
                 if hasattr(self, 'deck_b_activity_label'):
                     self.deck_b_activity_label.setText(f"Última actividad: {current_time}")
-            
+
+            # Update grid highlight
+            if hasattr(self, 'update_live_grid_highlight'):
+                self.update_live_grid_highlight(deck_id, preset_name)
+
             logging.info(f"✅ UI updated for deck {deck_id} to preset {preset_name}")
         except Exception as e:
             logging.error(f"Error updating preset selector for deck {deck_id}: {e}")
+
+    def update_live_grid_highlight(self, deck_id, preset_name):
+        """Highlight active visual cell for the specified deck."""
+        try:
+            cells = getattr(self, 'live_grid_cells', {}).get(deck_id, {})
+            color = getattr(self, 'live_grid_deck_colors', {}).get(deck_id, '#00ff00')
+
+            for cell in cells.values():
+                if hasattr(cell, 'base_style'):
+                    cell.setStyleSheet(cell.base_style)
+
+            if preset_name and preset_name in cells:
+                highlight_style = (
+                    f"QFrame {{ background-color: #1a1a1a; border: 3px solid {color}; border-radius: 8px; }}"
+                )
+                cells[preset_name].setStyleSheet(highlight_style)
+        except Exception as e:
+            logging.error(f"Error updating grid highlight: {e}")
 
     def update_midi_device_display(self, device_name=None):
         """Update MIDI device display with enhanced visual feedback"""
