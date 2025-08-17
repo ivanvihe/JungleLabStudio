@@ -8,12 +8,19 @@ import math
 import random
 from OpenGL.GL import *
 try:
-    from OpenGL.GL import GL_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_NO_ERROR
+    from OpenGL.GL import (
+        GL_SRC_ALPHA,
+        GL_ONE,
+        GL_ONE_MINUS_SRC_ALPHA,
+        GL_NO_ERROR,
+        GL_ALIASED_LINE_WIDTH_RANGE,
+    )
 except Exception:  # pragma: no cover - fallback for minimal GL stubs
     GL_SRC_ALPHA = 0x0302
     GL_ONE = 1
     GL_ONE_MINUS_SRC_ALPHA = 0x0303
     GL_NO_ERROR = 0
+    GL_ALIASED_LINE_WIDTH_RANGE = 0x846E
 from ..base_visualizer import BaseVisualizer
 
 class InfiniteNeuralNetworkVisualizer(BaseVisualizer):
@@ -80,7 +87,18 @@ class InfiniteNeuralNetworkVisualizer(BaseVisualizer):
             glBlendFunc(GL_SRC_ALPHA, GL_ONE)  # Additive blending for premium glow
             glDisable(GL_DEPTH_TEST)
             glEnable(GL_PROGRAM_POINT_SIZE)
-            glLineWidth(2.0)  # Thicker lines for better visibility
+
+            # Ensure line width is within supported range to avoid GL_INVALID_VALUE errors
+            try:
+                min_width, max_width = glGetFloatv(GL_ALIASED_LINE_WIDTH_RANGE)
+                safe_width = float(np.clip(2.0, min_width, max_width))
+                glLineWidth(safe_width)
+                logging.debug(
+                    f"Line width set to {safe_width:.1f} (supported range {min_width}-{max_width})"
+                )
+            except Exception:
+                # Fallback to default line width when querying fails
+                glLineWidth(1.0)
             
             # Anti-aliasing hints
             glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
