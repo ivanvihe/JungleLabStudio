@@ -1188,7 +1188,7 @@ class MidiConfigWidget(QWidget):
             
             # MIDI Key
             midi_key_edit = QLineEdit()
-            midi_key_edit.setPlaceholderText("ej: note_on_ch0_note60 (Deck A)")
+            midi_key_edit.setPlaceholderText("ej: note_on_ch12_note60 (Deck A)")
             layout.addRow("MIDI Key:", midi_key_edit)
             
             # Parámetros (JSON)

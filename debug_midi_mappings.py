@@ -38,7 +38,7 @@ def debug_midi_mappings():
             if sample_visual:
                 note = mappings[sample_visual]
                 print(f"\n   🎛️ MAPPING POR CANAL PARA '{sample_visual}':")
-                for deck, channel in zip(['A', 'B', 'C', 'D'], range(4)):
+                for deck, channel in zip(['A', 'B', 'C', 'D'], range(12, 16)):
                     midi_key = f"note_on_ch{channel}_note{note}"
                     print(f"      Deck {deck} -> {midi_key}")
         except Exception as e:

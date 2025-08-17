@@ -90,10 +90,10 @@ def create_improved_deck_grid(self, container):
         visuals = sorted(visuals, key=lambda v: midi_info.get(v, 9999))
 
         deck_config = {
-            "A": {"channel": 1, "color": "#ff6b6b", "name": "DECK A"},
-            "B": {"channel": 2, "color": "#4ecdc4", "name": "DECK B"},
-            "C": {"channel": 3, "color": "#45b7d1", "name": "DECK C"},
-            "D": {"channel": 4, "color": "#96ceb4", "name": "DECK D"},
+            "A": {"channel": 13, "color": "#ff6b6b", "name": "DECK A"},
+            "B": {"channel": 14, "color": "#4ecdc4", "name": "DECK B"},
+            "C": {"channel": 15, "color": "#45b7d1", "name": "DECK C"},
+            "D": {"channel": 16, "color": "#96ceb4", "name": "DECK D"},
         }
 
         # Store grid info for interactions

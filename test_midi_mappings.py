@@ -27,7 +27,7 @@ def test_midi_mappings():
     assert mappings, "No MIDI mappings loaded"
     sample_visual, sample_note = next(iter(mappings.items()))
 
-    for channel in range(4):
+    for channel in range(12, 16):
         logging.info(
             f"\n🎵 Testing {sample_visual} on channel {channel+1}: note {sample_note}"
         )
