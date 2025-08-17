@@ -1,5 +1,5 @@
 {
-    "last_midi_device": "virtual 2",
+    "last_midi_device": "USB MIDI Interface 3",
     "control_panel_monitor": 0,
     "main_window_monitor": 2,
     "auto_save_settings": true,
@@ -11,7 +11,7 @@
             "height": 793
         },
         "main_window": {
-            "x": 0,
+            "x": 1920,
             "y": 23,
             "width": 1536,
             "height": 793
