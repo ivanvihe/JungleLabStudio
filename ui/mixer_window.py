@@ -37,7 +37,9 @@ class MixerWindow(QMainWindow):
         self.global_brightness = 1.0  # Global brightness control
         self.deck_a = None
         self.deck_b = None
-        self.deck_fade_times = {"A": 0, "B": 0}
+        self.deck_fade_times = {"A": 2000, "B": 2000}
+        self._fade_timers = []
+
         
         # OpenGL widget setup
         self.gl_widget = QOpenGLWidget(self)
@@ -220,12 +222,12 @@ class MixerWindow(QMainWindow):
                 // Only sample texture if deck is active
                 if (deck_a_active) {
                     color1 = texture(texture1, TexCoord);
-                    color1.a *= deck_a_opacity;  // Apply deck opacity
+                    color1.rgb *= deck_a_opacity;  // Apply deck opacity
                 }
-                
+
                 if (deck_b_active) {
                     color2 = texture(texture2, TexCoord);
-                    color2.a *= deck_b_opacity;  // Apply deck opacity
+                    color2.rgb *= deck_b_opacity;  // Apply deck opacity
                 }
                 
                 // Mix the colors
@@ -552,11 +554,14 @@ class MixerWindow(QMainWindow):
         if not target_deck:
             return
 
-        steps = max(1, int(fade_ms / 16))
-        step_time = max(1, int(fade_ms / steps))
+        phase_ms = max(1, fade_ms // 2)
+        steps = max(1, int(phase_ms / 16))
+        step_time = max(1, int(phase_ms / steps))
         current_opacity = self.deck_a_opacity if deck_id == 'A' else self.deck_b_opacity
 
-        timer = QTimer()
+        timer = QTimer(self)
+        self._fade_timers.append(timer)
+
         state = {'step': 0, 'phase': 'out'}
 
         def step():
@@ -585,6 +590,9 @@ class MixerWindow(QMainWindow):
                     self.set_deck_opacity(deck_id, current_opacity)
                     timer.stop()
                     timer.deleteLater()
+                    if timer in self._fade_timers:
+                        self._fade_timers.remove(timer)
+
 
         timer.timeout.connect(step)
         timer.start(step_time)
