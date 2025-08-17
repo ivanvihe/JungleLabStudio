@@ -523,8 +523,8 @@ class BuildingMadnessVisualizer(BaseVisualizer):
         self.delta_time = current_time - self.last_time
         self.last_time = current_time
         self.time += self.delta_time * self.camera_speed
-        
         # Get audio data
+
         if hasattr(self, "analyzer") and self.analyzer and self.analyzer.is_active():
             fft = self.analyzer.get_fft_data().astype(np.float32)
             # Moderate interpolation
@@ -630,7 +630,8 @@ class BuildingMadnessVisualizer(BaseVisualizer):
 
     def get_controls(self):
         """Get control parameters."""
-        return {
+        controls = super().get_controls()
+        controls.update({
             "Grid Size": {
                 "type": "slider",
                 "min": 5,
@@ -679,10 +680,13 @@ class BuildingMadnessVisualizer(BaseVisualizer):
                 "value": self.color_shift,
                 "step": 0.1
             }
-        }
+        })
+        return controls
 
     def update_control(self, name, value):
         """Update control values."""
+        if super().update_control(name, value):
+            return
         if name == "Grid Size":
             self.grid_size = int(value)
             self._setup_geometry()

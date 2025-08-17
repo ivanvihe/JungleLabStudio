@@ -24,7 +24,8 @@ class AbstractLinesVisualizer(BaseVisualizer):
         self.initialized = False
 
     def get_controls(self):
-        return {
+        controls = super().get_controls()
+        controls.update({
             "Line Width": {
                 "type": "slider",
                 "min": 1,
@@ -49,9 +50,12 @@ class AbstractLinesVisualizer(BaseVisualizer):
                 "max": 300,
                 "value": int(self.complexity * 100),
             }
-        }
+        })
+        return controls
 
     def update_control(self, name, value):
+        if super().update_control(name, value):
+            return
         if name == "Line Width":
             self.line_width = float(value)
         elif name == "Number of Lines":
@@ -319,19 +323,28 @@ class AbstractLinesVisualizer(BaseVisualizer):
                 
             # Update animation time
             self.time += 0.016
-            
+
+            # Fetch audio data (bass, mid, treble)
+            bass, mid, treble = self.get_audio_bands()
+
             # Use shader program
             glUseProgram(self.shader_program)
-            
-            # Send uniforms
-            glUniform1f(glGetUniformLocation(self.shader_program, "time"), self.time)
-            glUniform1f(glGetUniformLocation(self.shader_program, "pulsation_speed"), self.pulsation_speed)
-            glUniform1f(glGetUniformLocation(self.shader_program, "complexity"), self.complexity)
 
-            # Set line width
+            # Send uniforms with audio-reactive modulation
+            glUniform1f(glGetUniformLocation(self.shader_program, "time"), self.time)
+            glUniform1f(
+                glGetUniformLocation(self.shader_program, "pulsation_speed"),
+                self.pulsation_speed * (0.5 + bass),
+            )
+            glUniform1f(
+                glGetUniformLocation(self.shader_program, "complexity"),
+                self.complexity * (0.5 + treble),
+            )
+
+            # Set line width reacting to mid frequencies
             try:
-                glLineWidth(self.line_width)
-            except:
+                glLineWidth(self.line_width * (0.5 + mid))
+            except Exception:
                 glLineWidth(1.0)
             
             # Draw the epic lines
