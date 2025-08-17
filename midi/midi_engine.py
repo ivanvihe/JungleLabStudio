@@ -257,11 +257,15 @@ class MidiEngine(QObject):
         """Build lookup table from simple visual->note mappings."""
         self.midi_lookup = {}
         try:
+            deck_channels = self.visual_mapper.config.get("deck_channels", {})
+            if not deck_channels:
+                deck_channels = {"A": 0, "B": 1, "C": 2, "D": 3}
+
             for visual_name, note in self.midi_mappings.items():
                 if not isinstance(note, int):
                     continue
-                for deck_index, deck_id in enumerate(['A', 'B', 'C', 'D']):
-                    midi_key = f"note_on_ch{deck_index}_note{note}"
+                for deck_id, channel in deck_channels.items():
+                    midi_key = f"note_on_ch{channel}_note{note}"
                     action_id = f"{visual_name.replace(' ', '_').lower()}_{deck_id.lower()}"
                     mapping_data = {
                         'type': 'load_preset',
