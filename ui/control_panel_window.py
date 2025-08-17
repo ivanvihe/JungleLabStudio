@@ -1,4 +1,4 @@
-# ui/control_panel_window.py - ACTUALIZADO CON NUEVA UI MIDI
+# ui/control_panel_window.py - ENHANCED WITH IMPROVED UI COMPONENTS
 import logging
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox,
@@ -19,7 +19,7 @@ from .visual_settings_tab import create_visual_settings_tab
 class ControlPanelWindow(QMainWindow):
     def __init__(self, mixer_window, settings_manager, midi_engine, visualizer_manager, audio_analyzer):
         super().__init__(mixer_window)
-        logging.debug("ControlPanelWindow.__init__ called - CON NUEVA UI MIDI")
+        logging.debug("ControlPanelWindow.__init__ called - CON NUEVA UI MIDI MEJORADA")
         
         # Store references
         self.mixer_window = mixer_window
@@ -120,7 +120,7 @@ class ControlPanelWindow(QMainWindow):
         preferences_action.triggered.connect(self.show_preferences)
         settings_menu.addAction(preferences_action)
 
-        # MIDI menu - MEJORADO
+        # MIDI menu - ENHANCED
         midi_menu = menubar.addMenu('MIDI')
         
         midi_config_action = QAction('🎹 Configuración MIDI Completa...', self)
@@ -143,12 +143,17 @@ class ControlPanelWindow(QMainWindow):
         debug_midi_action.triggered.connect(self.run_midi_debug)
         midi_menu.addAction(debug_midi_action)
 
-        # View menu
+        # View menu - ENHANCED
         view_menu = menubar.addMenu('View')
         
         refresh_action = QAction('Refresh Devices', self)
         refresh_action.triggered.connect(self.refresh_devices)
         view_menu.addAction(refresh_action)
+        
+        # NEW: Refresh visual grids
+        refresh_visuals_action = QAction('🔄 Refresh Visual Grids', self)
+        refresh_visuals_action.triggered.connect(self.refresh_visual_grids)
+        view_menu.addAction(refresh_visuals_action)
 
     def create_enhanced_ui(self):
         """Create the enhanced UI with MIDI configuration integrated"""
@@ -164,16 +169,40 @@ class ControlPanelWindow(QMainWindow):
         header_section = create_header_section(self)
         main_layout.addWidget(header_section)
 
-        # Main Content: Tabs para mejor organización
+        # Main Content: Tabs para mejor organización - ENHANCED STYLING
         main_tabs = QTabWidget()
+        main_tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: 2px solid #666666;
+                border-radius: 8px;
+                background-color: #1a1a1a;
+            }
+            QTabBar::tab {
+                background-color: #2a2a2a;
+                color: #ffffff;
+                padding: 12px 20px;
+                margin-right: 2px;
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
+                font-weight: bold;
+                font-size: 12px;
+            }
+            QTabBar::tab:selected {
+                background-color: #3a3a3a;
+                border-bottom: 3px solid #00ff00;
+            }
+            QTabBar::tab:hover {
+                background-color: #4a4a4a;
+            }
+        """)
 
-        # Tab 1: Control en Vivo
+        # Tab 1: Control en Vivo - IMPROVED
         live_tab = create_live_control_tab(self)
         main_tabs.addTab(live_tab, "🎛️ Control en Vivo")
 
-        # Tab 2: Visuals Settings
+        # Tab 2: Visual Settings - IMPROVED
         visuals_tab = create_visual_settings_tab(self)
-        main_tabs.addTab(visuals_tab, "🖼️ Visuals Settings")
+        main_tabs.addTab(visuals_tab, "🖼️ Visual Settings")
 
         # Tab 3: Monitoreo y Debug
         monitor_tab = create_monitor_tab(self)
@@ -185,45 +214,90 @@ class ControlPanelWindow(QMainWindow):
         footer_section = create_footer_section(self)
         main_layout.addWidget(footer_section)
 
+    # NEW METHOD: Refresh visual grids
+    def refresh_visual_grids(self):
+        """Refresh both visual grids when visuals change"""
+        try:
+            logging.info("🔄 Refreshing visual grids...")
+            
+            # Find and refresh tabs
+            main_tabs = self.centralWidget().findChild(QTabWidget)
+            if main_tabs:
+                current_index = main_tabs.currentIndex()
+                
+                for i in range(main_tabs.count()):
+                    tab_text = main_tabs.tabText(i)
+                    if "Control en Vivo" in tab_text:
+                        # Recreate live control tab
+                        old_widget = main_tabs.widget(i)
+                        new_widget = create_live_control_tab(self)
+                        main_tabs.removeTab(i)
+                        main_tabs.insertTab(i, new_widget, "🎛️ Control en Vivo")
+                        old_widget.deleteLater()
+                        break
+                
+                for i in range(main_tabs.count()):
+                    tab_text = main_tabs.tabText(i)
+                    if "Visual Settings" in tab_text:
+                        # Recreate visual settings tab
+                        old_widget = main_tabs.widget(i)
+                        new_widget = create_visual_settings_tab(self)
+                        main_tabs.removeTab(i)
+                        main_tabs.insertTab(i, new_widget, "🖼️ Visual Settings")
+                        old_widget.deleteLater()
+                        break
+                
+                # Restore current tab
+                main_tabs.setCurrentIndex(current_index)
+            
+            QMessageBox.information(self, "Refresh Complete", 
+                                  "✅ Visual grids refreshed successfully!")
+            logging.info("✅ Visual grids refreshed")
+            
+        except Exception as e:
+            logging.error(f"❌ Error refreshing visual grids: {e}")
+            QMessageBox.warning(self, "Refresh Error", 
+                              f"⚠️ Error refreshing grids: {str(e)}")
+
     def turn_on_midi_led(self):
         """Encender LED de actividad MIDI"""
         try:
-            self.midi_led.setStyleSheet("""
-                QLabel {
-                    color: #00ff00;
-                    font-size: 16px;
-                    font-weight: bold;
-                    background-color: transparent;
-                    border-radius: 8px;
-                    min-width: 16px;
-                    max-width: 16px;
-                    text-align: center;
-                }
-            """)
-            self.midi_led_timer.start(100)
+            if hasattr(self, 'midi_led'):
+                self.midi_led.setStyleSheet("""
+                    QLabel {
+                        color: #00ff00;
+                        font-size: 16px;
+                        font-weight: bold;
+                        background-color: transparent;
+                        border-radius: 8px;
+                        min-width: 16px;
+                        max-width: 16px;
+                        text-align: center;
+                    }
+                """)
+                if hasattr(self, 'midi_led_timer'):
+                    self.midi_led_timer.start(100)
         except Exception as e:
             logging.error(f"Error turning on MIDI LED: {e}")
 
     def turn_off_midi_led(self):
         """Apagar LED de actividad MIDI"""
         try:
-            self.midi_led.setStyleSheet("""
-                QLabel {
-                    color: #333333;
-                    font-size: 16px;
-                    font-weight: bold;
-                    background-color: transparent;
-                    border-radius: 8px;
-                    min-width: 16px;
-                    max-width: 16px;
-                    text-align: center;
-                }
-            """)
+            if hasattr(self, 'midi_led'):
+                self.midi_led.setStyleSheet("""
+                    QLabel {
+                        color: #333333;
+                        font-size: 16px;
+                        font-weight: bold;
+                        background-color: transparent;
+                        border-radius: 8px;
+                        min-width: 16px;
+                        max-width: 16px;
+                        text-align: center;
+                    }
+                """)
         except Exception as e:
             logging.error(f"Error turning off MIDI LED: {e}")
-
-
-
 
     def _add_row_to_table(self, table, timestamp, msg_type, data_str, max_rows=20):
         """Utility to append a row to a QTableWidget with limit"""
@@ -235,8 +309,6 @@ class ControlPanelWindow(QMainWindow):
         table.scrollToBottom()
         if table.rowCount() > max_rows:
             table.removeRow(0)
-
-
 
     # === FUNCIONES DE EVENTOS MIDI ===
 
@@ -263,6 +335,9 @@ class ControlPanelWindow(QMainWindow):
             layout.addWidget(buttons)
             
             dialog.exec()
+            
+            # NEW: Refresh grids after MIDI config changes
+            self.refresh_visual_grids()
             
         except Exception as e:
             logging.error(f"Error opening MIDI config: {e}")
@@ -291,7 +366,7 @@ class ControlPanelWindow(QMainWindow):
     def toggle_midi_activity_monitoring(self):
         """Pausar/reanudar monitoreo MIDI"""
         try:
-            self.midi_monitoring_paused = not self.midi_monitoring_paused
+            self.midi_monitoring_paused = not getattr(self, 'midi_monitoring_paused', False)
             # Implementar lógica de pausa
         except Exception as e:
             logging.error(f"Error toggling MIDI monitoring: {e}")
@@ -495,15 +570,19 @@ class ControlPanelWindow(QMainWindow):
                 self.deck_a_status['active_preset'] = preset_name
                 self.deck_a_status['last_activity'] = current_time
                 
-                self.deck_a_preset_label.setText(f"Preset: {preset_name}")
-                self.deck_a_activity_label.setText(f"Última actividad: {current_time}")
+                if hasattr(self, 'deck_a_preset_label'):
+                    self.deck_a_preset_label.setText(f"Preset: {preset_name}")
+                if hasattr(self, 'deck_a_activity_label'):
+                    self.deck_a_activity_label.setText(f"Última actividad: {current_time}")
                     
             elif deck_id == 'B':
                 self.deck_b_status['active_preset'] = preset_name
                 self.deck_b_status['last_activity'] = current_time
                 
-                self.deck_b_preset_label.setText(f"Preset: {preset_name}")
-                self.deck_b_activity_label.setText(f"Última actividad: {current_time}")
+                if hasattr(self, 'deck_b_preset_label'):
+                    self.deck_b_preset_label.setText(f"Preset: {preset_name}")
+                if hasattr(self, 'deck_b_activity_label'):
+                    self.deck_b_activity_label.setText(f"Última actividad: {current_time}")
             
             logging.info(f"✅ UI updated for deck {deck_id} to preset {preset_name}")
         except Exception as e:
@@ -512,36 +591,38 @@ class ControlPanelWindow(QMainWindow):
     def update_midi_device_display(self, device_name=None):
         """Update MIDI device display with enhanced visual feedback"""
         try:
-            if device_name:
-                self.midi_status_label.setText(f"MIDI: {device_name}")
-                self.midi_status_label.setStyleSheet("color: #00ff00; font-weight: bold; padding: 5px;")
-            else:
-                # Check current MIDI status
-                midi_connected = False
-                device_info = "Not Connected"
-                
-                if self.midi_engine:
-                    try:
-                        if hasattr(self.midi_engine, 'is_port_open') and self.midi_engine.is_port_open():
-                            device_info = "Connected"
-                            midi_connected = True
-                        elif hasattr(self.midi_engine, 'list_input_ports'):
-                            ports = self.midi_engine.list_input_ports()
-                            if ports:
-                                device_info = f"Available ({len(ports)} devices)"
-                    except Exception as e:
-                        device_info = f"Error: {str(e)}"
-                
-                self.midi_status_label.setText(f"MIDI: {device_info}")
-                if midi_connected:
+            if hasattr(self, 'midi_status_label'):
+                if device_name:
+                    self.midi_status_label.setText(f"MIDI: {device_name}")
                     self.midi_status_label.setStyleSheet("color: #00ff00; font-weight: bold; padding: 5px;")
                 else:
-                    self.midi_status_label.setStyleSheet("color: #ff6600; font-weight: bold; padding: 5px;")
+                    # Check current MIDI status
+                    midi_connected = False
+                    device_info = "Not Connected"
                     
+                    if self.midi_engine:
+                        try:
+                            if hasattr(self.midi_engine, 'is_port_open') and self.midi_engine.is_port_open():
+                                device_info = "Connected"
+                                midi_connected = True
+                            elif hasattr(self.midi_engine, 'list_input_ports'):
+                                ports = self.midi_engine.list_input_ports()
+                                if ports:
+                                    device_info = f"Available ({len(ports)} devices)"
+                        except Exception as e:
+                            device_info = f"Error: {str(e)}"
+                    
+                    self.midi_status_label.setText(f"MIDI: {device_info}")
+                    if midi_connected:
+                        self.midi_status_label.setStyleSheet("color: #00ff00; font-weight: bold; padding: 5px;")
+                    else:
+                        self.midi_status_label.setStyleSheet("color: #ff6600; font-weight: bold; padding: 5px;")
+                        
         except Exception as e:
             logging.error(f"Error updating MIDI device display: {e}")
-            self.midi_status_label.setText("MIDI: Error")
-            self.midi_status_label.setStyleSheet("color: red; font-weight: bold; padding: 5px;")
+            if hasattr(self, 'midi_status_label'):
+                self.midi_status_label.setText("MIDI: Error")
+                self.midi_status_label.setStyleSheet("color: red; font-weight: bold; padding: 5px;")
 
     def update_audio_device_display(self):
         """Update audio device display"""
@@ -554,7 +635,8 @@ class ControlPanelWindow(QMainWindow):
     def update_audio_level(self, level):
         """Update audio level display"""
         try:
-            self.audio_level_bar.setValue(int(max(0, min(100, level))))
+            if hasattr(self, 'audio_level_bar'):
+                self.audio_level_bar.setValue(int(max(0, min(100, level))))
         except Exception as e:
             logging.error(f"Error updating audio level: {e}")
 
@@ -572,8 +654,10 @@ class ControlPanelWindow(QMainWindow):
             # Update mix value from mixer window
             if self.mixer_window and hasattr(self.mixer_window, 'get_mix_value_percent'):
                 mix_value = self.mixer_window.get_mix_value_percent()
-                self.mix_value_label.setText(f"Crossfader: {mix_value}%")
-                self.mix_progress_bar.setValue(mix_value)
+                if hasattr(self, 'mix_value_label'):
+                    self.mix_value_label.setText(f"Crossfader: {mix_value}%")
+                if hasattr(self, 'mix_progress_bar'):
+                    self.mix_progress_bar.setValue(mix_value)
             
             # Update device displays periodically
             import time
@@ -694,11 +778,12 @@ class ControlPanelWindow(QMainWindow):
     def update_mappings_info(self):
         """Actualizar información de mappings"""
         try:
-            if self.midi_engine:
-                count = len(self.midi_engine.get_midi_mappings())
-                self.footer_mappings_info.setText(f"MIDI Mappings: {count}")
-            else:
-                self.footer_mappings_info.setText("MIDI Mappings: 0")
+            if hasattr(self, 'footer_mappings_info'):
+                if self.midi_engine:
+                    count = len(self.midi_engine.get_midi_mappings())
+                    self.footer_mappings_info.setText(f"MIDI Mappings: {count}")
+                else:
+                    self.footer_mappings_info.setText("MIDI Mappings: 0")
         except Exception as e:
             logging.error(f"Error updating mappings info: {e}")
 

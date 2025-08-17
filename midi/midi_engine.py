@@ -254,21 +254,27 @@ class MidiEngine(QObject):
             traceback.print_exc()
 
     def _build_midi_lookup(self):
-        """VERSIÓN MEJORADA: Construir tabla de lookup con soporte multi-canal"""
+        """VERSIÓN MEJORADA: Construir tabla de lookup con soporte multi-canal Y limpieza de duplicados"""
         self.midi_lookup = {}
         try:
             logging.info("🔨 BUILDING MIDI LOOKUP TABLE...")
             
+            # NUEVO: Limpiar duplicados antes de construir lookup
+            duplicates_cleaned = self.remove_duplicate_mappings_smart()
+            if duplicates_cleaned:
+                logging.info(f"🧹 Cleaned {duplicates_cleaned} duplicate mappings")
+            
+            # Construir lookup table
             for action_id, mapping_data in self.midi_mappings.items():
                 if not isinstance(mapping_data, dict):
                     continue
                     
                 midi_key = mapping_data.get("midi")
                 if midi_key:
-                    # Verificar duplicados
+                    # Verificar duplicados (no debería haber después de la limpieza)
                     if midi_key in self.midi_lookup:
                         old_action_id, old_mapping = self.midi_lookup[midi_key]
-                        logging.warning(f"⚠️ DUPLICATE MIDI KEY: {midi_key}")
+                        logging.warning(f"⚠️ STILL DUPLICATE MIDI KEY: {midi_key}")
                         logging.warning(f"   Old: {old_action_id}")
                         logging.warning(f"   New: {action_id} (will overwrite)")
                     
@@ -1189,6 +1195,159 @@ class MidiEngine(QObject):
         except Exception as e:
             logging.error(f"❌ Error getting visual priority order: {e}")
             return []
+
+    def remove_duplicate_mappings_smart(self):
+        """Eliminar mappings duplicados manteniendo los de mayor prioridad"""
+        try:
+            from collections import defaultdict
+
+            # Agrupar por MIDI key
+            midi_key_groups = defaultdict(list)
+
+            for action_id, mapping_data in self.midi_mappings.items():
+                if isinstance(mapping_data, dict):
+                    midi_key = mapping_data.get('midi', '')
+                    if midi_key and midi_key != '':
+                        midi_key_groups[midi_key].append((action_id, mapping_data))
+
+            # Encontrar y resolver duplicados
+            duplicates_removed = 0
+            clean_mappings = {}
+
+            for midi_key, mapping_list in midi_key_groups.items():
+                if len(mapping_list) > 1:
+                    # Hay duplicados - elegir el mejor
+                    best_mapping = self.choose_best_mapping(mapping_list)
+                    clean_mappings[best_mapping[0]] = best_mapping[1]
+                    duplicates_removed += len(mapping_list) - 1
+
+                    logging.debug(f"🔧 Resolved duplicate for {midi_key}: kept {best_mapping[0]}")
+                else:
+                    # No duplicados
+                    action_id, mapping_data = mapping_list[0]
+                    clean_mappings[action_id] = mapping_data
+
+            # Añadir mappings sin MIDI key
+            for action_id, mapping_data in self.midi_mappings.items():
+                if isinstance(mapping_data, dict):
+                    midi_key = mapping_data.get('midi', '')
+                    if not midi_key or midi_key == '':
+                        clean_mappings[action_id] = mapping_data
+
+            # Actualizar mappings si se removieron duplicados
+            if duplicates_removed > 0:
+                self.midi_mappings = clean_mappings
+                logging.info(f"🧹 Removed {duplicates_removed} duplicate MIDI mappings")
+
+                # Guardar cambios limpios
+                if self.settings_manager:
+                    self.settings_manager.save_midi_mappings(self.midi_mappings)
+
+            return duplicates_removed
+
+        except Exception as e:
+            logging.error(f"❌ Error removing duplicate mappings: {e}")
+            return 0
+
+
+    def choose_best_mapping(self, mapping_list):
+        """Elegir el mejor mapping de una lista de duplicados"""
+
+        # Patrones de prioridad (mayor prioridad = mejor)
+        priority_patterns = [
+            'mix_action_',      # Acciones de mix tienen máxima prioridad
+            'deck_a_preset_',   # Presets estándar de deck
+            'deck_b_preset_',
+            'deck_c_preset_',
+            'deck_d_preset_',
+            'deck_a_clear',     # Acciones de clear
+            'deck_b_clear',
+            'deck_c_clear',
+            'deck_d_clear',
+            'note_',           # Patrones auto-generados (menor prioridad)
+        ]
+
+        best_mapping = mapping_list[0]  # Default al primero
+        best_score = -1
+
+        for action_id, mapping_data in mapping_list:
+            # Calcular puntuación de prioridad
+            priority = 0
+            for i, pattern in enumerate(priority_patterns):
+                if pattern in action_id:
+                    priority = len(priority_patterns) - i
+                    break
+
+            # Calcular puntuación de completitud
+            completeness = self.get_mapping_completeness(mapping_data)
+            total_score = priority * 100 + completeness
+
+            if total_score > best_score:
+                best_score = total_score
+                best_mapping = (action_id, mapping_data)
+
+        return best_mapping
+
+
+    def get_mapping_completeness(self, mapping_data):
+        """Puntuar mapping basado en qué tan completo/útil es"""
+        score = 0
+
+        # Tiene tipo válido
+        if mapping_data.get('type'):
+            score += 10
+
+        # Tiene parámetros
+        params = mapping_data.get('params', {})
+        if params:
+            score += 5
+
+            # Tiene nombre de preset
+            if params.get('preset_name'):
+                score += 10
+
+            # Tiene deck ID
+            if params.get('deck_id'):
+                score += 5
+
+        # Tiene MIDI key válido
+        midi_key = mapping_data.get('midi', '')
+        if midi_key and 'note' in midi_key:
+            score += 5
+
+        return score
+
+
+    def clean_midi_mappings_manual(self):
+        """Limpiar mappings MIDI manualmente desde UI"""
+        try:
+            logging.info("🧹 Manual MIDI cleanup requested by user")
+
+            original_count = len(self.midi_mappings)
+            duplicates_removed = self.remove_duplicate_mappings_smart()
+
+            if duplicates_removed > 0:
+                # Reconstruir lookup
+                self._build_midi_lookup()
+
+                message = (
+                          f"✅ Cleanup completado!\n\n"
+                          f"Mappings originales: {original_count}\n"
+                          f"Duplicados removidos: {duplicates_removed}\n"
+                          f"Mappings finales: {len(self.midi_mappings)}"
+                      )
+
+                logging.info(f"✅ Manual cleanup complete: removed {duplicates_removed} duplicates")
+                return True, message
+            else:
+                message = "✨ No se encontraron duplicados - los mappings ya están limpios!"
+                logging.info("✨ Manual cleanup: no duplicates found")
+                return True, message
+
+        except Exception as e:
+            error_msg = f"❌ Error durante limpieza manual: {str(e)}"
+            logging.error(error_msg)
+            return False, error_msg
 
     def __del__(self):
         """Cleanup when object is destroyed"""
