@@ -123,7 +123,7 @@ def create_visual_settings_grid(self, container):
                 visuals = sorted(self.visualizer_manager.get_visualizer_names())
             except Exception as e:
                 logging.error(f"Error getting visualizer names: {e}")
-                visuals = ["Simple Test", "Abstract Lines", "Wire Terrain"]
+                visuals = ["Abstract Lines", "Wire Terrain"]
         if not visuals:
             create_fallback_visual_grid(container)
             return

@@ -7,6 +7,13 @@ import time
 import math
 import random
 from OpenGL.GL import *
+try:
+    from OpenGL.GL import GL_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_NO_ERROR
+except Exception:  # pragma: no cover - fallback for minimal GL stubs
+    GL_SRC_ALPHA = 0x0302
+    GL_ONE = 1
+    GL_ONE_MINUS_SRC_ALPHA = 0x0303
+    GL_NO_ERROR = 0
 from ..base_visualizer import BaseVisualizer
 
 class InfiniteNeuralNetworkVisualizer(BaseVisualizer):
