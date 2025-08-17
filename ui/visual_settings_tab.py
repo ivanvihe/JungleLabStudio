@@ -11,22 +11,17 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QMessageBox,
 )
-from PyQt6.QtCore import Qt, QPoint
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import (
     QIntValidator,
     QFont,
-    QPixmap,
-    QPainter,
-    QColor,
-    QBrush,
-    QPen,
-    QPolygon,
 )
 
 from pathlib import Path
 import json
 import logging
 
+from .thumbnail_utils import generate_visual_thumbnail
 
 # ---------------------------------------------------------------------------
 # Visual settings tab
@@ -86,8 +81,8 @@ def create_visual_settings_tab(self):
 
     # Instructions ---------------------------------------------------------
     instructions = QLabel(
-        "💡 Edita las notas MIDI para cada visual. Los cambios se guardan "
-        "automáticamente al salir del campo o al presionar 'Guardar Cambios'."
+        "💡 Edit the MIDI note for each visual. Changes are saved "
+        "automatically when leaving the field or pressing 'Save Changes'."
     )
     instructions.setStyleSheet(
         """
@@ -212,7 +207,7 @@ def create_visual_settings_cell(visual_name, current_mappings):
     midi_layout.setContentsMargins(0, 0, 0, 0)
     midi_layout.setSpacing(2)
 
-    midi_label = QLabel("Nota MIDI:")
+    midi_label = QLabel("MIDI Note:")
     midi_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
     midi_label.setFont(QFont("Arial", 8))
     midi_label.setStyleSheet("color: #cccccc;")
@@ -244,72 +239,9 @@ def create_visual_thumbnail_large(visual_name):
         """
     )
 
-    pixmap = QPixmap(80, 60)
-    pixmap.fill(QColor(0, 0, 0, 0))
-
-    painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-    color_hash = hash(visual_name) % 360
-    primary_color = QColor.fromHsv(color_hash, 180, 220)
-    secondary_color = QColor.fromHsv((color_hash + 120) % 360, 120, 180)
-
-    if "particle" in visual_name.lower():
-        painter.setBrush(QBrush(primary_color))
-        for i in range(12):
-            x = (i % 4) * 18 + 10
-            y = (i // 4) * 18 + 6
-            size = 4 + (i % 3) * 2
-            painter.drawEllipse(x, y, size, size)
-    elif "line" in visual_name.lower() or "wire" in visual_name.lower():
-        painter.setPen(QPen(primary_color, 2))
-        for i in range(6):
-            y = i * 10 + 5
-            painter.drawLine(5, y, 75, y)
-            if i % 2 == 0:
-                painter.setPen(QPen(secondary_color, 1))
-            else:
-                painter.setPen(QPen(primary_color, 2))
-    elif "geometric" in visual_name.lower() or "abstract" in visual_name.lower():
-        painter.setBrush(QBrush(primary_color))
-        painter.drawRect(10, 10, 25, 25)
-        painter.setBrush(QBrush(secondary_color))
-        painter.drawEllipse(45, 15, 20, 20)
-        painter.setBrush(QBrush(primary_color))
-        polygon = QPolygon([
-            QPoint(20, 40),
-            QPoint(35, 45),
-            QPoint(30, 55),
-            QPoint(15, 50),
-        ])
-        painter.drawPolygon(polygon)
-    elif "fluid" in visual_name.lower() or "flow" in visual_name.lower():
-        painter.setPen(QPen(primary_color, 3))
-        painter.drawPath(create_wave_path())
-        painter.setPen(QPen(secondary_color, 2))
-        painter.drawPath(create_wave_path(offset=10))
-    else:
-        painter.setBrush(QBrush(primary_color))
-        painter.drawRect(15, 15, 50, 30)
-        painter.setBrush(QBrush(secondary_color))
-        painter.drawEllipse(25, 20, 30, 20)
-
-    painter.end()
+    pixmap = generate_visual_thumbnail(visual_name, 80, 60)
     thumbnail.setPixmap(pixmap)
     return thumbnail
-
-
-def create_wave_path(offset=0):
-    """Create a wave path for fluid visualizations."""
-    from PyQt6.QtGui import QPainterPath
-    import math
-
-    path = QPainterPath()
-    path.moveTo(0, 30 + offset)
-    for x in range(80):
-        y = 30 + offset + 10 * math.sin(x * 0.1)
-        path.lineTo(x, y)
-    return path
 
 
 def create_midi_note_editor(visual_name, current_note):
@@ -355,8 +287,8 @@ def create_midi_note_editor(visual_name, current_note):
                     note_edit.setStyleSheet(note_edit.styleSheet() + "; border-color: #ff0000;")
                     QMessageBox.warning(
                         None,
-                        "Valor Inválido",
-                        f"La nota MIDI debe estar entre 0 y 127.\nValor ingresado: {note_num}",
+                        "Invalid Value",
+                        f"MIDI note must be between 0 and 127.\nEntered value: {note_num}",
                     )
             else:
                 save_visual_midi_mapping(visual_name, None)
@@ -364,8 +296,8 @@ def create_midi_note_editor(visual_name, current_note):
             note_edit.setStyleSheet(note_edit.styleSheet() + "; border-color: #ff0000;")
             QMessageBox.warning(
                 None,
-                "Valor Inválido",
-                "Por favor ingresa un número válido (0-127).",
+                "Invalid Value",
+                "Please enter a valid number (0-127).",
             )
 
     note_edit.editingFinished.connect(validate_and_save)
@@ -380,24 +312,15 @@ def load_current_midi_mappings():
         if config_path.exists():
             with open(config_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                for action_id, mapping_data in data.items():
-                    if isinstance(mapping_data, dict):
-                        params = mapping_data.get("params", {})
-                        preset_name = params.get("preset_name")
-                        midi_key = mapping_data.get("midi", "")
-                        if preset_name and "note" in midi_key:
-                            try:
-                                note_num = int(midi_key.split("note")[1])
-                                mappings[preset_name] = note_num
-                            except (ValueError, IndexError):
-                                continue
-                logging.info(
-                    f"✅ Loaded {len(mappings)} visual MIDI mappings from config"
-                )
+                if isinstance(data, dict):
+                    for name, note in data.items():
+                        if isinstance(note, int):
+                            mappings[name] = note
+            logging.info(f"Loaded {len(mappings)} visual MIDI mappings from config")
         else:
-            logging.info("📝 No existing MIDI mappings config found, starting fresh")
+            logging.info("No existing MIDI mappings config found, starting fresh")
     except Exception as e:
-        logging.error(f"❌ Error loading MIDI mappings: {e}")
+        logging.error(f"Error loading MIDI mappings: {e}")
     return mappings
 
 
@@ -410,61 +333,32 @@ def save_visual_midi_mapping(visual_name, note_num):
     """Save individual visual MIDI mapping to config file."""
     try:
         config_path = Path("config/midi_mappings.json")
-        config_data = {}
+        mappings = {}
         if config_path.exists():
             with open(config_path, "r", encoding="utf-8") as f:
-                config_data = json.load(f)
+                mappings = json.load(f)
+        if not isinstance(mappings, dict):
+            mappings = {}
 
-        updated = False
-        for action_id, mapping_data in config_data.items():
-            if isinstance(mapping_data, dict):
-                params = mapping_data.get("params", {})
-                if params.get("preset_name") == visual_name:
-                    if note_num is not None:
-                        old_midi = mapping_data.get("midi", "")
-                        if "ch" in old_midi:
-                            channel_part = old_midi.split("_note")[0]
-                            mapping_data["midi"] = f"{channel_part}_note{note_num}"
-                        else:
-                            mapping_data["midi"] = f"note_on_ch0_note{note_num}"
-                    else:
-                        mapping_data["midi"] = ""
-                    updated = True
+        if note_num is not None:
+            mappings = {v: n for v, n in mappings.items() if v != visual_name and n != note_num}
+            mappings[visual_name] = note_num
+            logging.info(f"Saved MIDI mapping: {visual_name} -> Note {note_num}")
+        else:
+            mappings.pop(visual_name, None)
+            logging.info(f"Removed MIDI mapping for: {visual_name}")
 
-        if not updated and note_num is not None:
-            for deck_id in ["A", "B"]:
-                action_id = f"visual_{visual_name.replace(' ', '_').lower()}_{deck_id.lower()}"
-                config_data[action_id] = {
-                    "type": "load_preset",
-                    "params": {
-                        "deck_id": deck_id,
-                        "preset_name": visual_name,
-                        "custom_values": "",
-                    },
-                    "midi": f"note_on_ch{0 if deck_id == 'A' else 1}_note{note_num}",
-                }
-            updated = True
-
-        if updated:
-            config_path.parent.mkdir(exist_ok=True)
-            with open(config_path, "w", encoding="utf-8") as f:
-                json.dump(config_data, f, indent=2, ensure_ascii=False)
-            if note_num is not None:
-                logging.info(
-                    f"✅ Saved MIDI mapping: {visual_name} -> Note {note_num}"
-                )
-            else:
-                logging.info(
-                    f"🗑️ Removed MIDI mapping for: {visual_name}"
-                )
+        config_path.parent.mkdir(exist_ok=True)
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(mappings, f, indent=2, ensure_ascii=False)
     except Exception as e:
-        logging.error(f"❌ Error saving visual MIDI mapping: {e}")
+        logging.error(f"Error saving visual MIDI mapping: {e}")
 
 
 def save_all_midi_mappings(self):
     """Save all current MIDI mappings (called by Save button)."""
     try:
-        saved_count = 0
+        mappings = {}
         if hasattr(self, "visual_settings_grid"):
             for i in range(self.visual_settings_grid.count()):
                 item = self.visual_settings_grid.itemAt(i)
@@ -474,7 +368,7 @@ def save_all_midi_mappings(self):
                     note_value = None
                     for child in cell.findChildren(QLabel):
                         text = child.text()
-                        if text and not text.startswith("Nota MIDI"):
+                        if text:
                             visual_name = text
                             break
                     for child in cell.findChildren(QLineEdit):
@@ -482,25 +376,27 @@ def save_all_midi_mappings(self):
                         if note_text:
                             try:
                                 note_value = int(note_text)
-                                break
                             except ValueError:
-                                continue
+                                note_value = None
+                            break
                     if visual_name and note_value is not None:
-                        save_visual_midi_mapping(visual_name, note_value)
-                        saved_count += 1
+                        mappings[visual_name] = note_value
+        config_path = Path("config/midi_mappings.json")
+        config_path.parent.mkdir(exist_ok=True)
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(mappings, f, indent=2, ensure_ascii=False)
         QMessageBox.information(
             self if hasattr(self, "parent") else None,
-            "Guardado Exitoso",
-            f"✅ Se guardaron {saved_count} mappings MIDI correctamente.\n"
-            "Los cambios estarán disponibles inmediatamente.",
+            "Save Successful",
+            f"Saved {len(mappings)} MIDI mappings successfully.",
         )
-        logging.info(f"✅ Bulk save completed: {saved_count} mappings saved")
+        logging.info(f"Bulk save completed: {len(mappings)} mappings saved")
     except Exception as e:
-        logging.error(f"❌ Error in bulk save: {e}")
+        logging.error(f"Error in bulk save: {e}")
         QMessageBox.critical(
             self if hasattr(self, "parent") else None,
-            "Error de Guardado",
-            f"❌ Error guardando mappings: {str(e)}",
+            "Save Error",
+            f"Error saving mappings: {str(e)}",
         )
 
 
@@ -519,15 +415,15 @@ def create_fallback_visual_grid(container):
         """
     )
     error_layout = QVBoxLayout(error_frame)
-    error_label = QLabel("⚠️ Error creando grid de configuración visual")
+    error_label = QLabel("⚠️ Error creating visual settings grid")
     error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
     error_label.setStyleSheet("color: #d32f2f; font-size: 16px; font-weight: bold;")
     error_layout.addWidget(error_label)
     help_label = QLabel(
-        "Por favor verifica:\n"
-        "• Que el directorio 'config' existe\n"
-        "• Que tienes permisos de escritura\n"
-        "• Que el visualizer_manager está funcionando"
+        "Please check:\n"
+        "• That the 'config' directory exists\n"
+        "• That you have write permissions\n"
+        "• That the visualizer_manager is running"
     )
     help_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
     help_label.setStyleSheet("color: #666666; font-size: 12px;")

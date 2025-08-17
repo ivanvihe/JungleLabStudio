@@ -23,20 +23,15 @@ def test_midi_mappings():
     midi_engine = MidiEngine(settings_manager, visualizer_manager)
     time.sleep(1)
 
-    start_note = 56
-    visuals = visualizer_manager.get_visualizer_names()
-    clear_note = start_note + len(visuals)
+    mappings = settings_manager.load_midi_mappings()
+    assert mappings, "No MIDI mappings loaded"
+    sample_visual, sample_note = next(iter(mappings.items()))
 
-    test_cases = [
-        (start_note, 0, "Primer visual en Deck A"),
-        (start_note, 1, "Primer visual en Deck B"),
-        (start_note, 2, "Primer visual en Deck C"),
-        (clear_note, 3, "Clear Deck D"),
-    ]
-
-    for note, channel, description in test_cases:
-        logging.info(f"\n🎵 Testing {description}: note {note} ch{channel+1}")
-        midi_engine.test_midi_mapping(note, channel=channel)
+    for channel in range(4):
+        logging.info(
+            f"\n🎵 Testing {sample_visual} on channel {channel+1}: note {sample_note}"
+        )
+        midi_engine.test_midi_mapping(sample_note, channel=channel)
         time.sleep(0.2)
 
     logging.info("\n✅ MIDI mapping tests completed")
@@ -47,19 +42,14 @@ def test_preset_names():
     from utils.settings_manager import SettingsManager
 
     visualizer_manager = VisualizerManager()
-    available_presets = visualizer_manager.get_visualizer_names()
+    available_presets = set(visualizer_manager.get_visualizer_names())
     settings_manager = SettingsManager()
     mappings = settings_manager.load_midi_mappings()
 
-    mapping_presets = set()
-    for mapping_data in mappings.values():
-        params = mapping_data.get('params', {})
-        preset_name = params.get('preset_name')
-        if preset_name:
-            mapping_presets.add(preset_name)
+    mapping_presets = set(mappings.keys())
 
-    missing = mapping_presets - set(available_presets)
-    extra = set(available_presets) - mapping_presets
+    missing = mapping_presets - available_presets
+    extra = available_presets - mapping_presets
     if missing:
         logging.warning(f"Presets missing in visualizer_manager: {missing}")
     if extra:

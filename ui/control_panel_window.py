@@ -196,17 +196,17 @@ class ControlPanelWindow(QMainWindow):
             }
         """)
 
-        # Tab 1: Control en Vivo - IMPROVED
+        # Tab 1: Live Control - IMPROVED
         live_tab = create_live_control_tab(self)
-        main_tabs.addTab(live_tab, "🎛️ Control en Vivo")
+        main_tabs.addTab(live_tab, "🎛️ Live Control")
 
         # Tab 2: Visual Settings - IMPROVED
         visuals_tab = create_visual_settings_tab(self)
         main_tabs.addTab(visuals_tab, "🖼️ Visual Settings")
 
-        # Tab 3: Monitoreo y Debug
+        # Tab 3: Monitoring and Debug
         monitor_tab = create_monitor_tab(self)
-        main_tabs.addTab(monitor_tab, "📊 Monitoreo")
+        main_tabs.addTab(monitor_tab, "📊 Monitoring")
 
         main_layout.addWidget(main_tabs)
 
@@ -227,12 +227,12 @@ class ControlPanelWindow(QMainWindow):
                 
                 for i in range(main_tabs.count()):
                     tab_text = main_tabs.tabText(i)
-                    if "Control en Vivo" in tab_text:
+                    if "Control en Vivo" in tab_text or "Live Control" in tab_text:
                         # Recreate live control tab
                         old_widget = main_tabs.widget(i)
                         new_widget = create_live_control_tab(self)
                         main_tabs.removeTab(i)
-                        main_tabs.insertTab(i, new_widget, "🎛️ Control en Vivo")
+                        main_tabs.insertTab(i, new_widget, "🎛️ Live Control")
                         old_widget.deleteLater()
                         break
                 
