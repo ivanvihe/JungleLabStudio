@@ -56,18 +56,21 @@ class BaseVisualizer:
             "Audio Reactive": {
                 "type": "checkbox",
                 "value": self.audio_reactive,
+                "description": "Enable or disable audio-driven effects",
             },
             "Audio Sensitivity": {
                 "type": "slider",
                 "min": 0,
                 "max": 100,
                 "value": int(self.audio_sensitivity),
+                "description": "Adjust how strongly the visual reacts to audio",
             },
             "Smoothness": {
                 "type": "slider",
                 "min": 0,
                 "max": 100,
                 "value": int(self.audio_smoothness),
+                "description": "Higher values smooth out rapid audio changes",
             },
         }
 

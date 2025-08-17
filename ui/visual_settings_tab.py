@@ -2,7 +2,6 @@
 from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
-    QGridLayout,
     QLabel,
     QLineEdit,
     QScrollArea,
@@ -116,14 +115,14 @@ def create_visual_settings_tab(self):
     container = QWidget()
     scroll.setWidget(container)
 
-    # Create grid
-    create_visual_settings_grid(self, container)
+    # Create vertical list of visuals
+    create_visual_settings_list(self, container)
 
     return widget
 
 
-def create_visual_settings_grid(self, container):
-    """Create grid of visual settings with editable MIDI notes."""
+def create_visual_settings_list(self, container):
+    """Create vertical list of visuals with left/right columns."""
     try:
         visuals = []
         if hasattr(self, "visualizer_manager") and self.visualizer_manager:
@@ -138,40 +137,30 @@ def create_visual_settings_grid(self, container):
 
         current_mappings = load_current_midi_mappings()
 
-        columns = 4
-        rows = (len(visuals) + columns - 1) // columns
+        layout = QVBoxLayout(container)
+        layout.setSpacing(12)
+        layout.setContentsMargins(15, 15, 15, 15)
 
-        grid = QGridLayout(container)
-        grid.setSpacing(12)
-        grid.setContentsMargins(15, 15, 15, 15)
+        for visual_name in visuals:
+            row = create_visual_settings_row(self, visual_name, current_mappings)
+            layout.addWidget(row)
 
-        for col in range(columns):
-            grid.setColumnStretch(col, 1)
-
-        for idx, visual_name in enumerate(visuals):
-            row = idx // columns
-            col = idx % columns
-            visual_cell = create_visual_settings_cell_v2(self, visual_name, current_mappings)
-            grid.addWidget(visual_cell, row, col)
-
-        self.visual_settings_grid = grid
+        layout.addStretch()
+        self.visual_settings_layout = layout
         self.visual_mappings = current_mappings
-        logging.info(
-            f"✅ Created visual settings grid: {len(visuals)} visuals in {rows}x{columns} grid"
-        )
+        logging.info(f"✅ Created visual settings list with {len(visuals)} visuals")
     except Exception as e:
-        logging.error(f"❌ Error creating visual settings grid: {e}")
+        logging.error(f"❌ Error creating visual settings list: {e}")
         create_fallback_visual_grid(container)
 
 
 
 
-def create_visual_settings_cell_v2(self, visual_name, current_mappings):
-    """Create a visual settings cell with editable MIDI note and controls."""
-    cell = QFrame()
-    cell.setFixedSize(300, 180)
-    cell.setFrameStyle(QFrame.Shape.StyledPanel)
-    cell.setStyleSheet(
+def create_visual_settings_row(self, visual_name, current_mappings):
+    """Create a visual settings row with two columns."""
+    row = QFrame()
+    row.setFrameStyle(QFrame.Shape.StyledPanel)
+    row.setStyleSheet(
         """
         QFrame {
             background-color: #2a2a2a;
@@ -184,15 +173,18 @@ def create_visual_settings_cell_v2(self, visual_name, current_mappings):
         }
         """
     )
+    row.setProperty("visual_name", visual_name)
 
-    main_layout = QHBoxLayout(cell)
+    main_layout = QHBoxLayout(row)
     main_layout.setContentsMargins(8, 8, 8, 8)
-    main_layout.setSpacing(6)
+    main_layout.setSpacing(12)
 
-    # Left side (thumbnail, name, MIDI)
+    # ------------------------------------------------------------------
+    # Left column: name, thumbnail, MIDI note
+    # ------------------------------------------------------------------
     left_layout = QVBoxLayout()
     left_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-    left_layout.setSpacing(4)
+    left_layout.setSpacing(6)
 
     thumb_container = QFrame()
     thumb_container.setFixedSize(80, 60)
@@ -278,7 +270,7 @@ def create_visual_settings_cell_v2(self, visual_name, current_mappings):
     midi_layout = QVBoxLayout(midi_section)
     midi_layout.setContentsMargins(0, 0, 0, 0)
     midi_layout.setSpacing(2)
-    midi_label = QLabel("MIDI Note:")
+    midi_label = QLabel("Nota:")
     midi_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
     midi_label.setFont(QFont("Arial", 8))
     midi_label.setStyleSheet("color: #cccccc;")
@@ -288,13 +280,14 @@ def create_visual_settings_cell_v2(self, visual_name, current_mappings):
     midi_layout.addWidget(note_edit)
     left_layout.addWidget(midi_section)
 
-    main_layout.addLayout(left_layout, 1)
+    main_layout.addLayout(left_layout)
 
-    # Right side controls
-    controls_frame = QFrame()
-    controls_layout = QVBoxLayout(controls_frame)
-    controls_layout.setContentsMargins(0, 0, 0, 0)
-    controls_layout.setSpacing(4)
+    # ------------------------------------------------------------------
+    # Right column: audio controls and visual properties
+    # ------------------------------------------------------------------
+    right_layout = QVBoxLayout()
+    right_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+    right_layout.setSpacing(6)
 
     saved_props = load_visual_properties(visual_name) or {}
     vis_class = None
@@ -316,36 +309,92 @@ def create_visual_settings_cell_v2(self, visual_name, current_mappings):
         props[name] = value
         save_visual_properties(visual_name, props)
 
-    for name, info in controls.items():
+    audio_names = ["Audio Reactive", "Audio Sensitivity", "Smoothness"]
+
+    for name in audio_names:
+        info = controls.get(name)
+        if not info:
+            continue
         ctype = info.get("type")
+        desc = info.get("description", name)
         if ctype == "slider":
-            row = QHBoxLayout()
+            row_ctrl = QHBoxLayout()
             label = QLabel(name)
             label.setStyleSheet("color: #cccccc;")
+            label.setToolTip(desc)
             slider = QSlider(Qt.Orientation.Horizontal)
             slider.setMinimum(int(info.get("min", 0)))
             slider.setMaximum(int(info.get("max", 100)))
             current = int(saved_props.get(name, info.get("value", 0)))
             slider.setValue(current)
+            slider.setToolTip(desc)
             value_label = QLabel(str(current))
             value_label.setFixedWidth(24)
             slider.valueChanged.connect(
-                lambda v, n=name, lbl=value_label: (lbl.setText(str(v)), save_prop(n, int(v)))
+                lambda v, n=name, lbl=value_label: (
+                    lbl.setText(str(v)),
+                    save_prop(n, int(v)),
+                )
             )
-            row.addWidget(label)
-            row.addWidget(slider)
-            row.addWidget(value_label)
-            controls_layout.addLayout(row)
+            row_ctrl.addWidget(label)
+            row_ctrl.addWidget(slider)
+            row_ctrl.addWidget(value_label)
+            right_layout.addLayout(row_ctrl)
         elif ctype == "checkbox":
             check = QCheckBox(name)
             check.setChecked(bool(saved_props.get(name, info.get("value", False))))
+            check.setToolTip(desc)
             check.stateChanged.connect(lambda state, n=name: save_prop(n, bool(state)))
-            controls_layout.addWidget(check)
+            right_layout.addWidget(check)
 
-    main_layout.addWidget(controls_frame, 1)
+    other_controls = {
+        k: v for k, v in controls.items() if k not in audio_names
+    }
+    if other_controls:
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.HLine)
+        right_layout.addWidget(sep)
+        props_label = QLabel("Visual properties")
+        props_label.setStyleSheet("color: #ffffff; font-weight: bold;")
+        right_layout.addWidget(props_label)
 
-    cell.thumb_label = thumb_label
-    return cell
+    for name, info in other_controls.items():
+        ctype = info.get("type")
+        desc = info.get("description", name)
+        if ctype == "slider":
+            row_ctrl = QHBoxLayout()
+            label = QLabel(name)
+            label.setStyleSheet("color: #cccccc;")
+            label.setToolTip(desc)
+            slider = QSlider(Qt.Orientation.Horizontal)
+            slider.setMinimum(int(info.get("min", 0)))
+            slider.setMaximum(int(info.get("max", 100)))
+            current = int(saved_props.get(name, info.get("value", 0)))
+            slider.setValue(current)
+            slider.setToolTip(desc)
+            value_label = QLabel(str(current))
+            value_label.setFixedWidth(24)
+            slider.valueChanged.connect(
+                lambda v, n=name, lbl=value_label: (
+                    lbl.setText(str(v)),
+                    save_prop(n, int(v)),
+                )
+            )
+            row_ctrl.addWidget(label)
+            row_ctrl.addWidget(slider)
+            row_ctrl.addWidget(value_label)
+            right_layout.addLayout(row_ctrl)
+        elif ctype == "checkbox":
+            check = QCheckBox(name)
+            check.setChecked(bool(saved_props.get(name, info.get("value", False))))
+            check.setToolTip(desc)
+            check.stateChanged.connect(lambda state, n=name: save_prop(n, bool(state)))
+            right_layout.addWidget(check)
+
+    main_layout.addLayout(right_layout, 1)
+
+    row.thumb_label = thumb_label
+    return row
 
 
 def create_midi_note_editor(visual_name, current_note):
@@ -374,6 +423,7 @@ def create_midi_note_editor(visual_name, current_note):
     )
     note_edit.setPlaceholderText("0-127")
     note_edit.setMaxLength(3)
+    note_edit.setValidator(QIntValidator(0, 127))
 
     def validate_and_save():
         try:
@@ -515,28 +565,20 @@ def save_all_midi_mappings(self):
     """Save all current MIDI mappings (called by Save button)."""
     try:
         mappings = {}
-        if hasattr(self, "visual_settings_grid"):
-            for i in range(self.visual_settings_grid.count()):
-                item = self.visual_settings_grid.itemAt(i)
+        if hasattr(self, "visual_settings_layout"):
+            for i in range(self.visual_settings_layout.count()):
+                item = self.visual_settings_layout.itemAt(i)
                 if item and item.widget():
                     cell = item.widget()
-                    visual_name = None
-                    note_value = None
-                    for child in cell.findChildren(QLabel):
-                        text = child.text()
-                        if text:
-                            visual_name = text
-                            break
-                    for child in cell.findChildren(QLineEdit):
-                        note_text = child.text().strip()
+                    visual_name = cell.property("visual_name")
+                    note_edit = cell.findChild(QLineEdit)
+                    if visual_name and note_edit:
+                        note_text = note_edit.text().strip()
                         if note_text:
                             try:
-                                note_value = int(note_text)
+                                mappings[visual_name] = int(note_text)
                             except ValueError:
-                                note_value = None
-                            break
-                    if visual_name and note_value is not None:
-                        mappings[visual_name] = note_value
+                                pass
         config_path = Path("config/midi_mappings.json")
         config_path.parent.mkdir(exist_ok=True)
         with open(config_path, "w", encoding="utf-8") as f:
