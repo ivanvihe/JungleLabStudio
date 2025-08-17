@@ -461,8 +461,10 @@ class MidiConfigWidget(QWidget):
             # Buscar mapping para esta nota
             mappings = self.midi_engine.get_midi_mappings()
             note_mapping = None
-            
+
             for action_id, mapping_data in mappings.items():
+                if not isinstance(mapping_data, dict):
+                    continue
                 midi_key = mapping_data.get('midi', '')
                 if f'note{note}' in midi_key:
                     note_mapping = mapping_data
@@ -656,8 +658,10 @@ class MidiConfigWidget(QWidget):
             # Buscar y eliminar mappings para esta nota
             mappings = self.midi_engine.get_midi_mappings()
             to_delete = []
-            
+
             for action_id, mapping_data in mappings.items():
+                if not isinstance(mapping_data, dict):
+                    continue
                 midi_key = mapping_data.get('midi', '')
                 if f'note{note}' in midi_key:
                     to_delete.append(action_id)
@@ -848,9 +852,12 @@ class MidiConfigWidget(QWidget):
             if not self.midi_engine:
                 return
                 
-            mappings = self.midi_engine.get_midi_mappings()
+            mappings = {
+                aid: m for aid, m in self.midi_engine.get_midi_mappings().items()
+                if isinstance(m, dict)
+            }
             self.advanced_table.setRowCount(len(mappings))
-            
+
             for row, (action_id, mapping_data) in enumerate(mappings.items()):
                 # ID
                 id_item = QTableWidgetItem(action_id)

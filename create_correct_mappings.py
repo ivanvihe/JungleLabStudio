@@ -44,7 +44,7 @@ def create_correct_midi_mappings():
         for midi_key, expected_preset, expected_deck in critical_tests:
             found = False
             for action_id, mapping_data in mappings.items():
-                if mapping_data.get('midi') == midi_key:
+                if isinstance(mapping_data, dict) and mapping_data.get('midi') == midi_key:
                     action_type = mapping_data.get('type')
                     params = mapping_data.get('params', {})
 
@@ -70,9 +70,9 @@ def create_correct_midi_mappings():
         # Mostrar resumen por deck
         print(f"\n📋 RESUMEN POR DECK:\n")
 
-        deck_a_count = len([m for m in mappings.values() if m.get('params', {}).get('deck_id') == 'A'])
-        deck_b_count = len([m for m in mappings.values() if m.get('params', {}).get('deck_id') == 'B'])
-        mix_count = len([m for m in mappings.values() if m.get('type') == 'crossfade_action'])
+        deck_a_count = len([m for m in mappings.values() if isinstance(m, dict) and m.get('params', {}).get('deck_id') == 'A'])
+        deck_b_count = len([m for m in mappings.values() if isinstance(m, dict) and m.get('params', {}).get('deck_id') == 'B'])
+        mix_count = len([m for m in mappings.values() if isinstance(m, dict) and m.get('type') == 'crossfade_action'])
 
         print(f"   🔴 Deck A: {deck_a_count} mappings")
         print(f"   🟢 Deck B: {deck_b_count} mappings")

@@ -29,7 +29,7 @@ def diagnose_midi():
             key = f"note_on_ch0_note{note}"
             found = False
             for action_id, mapping_data in mappings.items():
-                if mapping_data.get('midi') == key:
+                if isinstance(mapping_data, dict) and mapping_data.get('midi') == key:
                     action_type = mapping_data.get('type', 'unknown')
                     params = mapping_data.get('params', {})
                     preset = params.get('preset_name', params.get('preset', 'N/A'))

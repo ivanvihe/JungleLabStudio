@@ -484,7 +484,8 @@ class ControlPanelWindow(QMainWindow):
                 test_key = f"note_on_ch0_note{note}"
                 found = False
                 for action_id, mapping_data in self.midi_engine.midi_mappings.items():
-                    if mapping_data.get('midi') == test_key:
+                    # Some mappings may be stored as simple integers; skip those
+                    if isinstance(mapping_data, dict) and mapping_data.get('midi') == test_key:
                         action_type = mapping_data.get('type', 'unknown')
                         params = mapping_data.get('params', {})
                         preset = params.get('preset_name', 'N/A')
@@ -719,11 +720,11 @@ class ControlPanelWindow(QMainWindow):
 
             deck_id = None
             if midi_key and self.midi_engine:
-                mappings = self.midi_engine.get_midi_mappings()
-                for mapping_data in mappings.values():
-                    if mapping_data.get('midi') == midi_key:
-                        deck_id = mapping_data.get('params', {}).get('deck_id')
-                        break
+                # Look up mapping information using the pre-built MIDI lookup
+                lookup_entry = getattr(self.midi_engine, 'midi_lookup', {}).get(midi_key)
+                if lookup_entry:
+                    _, mapping_data = lookup_entry
+                    deck_id = mapping_data.get('params', {}).get('deck_id')
 
             if hasattr(self, 'midi_activity_table') and not getattr(self, 'midi_monitoring_paused', False):
                 row = self.midi_activity_table.rowCount()

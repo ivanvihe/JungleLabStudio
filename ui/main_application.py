@@ -227,20 +227,16 @@ class MainApplication:
         """Debug method to log all MIDI messages and check mappings"""
         try:
             logging.debug(f"🎹 MIDI Learning Signal: {message_key}")
-            
-            # Check if this message has a mapping
-            mappings_found = 0
-            for action_id, mapping_data in self.midi_engine.midi_mappings.items():
-                if mapping_data.get('midi') == message_key:
-                    action_type = mapping_data.get('type', 'unknown')
-                    params = mapping_data.get('params', {})
-                    logging.debug(f"🎯 Found mapping: {action_id} -> {action_type} {params}")
-                    mappings_found += 1
-            
-            if mappings_found == 0:
-                logging.debug(f"🔍 No mapping found for: {message_key}")
+
+            # Look up mapping information using the MIDI lookup table
+            mapping_entry = getattr(self.midi_engine, 'midi_lookup', {}).get(message_key)
+            if mapping_entry:
+                action_id, mapping_data = mapping_entry
+                action_type = mapping_data.get('type', 'unknown')
+                params = mapping_data.get('params', {})
+                logging.debug(f"🎯 Found mapping: {action_id} -> {action_type} {params}")
             else:
-                logging.debug(f"✅ Found {mappings_found} mapping(s) for: {message_key}")
+                logging.debug(f"🔍 No mapping found for: {message_key}")
                 
         except Exception as e:
             logging.error(f"Error in debug_midi_message: {e}")
