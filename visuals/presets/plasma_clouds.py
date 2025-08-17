@@ -33,7 +33,7 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
         self.edge_softness = 0.3
         
         # Color palette controls
-        self.color_palette = 0  # 0=fire, 1=ocean, 2=aurora, 3=neon, 4=cosmic
+        self.color_palette = 0  # 0=frost, 1=ocean, 2=aurora, 3=neon, 4=cosmic
         self.color_saturation = 1.0
         self.color_brightness = 1.0
         
@@ -202,13 +202,17 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
             }
             
             // Color palette functions
-            vec3 firePalette(float t) {
+            vec3 frostPalette(float t) {
                 t = clamp(t, 0.0, 1.0);
-                vec3 a = vec3(0.5, 0.0, 0.0);
-                vec3 b = vec3(2.0, 1.0, 0.1);
-                vec3 c = vec3(1.0, 1.0, 1.0);
-                vec3 d = vec3(0.0, 0.33, 0.67);
-                return a + b * cos(6.28 * (c * t + d));
+                vec3 c1 = vec3(0.867, 0.906, 0.933);
+                vec3 c2 = vec3(0.506, 0.647, 0.729);
+                vec3 c3 = vec3(0.224, 0.420, 0.537);
+                vec3 c4 = vec3(0.196, 0.204, 0.337);
+                vec3 c5 = vec3(0.125, 0.145, 0.278);
+                if(t < 0.25) return mix(c1, c2, t / 0.25);
+                else if(t < 0.5) return mix(c2, c3, (t - 0.25) / 0.25);
+                else if(t < 0.75) return mix(c3, c4, (t - 0.5) / 0.25);
+                else return mix(c4, c5, (t - 0.75) / 0.25);
             }
             
             vec3 oceanPalette(float t) {
@@ -253,7 +257,7 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
                     case 2: return auroraPalette(t);
                     case 3: return neonPalette(t);
                     case 4: return cosmicPalette(t);
-                    default: return firePalette(t);
+                    default: return frostPalette(t);
                 }
             }
             
@@ -296,11 +300,11 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
                 // Edge fadeout for seamless looping
                 float edge = 1.0 - smoothstep(0.8, 1.0, length(centered));
                 color *= edge;
-                
+
                 // Final gamma correction
                 color = pow(color, vec3(1.0/2.2));
-                
-                FragColor = vec4(color, 1.0);
+
+                FragColor = vec4(color, edge);
             }
             """
             
@@ -346,7 +350,7 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
         
         try:
             if not self.initialized or not self.shader_program or not self.vao:
-                backend.clear(0.0, 0.0, 0.0, 1.0)
+                backend.clear(0.0, 0.0, 0.0, 0.0)
                 return
             
             if self.start_time is None:
@@ -355,7 +359,7 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
             elapsed_time = current_time - self.start_time
             
             # Clear background
-            backend.clear(0.0, 0.0, 0.0, 1.0)
+            backend.clear(0.0, 0.0, 0.0, 0.0)
             
             # Set uniforms
             backend.uniform(self.shader_program, "time", elapsed_time)
@@ -393,7 +397,7 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
                 logging.error(f"PlasmaClouds paint error: {e}")
                 self._last_error_time = time.time()
             
-            backend.clear(0.0, 0.0, 0.0, 1.0)
+            backend.clear(0.0, 0.0, 0.0, 0.0)
     
     def resizeGL(self, width, height, backend=None):
         """Handle resize"""
@@ -528,7 +532,7 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
             },
             "Color Palette": {
                 "type": "combo",
-                "options": ["Fire", "Ocean", "Aurora", "Neon", "Cosmic"],
+                "options": ["Frost", "Ocean", "Aurora", "Neon", "Cosmic"],
                 "value": self.color_palette,
                 "default": 0
             },
