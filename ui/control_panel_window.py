@@ -595,10 +595,23 @@ class ControlPanelWindow(QMainWindow):
                     cell.setStyleSheet(cell.base_style)
 
             if preset_name and preset_name in cells:
+                cell = cells[preset_name]
+                cell.setObjectName("visual-cell")
                 highlight_style = (
-                    f"QFrame {{ background-color: #1a1a1a; border: 3px solid {color}; border-radius: 8px; }}"
+                    f"QFrame#visual-cell {{\n"
+                    f"    background-color: #1a1a1a;\n"
+                    f"    border: 3px solid {color};\n"
+                    "    border-radius: 8px;\n" 
+                    "}\n"
+                    f"QFrame#visual-cell:hover {{\n"
+                    f"    border-color: {color};\n"
+                    "}\n"
+                    "QLabel {\n"
+                    "    border: none;\n"
+                    "    background: transparent;\n"
+                    "}\n"
                 )
-                cells[preset_name].setStyleSheet(highlight_style)
+                cell.setStyleSheet(highlight_style)
         except Exception as e:
             logging.error(f"Error updating grid highlight: {e}")
 
