@@ -153,29 +153,6 @@ class PreferencesDialog(QDialog):
             device_text = f"{device['name']} ({device['channels']} ch)"
             self.audio_device_selector.addItem(device_text)
 
-    def on_midi_device_changed(self, device_name):
-        """Handle MIDI device selection change"""
-        if device_name == "No Device":
-            self.midi_engine.close_input_port()
-            self.settings_manager.set_setting("last_midi_device", "")
-        else:
-            self.midi_engine.open_input_port(device_name)
-            self.settings_manager.set_setting("last_midi_device", device_name)
-
-    def on_audio_device_changed(self, device_text):
-        """Handle audio device selection change"""
-        if device_text == "No Device":
-            self.audio_analyzer.stop_analysis()
-            self.settings_manager.set_setting("audio_settings.input_device", "")
-        else:
-            # Extract device index from the text
-            devices = self.audio_analyzer.get_available_devices()
-            for i, device in enumerate(devices):
-                if device_text.startswith(device['name']):
-                    self.audio_analyzer.set_input_device(device['index'])
-                    self.audio_analyzer.start_analysis()
-                    self.settings_manager.set_setting("audio_settings.input_device", device_text)
-                    break
 
     def populate_gpu_devices(self):
         """Populate GPU selector with available GPUs using multiple detection methods."""
@@ -216,6 +193,17 @@ class PreferencesDialog(QDialog):
 
         # Remove duplicates and populate selector
         self._finalize_gpu_list()
+
+        # Restore previous selection
+        current_gpu_index = self.settings_manager.get_setting("visual_settings.gpu_index", 0)
+        current_backend = self.settings_manager.get_setting("visual_settings.backend", "OpenGL")
+        selected_row = 0
+        for i, (idx, name, backend) in enumerate(self.gpu_info):
+            if idx == current_gpu_index and backend == current_backend:
+                selected_row = i
+                break
+        if self.gpu_info:
+            self.gpu_selector.setCurrentIndex(selected_row)
 
         logging.info(f"✅ GPU detection complete. Found {len(self.gpu_info)} options")
         for i, (idx, name, backend) in enumerate(self.gpu_info):
@@ -396,9 +384,15 @@ class PreferencesDialog(QDialog):
         """Handle backend selection change"""
         self.settings_manager.set_setting("visual_settings.backend", backend_name)
         logging.info(f"🔧 Backend changed to: {backend_name}")
-        
-        # Re-populate GPU list for the new backend
+
+        # Re-populate GPU list for the new backend and reapply selection
         self.populate_gpu_devices()
+
+        if self.gpu_info:
+            row = self.gpu_selector.currentIndex()
+            device_index, _, backend = self.gpu_info[row]
+            if hasattr(self.parent(), 'apply_gpu_selection'):
+                self.parent().apply_gpu_selection(device_index, backend)
 
     def on_midi_device_changed(self, device_name):
         """Handle MIDI device selection change"""
