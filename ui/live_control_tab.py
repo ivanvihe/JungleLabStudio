@@ -114,7 +114,7 @@ def create_improved_deck_grid(self, container):
         grid.setVerticalSpacing(5)
 
         for row, (deck_id, cfg) in enumerate(deck_config.items()):
-            header = QLabel(f"{cfg[name]}\nCh {cfg[channel]}")
+            header = QLabel(f"{cfg['name']}\nCh {cfg['channel']}")
             header.setAlignment(Qt.AlignmentFlag.AlignCenter)
             header.setFixedSize(100, 100)
             header.setStyleSheet(
@@ -147,6 +147,16 @@ def create_improved_deck_grid(self, container):
 
     except Exception as e:
         logging.error(f"❌ Error creating live control grid: {e}")
+
+        existing_layout = container.layout()
+        if existing_layout is not None:
+            while existing_layout.count():
+                item = existing_layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.setParent(None)
+            existing_layout.deleteLater()
+
         create_fallback_grid(container)
 
 
