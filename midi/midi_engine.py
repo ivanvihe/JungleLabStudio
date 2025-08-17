@@ -254,34 +254,26 @@ class MidiEngine(QObject):
             traceback.print_exc()
 
     def _build_midi_lookup(self):
-        """VERSIÓN MEJORADA: Construir tabla de lookup con soporte multi-canal Y limpieza de duplicados"""
+        """Build lookup table from simple visual->note mappings."""
         self.midi_lookup = {}
         try:
-            logging.info("🔨 BUILDING MIDI LOOKUP TABLE...")
-            
-            # NUEVO: Limpiar duplicados antes de construir lookup
-            duplicates_cleaned = self.remove_duplicate_mappings_smart()
-            if duplicates_cleaned:
-                logging.info(f"🧹 Cleaned {duplicates_cleaned} duplicate mappings")
-            
-            # Construir lookup table
-            for action_id, mapping_data in self.midi_mappings.items():
-                if not isinstance(mapping_data, dict):
+            for visual_name, note in self.midi_mappings.items():
+                if not isinstance(note, int):
                     continue
-                    
-                midi_key = mapping_data.get("midi")
-                if midi_key:
-                    # Verificar duplicados (no debería haber después de la limpieza)
-                    if midi_key in self.midi_lookup:
-                        old_action_id, old_mapping = self.midi_lookup[midi_key]
-                        logging.warning(f"⚠️ STILL DUPLICATE MIDI KEY: {midi_key}")
-                        logging.warning(f"   Old: {old_action_id}")
-                        logging.warning(f"   New: {action_id} (will overwrite)")
-                    
+                for deck_index, deck_id in enumerate(['A', 'B', 'C', 'D']):
+                    midi_key = f"note_on_ch{deck_index}_note{note}"
+                    action_id = f"{visual_name.replace(' ', '_').lower()}_{deck_id.lower()}"
+                    mapping_data = {
+                        'type': 'load_preset',
+                        'params': {
+                            'deck_id': deck_id,
+                            'preset_name': visual_name,
+                            'custom_values': '',
+                        },
+                        'midi': midi_key,
+                    }
                     self.midi_lookup[midi_key] = (action_id, mapping_data)
-                        
             logging.info(f"✅ MIDI lookup table built with {len(self.midi_lookup)} entries")
-            
         except Exception as e:
             logging.error(f"❌ Error building MIDI lookup: {e}")
             self.midi_lookup = {}
@@ -854,31 +846,22 @@ class MidiEngine(QObject):
             logging.info(
                 f"🧪 TESTING MIDI mapping for note {note_number} on ch{channel} (key: {test_key})"
             )
-            
-            found_mapping = None
-            for action_id, mapping_data in self.midi_mappings.items():
-                if mapping_data.get('midi') == test_key:
-                    found_mapping = (action_id, mapping_data)
+
+            found_visual = None
+            for visual, note in self.midi_mappings.items():
+                if note == note_number:
+                    found_visual = visual
                     break
-            
-            if found_mapping:
-                action_id, mapping_data = found_mapping
-                action_type = mapping_data.get('type')
-                params = mapping_data.get('params', {})
-                
-                logging.info(f"✅ Found mapping: {action_id}")
-                logging.info(f"  Type: {action_type}")
-                logging.info(f"  Params: {params}")
-                
-                logging.info(f"🚀 SIMULATING execution...")
+
+            if found_visual:
+                logging.info(f"✅ Found mapping: {found_visual}")
+                logging.info("🚀 SIMULATING execution...")
                 self.execute_mapped_action(test_key, 127)
-                
             else:
                 note_name = self.get_note_name(note_number)
                 logging.warning(
                     f"❌ No mapping found for {note_name} (note {note_number}) on ch{channel}"
                 )
-                
         except Exception as e:
             logging.error(f"❌ Error testing MIDI mapping: {e}")
 
@@ -898,26 +881,26 @@ class MidiEngine(QObject):
         """Get current MIDI mappings"""
         return self.midi_mappings.copy()
 
-    def add_midi_mapping(self, action_id, mapping_data):
+    def add_midi_mapping(self, visual_name, note):
         """Add a single MIDI mapping"""
         try:
-            self.midi_mappings[action_id] = mapping_data
+            self.midi_mappings[visual_name] = note
             self._build_midi_lookup()
             if self.settings_manager:
                 self.settings_manager.save_midi_mappings(self.midi_mappings)
-            logging.info(f"Added MIDI mapping: {action_id}")
+            logging.info(f"Added MIDI mapping: {visual_name} -> {note}")
         except Exception as e:
             logging.error(f"Error adding MIDI mapping: {e}")
 
-    def remove_midi_mapping(self, action_id):
+    def remove_midi_mapping(self, visual_name):
         """Remove a MIDI mapping"""
         try:
-            if action_id in self.midi_mappings:
-                del self.midi_mappings[action_id]
+            if visual_name in self.midi_mappings:
+                del self.midi_mappings[visual_name]
                 self._build_midi_lookup()
                 if self.settings_manager:
                     self.settings_manager.save_midi_mappings(self.midi_mappings)
-                logging.info(f"Removed MIDI mapping: {action_id}")
+                logging.info(f"Removed MIDI mapping: {visual_name}")
         except Exception as e:
             logging.error(f"Error removing MIDI mapping: {e}")
 
@@ -1197,54 +1180,23 @@ class MidiEngine(QObject):
             return []
 
     def remove_duplicate_mappings_smart(self):
-        """Eliminar mappings duplicados manteniendo los de mayor prioridad"""
+        """Ensure each MIDI note maps to only one visual."""
         try:
-            from collections import defaultdict
-
-            # Agrupar por MIDI key
-            midi_key_groups = defaultdict(list)
-
-            for action_id, mapping_data in self.midi_mappings.items():
-                if isinstance(mapping_data, dict):
-                    midi_key = mapping_data.get('midi', '')
-                    if midi_key and midi_key != '':
-                        midi_key_groups[midi_key].append((action_id, mapping_data))
-
-            # Encontrar y resolver duplicados
+            seen = {}
             duplicates_removed = 0
-            clean_mappings = {}
-
-            for midi_key, mapping_list in midi_key_groups.items():
-                if len(mapping_list) > 1:
-                    # Hay duplicados - elegir el mejor
-                    best_mapping = self.choose_best_mapping(mapping_list)
-                    clean_mappings[best_mapping[0]] = best_mapping[1]
-                    duplicates_removed += len(mapping_list) - 1
-
-                    logging.debug(f"🔧 Resolved duplicate for {midi_key}: kept {best_mapping[0]}")
-                else:
-                    # No duplicados
-                    action_id, mapping_data = mapping_list[0]
-                    clean_mappings[action_id] = mapping_data
-
-            # Añadir mappings sin MIDI key
-            for action_id, mapping_data in self.midi_mappings.items():
-                if isinstance(mapping_data, dict):
-                    midi_key = mapping_data.get('midi', '')
-                    if not midi_key or midi_key == '':
-                        clean_mappings[action_id] = mapping_data
-
-            # Actualizar mappings si se removieron duplicados
-            if duplicates_removed > 0:
-                self.midi_mappings = clean_mappings
-                logging.info(f"🧹 Removed {duplicates_removed} duplicate MIDI mappings")
-
-                # Guardar cambios limpios
+            clean = {}
+            for visual, note in self.midi_mappings.items():
+                if note in seen:
+                    duplicates_removed += 1
+                    continue
+                seen[note] = visual
+                clean[visual] = note
+            if duplicates_removed:
+                self.midi_mappings = clean
                 if self.settings_manager:
                     self.settings_manager.save_midi_mappings(self.midi_mappings)
-
+                logging.info(f"🧹 Removed {duplicates_removed} duplicate MIDI mappings")
             return duplicates_removed
-
         except Exception as e:
             logging.error(f"❌ Error removing duplicate mappings: {e}")
             return 0
