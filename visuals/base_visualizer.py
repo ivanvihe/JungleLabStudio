@@ -18,6 +18,9 @@ class BaseVisualizer:
         self.audio_reactive: bool = True
         # Generic audio sensitivity factor (0-100)
         self.audio_sensitivity: float = 50.0
+        # How smoothly audio values change (0-100, higher = smoother)
+        self.audio_smoothness: float = 50.0
+        self._smoothed_bands: np.ndarray | None = None
 
     def _check_gl_error(self, context: str = ""):
         """Checks for OpenGL errors and logs them."""
@@ -60,6 +63,12 @@ class BaseVisualizer:
                 "max": 100,
                 "value": int(self.audio_sensitivity),
             },
+            "Smoothness": {
+                "type": "slider",
+                "min": 0,
+                "max": 100,
+                "value": int(self.audio_smoothness),
+            },
         }
 
     def update_control(self, name, value):
@@ -72,6 +81,12 @@ class BaseVisualizer:
                 self.audio_sensitivity = float(value)
             except Exception:
                 self.audio_sensitivity = 50.0
+            return True
+        elif name == "Smoothness":
+            try:
+                self.audio_smoothness = float(value)
+            except Exception:
+                self.audio_smoothness = 50.0
             return True
         return False
 
@@ -128,4 +143,12 @@ class BaseVisualizer:
             return np.zeros(bands)
         bands_vals = self.get_frequency_bands(bands) / 100.0
         sensitivity = max(self.audio_sensitivity, 0.0) / 50.0
-        return np.clip(bands_vals * sensitivity, 0.0, 1.0)
+        raw = np.clip(bands_vals * sensitivity, 0.0, 1.0)
+        smooth_factor = np.clip(self.audio_smoothness, 0.0, 100.0) / 100.0
+        if self._smoothed_bands is None or len(self._smoothed_bands) != bands:
+            self._smoothed_bands = raw
+        else:
+            self._smoothed_bands = (
+                self._smoothed_bands * smooth_factor + raw * (1.0 - smooth_factor)
+            )
+        return self._smoothed_bands
