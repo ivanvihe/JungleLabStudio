@@ -2,9 +2,9 @@
 import sys
 import os
 import logging
-from PyQt6.QtWidgets import QApplication, QMessageBox
-from PyQt6.QtGui import QSurfaceFormat
-from PyQt6.QtCore import QTimer
+from PyQt6.QtWidgets import QApplication, QMessageBox, QSplashScreen
+from PyQt6.QtGui import QSurfaceFormat, QPixmap
+from PyQt6.QtCore import QTimer, Qt
 
 from utils.settings_manager import SettingsManager
 from midi.midi_engine import MidiEngine
@@ -53,9 +53,19 @@ class MainApplication:
             self.app = QApplication(sys.argv)
             self.app.setApplicationName("Audio Visualizer Pro")
             self.app.setApplicationVersion("1.0")
-            
-            
-            
+
+            # Simple loading splash while initializing components
+            pixmap = QPixmap(400, 300)
+            pixmap.fill(Qt.GlobalColor.black)
+            self.splash = QSplashScreen(pixmap)
+            self.splash.showMessage(
+                "Loading visuals and mappings...",
+                Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignBottom,
+                Qt.GlobalColor.white,
+            )
+            self.splash.show()
+            self.app.processEvents()
+
             # Initialize core components
             self.initialize_components()
             
@@ -64,6 +74,9 @@ class MainApplication:
             
             # Create UI windows with proper sequencing
             self.create_windows()
+
+            # Close splash once windows are ready
+            self.splash.finish(self.mixer_window)
             
             # CRITICAL: Setup connections and references BEFORE auto-connect
             self.setup_connections()

@@ -1,7 +1,6 @@
 # visuals/visualizer_manager.py
 import logging
 import importlib
-import os
 import sys
 from pathlib import Path
 
@@ -18,29 +17,12 @@ class VisualizerManager:
             presets_dir = current_dir / "presets"
             logging.info(f"🔍 Loading visualizers from: {presets_dir}")
             
-            # List of visualizer modules to load (in order of preference)
-            visualizer_modules = [
-                'simple_test',        # Simple test visualizer (should always work)
-                'intro_background',    # Intro background visualizer
-                'intro_text_robotica', # Intro text overlay
-                'wire_terrain',       # Wire terrain
-                'abstract_lines',     # Abstract lines
-                'geometric_particles',
-                'evolutive_particles',
-                'abstract_shapes',
-                'mobius_band',
-                'building_madness',
-                'cosmic_flow',
-                'fluid_particles',
-                'vortex_particles',
-                'kaleido_tunney',
-                'science_analyzer',
-                'plasma_clouds',
-                'oneshot_charactertrain',
-                'oneshot_boomexplosion',
-                'oneshot_circuit_signal',
-                'oneshot_electric_boom',
-            ]
+            # Dynamically collect all visualizer modules in presets directory
+            visualizer_modules = []
+            for file in sorted(presets_dir.glob("*.py")):
+                if file.name.startswith("__"):
+                    continue
+                visualizer_modules.append(file.stem)
             
             loaded_count = 0
             failed_modules = []
