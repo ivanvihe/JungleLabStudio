@@ -1,29 +1,45 @@
 {
-  "last_midi_device": "virtual 2",
-  "control_panel_monitor": 0,
-  "main_window_monitor": 2,
-  "auto_save_settings": true,
-  "window_positions": {
-    "control_panel": {"x": 3840, "y": 23, "width": 1536, "height": 793},
-    "main_window": {"x": 1920, "y": 23, "width": 1536, "height": 793}
-  },
-  "deck_settings": {
-    "deck_a": {"last_visualizer": "", "last_controls": {}},
-    "deck_b": {"last_visualizer": "", "last_controls": {}}
-  },
-  "mixer_settings": {
-    "last_mix_value": 50,
-    "crossfader_curve": "linear"
-  },
-  "audio_settings": {
-    "input_device": "Line (Reloop RMX-95) (10 ch)",
-    "buffer_size": 1024,
-    "sample_rate": 44100
-  },
-  "visual_settings": {
-    "fps_limit": 60,
-    "vsync": true,
-    "quality": "high"
-  },
-  "midi_mappings": {}
+    "last_midi_device": "virtual 2",
+    "control_panel_monitor": 0,
+    "main_window_monitor": 2,
+    "auto_save_settings": true,
+    "window_positions": {
+        "control_panel": {
+            "x": 3840,
+            "y": 23,
+            "width": 1536,
+            "height": 793
+        },
+        "main_window": {
+            "x": 0,
+            "y": 23,
+            "width": 1536,
+            "height": 793
+        }
+    },
+    "deck_settings": {
+        "deck_a": {
+            "last_visualizer": "",
+            "last_controls": {}
+        },
+        "deck_b": {
+            "last_visualizer": "",
+            "last_controls": {}
+        }
+    },
+    "mixer_settings": {
+        "last_mix_value": 50,
+        "crossfader_curve": "linear"
+    },
+    "audio_settings": {
+        "input_device": "Line (Reloop RMX-95) (10 ch)",
+        "buffer_size": 1024,
+        "sample_rate": 44100
+    },
+    "visual_settings": {
+        "fps_limit": 60,
+        "vsync": true,
+        "quality": "high"
+    },
+    "midi_mappings": {}
 }
