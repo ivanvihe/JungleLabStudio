@@ -1,1 +1,41 @@
-{}
+{
+  "Abstract Lines": {
+    "Audio Sensitivity": 32,
+    "Smoothness": 100,
+    "Line Width": 3,
+    "Number of Lines": 50,
+    "Complexity": 70
+  },
+  "Abstract Shapes": {
+    "Audio Sensitivity": 40,
+    "Smoothness": 100,
+    "Rotation Speed": 47,
+    "Number of Shapes": 100,
+    "Complexity": 159
+  },
+  "Infinite Neural Network": {
+    "Audio Sensitivity": 10,
+    "Smoothness": 100,
+    "Intensity": 41,
+    "Travel Speed": 12,
+    "Color Scheme": 2,
+    "FOV Factor": 200,
+    "Node Spawn Rate": 20,
+    "Connection Range": 20
+  },
+  "Intro Background": {
+    "Brightness": 20,
+    "Change Frequency": 50,
+    "Transition Speed": 11,
+    "Fill Rate": 29
+  },
+  "Mobius Band": {
+    "Amplitude": 200,
+    "V Segments": 24,
+    "Frequency": 54
+  },
+  "Plasma Loop": {
+    "Contrast": 267,
+    "Layers": 5
+  }
+}
