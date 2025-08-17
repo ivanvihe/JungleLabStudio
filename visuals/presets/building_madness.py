@@ -616,24 +616,11 @@ class BuildingMadnessVisualizer(BaseVisualizer):
         self.delta_time = current_time - self.last_time
         self.last_time = current_time
         self.time += self.delta_time * self.camera_speed
-        
         # Get audio data
-        if hasattr(self, "analyzer") and self.analyzer and self.analyzer.is_active():
-            fft = self.analyzer.get_fft_data().astype(np.float32)
-            # Smooth the FFT data
-            target_fft = np.interp(np.linspace(0, len(fft)-1, 32), 
-                                  np.arange(len(fft)), fft)
-            self.smooth_fft = self.smooth_fft * 0.7 + target_fft * 0.3
-            
-            # Calculate frequency bands
-            self.bass_energy = np.mean(self.smooth_fft[:8]) / 100.0 * self.audio_response
-            self.mid_energy = np.mean(self.smooth_fft[8:20]) / 100.0 * self.audio_response
-            self.high_energy = np.mean(self.smooth_fft[20:]) / 100.0 * self.audio_response
-        else:
-            # Demo mode with synthetic audio
-            self.bass_energy = (math.sin(self.time * 0.5) * 0.5 + 0.5) * self.audio_response
-            self.mid_energy = (math.sin(self.time * 0.7) * 0.5 + 0.5) * self.audio_response
-            self.high_energy = (math.sin(self.time * 1.1) * 0.5 + 0.5) * self.audio_response
+        bass, mid, treble = self.get_audio_bands()
+        self.bass_energy = bass * self.audio_response
+        self.mid_energy = mid * self.audio_response
+        self.high_energy = treble * self.audio_response
         
         # Get viewport dimensions
         viewport = glGetIntegerv(GL_VIEWPORT)
@@ -723,7 +710,8 @@ class BuildingMadnessVisualizer(BaseVisualizer):
 
     def get_controls(self):
         """Get control parameters."""
-        return {
+        controls = super().get_controls()
+        controls.update({
             "Grid Size": {
                 "type": "slider",
                 "min": 5,
@@ -772,10 +760,13 @@ class BuildingMadnessVisualizer(BaseVisualizer):
                 "value": self.color_shift,
                 "step": 0.1
             }
-        }
+        })
+        return controls
 
     def update_control(self, name, value):
         """Update control values."""
+        if super().update_control(name, value):
+            return
         if name == "Grid Size":
             self.grid_size = int(value)
             self._setup_geometry()

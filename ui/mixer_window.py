@@ -12,6 +12,7 @@ from OpenGL.GL import *
 from visuals.deck import Deck
 from opengl_fixes import OpenGLSafety
 
+
 class MixerWindow(QMainWindow):
     # Custom signals for thread-safe communication
     signal_set_mix_value = pyqtSignal(int)
@@ -20,12 +21,13 @@ class MixerWindow(QMainWindow):
     signal_set_deck_opacity = pyqtSignal(str, float)
     signal_trigger_deck_action = pyqtSignal(str, str)
 
-    def __init__(self, visualizer_manager, settings_manager=None):
+    def __init__(self, visualizer_manager, settings_manager=None, audio_analyzer=None):
         super().__init__()
         self.setWindowTitle("Audio Visualizer Pro - Main Output")
         self.setGeometry(100, 100, 800, 600)
         self.visualizer_manager = visualizer_manager
         self.settings_manager = settings_manager
+        self.audio_analyzer = audio_analyzer
 
         # Thread safety
         self._mutex = QMutex()
@@ -132,16 +134,18 @@ class MixerWindow(QMainWindow):
 
                 # Create decks
                 self.deck_a = Deck(
-                    self.visualizer_manager, 
-                    "A", 
+                    self.visualizer_manager,
+                    "A",
                     gpu_index=gpu_index,
-                    use_moderngl=use_moderngl
+                    use_moderngl=use_moderngl,
+                    audio_analyzer=self.audio_analyzer,
                 )
                 self.deck_b = Deck(
-                    self.visualizer_manager, 
-                    "B", 
+                    self.visualizer_manager,
+                    "B",
                     gpu_index=gpu_index,
-                    use_moderngl=use_moderngl
+                    use_moderngl=use_moderngl,
+                    audio_analyzer=self.audio_analyzer,
                 )
                 
                 # Initialize deck FBOs

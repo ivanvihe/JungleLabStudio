@@ -470,7 +470,8 @@ class InfiniteNeuralNetworkVisualizer(BaseVisualizer):
         current_time = time.time() - self.start_time
         
         # Update camera for infinite zoom effect
-        self.camera_z += self.travel_speed * 0.1
+        speed = getattr(self, 'current_travel_speed', self.travel_speed)
+        self.camera_z += speed * 0.1
         
         # Spawn new nodes in front layers
         if current_time - self.last_spawn_time > (1.0 / self.node_spawn_rate):
@@ -620,11 +621,16 @@ class InfiniteNeuralNetworkVisualizer(BaseVisualizer):
             # Clear with transparent background
             glClearColor(0.0, 0.0, 0.0, 0.0)
             glClear(GL_COLOR_BUFFER_BIT)
-            
+
+            # Audio-reactive parameters
+            bass, mid, treble = self.get_audio_bands()
+            self.current_travel_speed = self.travel_speed * (0.5 + bass)
+            current_intensity = self.intensity * (0.5 + treble)
+
             # Update the network
             self.update_network()
             self.update_vertex_data()
-            
+
             current_time = time.time() - self.start_time
             
             # Render connections first (behind nodes)
@@ -633,7 +639,7 @@ class InfiniteNeuralNetworkVisualizer(BaseVisualizer):
                 
                 # Update uniforms
                 glUniform1f(glGetUniformLocation(self.connection_program, "time"), current_time)
-                glUniform1f(glGetUniformLocation(self.connection_program, "intensity"), self.intensity)
+                glUniform1f(glGetUniformLocation(self.connection_program, "intensity"), current_intensity)
                 glUniform1f(glGetUniformLocation(self.connection_program, "cameraZ"), self.camera_z)
                 glUniform1f(glGetUniformLocation(self.connection_program, "fovFactor"), self.fov_factor)
                 
@@ -650,7 +656,7 @@ class InfiniteNeuralNetworkVisualizer(BaseVisualizer):
                 
                 # Update uniforms
                 glUniform1f(glGetUniformLocation(self.node_program, "time"), current_time)
-                glUniform1f(glGetUniformLocation(self.node_program, "intensity"), self.intensity)
+                glUniform1f(glGetUniformLocation(self.node_program, "intensity"), current_intensity)
                 glUniform1f(glGetUniformLocation(self.node_program, "cameraZ"), self.camera_z)
                 glUniform1f(glGetUniformLocation(self.node_program, "fovFactor"), self.fov_factor)
                 glUniform2f(glGetUniformLocation(self.node_program, "resolution"), 1920.0, 1080.0)
@@ -719,7 +725,8 @@ class InfiniteNeuralNetworkVisualizer(BaseVisualizer):
 
     def get_controls(self):
         """Return enhanced controls"""
-        return {
+        controls = super().get_controls()
+        controls.update({
             "Intensity": {
                 "type": "slider",
                 "min": 20,
@@ -762,11 +769,14 @@ class InfiniteNeuralNetworkVisualizer(BaseVisualizer):
                 "value": int(self.fov_factor * 100),
                 "default": 100
             }
-        }
+        })
+        return controls
 
     def update_control(self, name, value):
         """Update enhanced control values"""
         try:
+            if super().update_control(name, value):
+                return
             if name == "Intensity":
                 self.intensity = value / 100.0
             elif name == "Travel Speed":

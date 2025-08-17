@@ -30,7 +30,8 @@ class FluidParticlesVisualizer(BaseVisualizer):
         self.attractors = []
 
     def get_controls(self):
-        return {
+        controls = super().get_controls()
+        controls.update({
             "Particle Count": {
                 "type": "slider",
                 "min": 500,
@@ -72,9 +73,12 @@ class FluidParticlesVisualizer(BaseVisualizer):
                 "options": ["Plasma Storm", "Aurora Dreams", "Deep Void", "Fire Galaxy", "Crystal Nebula", "Neon Pulse", "Rainbow Flow"],
                 "value": self.color_mode,
             }
-        }
+        })
+        return controls
 
     def update_control(self, name, value):
+        if super().update_control(name, value):
+            return
         if name == "Particle Count":
             old_count = self.num_particles
             self.num_particles = int(value)

@@ -18,6 +18,7 @@ class Deck:
         gpu_index=0,
         use_moderngl=None,  # Changed to None for auto-detection
         use_post=False,
+        audio_analyzer=None,
     ):
         self.visualizer_manager = visualizer_manager
         self.deck_id = deck_id  # For debugging
@@ -52,6 +53,9 @@ class Deck:
         
         # Controls cache
         self.controls = {}
+
+        # Audio analyzer reference
+        self.audio_analyzer = audio_analyzer
 
         # Backend selection logic - FIXED
         if use_moderngl is None:
@@ -298,6 +302,10 @@ class Deck:
                     self.current_visualizer = visualizer_class()
                     self._gl_initialized = False
                     self._fbo_dirty = True
+
+                    # Pass audio analyzer to visualizer if supported
+                    if self.audio_analyzer and hasattr(self.current_visualizer, "set_audio_analyzer"):
+                        self.current_visualizer.set_audio_analyzer(self.audio_analyzer)
                     
                     # Update controls cache
                     self._update_controls_cache()
@@ -344,6 +352,8 @@ class Deck:
         if self.current_visualizer:
             logging.debug(f"🧹 Deck {self.deck_id}: Cleaning up visualizer: {self.current_visualizer_name}")
             try:
+                if hasattr(self.current_visualizer, 'set_audio_analyzer'):
+                    self.current_visualizer.set_audio_analyzer(None)
                 if hasattr(self.current_visualizer, 'cleanup'):
                     self.current_visualizer.cleanup()
             except Exception as e:

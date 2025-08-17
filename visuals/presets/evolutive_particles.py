@@ -22,6 +22,7 @@ class EvolutiveParticlesVisualizer(BaseVisualizer):
         self.mutation_rate = 0.5
         self.complexity = 1.0
         self.energy_level = 1.0
+        self.current_mutation_rate = self.mutation_rate
         
         # Evolution system
         self.particles = []
@@ -32,7 +33,8 @@ class EvolutiveParticlesVisualizer(BaseVisualizer):
         self.initialized = False
 
     def get_controls(self):
-        return {
+        controls = super().get_controls()
+        controls.update({
             "Evolution Speed": {
                 "type": "slider",
                 "min": 10,
@@ -63,9 +65,12 @@ class EvolutiveParticlesVisualizer(BaseVisualizer):
                 "max": 2000,
                 "value": self.num_particles,
             }
-        }
+        })
+        return controls
 
     def update_control(self, name, value):
+        if super().update_control(name, value):
+            return
         if name == "Evolution Speed":
             self.evolution_speed = float(value) / 100.0
         elif name == "Mutation Rate":
@@ -221,7 +226,7 @@ class EvolutiveParticlesVisualizer(BaseVisualizer):
                 particle = self.create_random_particle()
             
             # Apply mutations
-            if random.random() < self.mutation_rate:
+            if random.random() < self.current_mutation_rate:
                 particle = self.mutate_particle(particle)
             
             # Add evolutionary traits
@@ -473,8 +478,8 @@ class EvolutiveParticlesVisualizer(BaseVisualizer):
             self.evolution_timer += dt
             if self.evolution_timer >= self.evolution_interval:
                 self.evolution_timer = 0
-                self.evolve_new_generation()
-                self.setup_particles()  # Recreate buffers for new generation
+            self.evolve_new_generation()
+            self.setup_particles()  # Recreate buffers for new generation
 
             # Update particle behaviors
             self.update_particle_behaviors(dt)
@@ -483,9 +488,19 @@ class EvolutiveParticlesVisualizer(BaseVisualizer):
             # Render
             glUseProgram(self.shader_program)
             
+            # Fetch audio bands
+            bass, mid, treble = self.get_audio_bands()
+            self.current_mutation_rate = self.mutation_rate * (0.5 + mid)
+
             glUniform1f(glGetUniformLocation(self.shader_program, "time"), self.time)
-            glUniform1f(glGetUniformLocation(self.shader_program, "evolution_speed"), self.evolution_speed)
-            glUniform1f(glGetUniformLocation(self.shader_program, "energy_level"), self.energy_level)
+            glUniform1f(
+                glGetUniformLocation(self.shader_program, "evolution_speed"),
+                self.evolution_speed * (0.5 + bass),
+            )
+            glUniform1f(
+                glGetUniformLocation(self.shader_program, "energy_level"),
+                self.energy_level * (0.5 + treble),
+            )
 
             glBindVertexArray(self.VAO)
             glDrawArrays(GL_POINTS, 0, min(len(self.particles), self.num_particles))

@@ -27,7 +27,8 @@ class AbstractShapesVisualizer(BaseVisualizer):
         self.initialized = False
 
     def get_controls(self):
-        return {
+        controls = super().get_controls()
+        controls.update({
             "Rotation Speed": {
                 "type": "slider",
                 "min": 0,
@@ -57,9 +58,12 @@ class AbstractShapesVisualizer(BaseVisualizer):
                 "max": 300,
                 "value": int(self.complexity * 100),
             }
-        }
+        })
+        return controls
 
     def update_control(self, name, value):
+        if super().update_control(name, value):
+            return
         if name == "Rotation Speed":
             self.rotation_speed = float(value) / 100.0
         elif name == "Shape Type":
@@ -363,14 +367,26 @@ class AbstractShapesVisualizer(BaseVisualizer):
                 return
                 
             self.time += 0.016
-            
+
+            # Fetch audio data (bass, mid, treble)
+            bass, mid, treble = self.get_audio_bands()
+
             glUseProgram(self.shader_program)
 
-            # Send uniforms
+            # Send uniforms with audio-reactive modulation
             glUniform1f(glGetUniformLocation(self.shader_program, "time"), self.time)
-            glUniform1f(glGetUniformLocation(self.shader_program, "rotation_speed"), self.rotation_speed)
-            glUniform1f(glGetUniformLocation(self.shader_program, "pulsation"), self.pulsation)
-            glUniform1f(glGetUniformLocation(self.shader_program, "complexity"), self.complexity)
+            glUniform1f(
+                glGetUniformLocation(self.shader_program, "rotation_speed"),
+                self.rotation_speed * (0.5 + treble),
+            )
+            glUniform1f(
+                glGetUniformLocation(self.shader_program, "pulsation"),
+                self.pulsation * (0.5 + bass),
+            )
+            glUniform1f(
+                glGetUniformLocation(self.shader_program, "complexity"),
+                self.complexity * (0.5 + mid),
+            )
 
             glBindVertexArray(self.VAO)
             glDrawElements(GL_TRIANGLES, len(self.index_data), GL_UNSIGNED_INT, None)

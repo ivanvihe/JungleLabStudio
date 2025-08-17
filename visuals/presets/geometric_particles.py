@@ -24,7 +24,8 @@ class GeometricParticlesVisualizer(BaseVisualizer):
         self.shape_type = 0
 
     def get_controls(self):
-        return {
+        controls = super().get_controls()
+        controls.update({
             "Particle Count": {
                 "type": "slider", "min": 1000, "max": 50000, "value": self.num_particles
             },
@@ -34,9 +35,12 @@ class GeometricParticlesVisualizer(BaseVisualizer):
             "Shape Type": {
                 "type": "dropdown", "options": ["Pulsating Sphere", "Animated Torus", "Abstract Cloud"], "value": self.shape_type
             }
-        }
+        })
+        return controls
 
     def update_control(self, name, value):
+        if super().update_control(name, value):
+            return
         if name == "Particle Count":
             self.num_particles = int(value)
             self.setup_particles() # Re-initialize particles
@@ -167,13 +171,15 @@ class GeometricParticlesVisualizer(BaseVisualizer):
 
         self.update_particles()
 
+        bass, mid, treble = self.get_audio_bands()
+
         view = self.lookAt(np.array([0.0, 0.0, 10.0]), np.array([0.0, 0.0, 0.0]), np.array([0.0, 1.0, 0.0]))
-        model = self.rotate(self.time * 15, 0, 1, 0) @ self.rotate(self.time * 10, 1, 0, 0)
+        model = self.rotate(self.time * 15 * (0.5 + bass), 0, 1, 0) @ self.rotate(self.time * 10 * (0.5 + treble), 1, 0, 0)
 
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, view)
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, model)
 
-        glPointSize(self.point_size)
+        glPointSize(self.point_size * (0.5 + mid))
 
         glBindVertexArray(self.VAO)
         glDrawArrays(GL_POINTS, 0, self.num_particles)

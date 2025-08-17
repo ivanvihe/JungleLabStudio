@@ -28,7 +28,8 @@ class CosmicFlowVisualizer(BaseVisualizer):
         self.initialized = False
 
     def get_controls(self):
-        return {
+        controls = super().get_controls()
+        controls.update({
             "Speed": {
                 "type": "slider",
                 "min": 0,
@@ -58,9 +59,12 @@ class CosmicFlowVisualizer(BaseVisualizer):
                 "options": ["White Stars", "Rainbow", "Blue Shift", "Fire Nebula", "Crystal Galaxy"],
                 "value": self.color_mode,
             }
-        }
+        })
+        return controls
 
     def update_control(self, name, value):
+        if super().update_control(name, value):
+            return
         if name == "Speed":
             self.speed = float(value) / 100.0
         elif name == "Star Count":
@@ -324,9 +328,15 @@ class CosmicFlowVisualizer(BaseVisualizer):
             glUseProgram(self.shader_program)
             
             # Set uniforms
+            # Fetch audio bands
+            bass, mid, treble = self.get_audio_bands()
+
             glUniform1f(glGetUniformLocation(self.shader_program, "time"), current_time)
-            glUniform1f(glGetUniformLocation(self.shader_program, "speed"), self.speed)
-            glUniform1f(glGetUniformLocation(self.shader_program, "star_size"), self.star_size)
+            glUniform1f(glGetUniformLocation(self.shader_program, "speed"), self.speed * (0.5 + bass))
+            glUniform1f(
+                glGetUniformLocation(self.shader_program, "star_size"),
+                self.star_size * (0.5 + treble),
+            )
             
             # Draw stars
             glBindVertexArray(self.vao)
