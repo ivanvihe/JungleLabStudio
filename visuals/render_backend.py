@@ -155,28 +155,13 @@ class GLBackend(RenderBackend):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
     def program(self, vertex_src: str, fragment_src: str, **kwargs) -> int:
-<<<<<<< Updated upstream
-        vs = glCreateShader(GL_VERTEX_SHADER)
-        glShaderSource(vs, vertex_src)
-        glCompileShader(vs)
-        if not glGetShaderiv(vs, GL_COMPILE_STATUS):
-            error = glGetShaderInfoLog(vs).decode()
-            glDeleteShader(vs)
-            raise RuntimeError(f"Vertex shader compilation failed: {error}")
-
-        fs = glCreateShader(GL_FRAGMENT_SHADER)
-        glShaderSource(fs, fragment_src)
-        glCompileShader(fs)
-        if not glGetShaderiv(fs, GL_COMPILE_STATUS):
-            error = glGetShaderInfoLog(fs).decode()
-=======
         """Compile and link a shader program"""
         try:
             # Compile vertex shader
             vs = glCreateShader(GL_VERTEX_SHADER)
             glShaderSource(vs, vertex_src)
             glCompileShader(vs)
-            
+
             if not glGetShaderiv(vs, GL_COMPILE_STATUS):
                 error = glGetShaderInfoLog(vs).decode()
                 glDeleteShader(vs)
@@ -186,7 +171,7 @@ class GLBackend(RenderBackend):
             fs = glCreateShader(GL_FRAGMENT_SHADER)
             glShaderSource(fs, fragment_src)
             glCompileShader(fs)
-            
+
             if not glGetShaderiv(fs, GL_COMPILE_STATUS):
                 error = glGetShaderInfoLog(fs).decode()
                 glDeleteShader(vs)
@@ -198,7 +183,7 @@ class GLBackend(RenderBackend):
             glAttachShader(program, vs)
             glAttachShader(program, fs)
             glLinkProgram(program)
-            
+
             if not glGetProgramiv(program, GL_LINK_STATUS):
                 error = glGetProgramInfoLog(program).decode()
                 glDeleteShader(vs)
@@ -207,12 +192,11 @@ class GLBackend(RenderBackend):
                 raise RuntimeError(f"Program link failed: {error}")
 
             # Clean up individual shaders
->>>>>>> Stashed changes
             glDeleteShader(vs)
             glDeleteShader(fs)
-            
+
             return program
-            
+
         except Exception as e:
             logging.error(f"❌ GLBackend program compilation failed: {e}")
             raise
