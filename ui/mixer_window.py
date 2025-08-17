@@ -39,6 +39,7 @@ class MixerWindow(QMainWindow):
         self.deck_b = None
         self.deck_fade_times = {"A": 2000, "B": 2000}
         self._fade_timers = []
+
         
         # OpenGL widget setup
         self.gl_widget = QOpenGLWidget(self)
@@ -560,6 +561,7 @@ class MixerWindow(QMainWindow):
 
         timer = QTimer(self)
         self._fade_timers.append(timer)
+
         state = {'step': 0, 'phase': 'out'}
 
         def step():
@@ -590,6 +592,7 @@ class MixerWindow(QMainWindow):
                     timer.deleteLater()
                     if timer in self._fade_timers:
                         self._fade_timers.remove(timer)
+
 
         timer.timeout.connect(step)
         timer.start(step_time)
