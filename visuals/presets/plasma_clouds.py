@@ -103,10 +103,16 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
             uniform float turbulence;
             uniform float glowIntensity;
             uniform float edgeSoftness;
-            uniform int colorPalette;
+            // These were previously declared as integers, but our GLBackend
+            // currently sets all scalar uniforms using glUniform1f.  Using an
+            // integer uniform with glUniform1f results in GL_INVALID_OPERATION
+            // errors (1282).  To avoid this mismatch the uniforms are stored
+            // as floats and explicitly cast to integers where required in the
+            // shader code.
+            uniform float colorPalette;
             uniform float colorSaturation;
             uniform float colorBrightness;
-            uniform int layers;
+            uniform float layers;
             uniform float distortion;
             uniform float breathingRate;
             uniform vec2 resolution;
@@ -158,7 +164,9 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
                 float result = 0.0;
                 float layerWeight = 1.0;
                 
-                for(int i = 0; i < layers; i++) {
+                // Cast the uniform float to int for loop iteration
+                int layerCount = int(layers);
+                for(int i = 0; i < layerCount; i++) {
                     float freq = pow(2.0, float(i)) * (1.0 + complexity);
                     float timeOffset = t * speed * (0.5 + float(i) * 0.2);
                     
@@ -190,7 +198,7 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
                 float breathing = 1.0 + sin(t * breathingRate * 6.28) * 0.1;
                 result *= breathing;
                 
-                return result / float(layers);
+                return result / layers;
             }
             
             // Color palette functions
@@ -271,8 +279,8 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
                 // Add color shifting over time
                 float colorTime = plasmaValue + colorShift + t * 0.1;
                 
-                // Get base color from palette
-                vec3 color = getPaletteColor(colorTime, colorPalette);
+                // Get base color from palette (uniform passed as float)
+                vec3 color = getPaletteColor(colorTime, int(colorPalette));
                 
                 // Apply saturation
                 float gray = dot(color, vec3(0.299, 0.587, 0.114));
@@ -361,10 +369,12 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
             backend.uniform(self.shader_program, "turbulence", self.turbulence)
             backend.uniform(self.shader_program, "glowIntensity", self.glow_intensity)
             backend.uniform(self.shader_program, "edgeSoftness", self.edge_softness)
-            backend.uniform(self.shader_program, "colorPalette", self.color_palette)
+            # colorPalette and layers are floats in the shader (casted to int
+            # where needed), so pass them as float values here.
+            backend.uniform(self.shader_program, "colorPalette", float(self.color_palette))
             backend.uniform(self.shader_program, "colorSaturation", self.color_saturation)
             backend.uniform(self.shader_program, "colorBrightness", self.color_brightness)
-            backend.uniform(self.shader_program, "layers", self.layers)
+            backend.uniform(self.shader_program, "layers", float(self.layers))
             backend.uniform(self.shader_program, "distortion", self.distortion)
             backend.uniform(self.shader_program, "breathingRate", self.breathing_rate)
             
