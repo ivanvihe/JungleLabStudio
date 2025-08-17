@@ -16,7 +16,7 @@
   "Infinite Neural Network": {
     "Audio Sensitivity": 10,
     "Smoothness": 100,
-    "Intensity": 41,
+    "Intensity": 35,
     "Travel Speed": 12,
     "Color Scheme": 2,
     "FOV Factor": 200,
@@ -37,5 +37,25 @@
   "Plasma Loop": {
     "Contrast": 267,
     "Layers": 5
+  },
+  "Evolutive Particles": {
+    "Complexity": 52,
+    "Particle Count": 1097,
+    "Energy Level": 57,
+    "Evolution Speed": 90,
+    "Audio Reactive": false
+  },
+  "Fluid Particles": {
+    "Audio Reactive": false
+  },
+  "Geometric Particles": {
+    "Audio Reactive": false
+  },
+  "Grid Snake Wave": {
+    "Grid Size": 15,
+    "Fill Ratio": 16,
+    "Direction": 1,
+    "Size": 33,
+    "Intensity": 45
   }
 }
