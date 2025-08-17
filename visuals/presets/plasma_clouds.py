@@ -8,9 +8,9 @@ from ..base_visualizer import BaseVisualizer
 from ..render_backend import GLBackend
 
 class PlasmaCloudsVisualizer(BaseVisualizer):
-    """High-quality plasma clouds visualizer with fluid motion and color morphing"""
+    """High-quality plasma loop visualizer with fluid wave motion"""
     
-    visual_name = "Plasma Clouds"
+    visual_name = "Plasma Loop"
     
     def __init__(self):
         super().__init__()
@@ -20,30 +20,36 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
         self.vbo = None
         self.start_time = None
         
-        # Visual parameters
-        self.intensity = 1.0
-        self.speed = 1.0
-        self.scale = 1.0
-        self.complexity = 0.7
+        # Visual parameters optimized for plasma loop
+        self.intensity = 2.0
+        self.speed = 0.8
+        self.scale = 3.0
+        self.complexity = 0.6
         self.color_shift = 0.0
-        self.contrast = 1.0
+        self.contrast = 1.8
         self.flow_direction = 0.0
-        self.turbulence = 0.5
-        self.glow_intensity = 0.8
-        self.edge_softness = 0.3
+        self.turbulence = 0.4
+        self.glow_intensity = 1.5
+        self.edge_softness = 0.4
         
         # Color palette controls
-        self.color_palette = 0  # 0=frost, 1=ocean, 2=aurora, 3=neon, 4=cosmic
-        self.color_saturation = 1.0
-        self.color_brightness = 1.0
+        self.color_palette = 1  # Ocean/cyan for the plasma look
+        self.color_saturation = 1.4
+        self.color_brightness = 1.6
         
         # Advanced controls
         self.layers = 3
-        self.distortion = 0.4
-        self.breathing_rate = 0.1
+        self.distortion = 0.2
+        self.breathing_rate = 0.08
         self.pulse_sync = False
         
-        logging.info("PlasmaCloudsVisualizer created")
+        # Plasma loop specific parameters
+        self.reactor_width = 0.15  # Much narrower for the thin plasma effect
+        self.reactor_power = 1.2
+        self.core_intensity = 3.0  # Higher for that bright center
+        self.energy_flow = 1.5     # Faster energy flow
+        
+        logging.info("PlasmaCloudsVisualizer (Reactor Mode) created")
     
     def initializeGL(self, backend=None):
         """Initialize OpenGL resources"""
@@ -69,7 +75,7 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
             traceback.print_exc()
     
     def load_shaders(self):
-        """Load high-quality plasma shader"""
+        """Load high-quality plasma reactor shader"""
         try:
             vertex_shader_source = """
             #version 330 core
@@ -103,152 +109,175 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
             uniform float turbulence;
             uniform float glowIntensity;
             uniform float edgeSoftness;
-            // These were previously declared as integers, but our GLBackend
-            // currently sets all scalar uniforms using glUniform1f.  Using an
-            // integer uniform with glUniform1f results in GL_INVALID_OPERATION
-            // errors (1282).  To avoid this mismatch the uniforms are stored
-            // as floats and explicitly cast to integers where required in the
-            // shader code.
             uniform float colorPalette;
             uniform float colorSaturation;
             uniform float colorBrightness;
             uniform float layers;
             uniform float distortion;
             uniform float breathingRate;
+            uniform float reactorWidth;
+            uniform float reactorPower;
+            uniform float coreIntensity;
+            uniform float energyFlow;
             uniform vec2 resolution;
             
-            // Noise functions for organic movement
-            float hash(vec2 p) {
-                return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+            // High-quality noise functions
+            vec3 hash3(vec2 p) {
+                vec3 q = vec3(dot(p, vec2(127.1, 311.7)), 
+                             dot(p, vec2(269.5, 183.3)), 
+                             dot(p, vec2(419.2, 371.9)));
+                return fract(sin(q) * 43758.5453);
             }
             
             float noise(vec2 p) {
                 vec2 i = floor(p);
                 vec2 f = fract(p);
-                f = f * f * (3.0 - 2.0 * f);
+                vec2 u = f * f * (3.0 - 2.0 * f);
                 
-                float a = hash(i);
-                float b = hash(i + vec2(1.0, 0.0));
-                float c = hash(i + vec2(0.0, 1.0));
-                float d = hash(i + vec2(1.0, 1.0));
-                
-                return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+                return mix(mix(dot(hash3(i + vec2(0.0, 0.0)).xy, f - vec2(0.0, 0.0)),
+                              dot(hash3(i + vec2(1.0, 0.0)).xy, f - vec2(1.0, 0.0)), u.x),
+                          mix(dot(hash3(i + vec2(0.0, 1.0)).xy, f - vec2(0.0, 1.0)),
+                              dot(hash3(i + vec2(1.0, 1.0)).xy, f - vec2(1.0, 1.0)), u.x), u.y);
             }
             
-            float fbm(vec2 p) {
+            // Fractional Brownian Motion with higher octaves for detail
+            float fbm(vec2 p, int octaves) {
                 float value = 0.0;
                 float amplitude = 0.5;
                 float frequency = 1.0;
                 
-                for(int i = 0; i < 6; i++) {
+                for(int i = 0; i < octaves; i++) {
                     value += amplitude * noise(p * frequency);
-                    amplitude *= 0.5;
-                    frequency *= 2.0;
+                    amplitude *= 0.52;
+                    frequency *= 1.98;
                 }
                 return value;
             }
             
-            // Advanced plasma function with multiple octaves
-            float plasma(vec2 uv, float t) {
-                vec2 pos = uv * scale;
+            // Plasma loop/wave function - centered and flowing
+            float plasmaLoop(vec2 uv, float t) {
+                // Center the coordinates
+                vec2 pos = (uv - 0.5) * 2.0;
                 
-                // Create flowing motion
-                float flowT = t * speed * 0.3;
-                vec2 flow = vec2(
-                    sin(flowT + flowDirection) * 0.5,
-                    cos(flowT + flowDirection * 0.7) * 0.5
-                );
-                pos += flow;
-                
-                // Multi-layer plasma with different frequencies
-                float result = 0.0;
-                float layerWeight = 1.0;
-                
-                // Cast the uniform float to int for loop iteration
-                int layerCount = int(layers);
-                for(int i = 0; i < layerCount; i++) {
-                    float freq = pow(2.0, float(i)) * (1.0 + complexity);
-                    float timeOffset = t * speed * (0.5 + float(i) * 0.2);
-                    
-                    // Create organic movement patterns
-                    vec2 offset1 = vec2(
-                        sin(timeOffset * 0.8 + float(i)) * turbulence,
-                        cos(timeOffset * 1.2 + float(i)) * turbulence
-                    );
-                    
-                    vec2 offset2 = vec2(
-                        sin(timeOffset * 1.3 + float(i) * 2.0) * turbulence * 0.5,
-                        cos(timeOffset * 0.9 + float(i) * 1.5) * turbulence * 0.5
-                    );
-                    
-                    // Generate plasma wave
-                    float wave1 = sin(length(pos + offset1) * freq + timeOffset);
-                    float wave2 = cos((pos.x + offset2.x) * freq * 0.8 + timeOffset * 1.1);
-                    float wave3 = sin((pos.y + offset2.y) * freq * 1.2 + timeOffset * 0.7);
-                    
-                    // Add distortion
-                    float dist = distortion * sin(timeOffset * 0.5 + float(i));
-                    wave1 += dist * fbm(pos * freq * 0.3 + offset1);
-                    
-                    result += (wave1 + wave2 + wave3) * layerWeight;
-                    layerWeight *= 0.6;
+                // Aspect ratio correction
+                if(resolution.x > resolution.y) {
+                    pos.x *= resolution.x / resolution.y;
+                } else {
+                    pos.y *= resolution.y / resolution.x;
                 }
                 
-                // Add breathing effect
-                float breathing = 1.0 + sin(t * breathingRate * 6.28) * 0.1;
-                result *= breathing;
+                // Create flowing wave motion
+                float flowSpeed = t * energyFlow * speed;
                 
-                return result / layers;
+                // Create the main wave shape using sine functions
+                float wavePhase = pos.x * scale * 0.5 + flowSpeed;
+                float baseWave = sin(wavePhase) * 0.3;
+                
+                // Add secondary harmonics for complexity
+                baseWave += sin(wavePhase * 2.1 + flowSpeed * 1.3) * 0.15;
+                baseWave += sin(wavePhase * 3.7 + flowSpeed * 0.7) * 0.08;
+                
+                // Create the vertical profile (how thick the plasma is)
+                float centerY = baseWave; // Wave oscillates around center
+                float distFromWave = abs(pos.y - centerY);
+                
+                // Create smooth falloff from the wave center
+                float waveWidth = reactorWidth * 0.5;
+                float waveMask = 1.0 - smoothstep(0.0, waveWidth, distFromWave);
+                waveMask = pow(waveMask, 1.5); // Make edges sharper
+                
+                // Multi-layer plasma generation
+                float plasma = 0.0;
+                float layerWeight = 1.0;
+                
+                int layerCount = int(layers);
+                for(int i = 0; i < layerCount; i++) {
+                    float freq = pow(1.8, float(i)) * scale * 0.3;
+                    float timeOffset = flowSpeed * (1.0 + float(i) * 0.4);
+                    
+                    // Create flowing plasma patterns
+                    vec2 flowOffset = vec2(
+                        timeOffset * 1.2,
+                        sin(timeOffset * 0.8 + float(i)) * turbulence * 0.2
+                    );
+                    
+                    // Generate plasma noise along the wave
+                    float plasmaPos = (pos.x + flowOffset.x) * freq;
+                    float wave1 = sin(plasmaPos + timeOffset);
+                    float wave2 = sin(plasmaPos * 1.6 + timeOffset * 1.1) * 0.7;
+                    float noise1 = fbm(vec2(plasmaPos * 0.2, pos.y * freq * 2.0) + flowOffset, 3) * 0.5;
+                    
+                    // Add vertical flow variation
+                    float verticalVar = sin((pos.y - centerY) * freq * 4.0 + timeOffset * 2.0) * 0.3;
+                    
+                    // Combine all elements
+                    float layerPlasma = (wave1 + wave2 + noise1 + verticalVar) * 0.25;
+                    plasma += layerPlasma * layerWeight;
+                    layerWeight *= 0.7;
+                }
+                
+                // Apply wave mask
+                plasma *= waveMask;
+                
+                // Add core intensity along the wave center
+                float coreGlow = exp(-distFromWave * (8.0 / waveWidth)) * coreIntensity * 0.3;
+                plasma += coreGlow;
+                
+                // Add flowing energy pulses
+                float pulsePhase = flowSpeed * 2.0;
+                float pulse = sin(pulsePhase) * sin(pulsePhase * 0.7) * 0.2 + 0.8;
+                plasma *= pulse * reactorPower;
+                
+                // Breathing effect
+                float breathing = 1.0 + sin(t * breathingRate * 6.28) * 0.15;
+                plasma *= breathing;
+                
+                return plasma;
             }
             
-            // Color palette functions
+            // Enhanced color palettes for reactor effects
             vec3 frostPalette(float t) {
                 t = clamp(t, 0.0, 1.0);
-                vec3 c1 = vec3(0.867, 0.906, 0.933);
-                vec3 c2 = vec3(0.506, 0.647, 0.729);
-                vec3 c3 = vec3(0.224, 0.420, 0.537);
-                vec3 c4 = vec3(0.196, 0.204, 0.337);
-                vec3 c5 = vec3(0.125, 0.145, 0.278);
-                if(t < 0.25) return mix(c1, c2, t / 0.25);
-                else if(t < 0.5) return mix(c2, c3, (t - 0.25) / 0.25);
-                else if(t < 0.75) return mix(c3, c4, (t - 0.5) / 0.25);
-                else return mix(c4, c5, (t - 0.75) / 0.25);
+                vec3 cold = vec3(0.4, 0.7, 1.0);
+                vec3 ice = vec3(0.8, 0.95, 1.0);
+                vec3 white = vec3(1.0, 1.0, 1.0);
+                if(t < 0.5) return mix(cold, ice, t * 2.0);
+                return mix(ice, white, (t - 0.5) * 2.0);
             }
             
             vec3 oceanPalette(float t) {
                 t = clamp(t, 0.0, 1.0);
-                vec3 a = vec3(0.0, 0.2, 0.5);
-                vec3 b = vec3(0.1, 0.5, 1.0);
-                vec3 c = vec3(1.0, 1.0, 1.0);
-                vec3 d = vec3(0.0, 0.2, 0.5);
-                return a + b * cos(6.28 * (c * t + d));
+                return vec3(0.1, 0.3, 0.8) + vec3(0.5, 0.7, 0.2) * cos(6.28 * (vec3(1.0) * t + vec3(0.0, 0.33, 0.67)));
             }
             
             vec3 auroraPalette(float t) {
                 t = clamp(t, 0.0, 1.0);
-                vec3 a = vec3(0.0, 0.5, 0.2);
-                vec3 b = vec3(1.0, 0.5, 1.0);
-                vec3 c = vec3(1.0, 1.0, 1.0);
-                vec3 d = vec3(0.3, 0.2, 0.2);
-                return a + b * cos(6.28 * (c * t + d));
+                return vec3(0.2, 0.8, 0.3) + vec3(0.8, 0.2, 0.7) * cos(6.28 * (vec3(1.0) * t + vec3(0.3, 0.2, 0.2)));
             }
             
             vec3 neonPalette(float t) {
                 t = clamp(t, 0.0, 1.0);
-                vec3 a = vec3(0.5, 0.0, 0.5);
-                vec3 b = vec3(1.0, 1.0, 0.5);
-                vec3 c = vec3(1.0, 1.0, 1.0);
-                vec3 d = vec3(0.0, 0.33, 0.67);
-                return a + b * cos(6.28 * (c * t + d));
+                vec3 base = vec3(1.0, 0.2, 0.8);
+                vec3 bright = vec3(0.2, 1.0, 1.0);
+                vec3 white = vec3(1.0, 1.0, 1.0);
+                if(t < 0.3) return mix(base, bright, t / 0.3);
+                if(t < 0.7) return mix(bright, white, (t - 0.3) / 0.4);
+                return white;
             }
             
             vec3 cosmicPalette(float t) {
                 t = clamp(t, 0.0, 1.0);
-                vec3 a = vec3(0.2, 0.0, 0.3);
-                vec3 b = vec3(0.5, 0.3, 1.0);
-                vec3 c = vec3(2.0, 1.0, 1.0);
-                vec3 d = vec3(0.0, 0.25, 0.25);
-                return a + b * cos(6.28 * (c * t + d));
+                return vec3(0.3, 0.1, 0.8) + vec3(0.7, 0.5, 0.2) * cos(6.28 * (vec3(2.0, 1.0, 1.0) * t + vec3(0.0, 0.25, 0.25)));
+            }
+            
+            // Reactor-specific palettes
+            vec3 fusionPalette(float t) {
+                t = clamp(t, 0.0, 1.0);
+                vec3 core = vec3(1.0, 0.9, 0.4);      // Hot core
+                vec3 plasma = vec3(1.0, 0.3, 0.1);    // Hot plasma
+                vec3 energy = vec3(0.2, 0.8, 1.0);    // Energy field
+                if(t < 0.4) return mix(core, plasma, t / 0.4);
+                return mix(plasma, energy, (t - 0.4) / 0.6);
             }
             
             vec3 getPaletteColor(float t, int palette) {
@@ -257,54 +286,53 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
                     case 2: return auroraPalette(t);
                     case 3: return neonPalette(t);
                     case 4: return cosmicPalette(t);
+                    case 5: return fusionPalette(t);
                     default: return frostPalette(t);
                 }
             }
             
             void main() {
                 vec2 uv = vTexCoord;
-                vec2 centered = (uv - 0.5) * 2.0;
-                
-                // Aspect ratio correction
-                if(resolution.x > resolution.y) {
-                    centered.x *= resolution.x / resolution.y;
-                } else {
-                    centered.y *= resolution.y / resolution.x;
-                }
                 
                 float t = time;
                 
-                // Generate plasma field
-                float plasmaValue = plasma(centered, t);
+                // Generate flowing plasma loop
+                float plasmaValue = plasmaLoop(uv, t);
                 
-                // Apply contrast and intensity
+                // Apply intensity and contrast
                 plasmaValue = pow(abs(plasmaValue) * intensity, contrast);
                 
-                // Add color shifting over time
-                float colorTime = plasmaValue + colorShift + t * 0.1;
+                // Color shifting over time
+                float colorTime = plasmaValue * 0.8 + colorShift + t * 0.05;
                 
-                // Get base color from palette (uniform passed as float)
+                // Get base color from palette
                 vec3 color = getPaletteColor(colorTime, int(colorPalette));
                 
-                // Apply saturation
+                // Enhanced saturation for reactor effect
                 float gray = dot(color, vec3(0.299, 0.587, 0.114));
                 color = mix(vec3(gray), color, colorSaturation);
                 
                 // Apply brightness
                 color *= colorBrightness;
                 
-                // Add glow effect
-                float glow = 1.0 + glowIntensity * exp(-length(centered) * (2.0 - edgeSoftness));
-                color *= glow;
+                // Professional glow effect - no circular constraint
+                float reactorGlow = plasmaValue * glowIntensity;
+                color += color * reactorGlow * vec3(1.2, 0.8, 1.0);
                 
-                // Edge fadeout for seamless looping
-                float edge = 1.0 - smoothstep(0.8, 1.0, length(centered));
-                color *= edge;
-
+                // Add additive bloom effect for professional look
+                vec3 bloom = color * smoothstep(0.3, 1.0, plasmaValue) * 0.3;
+                color += bloom;
+                
+                // HDR tone mapping for professional quality
+                color = color / (color + vec3(1.0));
+                
                 // Final gamma correction
                 color = pow(color, vec3(1.0/2.2));
-
-                FragColor = vec4(color, edge);
+                
+                // Alpha based on plasma intensity (no circular mask)
+                float alpha = smoothstep(0.05, 0.3, plasmaValue);
+                
+                FragColor = vec4(color, alpha);
             }
             """
             
@@ -312,7 +340,7 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
                 vertex_shader_source, fragment_shader_source
             )
             
-            logging.debug("PlasmaCloudsVisualizer shaders compiled successfully")
+            logging.debug("PlasmaCloudsVisualizer reactor shaders compiled successfully")
             return True
             
         except Exception as e:
@@ -340,17 +368,17 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
             logging.debug("PlasmaCloudsVisualizer geometry setup complete")
             return True
             
-        except Exception as e:
+        except Exception in e:
             logging.error(f"Error setting up geometry: {e}")
             return False
     
     def paintGL(self, current_time=0.0, size=None, backend=None):
-        """Render the plasma clouds"""
+        """Render the plasma reactor"""
         backend = backend or self.backend or GLBackend()
         
         try:
             if not self.initialized or not self.shader_program or not self.vao:
-                backend.clear(0.0, 0.0, 0.0, 0.0)
+                backend.clear(0.0, 0.0, 0.0, 1.0)  # Pure black background
                 return
             
             if self.start_time is None:
@@ -358,10 +386,14 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
             
             elapsed_time = current_time - self.start_time
             
-            # Clear background
-            backend.clear(0.0, 0.0, 0.0, 0.0)
+            # Clear with pure black background
+            backend.clear(0.0, 0.0, 0.0, 1.0)
             
-            # Set uniforms
+            # Enable blending for professional glow effects
+            glEnable(GL_BLEND)
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+            
+            # Set all uniforms
             backend.uniform(self.shader_program, "time", elapsed_time)
             backend.uniform(self.shader_program, "intensity", self.intensity)
             backend.uniform(self.shader_program, "speed", self.speed)
@@ -373,14 +405,18 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
             backend.uniform(self.shader_program, "turbulence", self.turbulence)
             backend.uniform(self.shader_program, "glowIntensity", self.glow_intensity)
             backend.uniform(self.shader_program, "edgeSoftness", self.edge_softness)
-            # colorPalette and layers are floats in the shader (casted to int
-            # where needed), so pass them as float values here.
             backend.uniform(self.shader_program, "colorPalette", float(self.color_palette))
             backend.uniform(self.shader_program, "colorSaturation", self.color_saturation)
             backend.uniform(self.shader_program, "colorBrightness", self.color_brightness)
             backend.uniform(self.shader_program, "layers", float(self.layers))
             backend.uniform(self.shader_program, "distortion", self.distortion)
             backend.uniform(self.shader_program, "breathingRate", self.breathing_rate)
+            
+            # Reactor-specific uniforms
+            backend.uniform(self.shader_program, "reactorWidth", self.reactor_width)
+            backend.uniform(self.shader_program, "reactorPower", self.reactor_power)
+            backend.uniform(self.shader_program, "coreIntensity", self.core_intensity)
+            backend.uniform(self.shader_program, "energyFlow", self.energy_flow)
             
             # Set resolution
             if size:
@@ -391,13 +427,15 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
             # Render fullscreen quad
             self.vao.render(GL_TRIANGLE_STRIP)
             
+            glDisable(GL_BLEND)
+            
         except Exception as e:
             if not hasattr(self, '_last_error_time') or \
                time.time() - self._last_error_time > 5:
                 logging.error(f"PlasmaClouds paint error: {e}")
                 self._last_error_time = time.time()
             
-            backend.clear(0.0, 0.0, 0.0, 0.0)
+            backend.clear(0.0, 0.0, 0.0, 1.0)
     
     def resizeGL(self, width, height, backend=None):
         """Handle resize"""
@@ -463,113 +501,127 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
             "Intensity": {
                 "type": "slider",
                 "min": 0,
-                "max": 200,
+                "max": 300,
                 "value": int(self.intensity * 100),
-                "default": 100
+                "default": 150
             },
             "Speed": {
                 "type": "slider",
                 "min": 0,
-                "max": 300,
+                "max": 400,
                 "value": int(self.speed * 100),
-                "default": 100
+                "default": 120
             },
             "Scale": {
                 "type": "slider",
-                "min": 10,
-                "max": 500,
+                "min": 50,
+                "max": 800,
                 "value": int(self.scale * 100),
-                "default": 100
+                "default": 200
             },
             "Complexity": {
                 "type": "slider",
                 "min": 0,
                 "max": 100,
                 "value": int(self.complexity * 100),
-                "default": 70
+                "default": 80
             },
             "Color Shift": {
                 "type": "slider",
                 "min": 0,
-                "max": 628,  # 2*PI*100
+                "max": 628,
                 "value": int(self.color_shift * 100),
                 "default": 0
             },
             "Contrast": {
                 "type": "slider",
-                "min": 10,
-                "max": 300,
+                "min": 50,
+                "max": 400,
                 "value": int(self.contrast * 100),
-                "default": 100
-            },
-            "Flow Direction": {
-                "type": "slider",
-                "min": 0,
-                "max": 628,  # 2*PI*100
-                "value": int(self.flow_direction * 100),
-                "default": 0
+                "default": 140
             },
             "Turbulence": {
                 "type": "slider",
                 "min": 0,
                 "max": 100,
                 "value": int(self.turbulence * 100),
-                "default": 50
+                "default": 60
             },
             "Glow Intensity": {
                 "type": "slider",
                 "min": 0,
-                "max": 200,
+                "max": 300,
                 "value": int(self.glow_intensity * 100),
-                "default": 80
-            },
-            "Edge Softness": {
-                "type": "slider",
-                "min": 0,
-                "max": 100,
-                "value": int(self.edge_softness * 100),
-                "default": 30
+                "default": 120
             },
             "Color Palette": {
                 "type": "combo",
-                "options": ["Frost", "Ocean", "Aurora", "Neon", "Cosmic"],
+                "options": ["Frost", "Ocean", "Aurora", "Neon", "Cosmic", "Fusion"],
                 "value": self.color_palette,
-                "default": 0
+                "default": 3
             },
             "Color Saturation": {
                 "type": "slider",
                 "min": 0,
-                "max": 200,
+                "max": 300,
                 "value": int(self.color_saturation * 100),
-                "default": 100
+                "default": 120
             },
             "Color Brightness": {
                 "type": "slider",
                 "min": 0,
-                "max": 200,
+                "max": 300,
                 "value": int(self.color_brightness * 100),
-                "default": 100
+                "default": 130
             },
             "Layers": {
                 "type": "slider",
-                "min": 1,
-                "max": 6,
+                "min": 2,
+                "max": 8,
                 "value": self.layers,
-                "default": 3
+                "default": 4
             },
             "Distortion": {
                 "type": "slider",
                 "min": 0,
                 "max": 100,
                 "value": int(self.distortion * 100),
-                "default": 40
+                "default": 30
             },
             "Breathing Rate": {
                 "type": "slider",
                 "min": 0,
                 "max": 100,
                 "value": int(self.breathing_rate * 100),
-                "default": 10
+                "default": 15
+            },
+            "Reactor Width": {
+                "type": "slider",
+                "min": 5,
+                "max": 50,
+                "value": int(self.reactor_width * 100),
+                "default": 15
+            },
+            "Reactor Power": {
+                "type": "slider",
+                "min": 0,
+                "max": 200,
+                "value": int(self.reactor_power * 100),
+                "default": 100
+            },
+            "Core Intensity": {
+                "type": "slider",
+                "min": 0,
+                "max": 500,
+                "value": int(self.core_intensity * 100),
+                "default": 300
+            },
+            "Energy Flow": {
+                "type": "slider",
+                "min": 0,
+                "max": 300,
+                "value": int(self.energy_flow * 100),
+                "default": 100
             }
         }
     
@@ -588,14 +640,10 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
                 self.color_shift = value / 100.0
             elif name == "Contrast":
                 self.contrast = value / 100.0
-            elif name == "Flow Direction":
-                self.flow_direction = value / 100.0
             elif name == "Turbulence":
                 self.turbulence = value / 100.0
             elif name == "Glow Intensity":
                 self.glow_intensity = value / 100.0
-            elif name == "Edge Softness":
-                self.edge_softness = value / 100.0
             elif name == "Color Palette":
                 self.color_palette = int(value)
             elif name == "Color Saturation":
@@ -608,6 +656,14 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
                 self.distortion = value / 100.0
             elif name == "Breathing Rate":
                 self.breathing_rate = value / 100.0
+            elif name == "Reactor Width":
+                self.reactor_width = value / 100.0
+            elif name == "Reactor Power":
+                self.reactor_power = value / 100.0
+            elif name == "Core Intensity":
+                self.core_intensity = value / 100.0
+            elif name == "Energy Flow":
+                self.energy_flow = value / 100.0
                 
             logging.debug(f"Updated {name} to {value}")
             

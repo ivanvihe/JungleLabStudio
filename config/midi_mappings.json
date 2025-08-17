@@ -417,7 +417,7 @@
     "type": "load_preset",
     "params": {
       "deck_id": "A",
-      "preset_name": "Plasma Clouds",
+      "preset_name": "Plasma Loop",
       "custom_values": ""
     },
     "midi": "note_on_ch0_note82"
@@ -426,7 +426,7 @@
     "type": "load_preset",
     "params": {
       "deck_id": "B",
-      "preset_name": "Plasma Clouds",
+      "preset_name": "Plasma Loop",
       "custom_values": ""
     },
     "midi": "note_on_ch0_note83"
