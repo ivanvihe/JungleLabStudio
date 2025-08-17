@@ -306,10 +306,23 @@ class Deck:
                     # Pass audio analyzer to visualizer if supported
                     if self.audio_analyzer and hasattr(self.current_visualizer, "set_audio_analyzer"):
                         self.current_visualizer.set_audio_analyzer(self.audio_analyzer)
-                    
-                    # Update controls cache
+
+                    # Apply saved visual properties
+                    try:
+                        from utils.visual_properties import load_visual_properties
+                        props = load_visual_properties(visualizer_name)
+                        for pname, pval in props.items():
+                            try:
+                                if hasattr(self.current_visualizer, "update_control"):
+                                    self.current_visualizer.update_control(pname, pval)
+                            except Exception as e:
+                                logging.error(f"Error applying property {pname} for {visualizer_name}: {e}")
+                    except Exception as e:
+                        logging.error(f"Error loading visual properties for {visualizer_name}: {e}")
+
+                    # Update controls cache after applying properties
                     self._update_controls_cache()
-                    
+
                     logging.info(f"✅ Deck {self.deck_id}: Created visualizer instance: {visualizer_name}")
                     
                 except Exception as e:
