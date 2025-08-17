@@ -38,34 +38,37 @@ class TestVisualizer(BaseVisualizer):
         y = math.cos(self.time * 0.7) * 0.3
         size = 0.2 + 0.1 * math.sin(self.time * 2)
         
-        # Use semi-transparent colors
-        glColor4f(self.color_r, self.color_g, self.color_b, 0.8)
-        
+        # Draw the selected pattern
         if self.pattern == 0:  # Circle
             self.draw_circle(x, y, size)
         elif self.pattern == 1:  # Square
             self.draw_square(x, y, size)
         else:  # Triangle
             self.draw_triangle(x, y, size)
-            
+
     def draw_circle(self, x, y, size):
         glBegin(GL_TRIANGLE_FAN)
+        # Apply current color with alpha inside the begin/end pair to avoid
+        # GL_INVALID_OPERATION errors on some drivers.
+        glColor4f(self.color_r, self.color_g, self.color_b, 0.8)
         glVertex2f(x, y)
         for i in range(33):
             angle = 2.0 * math.pi * i / 32
             glVertex2f(x + size * math.cos(angle), y + size * math.sin(angle))
         glEnd()
-        
+
     def draw_square(self, x, y, size):
         glBegin(GL_QUADS)
+        glColor4f(self.color_r, self.color_g, self.color_b, 0.8)
         glVertex2f(x - size, y - size)
         glVertex2f(x + size, y - size)
         glVertex2f(x + size, y + size)
         glVertex2f(x - size, y + size)
         glEnd()
-        
+
     def draw_triangle(self, x, y, size):
         glBegin(GL_TRIANGLES)
+        glColor4f(self.color_r, self.color_g, self.color_b, 0.8)
         glVertex2f(x, y + size)
         glVertex2f(x - size, y - size)
         glVertex2f(x + size, y - size)
