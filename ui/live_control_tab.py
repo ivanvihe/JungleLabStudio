@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QFrame,
     QPushButton,
+    QSpinBox,
 )
 from PyQt6.QtCore import Qt
 
@@ -102,14 +103,46 @@ def create_improved_deck_grid(self, container):
             self.live_grid_deck_channels[deck_id] = cfg["channel"]
             self.live_grid_deck_colors[deck_id] = cfg["color"]
 
-            header = QLabel(f"{cfg['name']}\nCh {cfg['channel']}")
-            header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            header.setFixedSize(100, 100)
-            header.setStyleSheet(
+            header_widget = QWidget()
+            header_widget.setFixedSize(100, 100)
+            header_widget.setStyleSheet(
                 f"border: 2px solid #333; border-radius: 8px; background-color: {cfg['color']};"
-                "color: #000; font-weight: bold;",
             )
-            grid.addWidget(header, row, 0)
+            header_layout = QVBoxLayout(header_widget)
+            header_layout.setContentsMargins(2, 2, 2, 2)
+            header_layout.setSpacing(2)
+
+            header_label = QLabel(f"{cfg['name']}\nCh {cfg['channel']}")
+            header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            header_label.setStyleSheet("color: #000; font-weight: bold;")
+            header_layout.addWidget(header_label)
+
+            fade_input = QSpinBox()
+            fade_input.setRange(0, 10000)
+            fade_input.setSuffix(" ms")
+            fade_input.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            fade_input.setValue(2000)
+            header_layout.addWidget(fade_input)
+
+            if not hasattr(self, "deck_fade_inputs"):
+                self.deck_fade_inputs = {}
+            self.deck_fade_inputs[deck_id] = fade_input
+
+            if hasattr(self, "mixer_window") and self.mixer_window:
+                try:
+                    self.mixer_window.set_deck_fade_time(deck_id, fade_input.value())
+
+                    def on_fade_change(value, d=deck_id):
+                        try:
+                            self.mixer_window.set_deck_fade_time(d, value)
+                        except Exception as e:
+                            logging.error(f"Error setting fade time for deck {d}: {e}")
+
+                    fade_input.valueChanged.connect(on_fade_change)
+                except Exception as e:
+                    logging.error(f"Error initializing fade input for deck {deck_id}: {e}")
+
+            grid.addWidget(header_widget, row, 0)
 
             for col, visual_name in enumerate(visuals):
                 cell = create_visual_cell(self, deck_id, visual_name, midi_info, cfg["color"])
