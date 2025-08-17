@@ -121,6 +121,7 @@ def create_improved_deck_grid(self, container):
             fade_input.setRange(0, 10000)
             fade_input.setSuffix(" ms")
             fade_input.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            fade_input.setValue(2000)
             header_layout.addWidget(fade_input)
 
             if not hasattr(self, "deck_fade_inputs"):
