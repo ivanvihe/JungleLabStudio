@@ -1,6 +1,43 @@
 from PyQt6.QtGui import QPixmap, QColor, QPainter, QPen, QBrush, QPolygon
-from PyQt6.QtCore import QPoint
+from PyQt6.QtCore import QPoint, Qt
 import math
+from pathlib import Path
+import json
+
+THUMBNAIL_CONFIG = Path("config/custom_thumbnails.json")
+
+
+def _load_thumbnail_config():
+    if THUMBNAIL_CONFIG.exists():
+        try:
+            with THUMBNAIL_CONFIG.open("r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+
+def _save_thumbnail_config(data):
+    THUMBNAIL_CONFIG.parent.mkdir(exist_ok=True)
+    with THUMBNAIL_CONFIG.open("w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+def get_custom_thumbnail_path(visual_name):
+    data = _load_thumbnail_config()
+    path = data.get(visual_name)
+    if path and Path(path).exists():
+        return path
+    return None
+
+
+def set_custom_thumbnail_path(visual_name, path):
+    data = _load_thumbnail_config()
+    if path:
+        data[visual_name] = path
+    else:
+        data.pop(visual_name, None)
+    _save_thumbnail_config(data)
 
 
 def _create_wave_path(width, offset=0):
@@ -15,6 +52,12 @@ def _create_wave_path(width, offset=0):
 
 def generate_visual_thumbnail(visual_name: str, width: int = 80, height: int = 60) -> QPixmap:
     """Generate a thumbnail pixmap for a visual."""
+    custom_path = get_custom_thumbnail_path(visual_name)
+    if custom_path:
+        pixmap = QPixmap(custom_path)
+        if not pixmap.isNull():
+            return pixmap.scaled(width, height, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+
     pixmap = QPixmap(width, height)
     pixmap.fill(QColor(0, 0, 0, 0))
 
