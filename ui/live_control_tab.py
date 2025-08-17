@@ -32,48 +32,11 @@ def create_live_control_tab(self):
     """Create live control tab with a grid of four decks by N visuals."""
     widget = QWidget()
     layout = QVBoxLayout(widget)
-    layout.setContentsMargins(10, 10, 10, 10)
-    layout.setSpacing(10)
-
-    # Header
-    header_label = QLabel("🎛️ LIVE CONTROL - VISUAL GRID")
-    header_label.setStyleSheet(
-        """
-        QLabel {
-            font-size: 16px;
-            font-weight: bold;
-            color: #00ff00;
-            padding: 10px;
-            background-color: #1a1a1a;
-            border: 2px solid #00ff00;
-            border-radius: 8px;
-        }
-        """
-    )
-    header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    layout.addWidget(header_label)
-
-    # Instructions
-    instructions = QLabel(
-        "💡 Click a cell to trigger the visual on that deck. Each deck has its own MIDI channel. "
-        "To edit MIDI notes, use the 'Visual Settings' tab."
-    )
-    instructions.setStyleSheet(
-        """
-        QLabel {
-            background-color: #e8f5e8;
-            color: #2e7d32;
-            padding: 8px;
-            border-radius: 5px;
-            border-left: 4px solid #4caf50;
-            font-size: 11px;
-        }
-        """
-    )
-    instructions.setWordWrap(True)
-    layout.addWidget(instructions)
+    layout.setContentsMargins(5, 5, 5, 5)
+    layout.setSpacing(5)
 
     # Scroll area
+    # Scroll area for the visual grid
     scroll = QScrollArea()
     scroll.setWidgetResizable(True)
     scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
