@@ -15,7 +15,7 @@ from .control_panel_window import ControlPanelWindow
 # Force reload of visualizer_manager to ensure fresh loading
 import importlib
 import visuals.visualizer_manager
-importlib.reload(visuals.visualizer_manager)
+
 from visuals.visualizer_manager import VisualizerManager
 
 # Configure logging with better formatting
@@ -38,12 +38,22 @@ class MainApplication:
         logging.info("🚀 Initializing Audio Visualizer Pro...")
         
         try:
+            # Set up OpenGL format for better compatibility
+            format = QSurfaceFormat()
+            format.setVersion(3, 3)
+            format.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
+            format.setDepthBufferSize(24)
+            format.setStencilBufferSize(8)
+            format.setSwapBehavior(QSurfaceFormat.SwapBehavior.DoubleBuffer)
+            format.setSamples(4)  # Anti-aliasing
+            QSurfaceFormat.setDefaultFormat(format)
+            logging.debug("✅ OpenGL format configured")
+
             self.app = QApplication(sys.argv)
             self.app.setApplicationName("Audio Visualizer Pro")
             self.app.setApplicationVersion("1.0")
             
-            # Set up OpenGL format for better compatibility
-            self.setup_opengl_format()
+            
             
             # Initialize core components
             self.initialize_components()
@@ -69,21 +79,7 @@ class MainApplication:
             self.show_critical_error("Initialization Error", str(e))
             sys.exit(1)
 
-    def setup_opengl_format(self):
-        """Setup OpenGL surface format with better compatibility"""
-        try:
-            format = QSurfaceFormat()
-            format.setVersion(3, 3)
-            format.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
-            format.setDepthBufferSize(24)
-            format.setStencilBufferSize(8)
-            format.setSwapBehavior(QSurfaceFormat.SwapBehavior.DoubleBuffer)
-            format.setSamples(4)  # Anti-aliasing
-            QSurfaceFormat.setDefaultFormat(format)
-            logging.debug("✅ OpenGL format configured")
-        except Exception as e:
-            logging.error(f"❌ Error setting up OpenGL format: {e}")
-            raise
+    
 
     def initialize_components(self):
         """Initialize all core components"""

@@ -88,7 +88,7 @@ class PreferencesDialog(QDialog):
 
         self.gpu_selector = QComboBox()
         self.gpu_info = []  # Store GPU info tuples (index, name, backend)
-        self.populate_gpu_devices()
+        # self.populate_gpu_devices()
         
         # Get current GPU setting and apply it
         current_gpu_index = self.settings_manager.get_setting("visual_settings.gpu_index", 0)

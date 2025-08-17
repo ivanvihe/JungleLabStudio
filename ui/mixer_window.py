@@ -1,4 +1,5 @@
 # ui/mixer_window.py - FIXED VERSION
+from opengl_fixes import init_opengl_debug
 import logging
 import numpy as np
 import ctypes
@@ -78,6 +79,7 @@ class MixerWindow(QMainWindow):
                 
                 # Make context current
                 self.gl_widget.makeCurrent()
+                init_opengl_debug()
 
                 # Log GL info for main context
                 try:

@@ -116,7 +116,7 @@ class ControlPanelWindow(QMainWindow):
             index = self.midi_device_selector.findText(last_midi_device)
             if index != -1:
                 self.midi_device_selector.setCurrentIndex(index)
-                self.midi_engine.open_midi_input_port(last_midi_device)
+                self.midi_engine.open_input_port(last_midi_device)
 
         # Create controls for default preset
         self.create_controls()
@@ -125,7 +125,7 @@ class ControlPanelWindow(QMainWindow):
     def populate_midi_devices(self):
         logging.debug("Populating MIDI devices")
         self.midi_device_selector.clear()
-        ports = self.midi_engine.get_midi_input_ports()
+        ports = self.midi_engine.list_input_ports()
         if not ports:
             self.midi_device_selector.addItem("No MIDI devices found")
             self.midi_device_selector.setEnabled(False)
@@ -139,7 +139,7 @@ class ControlPanelWindow(QMainWindow):
         selected_device = self.midi_device_selector.currentText()
         logging.debug(f"MIDI device selected: {selected_device}")
         if selected_device and selected_device != "No MIDI devices found":
-            self.midi_engine.open_midi_input_port(selected_device)
+            self.midi_engine.open_input_port(selected_device)
             self.settings_manager.set_setting('last_midi_device', selected_device)
 
     def on_preset_selected(self, index):
@@ -208,7 +208,13 @@ if __name__ == "__main__":
 
     settings_manager = SettingsManager()
     logging.debug("SettingsManager created")
-    midi_engine = MidiEngine()
+
+    class DummyVisualizerManager:
+        def get_visualizer_names(self):
+            return []
+
+    visualizer_manager = DummyVisualizerManager()
+    midi_engine = MidiEngine(settings_manager, visualizer_manager)
     logging.debug("MidiEngine created")
 
     visual_engine = VisualEngineWindow()
