@@ -11,7 +11,29 @@
       "clear_note": 70
     }
   },
-  "visual_priority_order": [],
+  "visual_priority_order": [
+    "Abstract Lines",
+    "Abstract Shapes",
+    "Building Madness",
+    "Cosmic Flow",
+    "Evolutive Particles",
+    "Fluid Particles",
+    "Geometric Particles",
+    "Intro Background",
+    "Intro Text ROBOTICA",
+    "Kaleido Tunnel",
+    "Mobius Band",
+    "Oneshot Boom Explosion",
+    "Oneshot Character Train",
+    "Oneshot Circuit Signal",
+    "Oneshot Electric Boom",
+    "Plasma Loop",
+    "Scientific Analyzer",
+    "Simple Test",
+    "Test Pattern",
+    "Vortex Particles",
+    "Wire Terrain"
+  ],
   "mix_actions": {
     "start_note": 48,
     "end_note": 59,
