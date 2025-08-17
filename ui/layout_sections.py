@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (
-    QFrame, QHBoxLayout, QLabel, QPushButton, QWidget, QVBoxLayout, QProgressBar
+    QFrame, QHBoxLayout, QLabel, QWidget, QVBoxLayout, QProgressBar
 )
 from PyQt6.QtCore import QTimer, Qt
 
@@ -40,45 +40,31 @@ def create_midi_activity_indicator(self):
 
 
 def create_header_section(self):
-    """Create header with status information including MIDI indicator and debug button"""
+    """Compact header showing only MIDI status and audio level"""
     header_frame = QFrame()
-    header_frame.setFrameStyle(QFrame.Shape.StyledPanel)
+    header_frame.setFrameStyle(QFrame.Shape.NoFrame)
     header_frame.setStyleSheet(
         """
         QFrame {
-            background-color: #1a1a1a;
-            border: 2px solid #00ff00;
-            border-radius: 8px;
-            padding: 10px;
+            background-color: #2a2a2a;
+            border-bottom: 1px solid #444;
         }
         """
     )
+    header_frame.setMaximumHeight(40)
+
     header_layout = QHBoxLayout(header_frame)
-
-    title_label = QLabel("<b>🎛️ AUDIO VISUALIZER PRO - CONTROL CENTER</b>")
-    title_label.setStyleSheet("font-size: 18px; color: #00ff00; font-weight: bold;")
-    header_layout.addWidget(title_label)
-
-    header_layout.addStretch()
+    header_layout.setContentsMargins(5, 2, 5, 2)
+    header_layout.setSpacing(10)
 
     midi_activity = create_midi_activity_indicator(self)
     header_layout.addWidget(midi_activity)
 
     self.midi_status_label = QLabel("MIDI: Checking...")
-    self.midi_status_label.setStyleSheet("font-weight: bold; padding: 5px; color: #ffaa00;")
+    self.midi_status_label.setStyleSheet("font-weight: bold; padding: 2px; color: #ffaa00;")
     header_layout.addWidget(self.midi_status_label)
 
-    quick_midi_btn = QPushButton("🎹 MIDI")
-    quick_midi_btn.setMaximumWidth(80)
-    quick_midi_btn.setStyleSheet("background-color: #6600cc; color: white; padding: 5px;")
-    quick_midi_btn.clicked.connect(self.show_midi_config)
-    header_layout.addWidget(quick_midi_btn)
-
-    debug_btn = QPushButton("🔧 Debug")
-    debug_btn.setMaximumWidth(80)
-    debug_btn.setStyleSheet("background-color: #0066cc; color: white; padding: 5px;")
-    debug_btn.clicked.connect(self.run_midi_debug)
-    header_layout.addWidget(debug_btn)
+    header_layout.addStretch()
 
     level_widget = QWidget()
     level_layout = QVBoxLayout(level_widget)
