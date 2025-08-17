@@ -1,5 +1,6 @@
 # ui/main_application.py - FIXED VERSION
 import sys
+import os
 import logging
 from PyQt6.QtWidgets import QApplication, QMessageBox
 from PyQt6.QtGui import QSurfaceFormat
@@ -340,9 +341,10 @@ class MainApplication:
             
             # IMPORTANT: Auto-connect devices AFTER windows are shown and connections established
             QTimer.singleShot(1000, self.auto_connect_devices)
-            
-            # CRITICAL: Wait a bit more before trying to load any test visualizers
-            QTimer.singleShot(2000, self.load_test_visualizers)
+
+            # Only load a test visualizer when explicitly requested
+            if os.getenv("AVP_LOAD_TEST_VISUALS") == "1":
+                QTimer.singleShot(2000, self.load_test_visualizers)
             
             logging.info("✅ Windows displayed")
             
@@ -351,7 +353,7 @@ class MainApplication:
             raise
 
     def load_test_visualizers(self):
-        """Load test visualizers to verify the system is working"""
+        """Load a test visualizer to verify the rendering pipeline (debug only)"""
         try:
             logging.info("🎨 Loading test visualizers...")
             
