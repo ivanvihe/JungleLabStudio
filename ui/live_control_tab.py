@@ -13,8 +13,21 @@ from PyQt6.QtCore import Qt
 import json
 import logging
 from pathlib import Path
+import mido
 
 from .thumbnail_utils import generate_visual_thumbnail
+
+# Base style for visual cells
+BASE_CELL_STYLE = """
+QFrame {
+    background-color: #1a1a1a;
+    border: 2px solid #444444;
+    border-radius: 8px;
+}
+QFrame:hover {
+    border-color: #00ff00;
+}
+"""
 def create_live_control_tab(self):
     """Create live control tab with a grid of four decks by N visuals."""
     widget = QWidget()
@@ -42,7 +55,7 @@ def create_live_control_tab(self):
 
     # Instructions
     instructions = QLabel(
-        "💡 Read-only view of the control grid. Each deck has its own MIDI channel. "
+        "💡 Click a cell to trigger the visual on that deck. Each deck has its own MIDI channel. "
         "To edit MIDI notes, use the 'Visual Settings' tab."
     )
     instructions.setStyleSheet(
@@ -90,7 +103,7 @@ def create_improved_deck_grid(self, container):
         visuals = []
         if hasattr(self, "visualizer_manager") and self.visualizer_manager:
             try:
-                visuals = sorted(self.visualizer_manager.get_visualizer_names())
+                visuals = self.visualizer_manager.get_visualizer_names()
                 logging.info(f"🎨 Found {len(visuals)} visuals for live control grid")
             except Exception as e:
                 logging.error(f"Error getting visualizer names: {e}")
@@ -100,6 +113,8 @@ def create_improved_deck_grid(self, container):
             return
 
         midi_info = get_midi_mapping_info(self)
+        # Sort visuals by assigned MIDI note, falling back to high value
+        visuals = sorted(visuals, key=lambda v: midi_info.get(v, 9999))
 
         deck_config = {
             "A": {"channel": 1, "color": "#ff6b6b", "name": "DECK A"},
@@ -108,12 +123,22 @@ def create_improved_deck_grid(self, container):
             "D": {"channel": 4, "color": "#96ceb4", "name": "DECK D"},
         }
 
+        # Store grid info for interactions
+        self.live_grid_cells = {}
+        self.live_grid_midi_info = midi_info
+        self.live_grid_deck_channels = {}
+        self.live_grid_deck_colors = {}
+
         grid = QGridLayout(container)
         grid.setAlignment(Qt.AlignmentFlag.AlignTop)
         grid.setHorizontalSpacing(5)
         grid.setVerticalSpacing(5)
 
         for row, (deck_id, cfg) in enumerate(deck_config.items()):
+            self.live_grid_cells[deck_id] = {}
+            self.live_grid_deck_channels[deck_id] = cfg["channel"]
+            self.live_grid_deck_colors[deck_id] = cfg["color"]
+
             header = QLabel(f"{cfg['name']}\nCh {cfg['channel']}")
             header.setAlignment(Qt.AlignmentFlag.AlignCenter)
             header.setFixedSize(100, 100)
@@ -124,7 +149,8 @@ def create_improved_deck_grid(self, container):
             grid.addWidget(header, row, 0)
 
             for col, visual_name in enumerate(visuals):
-                cell = create_visual_cell(visual_name, midi_info)
+                cell = create_visual_cell(self, deck_id, visual_name, midi_info, cfg["color"])
+                self.live_grid_cells[deck_id][visual_name] = cell
                 grid.addWidget(cell, row, col + 1)
 
             clear_btn = QPushButton("CLEAR")
@@ -160,22 +186,11 @@ def create_improved_deck_grid(self, container):
         create_fallback_grid(container)
 
 
-def create_visual_cell(visual_name, midi_info):
+def create_visual_cell(parent, deck_id, visual_name, midi_info, deck_color):
     """Create a 100x100 cell with thumbnail, name and MIDI note."""
     cell = QFrame()
     cell.setFixedSize(100, 100)
-    cell.setStyleSheet(
-        """
-        QFrame {
-            background-color: #1a1a1a;
-            border: 2px solid #444444;
-            border-radius: 8px;
-        }
-        QFrame:hover {
-            border-color: #00ff00;
-        }
-        """
-    )
+    cell.setStyleSheet(BASE_CELL_STYLE)
 
     layout = QVBoxLayout(cell)
     layout.setContentsMargins(2, 2, 2, 2)
@@ -197,6 +212,15 @@ def create_visual_cell(visual_name, midi_info):
     note_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
     note_label.setStyleSheet("color: #cccccc; font-size:9px;")
     layout.addWidget(note_label)
+
+    # Store base style for future resets
+    cell.base_style = BASE_CELL_STYLE
+
+    # Connect click to trigger visual
+    def mouse_press(event, d=deck_id, v=visual_name):
+        trigger_visual_from_grid(parent, d, v)
+
+    cell.mousePressEvent = mouse_press
 
     return cell
 
@@ -222,4 +246,17 @@ def create_fallback_grid(container):
     layout.addWidget(error_label)
     retry_btn = QPushButton("Retry")
     layout.addWidget(retry_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+
+
+def trigger_visual_from_grid(self, deck_id, visual_name):
+    """Simulate MIDI note to trigger a visual on a deck."""
+    try:
+        note = getattr(self, "live_grid_midi_info", {}).get(visual_name)
+        channel = getattr(self, "live_grid_deck_channels", {}).get(deck_id, 1) - 1
+        if note is None or not hasattr(self, "midi_engine"):
+            return
+        msg = mido.Message("note_on", channel=channel, note=note, velocity=127)
+        self.midi_engine.handle_midi_message(msg)
+    except Exception as e:
+        logging.error(f"Error triggering visual {visual_name} on deck {deck_id}: {e}")
 
