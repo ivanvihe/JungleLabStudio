@@ -30,7 +30,7 @@ class MidiVisualMapper:
 
     def create_default_visual_config(self):
         self.config = {
-            "deck_channels": {"A": 0, "B": 1, "C": 2, "D": 3},
+            "deck_channels": {"A": 12, "B": 13, "C": 14, "D": 15},
             "start_note": 56,
             "visual_priority_order": []
         }

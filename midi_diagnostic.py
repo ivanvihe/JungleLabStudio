@@ -26,7 +26,7 @@ def diagnose_midi():
         # Mostrar algunos mappings de ejemplo usando canales
         test_notes = [56, 57]
         for note in test_notes:
-            for channel in range(4):
+            for channel in range(12, 16):
                 key = f"note_on_ch{channel}_note{note}"
                 found = False
                 for action_id, mapping_data in mappings.items():
@@ -45,7 +45,7 @@ def diagnose_midi():
     print("\n" + "="*60)
 
 # Simular una nota MIDI para probar
-def test_note(note_number, channel=0, velocity=127):
+def test_note(note_number, channel=12, velocity=127):
     print(f"\n🧪 Probando nota {note_number} en canal {channel+1} con velocity {velocity}")
 
     if app.midi_engine:
@@ -73,4 +73,4 @@ diagnose_midi()
 check_visualizers()
 
 # Prueba directa - descomenta para probar
-# test_note(56, channel=0)  # Abstract Lines en Deck A
+# test_note(56, channel=12)  # Abstract Lines en Deck A
