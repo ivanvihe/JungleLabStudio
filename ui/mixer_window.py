@@ -37,6 +37,7 @@ class MixerWindow(QMainWindow):
         self.global_brightness = 1.0  # Global brightness control
         self.deck_a = None
         self.deck_b = None
+        self.deck_fade_times = {"A": 0, "B": 0}
         
         # OpenGL widget setup
         self.gl_widget = QOpenGLWidget(self)
@@ -501,38 +502,92 @@ class MixerWindow(QMainWindow):
 
     @pyqtSlot(str, object)
     def set_deck_visualizer(self, deck_id, visualizer_name):
-        """Set visualizer for a specific deck - now handles None"""
+        """Set visualizer for a specific deck - supports fade transitions"""
+        fade_ms = self.deck_fade_times.get(deck_id, 0)
+        target_deck = None
+        if deck_id == 'A':
+            target_deck = self.deck_a
+        elif deck_id == 'B':
+            target_deck = self.deck_b
+
+        if (
+            fade_ms > 0
+            and target_deck
+            and target_deck.has_active_visualizer()
+            and visualizer_name not in (None, "-- No preset selected --")
+        ):
+            self._fade_and_set_visualizer(deck_id, visualizer_name, fade_ms)
+            return
+
         with QMutexLocker(self._mutex):
             logging.info(f"🎮 Setting deck {deck_id} to visualizer: {visualizer_name}")
-            
+
             if not self.gl_initialized:
                 logging.warning("⚠️ OpenGL not initialized, queuing visualizer change")
-                # Queue the change for when GL is ready
                 QTimer.singleShot(500, lambda: self.set_deck_visualizer(deck_id, visualizer_name))
                 return
-                
-            # Make sure we have OpenGL context
+
             self.gl_widget.makeCurrent()
-            
+
             if deck_id == 'A' and self.deck_a:
                 if visualizer_name is None or visualizer_name == "-- No preset selected --":
-                    # Clear the deck - set to None/empty visualizer
                     self.deck_a.clear_visualizer()
-                    logging.info(f"🚫 Deck A cleared - no visualizer")
+                    logging.info("🚫 Deck A cleared - no visualizer")
                 else:
                     self.deck_a.set_visualizer(visualizer_name)
                     logging.info(f"✅ Deck A set to: {visualizer_name}")
-                    
             elif deck_id == 'B' and self.deck_b:
                 if visualizer_name is None or visualizer_name == "-- No preset selected --":
-                    # Clear the deck - set to None/empty visualizer
                     self.deck_b.clear_visualizer()
-                    logging.info(f"🚫 Deck B cleared - no visualizer")
+                    logging.info("🚫 Deck B cleared - no visualizer")
                 else:
                     self.deck_b.set_visualizer(visualizer_name)
                     logging.info(f"✅ Deck B set to: {visualizer_name}")
             else:
                 logging.warning(f"⚠️ Unknown deck ID: {deck_id}")
+
+    def _fade_and_set_visualizer(self, deck_id, visualizer_name, fade_ms):
+        """Fade out current visualizer, switch, and fade back in"""
+        target_deck = self.deck_a if deck_id == 'A' else self.deck_b
+        if not target_deck:
+            return
+
+        steps = max(1, int(fade_ms / 16))
+        step_time = max(1, int(fade_ms / steps))
+        current_opacity = self.deck_a_opacity if deck_id == 'A' else self.deck_b_opacity
+
+        timer = QTimer()
+        state = {'step': 0, 'phase': 'out'}
+
+        def step():
+            if state['phase'] == 'out':
+                if state['step'] < steps:
+                    new_opacity = current_opacity * (1 - (state['step'] + 1) / steps)
+                    self.set_deck_opacity(deck_id, new_opacity)
+                    state['step'] += 1
+                else:
+                    timer.stop()
+                    self.set_deck_opacity(deck_id, 0.0)
+                    with QMutexLocker(self._mutex):
+                        if not self.gl_initialized:
+                            return
+                        self.gl_widget.makeCurrent()
+                        target_deck.set_visualizer(visualizer_name)
+                    state['phase'] = 'in'
+                    state['step'] = 0
+                    timer.start(step_time)
+            else:
+                if state['step'] < steps:
+                    new_opacity = current_opacity * ((state['step'] + 1) / steps)
+                    self.set_deck_opacity(deck_id, new_opacity)
+                    state['step'] += 1
+                else:
+                    self.set_deck_opacity(deck_id, current_opacity)
+                    timer.stop()
+                    timer.deleteLater()
+
+        timer.timeout.connect(step)
+        timer.start(step_time)
 
     @pyqtSlot(str, str, object)
     def update_deck_control(self, deck_id, name, value):
@@ -571,6 +626,12 @@ class MixerWindow(QMainWindow):
             elif deck_id == 'B':
                 self.deck_b_opacity = opacity
                 logging.debug(f"🎚️ Deck B opacity set to: {opacity:.2f}")
+
+    def set_deck_fade_time(self, deck_id, fade_ms):
+        """Configure fade time for deck transitions in milliseconds"""
+        with QMutexLocker(self._mutex):
+            self.deck_fade_times[deck_id] = max(0, int(fade_ms))
+            logging.debug(f"⏱️ Deck {deck_id} fade time set to {fade_ms} ms")
 
     # Thread-safe public methods
     def safe_set_mix_value(self, value):
