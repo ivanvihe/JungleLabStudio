@@ -13,6 +13,7 @@ from OpenGL.GL import (
     GL_FALSE,
     GL_FLOAT,
     GL_FRAGMENT_SHADER,
+    GL_COMPILE_STATUS,
     GL_LINK_STATUS,
     GL_STATIC_DRAW,
     GL_TRIANGLES,
@@ -129,7 +130,7 @@ class GLBackend(RenderBackend):
         vs = glCreateShader(GL_VERTEX_SHADER)
         glShaderSource(vs, vertex_src)
         glCompileShader(vs)
-        if not glGetShaderiv(vs, 0x8B81):
+        if not glGetShaderiv(vs, GL_COMPILE_STATUS):
             error = glGetShaderInfoLog(vs).decode()
             glDeleteShader(vs)
             raise RuntimeError(f"Vertex shader compilation failed: {error}")
@@ -137,7 +138,7 @@ class GLBackend(RenderBackend):
         fs = glCreateShader(GL_FRAGMENT_SHADER)
         glShaderSource(fs, fragment_src)
         glCompileShader(fs)
-        if not glGetShaderiv(fs, 0x8B81):
+        if not glGetShaderiv(fs, GL_COMPILE_STATUS):
             error = glGetShaderInfoLog(fs).decode()
             glDeleteShader(vs)
             glDeleteShader(fs)
