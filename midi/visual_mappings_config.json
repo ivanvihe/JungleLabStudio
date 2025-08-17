@@ -11,21 +11,7 @@
       "clear_note": 70
     }
   },
-  "visual_priority_order": [
-    "Simple Test",
-    "Intro Background",
-    "Intro Text ROBOTICA",
-    "Wire Terrain",
-    "Abstract Lines",
-    "Geometric Particles",
-    "Evolutive Particles",
-    "Abstract Shapes",
-    "Mobius Band",
-    "Building Madness",
-    "Cosmic Flow",
-    "Fluid Particles",
-    "Vortex Particles"
-  ],
+  "visual_priority_order": [],
   "mix_actions": {
     "start_note": 48,
     "end_note": 59,

@@ -1,7 +1,6 @@
 # midi/midi_visual_mapper.py - GESTIÓN DINÁMICA DE MAPPINGS VISUALES
 import logging
 import json
-import os
 from pathlib import Path
 
 class MidiVisualMapper:
@@ -14,9 +13,12 @@ class MidiVisualMapper:
         self.visualizer_manager = visualizer_manager
         self.visual_mappings_config = {}
         self.default_channel = 0
-        
+
         # Cargar configuración de mappings
         self.load_visual_mappings_config()
+
+        # Sincronizar configuración con visuales disponibles
+        self.sync_with_available_visuals()
         
         logging.info(f"🎨 MidiVisualMapper initialized with {len(self.visual_mappings_config)} visual configs")
 
@@ -63,21 +65,7 @@ class MidiVisualMapper:
                     "clear_note": 70
                 }
             },
-            "visual_priority_order": [
-                "Simple Test",
-                "Intro Background",
-                "Intro Text ROBOTICA",
-                "Wire Terrain",
-                "Abstract Lines",
-                "Geometric Particles",
-                "Evolutive Particles",
-                "Abstract Shapes",
-                "Mobius Band",
-                "Building Madness",
-                "Cosmic Flow",
-                "Fluid Particles",
-                "Vortex Particles"
-            ],
+            "visual_priority_order": [],
             "mix_actions": {
                 "start_note": 48,  # C2
                 "end_note": 59,    # B2
