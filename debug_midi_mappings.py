@@ -36,7 +36,10 @@ def debug_midi_mappings():
                 if i >= 10:  # Mostrar solo los primeros 10
                     print(f"      ... y {len(config_mappings) - 10} más")
                     break
-                
+
+                if not isinstance(mapping_data, dict):
+                    continue
+
                 midi_key = mapping_data.get('midi', 'no_midi')
                 action_type = mapping_data.get('type', 'unknown')
                 params = mapping_data.get('params', {})
@@ -66,7 +69,7 @@ def debug_midi_mappings():
             for midi_key, expected in critical_tests:
                 found = False
                 for action_id, mapping_data in config_mappings.items():
-                    if mapping_data.get('midi') == midi_key:
+                    if isinstance(mapping_data, dict) and mapping_data.get('midi') == midi_key:
                         action_type = mapping_data.get('type', 'unknown')
                         params = mapping_data.get('params', {})
                         
@@ -115,6 +118,8 @@ def debug_midi_mappings():
                     if i >= 5:
                         print(f"      ... y {len(midi_mappings) - 5} más")
                         break
+                    if not isinstance(mapping_data, dict):
+                        continue
                     midi_key = mapping_data.get('midi', 'no_midi')
                     print(f"      {action_id}: {midi_key}")
             else:
@@ -170,7 +175,7 @@ def debug_midi_mappings():
             test_key = "note_on_ch0_note37"  # Wire Terrain Deck A
             found_mapping = None
             for action_id, mapping_data in mappings.items():
-                if mapping_data.get('midi') == test_key:
+                if isinstance(mapping_data, dict) and mapping_data.get('midi') == test_key:
                     found_mapping = (action_id, mapping_data)
                     break
             

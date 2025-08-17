@@ -517,7 +517,7 @@ class MidiMappingDialog(QDialog):
 
             # Verificar duplicados
             for i, mapping in enumerate(self.mappings):
-                if i != self.learning_row and mapping.get('midi') == message_key:
+                if i != self.learning_row and isinstance(mapping, dict) and mapping.get('midi') == message_key:
                     result = QMessageBox.question(
                         self, "Asignación Duplicada",
                         f"El control MIDI '{message_key}' ya está asignado a la fila {i + 1}.\n"
