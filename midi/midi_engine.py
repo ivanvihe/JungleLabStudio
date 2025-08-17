@@ -839,11 +839,15 @@ class MidiEngine(QObject):
         except Exception as e:
             logging.error(f"❌ Error setting up default mappings: {e}")
 
-    def test_midi_mapping(self, note_number):
-        """Test a specific MIDI mapping by note number"""
+    def test_midi_mapping(self, note_number, channel=None):
+        """Test a specific MIDI mapping by note number and optional channel"""
         try:
-            test_key = f"note_on_ch{self.default_channel}_note{note_number}"
-            logging.info(f"🧪 TESTING MIDI mapping for note {note_number} (key: {test_key})")
+            if channel is None:
+                channel = self.default_channel
+            test_key = f"note_on_ch{channel}_note{note_number}"
+            logging.info(
+                f"🧪 TESTING MIDI mapping for note {note_number} on ch{channel} (key: {test_key})"
+            )
             
             found_mapping = None
             for action_id, mapping_data in self.midi_mappings.items():
@@ -865,7 +869,9 @@ class MidiEngine(QObject):
                 
             else:
                 note_name = self.get_note_name(note_number)
-                logging.warning(f"❌ No mapping found for {note_name} (note {note_number})")
+                logging.warning(
+                    f"❌ No mapping found for {note_name} (note {note_number}) on ch{channel}"
+                )
                 
         except Exception as e:
             logging.error(f"❌ Error testing MIDI mapping: {e}")
