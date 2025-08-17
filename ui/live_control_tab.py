@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
     QFrame,
     QPushButton,
     QSpinBox,
+    QSlider,
 )
 from PyQt6.QtCore import Qt
 
@@ -161,6 +162,36 @@ def create_improved_deck_grid(self, container):
                 except Exception as e:
                     logging.error(f"Error initializing fade input for deck {deck_id}: {e}")
 
+            opacity_slider = QSlider(Qt.Orientation.Horizontal)
+            opacity_slider.setRange(0, 100)
+            opacity_slider.setValue(100)
+            header_layout.addWidget(opacity_slider)
+
+            opacity_label = QLabel("100%")
+            opacity_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            header_layout.addWidget(opacity_label)
+
+            if not hasattr(self, "deck_opacity_sliders"):
+                self.deck_opacity_sliders = {}
+            self.deck_opacity_sliders[deck_id] = opacity_slider
+
+            if hasattr(self, "mixer_window") and self.mixer_window:
+                try:
+                    self.mixer_window.set_deck_opacity(deck_id, 1.0)
+
+                    def on_opacity_change(value, d=deck_id, lbl=opacity_label):
+                        try:
+                            lbl.setText(f"{value}%")
+                            self.mixer_window.set_deck_opacity(d, value / 100.0)
+                        except Exception as e:
+                            logging.error(f"Error setting opacity for deck {d}: {e}")
+
+                    opacity_slider.valueChanged.connect(on_opacity_change)
+                except Exception as e:
+                    logging.error(
+                        f"Error initializing opacity slider for deck {deck_id}: {e}"
+                    )
+
             grid.addWidget(header_widget, row, 0)
 
             for col, visual_name in enumerate(visuals):
@@ -217,6 +248,7 @@ def create_visual_cell(parent, deck_id, visual_name, midi_info, deck_color):
     thumb_label.setFixedSize(96, 60)
     thumb_label.setPixmap(generate_visual_thumbnail(visual_name, 96, 60))
     layout.addWidget(thumb_label)
+    cell.thumb_label = thumb_label
 
     name_label = QLabel(visual_name)
     name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)

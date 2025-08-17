@@ -10,7 +10,7 @@ from ..base_visualizer import BaseVisualizer
 
 
 class BuildingMadnessVisualizer(BaseVisualizer):
-    """Audio reactive infinite city visualizer - Inception/Interstellar style."""
+    """Audio reactive infinite city visualizer - Balanced performance optimization."""
 
     visual_name = "Building Madness"
 
@@ -21,8 +21,10 @@ class BuildingMadnessVisualizer(BaseVisualizer):
         self.vbo = None
         self.ebo = None
         self.time = 0.0
-        self.grid_size = 15
-        self.building_layers = 3
+        
+        # Slightly reduced complexity but maintain visual quality
+        self.grid_size = 12  # Reduced from 15 but not too much
+        self.building_layers = 3  # Keep original layers
         self.camera_speed = 1.0
         self.rotation_speed = 0.3
         self.glow_intensity = 1.0
@@ -44,7 +46,7 @@ class BuildingMadnessVisualizer(BaseVisualizer):
         self.delta_time = 0.0
         
         # Audio smoothing
-        self.smooth_fft = np.zeros(32)
+        self.smooth_fft = np.zeros(24)  # Reduced from 32 but not too much
         self.bass_energy = 0.0
         self.mid_energy = 0.0
         self.high_energy = 0.0
@@ -75,8 +77,9 @@ class BuildingMadnessVisualizer(BaseVisualizer):
             logging.error(f"BuildingMadness.initializeGL error: {exc}")
 
     def _load_shaders(self) -> bool:
-        """Compile and link advanced shaders."""
+        """Compile and link moderately optimized shaders."""
         try:
+            # Keep most vertex shader features but simplify some calculations
             vertex_src = """
             #version 330 core
             layout(location = 0) in vec3 aPos;
@@ -101,23 +104,24 @@ class BuildingMadnessVisualizer(BaseVisualizer):
             uniform vec3 audioData;
             
             void main() {
-                // Apply audio-reactive transformation
                 vec3 pos = aPos;
-                float audioInfluence = audioData.x * 0.3 + audioData.y * 0.2;
+                float audioInfluence = audioData.x * 0.25 + audioData.y * 0.15;
                 
-                // Vertical wave based on position and time
-                pos.y += sin(pos.x * 2.0 + time * 2.0) * 0.1 * audioInfluence;
-                pos.y += cos(pos.z * 2.0 + time * 1.5) * 0.1 * audioInfluence;
+                // Simplified but still nice wave effects
+                pos.y += sin(pos.x * 1.5 + time * 1.5) * 0.08 * audioInfluence;
+                pos.y += cos(pos.z * 1.5 + time * 1.2) * 0.08 * audioInfluence;
                 
-                // Tesseract-like warping
+                // Reduced tesseract warping (still visible but less expensive)
                 float dist = length(pos.xz);
-                float warpFactor = 1.0 + warp * sin(dist * 0.5 - time) * 0.2;
+                float warpFactor = 1.0 + warp * sin(dist * 0.4 - time * 0.8) * 0.15;
                 pos.xz *= warpFactor;
                 
-                // Space-time distortion (Interstellar effect)
-                float bend = sin(time * 0.5 + dist * 0.3) * warp * 0.3;
-                mat2 rotation = mat2(cos(bend), -sin(bend), sin(bend), cos(bend));
-                pos.xz = rotation * pos.xz;
+                // Simplified space-time distortion
+                float bend = sin(time * 0.4 + dist * 0.2) * warp * 0.2;
+                float cosB = cos(bend);
+                float sinB = sin(bend);
+                vec2 rotated = vec2(cosB * pos.x - sinB * pos.z, sinB * pos.x + cosB * pos.z);
+                pos.xz = rotated;
                 
                 vec4 worldPosition = model * vec4(pos, 1.0);
                 vec4 viewPosition = view * worldPosition;
@@ -128,11 +132,12 @@ class BuildingMadnessVisualizer(BaseVisualizer):
                 Normal = mat3(transpose(inverse(model))) * aNormal;
                 TexCoord = aTexCoord;
                 Color = aColor;
-                Glow = aGlow + audioData.z * 0.5;
+                Glow = aGlow + audioData.z * 0.4;
                 Depth = -viewPosition.z;
             }
             """
 
+            # Optimized fragment shader but keep the visual quality
             fragment_src = """
             #version 330 core
             in vec3 FragPos;
@@ -151,7 +156,7 @@ class BuildingMadnessVisualizer(BaseVisualizer):
             uniform float glowIntensity;
             uniform float colorShift;
             
-            // Procedural texture generation
+            // Keep noise but optimize it
             float random(vec2 st) {
                 return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
             }
@@ -164,57 +169,55 @@ class BuildingMadnessVisualizer(BaseVisualizer):
                 float c = random(i + vec2(0.0, 1.0));
                 float d = random(i + vec2(1.0, 1.0));
                 vec2 u = f * f * (3.0 - 2.0 * f);
-                return mix(a, b, u.x) + (c - a)* u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+                return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
             }
             
+            // Optimized but still good window function
             vec3 getWindowColor(vec2 uv, float glow) {
-                // More realistic window grid
                 vec2 grid = fract(uv);
                 
-                // Window frame thickness
+                // Window frame
                 float frameThickness = 0.08;
                 float window = 1.0;
                 window *= step(frameThickness, grid.x) * step(grid.x, 1.0 - frameThickness);
                 window *= step(frameThickness, grid.y) * step(grid.y, 1.0 - frameThickness);
                 
-                // Floor separation (horizontal lines every few windows)
+                // Floor separation
                 float floorLine = step(0.95, fract(uv.y * 0.25));
                 window *= 1.0 - floorLine;
                 
-                // Random window lighting with more variation
+                // Window lighting
                 vec2 windowId = floor(uv);
                 float lightOn = random(windowId) > 0.4 ? 1.0 : 0.0;
                 
-                // Animated flickering for some windows
-                if(random(windowId * 0.5) > 0.8) {
-                    lightOn *= (sin(time * 5.0 + random(windowId) * 20.0) * 0.5 + 0.5);
+                // Some animated windows (but not all to reduce cost)
+                if(random(windowId * 0.5) > 0.9) {
+                    lightOn *= (sin(time * 4.0 + random(windowId) * 15.0) * 0.5 + 0.5);
                 }
                 
-                // React to audio
-                lightOn = clamp(lightOn + audioData.x * 0.3, 0.0, 1.0);
+                // Audio reaction
+                lightOn = clamp(lightOn + audioData.x * 0.25, 0.0, 1.0);
                 
-                // Window colors - warm interior light
-                vec3 windowColor = vec3(1.0, 0.9, 0.7) * lightOn * window * 0.8;
+                // Window colors
+                vec3 windowColor = vec3(1.0, 0.9, 0.7) * lightOn * window * 0.7;
                 
-                // Some windows with colored lights (offices, signs)
+                // Some colored windows (reduced frequency)
                 float colorType = random(windowId * 2.0);
-                if(colorType > 0.9) {
-                    windowColor = vec3(0.0, 0.8, 1.0) * lightOn * window; // Cyan
-                } else if(colorType > 0.85) {
-                    windowColor = vec3(1.0, 0.2, 0.5) * lightOn * window; // Magenta
-                } else if(colorType > 0.8) {
-                    windowColor = vec3(0.2, 1.0, 0.2) * lightOn * window; // Green
+                if(colorType > 0.92) {
+                    windowColor = vec3(0.0, 0.7, 1.0) * lightOn * window;
+                } else if(colorType > 0.88) {
+                    windowColor = vec3(1.0, 0.3, 0.6) * lightOn * window;
                 }
                 
-                // Add reflections on glass
-                float reflection = (1.0 - window) * 0.3;
-                windowColor += vec3(0.1, 0.15, 0.2) * reflection;
+                // Reflections
+                float reflection = (1.0 - window) * 0.25;
+                windowColor += vec3(0.08, 0.12, 0.18) * reflection;
                 
-                // Glow from windows
-                windowColor += vec3(0.1, 0.3, 0.6) * glow * 2.0 * audioData.y;
+                // Window glow
+                windowColor += vec3(0.1, 0.25, 0.5) * glow * 1.5 * audioData.y;
                 
-                // Building frame/structure
-                vec3 frameColor = vec3(0.15, 0.15, 0.18) * (1.0 - window);
+                // Building frame
+                vec3 frameColor = vec3(0.12, 0.12, 0.15) * (1.0 - window);
                 
                 return windowColor + frameColor;
             }
@@ -223,18 +226,18 @@ class BuildingMadnessVisualizer(BaseVisualizer):
                 vec3 norm = normalize(Normal);
                 vec3 viewDir = normalize(viewPos - FragPos);
                 
-                // Base color with procedural texture
-                vec3 baseColor = Color.rgb * 0.5;
-                float noiseVal = noise(TexCoord * 30.0 + vec2(time * 0.1, WorldPos.y * 0.1));
-                baseColor = mix(baseColor, baseColor * 1.5, noiseVal * 0.4);
+                // Base color
+                vec3 baseColor = Color.rgb * 0.6;
+                float noiseVal = noise(TexCoord * 20.0 + vec2(time * 0.08, WorldPos.y * 0.08));
+                baseColor = mix(baseColor, baseColor * 1.3, noiseVal * 0.3);
                 
-                // Enhanced window texture
+                // Window texture
                 vec3 windowTex = getWindowColor(TexCoord, Glow);
-                baseColor = mix(baseColor, windowTex, 0.85);
+                baseColor = mix(baseColor, windowTex, 0.8);
                 
-                // Multiple light sources for complex lighting
-                vec3 lightPos1 = vec3(sin(time) * 15.0, 10.0, cos(time) * 15.0);
-                vec3 lightPos2 = vec3(cos(time * 0.7) * 10.0, 5.0, sin(time * 0.7) * 10.0);
+                // Two light sources instead of multiple (performance vs quality balance)
+                vec3 lightPos1 = vec3(sin(time * 0.8) * 12.0, 8.0, cos(time * 0.8) * 12.0);
+                vec3 lightPos2 = vec3(cos(time * 0.6) * 8.0, 6.0, sin(time * 0.6) * 8.0);
                 
                 vec3 lightDir1 = normalize(lightPos1 - FragPos);
                 vec3 lightDir2 = normalize(lightPos2 - FragPos);
@@ -242,66 +245,65 @@ class BuildingMadnessVisualizer(BaseVisualizer):
                 float diff1 = max(dot(norm, lightDir1), 0.0);
                 float diff2 = max(dot(norm, lightDir2), 0.0);
                 
-                vec3 diffuse = diff1 * vec3(1.0, 0.8, 0.6) + diff2 * vec3(0.6, 0.8, 1.0) * 0.5;
+                vec3 diffuse = diff1 * vec3(0.9, 0.7, 0.5) + diff2 * vec3(0.5, 0.7, 0.9) * 0.6;
                 
-                // Enhanced specular with metallic feel
+                // Specular (simplified but still present)
                 vec3 reflectDir1 = reflect(-lightDir1, norm);
-                float spec = pow(max(dot(viewDir, reflectDir1), 0.0), 64);
-                vec3 specular = spec * vec3(1.0, 0.9, 0.8) * 0.8;
+                float spec = pow(max(dot(viewDir, reflectDir1), 0.0), 48);
+                vec3 specular = spec * vec3(0.8, 0.7, 0.6) * 0.6;
                 
-                // Fresnel effect for glass-like surfaces
-                float fresnel = pow(1.0 - max(dot(norm, viewDir), 0.0), 3.0);
-                vec3 fresnelColor = vec3(0.3, 0.6, 1.0) * fresnel * 2.0;
+                // Fresnel effect (simplified)
+                float fresnel = pow(1.0 - max(dot(norm, viewDir), 0.0), 2.5);
+                vec3 fresnelColor = vec3(0.25, 0.5, 0.8) * fresnel * 1.5;
                 
-                // Ambient occlusion with height gradient
-                float ao = 1.0 - (1.0 / (1.0 + Depth * 0.008));
-                ao *= (1.0 - smoothstep(0.0, 10.0, WorldPos.y) * 0.3);
+                // Ambient occlusion
+                float ao = 1.0 - (1.0 / (1.0 + Depth * 0.006));
+                ao *= (1.0 - smoothstep(0.0, 8.0, WorldPos.y) * 0.25);
                 
-                // Enhanced rim lighting
+                // Rim lighting
                 float rim = 1.0 - max(dot(norm, viewDir), 0.0);
-                rim = pow(rim, 1.5);
-                vec3 rimColor = mix(vec3(0.2, 0.6, 1.0), vec3(1.0, 0.3, 0.8), sin(time + WorldPos.y)) * rim * glowIntensity * 1.5;
+                rim = pow(rim, 1.2);
+                vec3 rimColor = mix(vec3(0.15, 0.5, 0.9), vec3(0.8, 0.2, 0.6), sin(time * 0.8 + WorldPos.y * 0.1)) * rim * glowIntensity;
                 
-                // Audio-reactive energy waves
-                float energyWave = sin(WorldPos.y * 2.0 - time * 3.0 + audioData.x * 10.0) * 0.5 + 0.5;
-                vec3 audioGlow = vec3(audioData.x, audioData.y, audioData.z) * Glow * glowIntensity * 2.0;
-                audioGlow *= mix(vec3(1.0, 0.3, 0.1), vec3(0.1, 0.5, 1.0), energyWave);
+                // Audio glow
+                float energyWave = sin(WorldPos.y * 1.5 - time * 2.5 + audioData.x * 8.0) * 0.5 + 0.5;
+                vec3 audioGlow = vec3(audioData.x, audioData.y, audioData.z) * Glow * glowIntensity * 1.5;
+                audioGlow *= mix(vec3(0.8, 0.2, 0.1), vec3(0.1, 0.4, 0.9), energyWave);
                 
-                // Holographic color shifting
+                // Color shifting
                 vec3 shiftedColor = baseColor;
-                float shift = time * 0.5 + colorShift + WorldPos.y * 0.1;
-                shiftedColor.r = baseColor.r * (1.0 + sin(shift) * 0.3);
-                shiftedColor.g = baseColor.g * (1.0 + sin(shift + 2.094) * 0.3);
-                shiftedColor.b = baseColor.b * (1.0 + sin(shift + 4.189) * 0.3);
+                float shift = time * 0.4 + colorShift + WorldPos.y * 0.08;
+                shiftedColor.r = baseColor.r * (1.0 + sin(shift) * 0.25);
+                shiftedColor.g = baseColor.g * (1.0 + sin(shift + 2.094) * 0.25);
+                shiftedColor.b = baseColor.b * (1.0 + sin(shift + 4.189) * 0.25);
                 
-                // Combine all lighting with HDR tonemapping
-                vec3 result = (shiftedColor * 0.2 + diffuse * 0.5 + specular) * ao;
-                result += rimColor + fresnelColor * 0.3;
+                // Combine lighting
+                vec3 result = (shiftedColor * 0.25 + diffuse * 0.55 + specular) * ao;
+                result += rimColor + fresnelColor * 0.25;
                 result += audioGlow;
-                result += windowTex * 0.5; // Extra window glow
+                result += windowTex * 0.3;
                 
-                // Volumetric fog with color
-                float fogFactor = exp(-Depth * 0.03);
-                vec3 fogColor = mix(vec3(0.0, 0.0, 0.15), vec3(0.1, 0.0, 0.2), sin(time * 0.3) * 0.5 + 0.5);
+                // Volumetric fog
+                float fogFactor = exp(-Depth * 0.025);
+                vec3 fogColor = mix(vec3(0.0, 0.0, 0.12), vec3(0.08, 0.0, 0.15), sin(time * 0.25) * 0.5 + 0.5);
                 result = mix(fogColor, result, fogFactor);
                 
-                // Enhanced bloom effect
+                // Simplified bloom (less expensive)
                 float brightness = dot(result, vec3(0.2126, 0.7152, 0.0722));
-                if(brightness > 0.6) {
-                    vec3 bloom = (result - 0.6) * 3.0 * glowIntensity;
-                    result += bloom * mix(vec3(1.0, 0.5, 0.2), vec3(0.2, 0.5, 1.0), sin(time));
+                if(brightness > 0.7) {
+                    vec3 bloom = (result - 0.7) * 2.0 * glowIntensity;
+                    result += bloom * mix(vec3(0.8, 0.4, 0.15), vec3(0.15, 0.4, 0.8), sin(time * 0.8));
                 }
                 
-                // HDR tonemapping
-                result = result / (result + vec3(1.0));
-                result = pow(result, vec3(1.0/2.2)); // Gamma correction
+                // Simple tonemapping
+                result = result / (result + vec3(0.8));
+                result = pow(result, vec3(1.0/2.2));
                 
                 FragColor = vec4(result, Color.a);
                 
-                // Subtle scanlines and grain
-                float scanline = sin(gl_FragCoord.y * 0.7 + time * 5.0) * 0.01;
-                float grain = (random(gl_FragCoord.xy * 0.01 + time) - 0.5) * 0.02;
-                FragColor.rgb += scanline + grain;
+                // Reduced scanlines effect
+                float scanline = sin(gl_FragCoord.y * 0.5 + time * 3.0) * 0.008;
+                FragColor.rgb += scanline;
             }
             """
 
@@ -317,43 +319,43 @@ class BuildingMadnessVisualizer(BaseVisualizer):
             return False
 
     def _setup_geometry(self):
-        """Create complex 3D city geometry."""
+        """Create optimized but still detailed 3D city geometry."""
         vertices = []
         indices = []
         vertex_offset = 0
         
-        # Generate city grid with multiple layers and better distribution
+        # Keep multi-layer city but with some optimizations
         for layer in range(self.building_layers):
-            layer_scale = 1.0 + layer * 1.5
-            layer_offset = layer * 8.0
+            layer_scale = 1.0 + layer * 1.4
+            layer_offset = layer * 7.0
             
             for x in range(-self.grid_size, self.grid_size):
                 for z in range(-self.grid_size, self.grid_size):
-                    # Skip some positions for variety
+                    # Moderate building density (not too sparse)
                     seed_value = abs(hash((x, z, layer))) % (2**32 - 1)
                     np.random.seed(seed_value)
                     
-                    if np.random.random() > 0.85:  # 15% chance to skip
+                    if np.random.random() > 0.8:  # 20% chance to skip
                         continue
                     
-                    # More varied building parameters
-                    height = np.random.uniform(0.8, self.max_height * (1.0 + layer * 0.3))
-                    width = np.random.uniform(0.4, 1.0)
-                    depth = np.random.uniform(0.4, 1.0)
+                    # Building parameters
+                    height = np.random.uniform(0.8, self.max_height * (1.0 + layer * 0.25))
+                    width = np.random.uniform(0.45, 0.9)
+                    depth = np.random.uniform(0.45, 0.9)
                     
-                    # Position with layer offset and some randomness
-                    pos_x = x * 1.5 * layer_scale + np.random.uniform(-0.2, 0.2)
-                    pos_z = z * 1.5 * layer_scale - layer_offset + np.random.uniform(-0.2, 0.2)
+                    # Position
+                    pos_x = x * 1.4 * layer_scale + np.random.uniform(-0.15, 0.15)
+                    pos_z = z * 1.4 * layer_scale - layer_offset + np.random.uniform(-0.15, 0.15)
                     
-                    # Color variation - more muted, realistic colors
-                    r = 0.15 + np.random.random() * 0.1
-                    g = 0.15 + np.random.random() * 0.1
-                    b = 0.18 + np.random.random() * 0.15
+                    # Colors
+                    r = 0.12 + np.random.random() * 0.08
+                    g = 0.12 + np.random.random() * 0.08
+                    b = 0.16 + np.random.random() * 0.12
                     
                     # Glow factor
-                    glow = np.random.random() * 0.3
+                    glow = np.random.random() * 0.25
                     
-                    # Create building with detailed geometry
+                    # Create building with moderate detail (2 levels max instead of 3)
                     building_verts, building_indices = self._create_building(
                         pos_x, 0, pos_z, width, height, depth,
                         r, g, b, 1.0, glow, vertex_offset
@@ -361,7 +363,7 @@ class BuildingMadnessVisualizer(BaseVisualizer):
                     
                     vertices.extend(building_verts)
                     indices.extend(building_indices)
-                    vertex_offset += len(building_verts) // 11  # 11 floats per vertex
+                    vertex_offset += len(building_verts) // 11
         
         # Convert to numpy arrays
         self.vertex_data = np.array(vertices, dtype=np.float32)
@@ -382,225 +384,130 @@ class BuildingMadnessVisualizer(BaseVisualizer):
         
         # Setup vertex attributes
         stride = 11 * ctypes.sizeof(GLfloat)
-        # Position
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(0))
         glEnableVertexAttribArray(0)
-        # Normal
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(3 * ctypes.sizeof(GLfloat)))
         glEnableVertexAttribArray(1)
-        # TexCoord
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(6 * ctypes.sizeof(GLfloat)))
         glEnableVertexAttribArray(2)
-        # Color
         glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(8 * ctypes.sizeof(GLfloat)))
         glEnableVertexAttribArray(3)
-        # Glow
         glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(10 * ctypes.sizeof(GLfloat)))
         glEnableVertexAttribArray(4)
         
         glBindVertexArray(0)
 
     def _create_building(self, x, y, z, width, height, depth, r, g, b, a, glow, offset):
-        """Create vertices and indices for a detailed building."""
+        """Create building with moderate detail - balance between performance and quality."""
         vertices = []
         indices = []
         
-        # Create multi-level building with setbacks
-        levels = min(3, int(height / 0.5))
+        # Create 2-level building max (instead of 3+ levels)
+        levels = min(2, int(height / 0.6))
+        if levels == 0:
+            levels = 1
+            
         current_width = width
         current_depth = depth
         current_y = 0
         level_height = height / levels
         
-        # Building base detail
-        base_height = min(0.2, height * 0.1)
-        
-        # Define positions for each level with proper UV mapping
         for level in range(levels):
-            # Reduce size for upper levels (setback effect)
+            # Setback for upper levels
             if level > 0:
-                current_width *= 0.85
-                current_depth *= 0.85
+                current_width *= 0.8
+                current_depth *= 0.8
             
-            # Calculate texture coordinates based on building dimensions
-            # This creates a proper window grid pattern
-            u_scale = max(3, int(current_width * 10))  # Number of windows horizontally
-            v_scale = max(2, int(level_height * 8))    # Number of window rows
+            # Texture coordinates for windows
+            u_scale = max(2, int(current_width * 8))
+            v_scale = max(1, int(level_height * 6))
             
-            # Front face
-            positions = [
-                [-current_width/2, current_y, current_depth/2],
-                [current_width/2, current_y, current_depth/2],
-                [current_width/2, current_y + level_height, current_depth/2],
-                [-current_width/2, current_y + level_height, current_depth/2],
+            # Create faces for this level
+            faces = [
+                # Front face
+                {
+                    'positions': [
+                        [-current_width/2, current_y, current_depth/2],
+                        [current_width/2, current_y, current_depth/2],
+                        [current_width/2, current_y + level_height, current_depth/2],
+                        [-current_width/2, current_y + level_height, current_depth/2],
+                    ],
+                    'normal': [0, 0, 1],
+                    'uvs': [[0, 0], [u_scale, 0], [u_scale, v_scale], [0, v_scale]]
+                },
+                # Back face
+                {
+                    'positions': [
+                        [current_width/2, current_y, -current_depth/2],
+                        [-current_width/2, current_y, -current_depth/2],
+                        [-current_width/2, current_y + level_height, -current_depth/2],
+                        [current_width/2, current_y + level_height, -current_depth/2],
+                    ],
+                    'normal': [0, 0, -1],
+                    'uvs': [[0, 0], [u_scale, 0], [u_scale, v_scale], [0, v_scale]]
+                },
+                # Left face
+                {
+                    'positions': [
+                        [-current_width/2, current_y, -current_depth/2],
+                        [-current_width/2, current_y, current_depth/2],
+                        [-current_width/2, current_y + level_height, current_depth/2],
+                        [-current_width/2, current_y + level_height, -current_depth/2],
+                    ],
+                    'normal': [-1, 0, 0],
+                    'uvs': [[0, 0], [int(current_depth * 8), 0], [int(current_depth * 8), v_scale], [0, v_scale]]
+                },
+                # Right face
+                {
+                    'positions': [
+                        [current_width/2, current_y, current_depth/2],
+                        [current_width/2, current_y, -current_depth/2],
+                        [current_width/2, current_y + level_height, -current_depth/2],
+                        [current_width/2, current_y + level_height, current_depth/2],
+                    ],
+                    'normal': [1, 0, 0],
+                    'uvs': [[0, 0], [int(current_depth * 8), 0], [int(current_depth * 8), v_scale], [0, v_scale]]
+                }
             ]
-            normals = [[0, 0, 1]] * 4
-            texcoords = [[0, 0], [u_scale, 0], [u_scale, v_scale], [0, v_scale]]
             
-            # Add vertices for front face
-            face_start = len(vertices) // 11
-            for i in range(4):
-                px, py, pz = positions[i]
-                nx, ny, nz = normals[i]
-                tx, ty = texcoords[i]
-                vertices.extend([
-                    x + px, y + py, z + pz,
-                    nx, ny, nz,
-                    tx, ty,
-                    r * (1.0 - level * 0.1), g * (1.0 - level * 0.1), b * (1.0 - level * 0.1), a,
-                    glow + level * 0.1
-                ])
-            
-            # Front face indices
-            indices.extend([
-                offset + face_start, offset + face_start + 1, offset + face_start + 2,
-                offset + face_start + 2, offset + face_start + 3, offset + face_start
-            ])
-            
-            # Back face
-            positions = [
-                [current_width/2, current_y, -current_depth/2],
-                [-current_width/2, current_y, -current_depth/2],
-                [-current_width/2, current_y + level_height, -current_depth/2],
-                [current_width/2, current_y + level_height, -current_depth/2],
-            ]
-            normals = [[0, 0, -1]] * 4
-            texcoords = [[0, 0], [u_scale, 0], [u_scale, v_scale], [0, v_scale]]
-            
-            face_start = len(vertices) // 11
-            for i in range(4):
-                px, py, pz = positions[i]
-                nx, ny, nz = normals[i]
-                tx, ty = texcoords[i]
-                vertices.extend([
-                    x + px, y + py, z + pz,
-                    nx, ny, nz,
-                    tx, ty,
-                    r * (1.0 - level * 0.1), g * (1.0 - level * 0.1), b * (1.0 - level * 0.1), a,
-                    glow + level * 0.1
-                ])
-            
-            indices.extend([
-                offset + face_start, offset + face_start + 1, offset + face_start + 2,
-                offset + face_start + 2, offset + face_start + 3, offset + face_start
-            ])
-            
-            # Left face
-            positions = [
-                [-current_width/2, current_y, -current_depth/2],
-                [-current_width/2, current_y, current_depth/2],
-                [-current_width/2, current_y + level_height, current_depth/2],
-                [-current_width/2, current_y + level_height, -current_depth/2],
-            ]
-            normals = [[-1, 0, 0]] * 4
-            u_scale_side = max(3, int(current_depth * 10))
-            texcoords = [[0, 0], [u_scale_side, 0], [u_scale_side, v_scale], [0, v_scale]]
-            
-            face_start = len(vertices) // 11
-            for i in range(4):
-                px, py, pz = positions[i]
-                nx, ny, nz = normals[i]
-                tx, ty = texcoords[i]
-                vertices.extend([
-                    x + px, y + py, z + pz,
-                    nx, ny, nz,
-                    tx, ty,
-                    r * (1.0 - level * 0.1), g * (1.0 - level * 0.1), b * (1.0 - level * 0.1), a,
-                    glow + level * 0.1
-                ])
-            
-            indices.extend([
-                offset + face_start, offset + face_start + 1, offset + face_start + 2,
-                offset + face_start + 2, offset + face_start + 3, offset + face_start
-            ])
-            
-            # Right face
-            positions = [
-                [current_width/2, current_y, current_depth/2],
-                [current_width/2, current_y, -current_depth/2],
-                [current_width/2, current_y + level_height, -current_depth/2],
-                [current_width/2, current_y + level_height, current_depth/2],
-            ]
-            normals = [[1, 0, 0]] * 4
-            texcoords = [[0, 0], [u_scale_side, 0], [u_scale_side, v_scale], [0, v_scale]]
-            
-            face_start = len(vertices) // 11
-            for i in range(4):
-                px, py, pz = positions[i]
-                nx, ny, nz = normals[i]
-                tx, ty = texcoords[i]
-                vertices.extend([
-                    x + px, y + py, z + pz,
-                    nx, ny, nz,
-                    tx, ty,
-                    r * (1.0 - level * 0.1), g * (1.0 - level * 0.1), b * (1.0 - level * 0.1), a,
-                    glow + level * 0.1
-                ])
-            
-            indices.extend([
-                offset + face_start, offset + face_start + 1, offset + face_start + 2,
-                offset + face_start + 2, offset + face_start + 3, offset + face_start
-            ])
-            
-            # Top face (roof)
+            # Add top face for highest level
             if level == levels - 1:
-                positions = [
-                    [-current_width/2, current_y + level_height, current_depth/2],
-                    [current_width/2, current_y + level_height, current_depth/2],
-                    [current_width/2, current_y + level_height, -current_depth/2],
-                    [-current_width/2, current_y + level_height, -current_depth/2],
-                ]
-                normals = [[0, 1, 0]] * 4
-                texcoords = [[0, 0], [1, 0], [1, 1], [0, 1]]
-                
+                faces.append({
+                    'positions': [
+                        [-current_width/2, current_y + level_height, current_depth/2],
+                        [current_width/2, current_y + level_height, current_depth/2],
+                        [current_width/2, current_y + level_height, -current_depth/2],
+                        [-current_width/2, current_y + level_height, -current_depth/2],
+                    ],
+                    'normal': [0, 1, 0],
+                    'uvs': [[0, 0], [1, 0], [1, 1], [0, 1]]
+                })
+            
+            # Generate vertices for all faces
+            for face in faces:
                 face_start = len(vertices) // 11
                 for i in range(4):
-                    px, py, pz = positions[i]
-                    nx, ny, nz = normals[i]
-                    tx, ty = texcoords[i]
+                    px, py, pz = face['positions'][i]
+                    nx, ny, nz = face['normal']
+                    tx, ty = face['uvs'][i]
+                    
+                    # Slightly darker for upper levels
+                    level_factor = 1.0 - level * 0.08
                     vertices.extend([
                         x + px, y + py, z + pz,
                         nx, ny, nz,
                         tx, ty,
-                        r * 0.3, g * 0.3, b * 0.3, a,  # Darker roof
-                        glow * 0.5
+                        r * level_factor, g * level_factor, b * level_factor, a,
+                        glow + level * 0.05
                     ])
                 
+                # Face indices
                 indices.extend([
                     offset + face_start, offset + face_start + 1, offset + face_start + 2,
                     offset + face_start + 2, offset + face_start + 3, offset + face_start
                 ])
             
             current_y += level_height
-        
-        return vertices, indices  # IMPORTANT: Return the vertices and indices!
-        
-        # Create vertex data
-        for i in range(24):
-            px, py, pz = positions[i]
-            nx, ny, nz = normals[i]
-            tx, ty = texcoords[i]
-            vertices.extend([
-                x + px, y + py, z + pz,  # Position
-                nx, ny, nz,              # Normal
-                tx, ty,                  # TexCoord
-                r, g, b, a,              # Color
-                glow                     # Glow
-            ])
-        
-        # Create indices for the cube faces
-        face_indices = [
-            0, 1, 2, 2, 3, 0,      # Front
-            4, 5, 6, 6, 7, 4,      # Back
-            8, 9, 10, 10, 11, 8,   # Left
-            12, 13, 14, 14, 15, 12, # Right
-            16, 17, 18, 18, 19, 16, # Top
-            20, 21, 22, 22, 23, 20  # Bottom
-        ]
-        
-        # Offset indices
-        for idx in face_indices:
-            indices.append(offset + idx)
         
         return vertices, indices
 
@@ -617,10 +524,23 @@ class BuildingMadnessVisualizer(BaseVisualizer):
         self.last_time = current_time
         self.time += self.delta_time * self.camera_speed
         # Get audio data
-        bass, mid, treble = self.get_audio_bands()
-        self.bass_energy = bass * self.audio_response
-        self.mid_energy = mid * self.audio_response
-        self.high_energy = treble * self.audio_response
+
+        if hasattr(self, "analyzer") and self.analyzer and self.analyzer.is_active():
+            fft = self.analyzer.get_fft_data().astype(np.float32)
+            # Moderate interpolation
+            target_fft = np.interp(np.linspace(0, len(fft)-1, 24), 
+                                  np.arange(len(fft)), fft)
+            self.smooth_fft = self.smooth_fft * 0.75 + target_fft * 0.25
+            
+            # Calculate frequency bands
+            self.bass_energy = np.mean(self.smooth_fft[:6]) / 100.0 * self.audio_response
+            self.mid_energy = np.mean(self.smooth_fft[6:16]) / 100.0 * self.audio_response
+            self.high_energy = np.mean(self.smooth_fft[16:]) / 100.0 * self.audio_response
+        else:
+            # Demo mode
+            self.bass_energy = (math.sin(self.time * 0.5) * 0.5 + 0.5) * self.audio_response
+            self.mid_energy = (math.sin(self.time * 0.7) * 0.5 + 0.5) * self.audio_response
+            self.high_energy = (math.sin(self.time * 1.1) * 0.5 + 0.5) * self.audio_response
         
         # Get viewport dimensions
         viewport = glGetIntegerv(GL_VIEWPORT)
@@ -629,19 +549,19 @@ class BuildingMadnessVisualizer(BaseVisualizer):
         
         # Setup matrices
         aspect = width / height if height > 0 else 1.0
-        projection = self._perspective_matrix(60.0, aspect, 0.1, 100.0)
+        projection = self._perspective_matrix(58.0, aspect, 0.1, 85.0)
         
-        # Animate camera with better path
+        # Camera movement
         self.camera_rotation += self.rotation_speed * self.delta_time
-        cam_radius = 8.0 + math.sin(self.time * 0.2) * 3.0
+        cam_radius = 10.0 + math.sin(self.time * 0.15) * 2.0
         cam_x = math.sin(self.camera_rotation) * cam_radius
         cam_z = math.cos(self.camera_rotation) * cam_radius
-        cam_y = 3.0 + math.sin(self.time * 0.3) * 1.5 + self.bass_energy * 2.0
+        cam_y = 4.0 + math.sin(self.time * 0.25) * 1.0 + self.bass_energy * 1.5
         
         view = self._look_at_matrix(
-            [cam_x, cam_y, cam_z],     # Eye position
-            [0, 1, 0],                  # Look at center of city
-            [0, 1, 0]                   # Up vector
+            [cam_x, cam_y, cam_z],
+            [0, 1, 0],
+            [0, 1, 0]
         )
         
         model = np.identity(4, dtype=np.float32)
@@ -715,7 +635,7 @@ class BuildingMadnessVisualizer(BaseVisualizer):
             "Grid Size": {
                 "type": "slider",
                 "min": 5,
-                "max": 25,
+                "max": 18,
                 "value": self.grid_size,
             },
             "Camera Speed": {

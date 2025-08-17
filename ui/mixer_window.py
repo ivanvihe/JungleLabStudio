@@ -211,7 +211,6 @@ class MixerWindow(QMainWindow):
             in vec2 TexCoord;
             uniform sampler2D texture1;
             uniform sampler2D texture2;
-            uniform float mixValue;
             uniform float deck_a_opacity;
             uniform float deck_b_opacity;
             uniform float global_brightness;
@@ -234,15 +233,10 @@ class MixerWindow(QMainWindow):
                     color2.rgb *= deck_b_opacity;  // Apply deck opacity
                 }
                 
-                // Mix the colors
-                vec4 mixed_color = mix(color1, color2, mixValue);
-                
-                // Apply global brightness
+                vec4 mixed_color = color1 + color2;
                 mixed_color.rgb *= global_brightness;
-                
-                // Ensure proper alpha
+                mixed_color.rgb = clamp(mixed_color.rgb, 0.0, 1.0);
                 mixed_color.a = 1.0;
-                
                 FragColor = mixed_color;
             }
             """
@@ -414,8 +408,10 @@ class MixerWindow(QMainWindow):
 
             # Debug logging
             if self.frame_count % 300 == 0:  # Every 5 seconds at 60fps
-                logging.debug(f"🎬 Frame {self.frame_count}: A_active={deck_a_active}, B_active={deck_b_active}, "
-                            f"A_tex={texture_a}, B_tex={texture_b}, mix={self.mix_value:.2f}")
+                logging.debug(
+                    f"🎬 Frame {self.frame_count}: A_active={deck_a_active}, B_active={deck_b_active}, "
+                    f"A_tex={texture_a}, B_tex={texture_b}"
+                )
 
             # Bind textures
             glActiveTexture(GL_TEXTURE0)
@@ -434,7 +430,6 @@ class MixerWindow(QMainWindow):
             try:
                 glUniform1i(glGetUniformLocation(self.shader_program, "texture1"), 0)
                 glUniform1i(glGetUniformLocation(self.shader_program, "texture2"), 1)
-                glUniform1f(glGetUniformLocation(self.shader_program, "mixValue"), self.mix_value)
                 glUniform1f(glGetUniformLocation(self.shader_program, "deck_a_opacity"), self.deck_a_opacity)
                 glUniform1f(glGetUniformLocation(self.shader_program, "deck_b_opacity"), self.deck_b_opacity)
                 glUniform1f(glGetUniformLocation(self.shader_program, "global_brightness"), self.global_brightness)

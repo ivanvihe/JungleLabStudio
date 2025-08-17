@@ -10,6 +10,8 @@ from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QMessageBox,
+    QToolButton,
+    QFileDialog,
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import (
@@ -21,7 +23,7 @@ from pathlib import Path
 import json
 import logging
 
-from .thumbnail_utils import generate_visual_thumbnail
+from .thumbnail_utils import generate_visual_thumbnail, set_custom_thumbnail_path
 
 # ---------------------------------------------------------------------------
 # Visual settings tab
@@ -143,7 +145,7 @@ def create_visual_settings_grid(self, container):
         for idx, visual_name in enumerate(visuals):
             row = idx // columns
             col = idx % columns
-            visual_cell = create_visual_settings_cell(visual_name, current_mappings)
+            visual_cell = create_visual_settings_cell(self, visual_name, current_mappings)
             grid.addWidget(visual_cell, row, col)
 
         self.visual_settings_grid = grid
@@ -156,7 +158,7 @@ def create_visual_settings_grid(self, container):
         create_fallback_visual_grid(container)
 
 
-def create_visual_settings_cell(visual_name, current_mappings):
+def create_visual_settings_cell(self, visual_name, current_mappings):
     """Create a visual settings cell with editable MIDI note."""
     cell = QFrame()
     cell.setFixedSize(140, 160)
@@ -180,10 +182,68 @@ def create_visual_settings_cell(visual_name, current_mappings):
     layout.setContentsMargins(8, 8, 8, 8)
     layout.setSpacing(4)
 
-    thumbnail = create_visual_thumbnail_large(visual_name)
-    thumbnail.setFixedSize(80, 60)
-    thumbnail.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    layout.addWidget(thumbnail)
+    thumb_container = QFrame()
+    thumb_container.setFixedSize(80, 60)
+    thumb_container.setStyleSheet(
+        """
+        QFrame {
+            background-color: #1a1a1a;
+            border: 1px solid #666666;
+            border-radius: 6px;
+        }
+        """
+    )
+
+    thumb_label = QLabel(thumb_container)
+    thumb_label.setGeometry(0, 0, 80, 60)
+    thumb_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    thumb_label.setPixmap(generate_visual_thumbnail(visual_name, 80, 60))
+
+    open_btn = QToolButton(thumb_container)
+    open_btn.setText("📂")
+    open_btn.setToolTip("Change thumbnail")
+    open_btn.setAutoRaise(True)
+    open_btn.move(60, 0)
+
+    clear_btn = QToolButton(thumb_container)
+    clear_btn.setText("✖")
+    clear_btn.setToolTip("Remove thumbnail")
+    clear_btn.setAutoRaise(True)
+    clear_btn.move(40, 0)
+
+    def choose_thumbnail():
+        file_path, _ = QFileDialog.getOpenFileName(
+            None,
+            "Select Thumbnail",
+            "",
+            "Images (*.png *.jpg *.jpeg)",
+        )
+        if file_path:
+            set_custom_thumbnail_path(visual_name, file_path)
+            thumb_label.setPixmap(generate_visual_thumbnail(visual_name, 80, 60))
+            if hasattr(self, "live_grid_cells"):
+                for deck_cells in self.live_grid_cells.values():
+                    cell = deck_cells.get(visual_name)
+                    if cell and hasattr(cell, "thumb_label"):
+                        cell.thumb_label.setPixmap(
+                            generate_visual_thumbnail(visual_name, 96, 60)
+                        )
+
+    def remove_thumbnail():
+        set_custom_thumbnail_path(visual_name, None)
+        thumb_label.setPixmap(generate_visual_thumbnail(visual_name, 80, 60))
+        if hasattr(self, "live_grid_cells"):
+            for deck_cells in self.live_grid_cells.values():
+                cell = deck_cells.get(visual_name)
+                if cell and hasattr(cell, "thumb_label"):
+                    cell.thumb_label.setPixmap(
+                        generate_visual_thumbnail(visual_name, 96, 60)
+                    )
+
+    open_btn.clicked.connect(choose_thumbnail)
+    clear_btn.clicked.connect(remove_thumbnail)
+
+    layout.addWidget(thumb_container)
 
     name_label = QLabel(visual_name)
     name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -220,28 +280,6 @@ def create_visual_settings_cell(visual_name, current_mappings):
     layout.addWidget(midi_section)
 
     return cell
-
-
-# ---------------------------------------------------------------------------
-# Helper functions
-# ---------------------------------------------------------------------------
-
-def create_visual_thumbnail_large(visual_name):
-    """Create larger thumbnail for visual settings."""
-    thumbnail = QLabel()
-    thumbnail.setStyleSheet(
-        """
-        QLabel {
-            background-color: #1a1a1a;
-            border: 1px solid #666666;
-            border-radius: 6px;
-        }
-        """
-    )
-
-    pixmap = generate_visual_thumbnail(visual_name, 80, 60)
-    thumbnail.setPixmap(pixmap)
-    return thumbnail
 
 
 def create_midi_note_editor(visual_name, current_note):
