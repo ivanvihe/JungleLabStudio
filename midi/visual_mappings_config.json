@@ -1,83 +1,10 @@
 {
-  "deck_layouts": {
-    "deck_a": {
-      "start_note": 36,
-      "end_note": 46,
-      "clear_note": 46
-    },
-    "deck_b": {
-      "start_note": 60,
-      "end_note": 70,
-      "clear_note": 70
-    }
+  "deck_channels": {
+    "A": 0,
+    "B": 1,
+    "C": 2,
+    "D": 3
   },
-  "visual_priority_order": [
-    "Abstract Lines",
-    "Abstract Shapes",
-    "Building Madness",
-    "Cosmic Flow",
-    "Evolutive Particles",
-    "Fluid Particles",
-    "Geometric Particles",
-    "Intro Background",
-    "Intro Text ROBOTICA",
-    "Kaleido Tunnel",
-    "Mobius Band",
-    "Oneshot Boom Explosion",
-    "Oneshot Character Train",
-    "Oneshot Circuit Signal",
-    "Oneshot Electric Boom",
-    "Plasma Loop",
-    "Scientific Analyzer",
-    "Simple Test",
-    "Test Pattern",
-    "Vortex Particles",
-    "Wire Terrain"
-  ],
-  "mix_actions": {
-    "start_note": 48,
-    "end_note": 59,
-    "actions": [
-      {
-        "preset": "A to B",
-        "duration": "10s"
-      },
-      {
-        "preset": "B to A",
-        "duration": "10s"
-      },
-      {
-        "preset": "A to B",
-        "duration": "5s"
-      },
-      {
-        "preset": "B to A",
-        "duration": "5s"
-      },
-      {
-        "preset": "A to B",
-        "duration": "500ms"
-      },
-      {
-        "preset": "B to A",
-        "duration": "500ms"
-      },
-      {
-        "preset": "Instant A",
-        "duration": "50ms"
-      },
-      {
-        "preset": "Instant B",
-        "duration": "50ms"
-      },
-      {
-        "preset": "Cut to Center",
-        "duration": "50ms"
-      },
-      {
-        "preset": "Reset Mix",
-        "duration": "50ms"
-      }
-    ]
-  }
+  "start_note": 56,
+  "visual_priority_order": []
 }
