@@ -14,7 +14,7 @@ from .midi_config_widget import MidiConfigWidget
 from .layout_sections import create_header_section, create_footer_section
 from .live_control_tab import create_live_control_tab
 from .monitor_tab import create_monitor_tab
-from .midi_config_tab import create_midi_config_tab
+from .visual_settings_tab import create_visual_settings_tab
 
 class ControlPanelWindow(QMainWindow):
     def __init__(self, mixer_window, settings_manager, midi_engine, visualizer_manager, audio_analyzer):
@@ -171,9 +171,9 @@ class ControlPanelWindow(QMainWindow):
         live_tab = create_live_control_tab(self)
         main_tabs.addTab(live_tab, "🎛️ Control en Vivo")
 
-        # Tab 2: Configuración MIDI
-        midi_tab = create_midi_config_tab(self)
-        main_tabs.addTab(midi_tab, "🎹 Configuración MIDI")
+        # Tab 2: Visuals Settings
+        visuals_tab = create_visual_settings_tab(self)
+        main_tabs.addTab(visuals_tab, "🖼️ Visuals Settings")
 
         # Tab 3: Monitoreo y Debug
         monitor_tab = create_monitor_tab(self)
