@@ -32,7 +32,7 @@
         "crossfader_curve": "linear"
     },
     "audio_settings": {
-        "input_device": "Line (Reloop RMX-95) (10 ch)",
+        "input_device": "Microphone (2- Q9-1) (1 ch)",
         "buffer_size": 1024,
         "sample_rate": 44100
     },
