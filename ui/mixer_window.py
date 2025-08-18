@@ -21,6 +21,8 @@ class MixerWindow(QMainWindow):
     signal_set_deck_opacity = pyqtSignal(str, float)
     signal_trigger_deck_action = pyqtSignal(str, str)
     exit_fullscreen = pyqtSignal()
+    # Signal emitted after the OpenGL context is fully initialized
+    gl_ready = pyqtSignal()
 
     def __init__(self, visualizer_manager, settings_manager=None, audio_analyzer=None):
         super().__init__()
@@ -166,10 +168,12 @@ class MixerWindow(QMainWindow):
                     logging.warning("⚠️ Deck A not ready after initialization")
                 if not self.deck_b.is_ready():
                     logging.warning("⚠️ Deck B not ready after initialization")
-                
+
                 self.gl_initialized = True
                 logging.info("✅ MixerWindow OpenGL initialized successfully")
-                
+                # Notify listeners that the GL context is ready
+                self.gl_ready.emit()
+
                 # Force initial render
                 QTimer.singleShot(100, self.force_initial_render)
                 
