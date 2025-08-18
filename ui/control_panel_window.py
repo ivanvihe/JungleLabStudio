@@ -818,36 +818,47 @@ class ControlPanelWindow(QMainWindow):
         self.exit_fullscreen_mode()
 
         for i, monitor_index in enumerate(monitors):
-            screen = screens[monitor_index] if monitor_index < len(screens) else screens[0]
-            if i == 0:
-                window = self.mixer_window
-            else:
-                window = MixerWindow(self.visualizer_manager, self.settings_manager, self.audio_analyzer)
-                self.mixer_window.signal_set_mix_value.connect(window.set_mix_value)
-                self.mixer_window.signal_set_deck_visualizer.connect(window.set_deck_visualizer)
-                self.mixer_window.signal_update_deck_control.connect(window.update_deck_control)
-                self.mixer_window.signal_set_deck_opacity.connect(window.set_deck_opacity)
-                self.mixer_window.signal_trigger_deck_action.connect(window.trigger_deck_action)
+            try:
+                screen = screens[monitor_index] if monitor_index < len(screens) else screens[0]
+                if i == 0:
+                    window = self.mixer_window
+                else:
+                    window = MixerWindow(self.visualizer_manager, self.settings_manager, self.audio_analyzer)
+                    self.mixer_window.signal_set_mix_value.connect(window.set_mix_value)
+                    self.mixer_window.signal_set_deck_visualizer.connect(window.set_deck_visualizer)
+                    self.mixer_window.signal_update_deck_control.connect(window.update_deck_control)
+                    self.mixer_window.signal_set_deck_opacity.connect(window.set_deck_opacity)
+                    self.mixer_window.signal_trigger_deck_action.connect(window.trigger_deck_action)
 
-            # Apply current mixer state once the window's GL context is ready
-            def init_state(win=window):
-                win.set_mix_value(int(self.mixer_window.mix_value * 100))
-                if self.mixer_window.deck_a and self.mixer_window.deck_a.current_visualizer_name:
-                    win.set_deck_visualizer('A', self.mixer_window.deck_a.current_visualizer_name)
-                if self.mixer_window.deck_b and self.mixer_window.deck_b.current_visualizer_name:
-                    win.set_deck_visualizer('B', self.mixer_window.deck_b.current_visualizer_name)
+                # Apply current mixer state once the window's GL context is ready
+                def init_state(win=window):
+                    win.set_mix_value(int(self.mixer_window.mix_value * 100))
+                    if self.mixer_window.deck_a and self.mixer_window.deck_a.current_visualizer_name:
+                        win.set_deck_visualizer('A', self.mixer_window.deck_a.current_visualizer_name)
+                    if self.mixer_window.deck_b and self.mixer_window.deck_b.current_visualizer_name:
+                        win.set_deck_visualizer('B', self.mixer_window.deck_b.current_visualizer_name)
 
-            window.gl_ready.connect(init_state)
-            if window.gl_initialized:
-                init_state()
+                window.gl_ready.connect(init_state)
+                if window.gl_initialized:
+                    init_state()
 
-            window.exit_fullscreen.connect(self.exit_fullscreen_mode)
-            handle = window.windowHandle()
-            if handle:
-                handle.setScreen(screen)
-            window.move(screen.geometry().topLeft())
-            window.showFullScreen()
-            self.fullscreen_windows.append(window)
+                window.exit_fullscreen.connect(self.exit_fullscreen_mode)
+
+                # Ensure the window handle exists before assigning the screen
+                handle = window.windowHandle()
+                if handle is None:
+                    window.show()
+                    handle = window.windowHandle()
+                if handle:
+                    handle.setScreen(screen)
+                    window.setGeometry(screen.geometry())
+                else:
+                    window.move(screen.geometry().topLeft())
+
+                window.showFullScreen()
+                self.fullscreen_windows.append(window)
+            except Exception as e:
+                logging.error(f"Error activating fullscreen on monitor {monitor_index}: {e}")
 
     def exit_fullscreen_mode(self):
         """Exit fullscreen mode and close extra windows"""
