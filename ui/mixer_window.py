@@ -805,7 +805,7 @@ class MixerWindow(QMainWindow):
 
     def keyPressEvent(self, event):
         """Handle key presses for fullscreen exit"""
-        if event.key() == Qt.Key_Escape and self.isFullScreen():
+        if event.key() == Qt.Key.Key_Escape and self.isFullScreen():
             self.exit_fullscreen.emit()
         else:
             super().keyPressEvent(event)
