@@ -847,11 +847,15 @@ class ControlPanelWindow(QMainWindow):
                 # Ensure the window handle exists before assigning the screen
                 handle = window.windowHandle()
                 if handle is None:
-                    window.show()
+                    window.winId()  # Force creation of the window handle without showing
                     handle = window.windowHandle()
                 if handle:
-                    handle.setScreen(screen)
-                    window.setGeometry(screen.geometry())
+                    try:
+                        handle.setScreen(screen)
+                        window.setGeometry(screen.geometry())
+                    except Exception as e:
+                        logging.warning(f"Could not set screen geometry: {e}")
+                        window.move(screen.geometry().topLeft())
                 else:
                     window.move(screen.geometry().topLeft())
 
