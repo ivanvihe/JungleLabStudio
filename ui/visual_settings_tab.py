@@ -1,5 +1,5 @@
 # ui/visual_settings_tab.py - cleaned and feature-complete implementation
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QLabel,
@@ -17,8 +17,8 @@ from PyQt6.QtWidgets import (
     QFormLayout,
     QSlider,
 )
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import (
+from PySide6.QtCore import Qt
+from PySide6.QtGui import (
     QIntValidator,
     QFont,
 )

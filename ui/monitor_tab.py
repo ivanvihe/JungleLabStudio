@@ -1,8 +1,8 @@
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QSplitter, QGroupBox, QTableWidget, QHeaderView,
     QPushButton, QHBoxLayout, QLabel, QTextEdit
 )
-from PyQt6.QtCore import Qt
+from PySide6.QtCore import Qt
 
 
 def create_monitor_tab(self):

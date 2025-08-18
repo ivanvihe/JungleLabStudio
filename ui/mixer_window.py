@@ -4,10 +4,10 @@ import logging
 import numpy as np
 import ctypes
 import time
-from PyQt6.QtWidgets import QMainWindow
-from PyQt6.QtCore import Qt, QSize, QTimer, pyqtSlot, pyqtSignal, QMutex, QMutexLocker
-from PyQt6.QtGui import QOpenGLContext
-from PyQt6.QtOpenGLWidgets import QOpenGLWidget
+from PySide6.QtWidgets import QMainWindow
+from PySide6.QtCore import Qt, QSize, QTimer, Slot, Signal, QMutex, QMutexLocker
+from PySide6.QtGui import QOpenGLContext
+from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from OpenGL.GL import *
 
 from visuals.deck import Deck
@@ -16,14 +16,14 @@ from opengl_fixes import OpenGLSafety
 
 class MixerWindow(QMainWindow):
     # Custom signals for thread-safe communication
-    signal_set_mix_value = pyqtSignal(int)
-    signal_set_deck_visualizer = pyqtSignal(str, object)  # Changed to object to handle None
-    signal_update_deck_control = pyqtSignal(str, str, object)
-    signal_set_deck_opacity = pyqtSignal(str, float)
-    signal_trigger_deck_action = pyqtSignal(str, str)
-    exit_fullscreen = pyqtSignal()
+    signal_set_mix_value = Signal(int)
+    signal_set_deck_visualizer = Signal(str, object)  # Changed to object to handle None
+    signal_update_deck_control = Signal(str, str, object)
+    signal_set_deck_opacity = Signal(str, float)
+    signal_trigger_deck_action = Signal(str, str)
+    exit_fullscreen = Signal()
     # Signal emitted after the OpenGL context is fully initialized
-    gl_ready = pyqtSignal()
+    gl_ready = Signal()
 
     def __init__(
         self,
@@ -182,9 +182,11 @@ class MixerWindow(QMainWindow):
                     current_gl_context = QOpenGLContext.currentContext()
                     if current_gl_context:
                         try:
-                            # PyQt5 provided rawHandle(), while PyQt6 exposes the
-                            # native context through nativeInterface().  Try both so
-                            # the code works across Qt versions and platforms.
+                            # Qt bindings expose the native context differently.
+                            # Older versions provided ``rawHandle()`` while newer
+                            # releases (such as PySide6) use ``nativeInterface()``.
+                            # Try both approaches so the code works across
+                            # versions and platforms.
                             share_context_handle = current_gl_context.rawHandle()  # type: ignore[attr-defined]
                         except AttributeError:
                             try:
@@ -585,14 +587,14 @@ class MixerWindow(QMainWindow):
             logging.error(f"❌ Error in resizeGL: {e}")
 
     # Main slot methods
-    @pyqtSlot(int)
+    @Slot(int)
     def set_mix_value(self, value):
         """Set crossfader mix value (0-100)"""
         with QMutexLocker(self._mutex):
             self.mix_value = max(0.0, min(1.0, value / 100.0))
             logging.debug(f"🎚️ Mix value set to: {self.mix_value:.2f} ({value}%)")
 
-    @pyqtSlot(str, object)
+    @Slot(str, object)
     def set_deck_visualizer(self, deck_id, visualizer_name):
         """Set visualizer for a specific deck - supports fade transitions"""
         fade_ms = self.deck_fade_times.get(deck_id, 0)
@@ -687,7 +689,7 @@ class MixerWindow(QMainWindow):
         timer.timeout.connect(step)
         timer.start(step_time)
 
-    @pyqtSlot(str, str, object)
+    @Slot(str, str, object)
     def update_deck_control(self, deck_id, name, value):
         """Update a control parameter for a specific deck"""
         with QMutexLocker(self._mutex):
@@ -701,7 +703,7 @@ class MixerWindow(QMainWindow):
             elif deck_id == 'B' and self.deck_b:
                 self.deck_b.update_control(name, value)
 
-    @pyqtSlot(str, str)
+    @Slot(str, str)
     def trigger_deck_action(self, deck_id, action):
         """Trigger a custom action for a specific deck"""
         with QMutexLocker(self._mutex):
@@ -713,7 +715,7 @@ class MixerWindow(QMainWindow):
             elif deck_id == 'B' and self.deck_b:
                 self.deck_b.trigger_action(action)
 
-    @pyqtSlot(str, float)
+    @Slot(str, float)
     def set_deck_opacity(self, deck_id, opacity):
         """Set opacity for a specific deck (0.0-1.0)"""
         with QMutexLocker(self._mutex):

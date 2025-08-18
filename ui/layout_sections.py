@@ -1,7 +1,7 @@
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QFrame, QHBoxLayout, QLabel, QWidget, QVBoxLayout, QProgressBar
 )
-from PyQt6.QtCore import QTimer, Qt
+from PySide6.QtCore import QTimer, Qt
 
 
 def create_midi_activity_indicator(self):
