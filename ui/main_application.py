@@ -2,9 +2,9 @@
 import sys
 import os
 import logging
-from PyQt6.QtWidgets import QApplication, QMessageBox, QSplashScreen
-from PyQt6.QtGui import QSurfaceFormat, QPixmap
-from PyQt6.QtCore import QTimer, Qt
+from PySide6.QtWidgets import QApplication, QMessageBox, QSplashScreen
+from PySide6.QtGui import QSurfaceFormat, QPixmap, QPalette, QColor
+from PySide6.QtCore import QTimer, Qt
 
 from utils.settings_manager import SettingsManager
 from midi.midi_engine import MidiEngine
@@ -50,9 +50,29 @@ class MainApplication:
             QSurfaceFormat.setDefaultFormat(format)
             logging.debug("✅ OpenGL format configured")
 
+            # High DPI support and modern dark theme
+            QApplication.setAttribute(Qt.ApplicationAttribute.AA_EnableHighDpiScaling)
+            QApplication.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps)
+
             self.app = QApplication(sys.argv)
             self.app.setApplicationName("Audio Visualizer Pro")
             self.app.setApplicationVersion("1.0")
+            self.app.setStyle("Fusion")
+
+            # Apply a dark palette for a more modern appearance
+            palette = QPalette()
+            palette.setColor(QPalette.ColorRole.Window, QColor(30, 30, 30))
+            palette.setColor(QPalette.ColorRole.WindowText, QColor(220, 220, 220))
+            palette.setColor(QPalette.ColorRole.Base, QColor(45, 45, 45))
+            palette.setColor(QPalette.ColorRole.AlternateBase, QColor(53, 53, 53))
+            palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(255, 255, 255))
+            palette.setColor(QPalette.ColorRole.ToolTipText, QColor(220, 220, 220))
+            palette.setColor(QPalette.ColorRole.Text, QColor(220, 220, 220))
+            palette.setColor(QPalette.ColorRole.Button, QColor(53, 53, 53))
+            palette.setColor(QPalette.ColorRole.ButtonText, QColor(220, 220, 220))
+            palette.setColor(QPalette.ColorRole.Highlight, QColor(42, 130, 218))
+            palette.setColor(QPalette.ColorRole.HighlightedText, QColor(0, 0, 0))
+            self.app.setPalette(palette)
 
             # Simple loading splash while initializing components
             pixmap = QPixmap(400, 300)

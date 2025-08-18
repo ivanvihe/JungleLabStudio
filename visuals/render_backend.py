@@ -67,13 +67,25 @@ class TaichiBackend(RenderBackend):
         self._passes.append(Pass(name, compute))
 
     def clear(self, r: float, g: float, b: float, a: float) -> None:
+        """Add a pass that fills the canvas with a solid color.
+
+        The previous implementation attempted to pass a Taichi field to a
+        kernel using ``ti.types.ndarray()``, which is intended for NumPy arrays
+        and resulted in ``TaichiSyntaxError`` during compilation.  Taichi fields
+        should instead be passed using ``ti.template`` and iterated over
+        directly.  This keeps the kernel fully symbolic and compatible with
+        Taichi's JIT compiler.
+        """
+
+        canvas = self.canvas
+
         @ti.kernel
-        def _clear(canvas: ti.types.ndarray()):
-            for i, j in ti.ndrange(canvas.shape[0], canvas.shape[1]):
+        def _clear():
+            for i, j in canvas:
                 canvas[i, j] = ti.Vector([r, g, b, a])
 
-        def compute(field: ti.Field) -> None:
-            _clear(field)
+        def compute(field: ti.Field) -> None:  # field unused; kept for compatibility
+            _clear()
 
         self.add_pass("clear", compute)
 
