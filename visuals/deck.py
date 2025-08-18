@@ -19,6 +19,7 @@ class Deck:
         use_moderngl=None,  # Changed to None for auto-detection
         use_post=False,
         audio_analyzer=None,
+        share_context=None, # New parameter
     ):
         self.visualizer_manager = visualizer_manager
         self.deck_id = deck_id  # For debugging
@@ -73,8 +74,8 @@ class Deck:
         # Create backend
         try:
             if use_moderngl:
-                logging.info(f"🎮 Deck {deck_id}: Creating ModernGL backend with GPU {gpu_index}")
-                self.backend = ModernGLBackend(device_index=gpu_index)
+                logging.info(f"🎮 Deck {deck_id}: Creating ModernGL backend with GPU {gpu_index}, sharing context: {share_context is not None}")
+                self.backend = ModernGLBackend(device_index=gpu_index, share_context=share_context)
             else:
                 logging.info(f"🎮 Deck {deck_id}: Creating OpenGL backend")
                 self.backend = GLBackend()
@@ -275,7 +276,7 @@ class Deck:
         # Update GPU index for ModernGL backend
         if isinstance(self.backend, ModernGLBackend):
             try:
-                self.backend = ModernGLBackend(device_index=index)
+                self.backend = ModernGLBackend(device_index=index, share_context=self.backend.share_context) # Pass existing share_context
                 logging.info(f"🎮 Deck {self.deck_id}: ModernGL backend updated to GPU {index}")
             except Exception as e:
                 logging.error(f"❌ Deck {self.deck_id}: Failed to update ModernGL backend: {e}")

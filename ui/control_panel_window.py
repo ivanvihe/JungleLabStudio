@@ -823,7 +823,16 @@ class ControlPanelWindow(QMainWindow):
                 if i == 0:
                     window = self.mixer_window
                 else:
-                    window = MixerWindow(self.visualizer_manager, self.settings_manager, self.audio_analyzer)
+                    # Get the shared OpenGL context from the main mixer window
+                    main_gl_context = self.mixer_window.gl_widget.context()
+                    share_context_handle = None
+                    if main_gl_context:
+                        share_context_handle = main_gl_context.rawHandle()
+                        logging.debug(f"🎮 ControlPanelWindow: Sharing OpenGL context handle to new MixerWindow: {share_context_handle}")
+                    else:
+                        logging.warning("⚠️ ControlPanelWindow: No main OpenGL context to share to new MixerWindow.")
+
+                    window = MixerWindow(self.visualizer_manager, self.settings_manager, self.audio_analyzer, share_context=share_context_handle)
                     self.mixer_window.signal_set_mix_value.connect(window.set_mix_value)
                     self.mixer_window.signal_set_deck_visualizer.connect(window.set_deck_visualizer)
                     self.mixer_window.signal_update_deck_control.connect(window.update_deck_control)

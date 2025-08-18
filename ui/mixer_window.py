@@ -135,6 +135,15 @@ class MixerWindow(QMainWindow):
                     use_moderngl = (backend == "ModernGL")
                     logging.info(f"🎮 Using GPU {gpu_index} with {backend} backend")
 
+                # Get the current OpenGL context for sharing
+                current_gl_context = QOpenGLContext.currentContext()
+                share_context_handle = None
+                if current_gl_context:
+                    share_context_handle = current_gl_context.rawHandle()
+                    logging.debug(f"🎮 MixerWindow: Sharing OpenGL context handle: {share_context_handle}")
+                else:
+                    logging.warning("⚠️ MixerWindow: No current OpenGL context to share.")
+
                 # Create decks
                 self.deck_a = Deck(
                     self.visualizer_manager,
@@ -142,6 +151,7 @@ class MixerWindow(QMainWindow):
                     gpu_index=gpu_index,
                     use_moderngl=use_moderngl,
                     audio_analyzer=self.audio_analyzer,
+                    share_context=share_context_handle, # Pass the shared context
                 )
                 self.deck_b = Deck(
                     self.visualizer_manager,
@@ -149,6 +159,7 @@ class MixerWindow(QMainWindow):
                     gpu_index=gpu_index,
                     use_moderngl=use_moderngl,
                     audio_analyzer=self.audio_analyzer,
+                    share_context=share_context_handle, # Pass the shared context
                 )
                 
                 # Initialize deck FBOs
@@ -375,6 +386,7 @@ class MixerWindow(QMainWindow):
                     self.gl_widget.makeCurrent()
             
             # Now composite them in the main framebuffer
+            self.gl_widget.makeCurrent() # Ensure context is current before binding framebuffer
             OpenGLSafety.safe_bind_framebuffer(
                 GL_FRAMEBUFFER, self.gl_widget.defaultFramebufferObject()
             )

@@ -66,7 +66,13 @@ class RenderBackend:
     def ensure_context(self) -> None:  # pragma: no cover - interface
         pass
 
-    def begin_target(self, size: Tuple[int, int]) -> None:  # pragma: no cover - interface
+    def begin_frame(self, size: Tuple[int, int]) -> None:  # pragma: no cover - interface
+        pass
+
+    def end_frame(self) -> None:  # pragma: no cover - interface
+        pass
+
+    def begin_target(self, target: Any) -> None:  # pragma: no cover - interface
         pass
 
     def end_target(self) -> None:  # pragma: no cover - interface
@@ -90,6 +96,9 @@ class RenderBackend:
         pass
 
     def uniform(self, program: Any, name: str, value: Any) -> None:  # pragma: no cover
+        pass
+
+    def create_framebuffer(self, width: int, height: int) -> Any:  # pragma: no cover - interface
         pass
 
 
@@ -282,12 +291,13 @@ class GLBackend(RenderBackend):
 class ModernGLBackend(RenderBackend):
     """Backend using moderngl - ENHANCED WITH BETTER ERROR HANDLING."""
 
-    def __init__(self, device_index: int = 0) -> None:
+    def __init__(self, device_index: int = 0, share_context: Any = None) -> None:
         self.ctx = None
         self.mgl = None
         self.device_index = device_index
+        self.share_context = share_context  # Store the context to share with
         self.context_initialized = False
-        logging.debug(f"🎮 ModernGLBackend initialized with device_index={device_index}")
+        logging.debug(f"🎮 ModernGLBackend initialized with device_index={device_index}, share_context={share_context is not None}")
 
     def ensure_context(self) -> None:
         """Ensure ModernGL context is created and configured.
@@ -308,28 +318,37 @@ class ModernGLBackend(RenderBackend):
             import moderngl
             self.mgl = moderngl
 
-            logging.debug(
-                f"🔧 Creating ModernGL context for device {self.device_index}"
-            )
-
-            creation_attempts = [
-                {"require": 330, "standalone": True, "device_index": self.device_index},
-                {"require": 330, "standalone": True, "backend": "egl", "device_index": self.device_index},
-                {"require": 330},  # Fallback
-            ]
-
-            for kwargs in creation_attempts:
+            if self.share_context:
+                logging.debug("🔧 Creating ModernGL context by sharing existing GL context")
                 try:
-                    self.ctx = moderngl.create_context(**kwargs)
-                    logging.info(
-                        f"✅ ModernGL context created ({kwargs})"
-                    )
-                    break
-                except Exception as exc:  # pragma: no cover - logging path
-                    logging.debug(f"ModernGL context creation failed {kwargs}: {exc}")
+                    self.ctx = moderngl.create_context(share=self.share_context)
+                    logging.info("✅ ModernGL context created by sharing")
+                except Exception as exc:
+                    logging.error(f"❌ Failed to create ModernGL context by sharing: {exc}")
+                    raise
+            else:
+                logging.debug(
+                    f"🔧 Creating ModernGL context for device {self.device_index}"
+                )
 
-            if self.ctx is None:
-                raise RuntimeError("All ModernGL context creation methods failed")
+                creation_attempts = [
+                    {"require": 330, "standalone": True, "device_index": self.device_index},
+                    {"require": 330, "standalone": True, "backend": "egl", "device_index": self.device_index},
+                    {"require": 330},  # Fallback
+                ]
+
+                for kwargs in creation_attempts:
+                    try:
+                        self.ctx = moderngl.create_context(**kwargs)
+                        logging.info(
+                            f"✅ ModernGL context created ({kwargs})"
+                        )
+                        break
+                    except Exception as exc:  # pragma: no cover - logging path
+                        logging.debug(f"ModernGL context creation failed {kwargs}: {exc}")
+
+                if self.ctx is None:
+                    raise RuntimeError("All ModernGL context creation methods failed")
 
             # Configure context
             self.ctx.enable(moderngl.BLEND)
