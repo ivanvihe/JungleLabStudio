@@ -1,7 +1,7 @@
 # midi/midi_engine.py - VERSIÓN SIMPLIFICADA SIN LÓGICA DE VISUALES
 import mido
 import mido.backends.rtmidi
-from PyQt6.QtCore import QObject, pyqtSignal, QTimer, Qt
+from PySide6.QtCore import QObject, Signal, QTimer, Qt
 import time
 import logging
 import queue
@@ -13,18 +13,18 @@ from .midi_visual_mapper import MidiVisualMapper
 
 class MidiEngine(QObject):
     # Existing signals
-    midi_message_received = pyqtSignal(object)
-    control_changed = pyqtSignal(str, int)
-    note_on_received = pyqtSignal(int, int)
-    note_off_received = pyqtSignal(int)
-    preset_loaded_on_deck = pyqtSignal(str, str)
+    midi_message_received = Signal(object)
+    control_changed = Signal(str, int)
+    note_on_received = Signal(int, int)
+    note_off_received = Signal(int)
+    preset_loaded_on_deck = Signal(str, str)
 
     # New signals for the mapping system
-    midi_message_received_for_learning = pyqtSignal(str)
-    bpm_changed = pyqtSignal(float)
-    device_connected = pyqtSignal(str)
-    device_disconnected = pyqtSignal(str)
-    mapped_action_triggered = pyqtSignal(str, int)
+    midi_message_received_for_learning = Signal(str)
+    bpm_changed = Signal(float)
+    device_connected = Signal(str)
+    device_disconnected = Signal(str)
+    mapped_action_triggered = Signal(str, int)
 
     def __init__(self, settings_manager, visualizer_manager):
         super().__init__()

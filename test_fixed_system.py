@@ -5,8 +5,8 @@ Test script to verify the fixed audio visualizer system
 
 import sys
 import logging
-from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import QTimer
+from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QTimer
 
 # Configure logging
 logging.basicConfig(

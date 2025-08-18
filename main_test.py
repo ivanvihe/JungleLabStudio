@@ -3,7 +3,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logging.debug("EXECUTING main_test.py - THIS IS THE CORRECT FILE")
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
     QWidget,
@@ -13,8 +13,8 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QComboBox,
 )
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QSurfaceFormat
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QSurfaceFormat
 
 from visuals.presets.geometric_particles import GeometricParticlesVisualizer
 from visuals.presets.evolutive_particles import EvolutiveParticlesVisualizer
