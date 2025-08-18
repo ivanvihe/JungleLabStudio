@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QDialog,
     QVBoxLayout,
     QFormLayout,
@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
 )
-from PyQt6.QtCore import Qt
+from PySide6.QtCore import Qt
 import logging
 
 class PreferencesDialog(QDialog):
@@ -242,9 +242,9 @@ class PreferencesDialog(QDialog):
     def _detect_opengl_gpus(self):
         """Detect GPUs using OpenGL context creation"""
         try:
-            from PyQt6.QtOpenGL import QOpenGLContext
-            from PyQt6.QtGui import QOffscreenSurface, QSurfaceFormat
-            from PyQt6.QtCore import QCoreApplication
+            from PySide6.QtOpenGL import QOpenGLContext
+            from PySide6.QtGui import QOffscreenSurface, QSurfaceFormat
+            from PySide6.QtCore import QCoreApplication
             from OpenGL.GL import glGetString, GL_RENDERER, GL_VENDOR, GL_VERSION
 
             # Ensure we have a QApplication instance

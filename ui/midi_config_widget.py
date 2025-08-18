@@ -1,20 +1,20 @@
 # ui/midi_config_widget.py - UI MEJORADA PARA CONFIGURACIÓN MIDI
 import logging
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QGroupBox, QLabel, 
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QGroupBox, QLabel,
     QPushButton, QComboBox, QLineEdit, QTableWidget, QTableWidgetItem,
     QHeaderView, QTabWidget, QSpinBox, QCheckBox, QMessageBox, QSplitter,
     QTextEdit, QFrame, QScrollArea, QFormLayout
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer
-from PyQt6.QtGui import QFont, QColor, QBrush
+from PySide6.QtCore import Qt, Signal, QTimer
+from PySide6.QtGui import QFont, QColor, QBrush
 
 class MidiConfigWidget(QWidget):
     """Widget principal para configuración MIDI completa"""
     
     # Señales
-    mapping_changed = pyqtSignal()
-    start_learning = pyqtSignal(str)  # Emite la clave MIDI que está aprendiendo
+    mapping_changed = Signal()
+    start_learning = Signal(str)  # Emite la clave MIDI que está aprendiendo
     
     def __init__(self, midi_engine, visualizer_manager, parent=None):
         super().__init__(parent)
@@ -961,7 +961,7 @@ class MidiConfigWidget(QWidget):
     def export_json(self):
         """Exportar mappings como JSON"""
         try:
-            from PyQt6.QtWidgets import QFileDialog
+            from PySide6.QtWidgets import QFileDialog
             
             filename, _ = QFileDialog.getSaveFileName(
                 self, "Exportar Mappings MIDI", 
@@ -982,7 +982,7 @@ class MidiConfigWidget(QWidget):
     def export_readable(self):
         """Exportar mappings en formato legible"""
         try:
-            from PyQt6.QtWidgets import QFileDialog
+            from PySide6.QtWidgets import QFileDialog
             
             filename, _ = QFileDialog.getSaveFileName(
                 self, "Exportar Mappings Legible", 
@@ -1079,7 +1079,7 @@ class MidiConfigWidget(QWidget):
     def import_json(self):
         """Importar mappings desde JSON"""
         try:
-            from PyQt6.QtWidgets import QFileDialog
+            from PySide6.QtWidgets import QFileDialog
             
             filename, _ = QFileDialog.getOpenFileName(
                 self, "Importar Mappings MIDI", 
@@ -1173,7 +1173,7 @@ class MidiConfigWidget(QWidget):
         """Añadir mapping personalizado"""
         try:
             # Crear diálogo simple para mapping personalizado
-            from PyQt6.QtWidgets import QDialog, QFormLayout
+            from PySide6.QtWidgets import QDialog, QFormLayout
             
             dialog = QDialog(self)
             dialog.setWindowTitle("Añadir Mapping Personalizado")
@@ -1198,7 +1198,7 @@ class MidiConfigWidget(QWidget):
             layout.addRow("Parámetros (JSON):", params_edit)
             
             # Botones
-            from PyQt6.QtWidgets import QDialogButtonBox
+            from PySide6.QtWidgets import QDialogButtonBox
             buttons = QDialogButtonBox(
                 QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
             )
@@ -1479,7 +1479,7 @@ class CompactMidiConfigWidget(QWidget):
             layout.addWidget(config_widget)
             
             # Botón cerrar
-            from PyQt6.QtWidgets import QDialogButtonBox
+            from PySide6.QtWidgets import QDialogButtonBox
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
             buttons.rejected.connect(dialog.accept)
             layout.addWidget(buttons)

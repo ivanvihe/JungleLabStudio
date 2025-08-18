@@ -1,5 +1,5 @@
 # ui/live_control_tab.py - cleaned and feature-complete implementation
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QLabel,
@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (
     QSpinBox,
     QSlider,
 )
-from PyQt6.QtCore import Qt
+from PySide6.QtCore import Qt
 
 import json
 import logging

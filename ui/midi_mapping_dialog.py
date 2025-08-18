@@ -2,19 +2,19 @@
 
 import json
 import logging
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QTableWidget,
     QTableWidgetItem, QHeaderView, QDialogButtonBox, QLabel,
     QMessageBox, QGroupBox, QProgressBar, QComboBox, QWidget,
     QLineEdit, QSpinBox, QDoubleSpinBox
 )
-from PyQt6.QtCore import pyqtSignal, Qt, QTimer
-from PyQt6.QtGui import QFont, QColor, QBrush
+from PySide6.QtCore import Signal, Qt, QTimer
+from PySide6.QtGui import QFont, QColor, QBrush
 
 class MidiMappingDialog(QDialog):
     # Señales
-    start_midi_learn = pyqtSignal(int)  # Emite el row index que está aprendiendo
-    mappings_saved = pyqtSignal(dict)
+    start_midi_learn = Signal(int)  # Emite el row index que está aprendiendo
+    mappings_saved = Signal(dict)
 
     def __init__(self, visualizer_presets, midi_engine, deck_id=None, parent=None, as_widget=False):
         """Create the dialog.

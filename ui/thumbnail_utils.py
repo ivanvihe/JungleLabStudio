@@ -1,5 +1,5 @@
-from PyQt6.QtGui import QPixmap, QColor, QPainter, QPen, QBrush, QPolygon
-from PyQt6.QtCore import QPoint, Qt
+from PySide6.QtGui import QPixmap, QColor, QPainter, QPen, QBrush, QPolygon
+from PySide6.QtCore import QPoint, Qt
 import math
 from pathlib import Path
 import json
@@ -41,7 +41,7 @@ def set_custom_thumbnail_path(visual_name, path):
 
 
 def _create_wave_path(width, offset=0):
-    from PyQt6.QtGui import QPainterPath
+    from PySide6.QtGui import QPainterPath
     path = QPainterPath()
     path.moveTo(0, width // 2 + offset)
     for x in range(width):

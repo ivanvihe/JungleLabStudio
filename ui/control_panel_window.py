@@ -1,13 +1,13 @@
 # ui/control_panel_window.py - ENHANCED WITH IMPROVED UI COMPONENTS
 import logging
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox,
     QGroupBox, QGridLayout, QFrame, QProgressBar, QMenuBar, QMenu, QFormLayout, QApplication,
     QMessageBox, QTextEdit, QScrollArea, QSplitter, QTabWidget, QTableWidget, QTableWidgetItem,
     QHeaderView, QDialog, QDialogButtonBox
 )
-from PyQt6.QtCore import Qt, QTimer, QMutex, QMutexLocker, QSize
-from PyQt6.QtGui import QAction, QFont, QColor
+from PySide6.QtCore import Qt, QTimer, QMutex, QMutexLocker, QSize
+from PySide6.QtGui import QAction, QFont, QColor
 
 from .preferences_dialog import PreferencesDialog
 from .midi_config_widget import MidiConfigWidget
