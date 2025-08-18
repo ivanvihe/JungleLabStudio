@@ -359,13 +359,20 @@ class MixerWindow(QMainWindow):
                     deck_a_rendered = True
                 except Exception as e:
                     logging.error(f"❌ Error painting deck A: {e}")
-                    
+                finally:
+                    # ModernGL renders can change the current context; make sure
+                    # our Qt context is current again before continuing
+                    self.gl_widget.makeCurrent()
+
             if self.deck_b:
                 try:
                     self.deck_b.paint()
                     deck_b_rendered = True
                 except Exception as e:
                     logging.error(f"❌ Error painting deck B: {e}")
+                finally:
+                    # Ensure Qt's GL context remains current after ModernGL calls
+                    self.gl_widget.makeCurrent()
             
             # Now composite them in the main framebuffer
             OpenGLSafety.safe_bind_framebuffer(
