@@ -6,6 +6,7 @@ import ctypes
 import time
 from PyQt6.QtWidgets import QMainWindow
 from PyQt6.QtCore import Qt, QSize, QTimer, pyqtSlot, pyqtSignal, QMutex, QMutexLocker
+from PyQt6.QtGui import QOpenGLContext
 from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 from OpenGL.GL import *
 
