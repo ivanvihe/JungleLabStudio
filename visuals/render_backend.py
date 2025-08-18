@@ -297,7 +297,11 @@ class ModernGLBackend(RenderBackend):
         self.device_index = device_index
         self.share_context = share_context  # Store the context to share with
         self.context_initialized = False
-        logging.debug(f"🎮 ModernGLBackend initialized with device_index={device_index}, share_context={share_context is not None}")
+        # Cache compiled programs to avoid redundant work during rendering
+        self._program_cache: dict[tuple, Any] = {}
+        logging.debug(
+            f"🎮 ModernGLBackend initialized with device_index={device_index}, share_context={share_context is not None}"
+        )
 
     def ensure_context(self) -> None:
         """Ensure ModernGL context is created and configured.
@@ -351,7 +355,9 @@ class ModernGLBackend(RenderBackend):
                     raise RuntimeError("All ModernGL context creation methods failed")
 
             # Configure context
-            self.ctx.enable(moderngl.BLEND)
+            self.ctx.enable_only(moderngl.BLEND)
+            # Enable automatic resource garbage collection to reduce leaks
+            self.ctx.gc_mode = "auto"
 
             # Log context info once for diagnostics
             try:
@@ -375,6 +381,18 @@ class ModernGLBackend(RenderBackend):
             logging.error(f"❌ Failed to create ModernGL context: {e}")
             raise
 
+    def begin_frame(self, size: Tuple[int, int]) -> None:
+        """Prepare the default framebuffer for rendering a new frame."""
+        if self.ctx:
+            self.ctx.screen.use()
+            self.set_viewport(0, 0, size[0], size[1])
+
+    def end_frame(self) -> None:
+        """Flush pending commands ensuring they are executed on the GPU."""
+        if self.ctx:
+            # ``finish`` blocks until all issued commands are complete
+            self.ctx.finish()
+
     def begin_target(self, size: Tuple[int, int]) -> None:
         if self.ctx:
             self.set_viewport(0, 0, size[0], size[1])
@@ -390,13 +408,16 @@ class ModernGLBackend(RenderBackend):
         """Create a ModernGL program"""
         if not self.ctx:
             raise RuntimeError("ModernGL context not available")
-        
+
         try:
-            return self.ctx.program(
-                vertex_shader=vertex_src, 
-                fragment_shader=fragment_src, 
-                **kwargs
-            )
+            key = (vertex_src, fragment_src, tuple(sorted(kwargs.items())))
+            if key not in self._program_cache:
+                self._program_cache[key] = self.ctx.program(
+                    vertex_shader=vertex_src,
+                    fragment_shader=fragment_src,
+                    **kwargs,
+                )
+            return self._program_cache[key]
         except Exception as e:
             logging.error(f"❌ ModernGL program creation failed: {e}")
             raise
@@ -445,10 +466,22 @@ class ModernGLBackend(RenderBackend):
         except Exception as e:
             logging.error(f"❌ ModernGL uniform setting failed for {name}: {e}")
 
+    def create_framebuffer(self, width: int, height: int) -> Any:
+        """Create an offscreen framebuffer using the current context."""
+        if not self.ctx:
+            raise RuntimeError("ModernGL context not available")
+        return self.ctx.simple_framebuffer((width, height))
+
     def cleanup(self):
         """Clean up ModernGL resources"""
         try:
             if self.ctx:
+                for prog in self._program_cache.values():
+                    try:
+                        prog.release()
+                    except Exception:
+                        pass
+                self._program_cache.clear()
                 self.ctx.release()
                 self.ctx = None
                 self.context_initialized = False
