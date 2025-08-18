@@ -1,14 +1,9 @@
 pygame-ce
 python-rtmidi
-PyOpenGL
-PyOpenGL_accelerate
 PyBullet
-PyQt6 # Assuming PyQt6 as the latest stable version for PyQt
 numpy
 scipy
 pyaudio>=0.2.11
-moderngl
-gputil
 mido
 taichi
 sounddevice
