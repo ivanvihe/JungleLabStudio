@@ -2,6 +2,7 @@
     "last_midi_device": "USB MIDI Interface 1",
     "control_panel_monitor": 0,
     "main_window_monitor": 2,
+    "fullscreen_monitors": [],
     "auto_save_settings": true,
     "window_positions": {
         "control_panel": {

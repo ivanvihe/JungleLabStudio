@@ -20,6 +20,7 @@ class MixerWindow(QMainWindow):
     signal_update_deck_control = pyqtSignal(str, str, object)
     signal_set_deck_opacity = pyqtSignal(str, float)
     signal_trigger_deck_action = pyqtSignal(str, str)
+    exit_fullscreen = pyqtSignal()
 
     def __init__(self, visualizer_manager, settings_manager=None, audio_analyzer=None):
         super().__init__()
@@ -797,3 +798,10 @@ class MixerWindow(QMainWindow):
         except Exception as e:
             logging.error(f"❌ Error in closeEvent: {e}")
             super().closeEvent(event)
+
+    def keyPressEvent(self, event):
+        """Handle key presses for fullscreen exit"""
+        if event.key() == Qt.Key_Escape and self.isFullScreen():
+            self.exit_fullscreen.emit()
+        else:
+            super().keyPressEvent(event)

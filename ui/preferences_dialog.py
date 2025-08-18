@@ -8,7 +8,10 @@ from PyQt6.QtWidgets import (
     QApplication,
     QLabel,
     QMessageBox,
+    QListWidget,
+    QListWidgetItem,
 )
+from PyQt6.QtCore import Qt
 import logging
 
 class PreferencesDialog(QDialog):
@@ -47,8 +50,27 @@ class PreferencesDialog(QDialog):
         if current_main_monitor < len(screen_names):
             self.main_window_monitor.setCurrentIndex(current_main_monitor)
         monitor_layout.addRow("Main Window:", self.main_window_monitor)
-        
+
         layout.addWidget(monitor_group)
+
+        # Fullscreen mode monitor selection
+        fs_group = QGroupBox("Full Screen Mode")
+        fs_layout = QVBoxLayout(fs_group)
+        self.fullscreen_list = QListWidget()
+        selected_fs = set(
+            self.settings_manager.get_setting("fullscreen_monitors", [])
+        )
+        for i, name in enumerate(screen_names):
+            item = QListWidgetItem(name)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            if i in selected_fs:
+                item.setCheckState(Qt.CheckState.Checked)
+            else:
+                item.setCheckState(Qt.CheckState.Unchecked)
+            self.fullscreen_list.addItem(item)
+        self.fullscreen_list.itemChanged.connect(self.apply_fullscreen_monitors)
+        fs_layout.addWidget(self.fullscreen_list)
+        layout.addWidget(fs_group)
         
         # Device setup section
         device_group = QGroupBox("Device Setup")
@@ -121,6 +143,14 @@ class PreferencesDialog(QDialog):
         # Connect signals for immediate application
         self.control_panel_monitor.currentIndexChanged.connect(self.apply_control_panel_monitor)
         self.main_window_monitor.currentIndexChanged.connect(self.apply_main_window_monitor)
+
+    def apply_fullscreen_monitors(self):
+        selected = []
+        for i in range(self.fullscreen_list.count()):
+            item = self.fullscreen_list.item(i)
+            if item.checkState() == Qt.CheckState.Checked:
+                selected.append(i)
+        self.settings_manager.set_fullscreen_monitors(selected)
     
     def apply_control_panel_monitor(self, index):
         self.settings_manager.set_setting("control_panel_monitor", index)

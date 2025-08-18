@@ -15,6 +15,7 @@ from .layout_sections import create_header_section, create_footer_section
 from .live_control_tab import create_live_control_tab
 from .monitor_tab import create_monitor_tab
 from .visual_settings_tab import create_visual_settings_tab
+from .mixer_window import MixerWindow
 
 class ControlPanelWindow(QMainWindow):
     def __init__(self, mixer_window, settings_manager, midi_engine, visualizer_manager, audio_analyzer):
@@ -27,6 +28,9 @@ class ControlPanelWindow(QMainWindow):
         self.midi_engine = midi_engine
         self.visualizer_manager = visualizer_manager
         self.audio_analyzer = audio_analyzer
+
+        # Track fullscreen output windows
+        self.fullscreen_windows = []
 
         # Thread safety
         self._mutex = QMutex()
@@ -801,6 +805,55 @@ class ControlPanelWindow(QMainWindow):
             logging.debug(f"🎛️ [{timestamp}] CC: {control_id} = {value}")
         except Exception as e:
             logging.error(f"Error handling CC activity: {e}")
+
+    # --- Fullscreen handling ---
+    def activate_fullscreen_mode(self):
+        """Launch mixer output fullscreen on configured monitors"""
+        monitors = self.settings_manager.get_fullscreen_monitors()
+        if not monitors:
+            QMessageBox.warning(self, "Fullscreen", "No monitors configured for fullscreen mode.")
+            return
+
+        screens = QApplication.screens()
+        self.exit_fullscreen_mode()
+
+        for i, monitor_index in enumerate(monitors):
+            screen = screens[monitor_index] if monitor_index < len(screens) else screens[0]
+            if i == 0:
+                window = self.mixer_window
+            else:
+                window = MixerWindow(self.visualizer_manager, self.settings_manager, self.audio_analyzer)
+                self.mixer_window.signal_set_mix_value.connect(window.set_mix_value)
+                self.mixer_window.signal_set_deck_visualizer.connect(window.set_deck_visualizer)
+                self.mixer_window.signal_update_deck_control.connect(window.update_deck_control)
+                self.mixer_window.signal_set_deck_opacity.connect(window.set_deck_opacity)
+                self.mixer_window.signal_trigger_deck_action.connect(window.trigger_deck_action)
+
+                window.set_mix_value(int(self.mixer_window.mix_value * 100))
+                if self.mixer_window.deck_a and self.mixer_window.deck_a.current_visualizer_name:
+                    window.set_deck_visualizer('A', self.mixer_window.deck_a.current_visualizer_name)
+                if self.mixer_window.deck_b and self.mixer_window.deck_b.current_visualizer_name:
+                    window.set_deck_visualizer('B', self.mixer_window.deck_b.current_visualizer_name)
+
+            window.exit_fullscreen.connect(self.exit_fullscreen_mode)
+            handle = window.windowHandle()
+            if handle:
+                handle.setScreen(screen)
+            window.move(screen.geometry().topLeft())
+            window.showFullScreen()
+            self.fullscreen_windows.append(window)
+
+    def exit_fullscreen_mode(self):
+        """Exit fullscreen mode and close extra windows"""
+        for w in list(self.fullscreen_windows):
+            try:
+                if w.isFullScreen():
+                    w.showNormal()
+                if w is not self.mixer_window:
+                    w.close()
+            except Exception as e:
+                logging.error(f"Error closing fullscreen window: {e}")
+        self.fullscreen_windows.clear()
 
     def update_mappings_info(self):
         """Actualizar información de mappings"""
