@@ -823,9 +823,20 @@ class ControlPanelWindow(QMainWindow):
                 if i == 0:
                     window = self.mixer_window
                 else:
-                    # Get the shared OpenGL context from the main mixer window
-                    main_gl_context = self.mixer_window.gl_widget.context()
+                    # Attempt to obtain the main window's OpenGL context so the
+                    # new MixerWindow can share resources.  Tests may provide a
+                    # simplified fake window without a ``gl_widget`` attribute, so
+                    # guard this lookup carefully and fall back to no sharing if
+                    # anything goes wrong.
                     share_context_handle = None
+                    try:
+                        main_gl_context = self.mixer_window.gl_widget.context()  # type: ignore[attr-defined]
+                    except Exception as e:  # pragma: no cover - best effort
+                        logging.warning(
+                            f"⚠️ ControlPanelWindow: Could not access mixer OpenGL context: {e}"
+                        )
+                        main_gl_context = None
+
                     if main_gl_context:
                         try:
                             share_context_handle = main_gl_context.rawHandle()  # type: ignore[attr-defined]
