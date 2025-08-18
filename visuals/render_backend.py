@@ -290,79 +290,71 @@ class ModernGLBackend(RenderBackend):
         logging.debug(f"🎮 ModernGLBackend initialized with device_index={device_index}")
 
     def ensure_context(self) -> None:
-        """Ensure ModernGL context is created and configured"""
-        if self.ctx is None:
+        """Ensure ModernGL context is created and configured.
+
+        The original implementation attempted a number of different context
+        creation strategies every time the method was called.  This patch
+        simplifies the logic, performs a fast early return when a context is
+        already available and provides clearer logging for each attempt.  The
+        behaviour is otherwise unchanged but avoids repeated work on subsequent
+        calls.
+        """
+
+        if self.ctx is not None:
+            # Context already exists – nothing to do.
+            return
+
+        try:
+            import moderngl
+            self.mgl = moderngl
+
+            logging.debug(
+                f"🔧 Creating ModernGL context for device {self.device_index}"
+            )
+
+            creation_attempts = [
+                {"require": 330, "standalone": True, "device_index": self.device_index},
+                {"require": 330, "standalone": True, "backend": "egl", "device_index": self.device_index},
+                {"require": 330},  # Fallback
+            ]
+
+            for kwargs in creation_attempts:
+                try:
+                    self.ctx = moderngl.create_context(**kwargs)
+                    logging.info(
+                        f"✅ ModernGL context created ({kwargs})"
+                    )
+                    break
+                except Exception as exc:  # pragma: no cover - logging path
+                    logging.debug(f"ModernGL context creation failed {kwargs}: {exc}")
+
+            if self.ctx is None:
+                raise RuntimeError("All ModernGL context creation methods failed")
+
+            # Configure context
+            self.ctx.enable(moderngl.BLEND)
+
+            # Log context info once for diagnostics
             try:
-                import moderngl
-                self.mgl = moderngl
-                
-                logging.debug(f"🔧 Creating ModernGL context for device {self.device_index}")
-                
-                # Try different context creation methods
-                context_created = False
-                
-                # Method 1: Try with device_index
-                if not context_created:
-                    try:
-                        self.ctx = moderngl.create_context(
-                            require=330, 
-                            standalone=True, 
-                            device_index=self.device_index
-                        )
-                        context_created = True
-                        logging.info(f"✅ ModernGL context created with device_index={self.device_index}")
-                    except Exception as e:
-                        logging.debug(f"Device index method failed: {e}")
-                
-                # Method 2: Try with EGL backend
-                if not context_created:
-                    try:
-                        self.ctx = moderngl.create_context(
-                            require=330, 
-                            standalone=True, 
-                            backend="egl",
-                            device_index=self.device_index
-                        )
-                        context_created = True
-                        logging.info(f"✅ ModernGL context created with EGL backend, device={self.device_index}")
-                    except Exception as e:
-                        logging.debug(f"EGL backend method failed: {e}")
-                
-                # Method 3: Fallback to default
-                if not context_created:
-                    try:
-                        self.ctx = moderngl.create_context(require=330)
-                        context_created = True
-                        logging.info("✅ ModernGL context created with default settings")
-                    except Exception as e:
-                        logging.error(f"❌ All ModernGL context creation methods failed: {e}")
-                        raise
-                
-                if context_created and self.ctx:
-                    # Configure context
-                    self.ctx.enable(moderngl.BLEND)
-                    
-                    # Log context info
-                    try:
-                        info = self.ctx.info
-                        renderer = info.get('GL_RENDERER', 'Unknown')
-                        vendor = info.get('GL_VENDOR', 'Unknown')
-                        version = info.get('GL_VERSION', 'Unknown')
-                        logging.info(f"🎮 ModernGL Context Info:")
-                        logging.info(f"   Renderer: {renderer}")
-                        logging.info(f"   Vendor: {vendor}")
-                        logging.info(f"   Version: {version}")
-                    except Exception as e:
-                        logging.warning(f"Could not get ModernGL context info: {e}")
-                    
-                    self.context_initialized = True
-                    
-            except ImportError:
-                logging.error("❌ ModernGL not available! Install with: pip install moderngl")
-                raise
-            except Exception as e:
-                logging.error(f"❌ Failed to create ModernGL context: {e}")
-                raise
+                info = self.ctx.info
+                renderer = info.get("GL_RENDERER", "Unknown")
+                vendor = info.get("GL_VENDOR", "Unknown")
+                version = info.get("GL_VERSION", "Unknown")
+                logging.info("🎮 ModernGL Context Info:")
+                logging.info(f"   Renderer: {renderer}")
+                logging.info(f"   Vendor: {vendor}")
+                logging.info(f"   Version: {version}")
+            except Exception as info_exc:  # pragma: no cover - logging path
+                logging.warning(f"Could not get ModernGL context info: {info_exc}")
+
+            self.context_initialized = True
+
+        except ImportError:  # pragma: no cover - dependency issue
+            logging.error("❌ ModernGL not available! Install with: pip install moderngl")
+            raise
+        except Exception as e:  # pragma: no cover - logging path
+            logging.error(f"❌ Failed to create ModernGL context: {e}")
+            raise
 
     def begin_target(self, size: Tuple[int, int]) -> None:
         if self.ctx:
@@ -477,10 +469,10 @@ def test_backend(backend_type: str, device_index: int = 0) -> bool:
     try:
         backend = create_backend(backend_type, device_index)
         backend.ensure_context()
-        
-        if hasattr(backend, 'cleanup'):
+
+        if hasattr(backend, "cleanup"):
             backend.cleanup()
-        
+
         return True
     except Exception as e:
         logging.debug(f"Backend {backend_type} test failed: {e}")
