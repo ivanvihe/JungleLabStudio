@@ -10,7 +10,13 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPu
 from PyQt6.QtCore import QTimer
 from PyQt6.QtGui import QSurfaceFormat
 from PyQt6.QtOpenGLWidgets import QOpenGLWidget
-from OpenGL.GL import *
+
+try:  # OpenGL is optional after migration to Taichi
+    from OpenGL.GL import *  # type: ignore
+except Exception:  # pragma: no cover - skip tests if OpenGL unavailable
+    import pytest
+
+    pytest.skip("PyOpenGL not available", allow_module_level=True)
 
 # Configure logging
 logging.basicConfig(

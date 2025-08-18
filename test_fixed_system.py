@@ -61,13 +61,16 @@ def test_system():
             logging.info(f"  Deck B: {current_vis.get('B', 'Unknown')}")
             logging.info(f"  Mix: {app.mixer_window.get_mix_value_percent()}%")
             
-            # Check for OpenGL errors
-            from OpenGL.GL import glGetError, GL_NO_ERROR
-            error = glGetError()
-            if error == GL_NO_ERROR:
-                logging.info("  ✅ No OpenGL errors")
-            else:
-                logging.error(f"  ❌ OpenGL error: {error}")
+            # Check for OpenGL errors if library available
+            try:
+                from OpenGL.GL import glGetError, GL_NO_ERROR
+                error = glGetError()
+                if error == GL_NO_ERROR:
+                    logging.info("  ✅ No OpenGL errors")
+                else:
+                    logging.error(f"  ❌ OpenGL error: {error}")
+            except Exception:
+                logging.info("  ⚠️ OpenGL library not available")
             
             logging.info("\n" + "=" * 60)
             logging.info("TEST SEQUENCE COMPLETE")
