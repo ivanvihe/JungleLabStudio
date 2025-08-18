@@ -18,6 +18,7 @@ class SettingsManager:
         defaults = {
             "control_panel_monitor": 0,
             "main_window_monitor": 0,
+            "fullscreen_monitors": [],
             "last_midi_device": "virtual 20",
             "auto_save_settings": True,
             "window_positions": {
@@ -202,6 +203,14 @@ class SettingsManager:
             self.set_setting("control_panel_monitor", control_panel_monitor)
         if main_window_monitor is not None:
             self.set_setting("main_window_monitor", main_window_monitor)
+
+    def get_fullscreen_monitors(self):
+        """Return list of monitor indices for fullscreen mode"""
+        return self.get_setting("fullscreen_monitors", [])
+
+    def set_fullscreen_monitors(self, monitors):
+        """Persist list of monitor indices for fullscreen mode"""
+        self.set_setting("fullscreen_monitors", list(monitors))
 
     # --- FUNCIONES MIDI MEJORADAS PARA PRIORIZAR config/midi_mappings.json ---
     def load_midi_mappings(self):

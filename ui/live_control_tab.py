@@ -46,6 +46,11 @@ def create_live_control_tab(self):
     layout.setContentsMargins(5, 5, 5, 5)
     layout.setSpacing(5)
 
+    # Fullscreen button at top
+    fs_button = QPushButton("Go Fullscreen")
+    fs_button.clicked.connect(self.activate_fullscreen_mode)
+    layout.addWidget(fs_button)
+
     # Scroll area
     # Scroll area for the visual grid
     scroll = QScrollArea()
