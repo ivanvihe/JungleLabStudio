@@ -1,6 +1,6 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow
-from PyQt6.QtOpenGLWidgets import QOpenGLWidget
+from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from OpenGL.GL import glClearColor, glClear, GL_COLOR_BUFFER_BIT
 
 class MinimalGLWidget(QOpenGLWidget):

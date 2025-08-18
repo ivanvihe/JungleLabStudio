@@ -2,8 +2,8 @@ import sys
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-from PyQt6.QtWidgets import QApplication, QMainWindow
-from PyQt6.QtGui import QSurfaceFormat
+from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtGui import QSurfaceFormat
 
 from visuals.presets.fluid_particles import FluidParticlesVisualizer
 

@@ -3,9 +3,9 @@ import logging
 import time
 import math
 import os
-from PyQt6.QtOpenGL import QOpenGLFramebufferObject, QOpenGLFramebufferObjectFormat
-from PyQt6.QtCore import QSize, QMutex, QMutexLocker
-from PyQt6.QtGui import QOpenGLContext
+from PySide6.QtOpenGL import QOpenGLFramebufferObject, QOpenGLFramebufferObjectFormat
+from PySide6.QtCore import QSize, QMutex, QMutexLocker
+from PySide6.QtGui import QOpenGLContext
 from OpenGL.GL import *
 from .render_backend import GLBackend, ModernGLBackend
 from opengl_fixes import OpenGLSafety

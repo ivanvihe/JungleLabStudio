@@ -1,15 +1,15 @@
 import numpy as np
 import logging
-from PyQt6.QtCore import QObject, pyqtSignal, QTimer
+from PySide6.QtCore import QObject, Signal, QTimer
 from collections import deque
 
 # Fallback AudioAnalyzer that doesn't require pyaudio
 class AudioAnalyzer(QObject):
     """Audio analyzer for real-time FFT analysis - Fallback version without pyaudio"""
     
-    audio_data_ready = pyqtSignal(np.ndarray)  # Raw audio data
-    fft_data_ready = pyqtSignal(np.ndarray)    # FFT magnitude data
-    level_changed = pyqtSignal(float)          # Overall audio level (0-100)
+    audio_data_ready = Signal(np.ndarray)  # Raw audio data
+    fft_data_ready = Signal(np.ndarray)    # FFT magnitude data
+    level_changed = Signal(float)          # Overall audio level (0-100)
     
     def __init__(self, sample_rate=44100, chunk_size=1024, channels=1):
         super().__init__()

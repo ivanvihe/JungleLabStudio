@@ -7,7 +7,7 @@ Ejecutar: python test_midi_mappings.py
 import sys
 import time
 import logging
-from PyQt6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 

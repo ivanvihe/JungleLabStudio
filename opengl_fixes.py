@@ -66,7 +66,7 @@ class OpenGLSafety:
 
         This helper wraps :func:`glBindFramebuffer` with additional checks to
         prevent the common "invalid operation" errors that appear when the call
-        is made without an active OpenGL context.  When PyQt6 is available we
+        is made without an active OpenGL context.  When PySide6 is available we
         query :class:`QOpenGLContext` to verify a context is current before
         attempting the bind.  The function mirrors the normal behaviour of the
         OpenGL call but logs any problems instead of raising exceptions.
@@ -76,7 +76,7 @@ class OpenGLSafety:
         # framebuffer without a context produces GL_INVALID_OPERATION which was
         # the root cause of the errors reported by users.
         try:
-            from PyQt6.QtGui import QOpenGLContext  # type: ignore
+            from PySide6.QtGui import QOpenGLContext  # type: ignore
 
             if QOpenGLContext.currentContext() is None:
                 logging.warning(
@@ -84,7 +84,7 @@ class OpenGLSafety:
                 )
                 return False
         except Exception:
-            # PyQt6 might not be installed or accessible.  In that case we
+            # PySide6 might not be installed or accessible.  In that case we
             # optimistically continue and rely on the GL error check below.
             pass
 

@@ -1,5 +1,5 @@
 # TODO: migrate to RenderBackend (ModernGL)
-from PyQt6.QtGui import QOpenGLContext, QSurfaceFormat
+from PySide6.QtGui import QOpenGLContext, QSurfaceFormat
 from OpenGL.GL import *
 from OpenGL.GLU import *
 import numpy as np

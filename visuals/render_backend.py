@@ -44,8 +44,12 @@ class TaichiBackend(RenderBackend):
     resulting image can be retrieved as a numpy array.
     """
 
+    _ti_initialized = False
+
     def __init__(self, resolution: Tuple[int, int] = (640, 480)) -> None:
-        ti.init(arch=ti.cpu)
+        if not TaichiBackend._ti_initialized:
+            ti.init(arch=ti.cpu)
+            TaichiBackend._ti_initialized = True
         self.resolution = resolution
         self.canvas = ti.Vector.field(4, dtype=ti.f32, shape=resolution)
         self._passes: List[Pass] = []

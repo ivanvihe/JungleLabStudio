@@ -6,10 +6,10 @@ Run this to check if visualizers are loading and rendering correctly
 
 import sys
 import logging
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel
-from PyQt6.QtCore import QTimer
-from PyQt6.QtGui import QSurfaceFormat
-from PyQt6.QtOpenGLWidgets import QOpenGLWidget
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel
+from PySide6.QtCore import QTimer
+from PySide6.QtGui import QSurfaceFormat
+from PySide6.QtOpenGLWidgets import QOpenGLWidget
 
 try:  # OpenGL is optional after migration to Taichi
     from OpenGL.GL import *  # type: ignore
