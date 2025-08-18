@@ -9,6 +9,7 @@ __all__ = [
     'QtWidgets',
     'QtCore',
     'QtGui',
+    'QtOpenGL',
     'QtOpenGLWidgets',
 ]
 
