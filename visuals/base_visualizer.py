@@ -2,8 +2,6 @@ import logging
 from typing import Optional
 
 import numpy as np
-from OpenGL.GL import glGetError, GL_NO_ERROR
-from OpenGL.GLU import gluErrorString
 
 
 class BaseVisualizer:
@@ -23,12 +21,7 @@ class BaseVisualizer:
         self._smoothed_bands: np.ndarray | None = None
 
     def _check_gl_error(self, context: str = ""):
-        """Checks for OpenGL errors and logs them."""
-        error = glGetError()
-        if error != GL_NO_ERROR:
-            error_str = f"OpenGL Error ({error}) in {context}: {gluErrorString(error).decode()}"
-            logging.error(error_str)
-            return True
+        """Placeholder for legacy OpenGL error checks."""
         return False
 
     def initializeGL(self, backend=None):

@@ -1,13 +1,10 @@
 pygame-ce
 python-rtmidi
-PyOpenGL
-PyOpenGL_accelerate
 PyBullet
-PyQt6
+PySide6
 numpy
 scipy
 pyaudio>=0.2.11
-moderngl
 gputil
 mido
 taichi
