@@ -827,10 +827,28 @@ class ControlPanelWindow(QMainWindow):
                     main_gl_context = self.mixer_window.gl_widget.context()
                     share_context_handle = None
                     if main_gl_context:
-                        share_context_handle = main_gl_context.rawHandle()
-                        logging.debug(f"🎮 ControlPanelWindow: Sharing OpenGL context handle to new MixerWindow: {share_context_handle}")
+                        try:
+                            share_context_handle = main_gl_context.rawHandle()  # type: ignore[attr-defined]
+                        except AttributeError:
+                            try:
+                                native = main_gl_context.nativeInterface()
+                                if native and hasattr(native, "context"):
+                                    share_context_handle = native.context()
+                            except Exception as e:  # pragma: no cover - best effort
+                                logging.debug(f"Could not obtain native GL handle: {e}")
+
+                        if share_context_handle:
+                            logging.debug(
+                                f"🎮 ControlPanelWindow: Sharing OpenGL context handle to new MixerWindow: {share_context_handle}"
+                            )
+                        else:
+                            logging.warning(
+                                "⚠️ ControlPanelWindow: Failed to obtain shareable GL context handle to new MixerWindow."
+                            )
                     else:
-                        logging.warning("⚠️ ControlPanelWindow: No main OpenGL context to share to new MixerWindow.")
+                        logging.warning(
+                            "⚠️ ControlPanelWindow: No main OpenGL context to share to new MixerWindow."
+                        )
 
                     window = MixerWindow(self.visualizer_manager, self.settings_manager, self.audio_analyzer, share_context=share_context_handle)
                     self.mixer_window.signal_set_mix_value.connect(window.set_mix_value)

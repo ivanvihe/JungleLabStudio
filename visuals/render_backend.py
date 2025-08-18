@@ -323,13 +323,27 @@ class ModernGLBackend(RenderBackend):
             self.mgl = moderngl
 
             if self.share_context:
-                logging.debug("🔧 Creating ModernGL context by sharing existing GL context")
+                logging.debug(
+                    "🔧 Creating ModernGL context by sharing existing GL context"
+                )
+                share_obj = self.share_context
+                # Some platforms return a wrapper object for the native
+                # handle (such as sip.voidptr).  Attempt to convert it to an
+                # int, but ignore failures so we can still pass the original
+                # object to moderngl.
+                try:  # pragma: no cover - defensive programming
+                    share_obj = int(share_obj)
+                except Exception:
+                    pass
                 try:
-                    self.ctx = moderngl.create_context(share=self.share_context)
+                    self.ctx = moderngl.create_context(share=share_obj)
                     logging.info("✅ ModernGL context created by sharing")
                 except Exception as exc:
-                    logging.error(f"❌ Failed to create ModernGL context by sharing: {exc}")
-                    raise
+                    logging.error(
+                        f"❌ Failed to create ModernGL context by sharing: {exc}"
+                    )
+                    # Fallback: create a fresh context instead of aborting
+                    self.ctx = moderngl.create_context(require=330)
             else:
                 logging.debug(
                     f"🔧 Creating ModernGL context for device {self.device_index}"
