@@ -34,7 +34,7 @@ class OpenGLSafety:
     
     @staticmethod
     def safe_point_size(size):
-        """Set point size safely, checking GL limits"""
+        """Set point size safely, checking GL limits""" 
         try:
             # Get the supported point size range
             range_info = glGetFloatv(GL_POINT_SIZE_RANGE)
@@ -59,6 +59,29 @@ class OpenGLSafety:
                     glPointSize(1.0)
                 except:
                     pass
+
+    @staticmethod
+    def safe_bind_framebuffer(target, framebuffer):
+        """Safely bind a framebuffer and log errors"""
+        try:
+            glBindFramebuffer(target, int(framebuffer))
+            error = glGetError()
+            if error != GL_NO_ERROR:
+                error_msg = {
+                    GL_INVALID_ENUM: "GL_INVALID_ENUM",
+                    GL_INVALID_VALUE: "GL_INVALID_VALUE",
+                    GL_INVALID_OPERATION: "GL_INVALID_OPERATION",
+                    GL_OUT_OF_MEMORY: "GL_OUT_OF_MEMORY",
+                    GL_INVALID_FRAMEBUFFER_OPERATION: "GL_INVALID_FRAMEBUFFER_OPERATION",
+                }.get(error, f"Unknown error {error}")
+                logging.warning(
+                    f"OpenGL error binding framebuffer {framebuffer}: {error_msg}"
+                )
+                return False
+            return True
+        except Exception as e:
+            logging.error(f"Error binding framebuffer {framebuffer}: {e}")
+            return False
 
     @staticmethod
     def check_gl_errors(context="OpenGL operation"):

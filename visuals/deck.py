@@ -521,8 +521,8 @@ class Deck:
                         if not self._initialize_visualizer_in_fbo():
                             self._render_fallback()
                             self.fbo.release()
-                            # Restore previous FBO
-                            glBindFramebuffer(GL_FRAMEBUFFER, previous_fbo)
+                            # Restore previous FBO safely
+                            OpenGLSafety.safe_bind_framebuffer(GL_FRAMEBUFFER, previous_fbo)
                             return False
                     
                     # Render the visualizer
@@ -602,8 +602,8 @@ class Deck:
                 # Release our FBO
                 self.fbo.release()
 
-                # Restore previous FBO binding
-                glBindFramebuffer(GL_FRAMEBUFFER, previous_fbo)
+                # Restore previous FBO binding safely
+                OpenGLSafety.safe_bind_framebuffer(GL_FRAMEBUFFER, previous_fbo)
                 
                 self._fbo_dirty = False
                 return True
