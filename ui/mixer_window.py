@@ -368,7 +368,9 @@ class MixerWindow(QMainWindow):
                     logging.error(f"❌ Error painting deck B: {e}")
             
             # Now composite them in the main framebuffer
-            glBindFramebuffer(GL_FRAMEBUFFER, self.gl_widget.defaultFramebufferObject())
+            OpenGLSafety.safe_bind_framebuffer(
+                GL_FRAMEBUFFER, self.gl_widget.defaultFramebufferObject()
+            )
             pixel_ratio = self.gl_widget.devicePixelRatio()
             glViewport(0, 0, int(self.gl_widget.width() * pixel_ratio), int(self.gl_widget.height() * pixel_ratio))
 
