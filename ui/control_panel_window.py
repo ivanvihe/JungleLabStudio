@@ -829,11 +829,17 @@ class ControlPanelWindow(QMainWindow):
                 self.mixer_window.signal_set_deck_opacity.connect(window.set_deck_opacity)
                 self.mixer_window.signal_trigger_deck_action.connect(window.trigger_deck_action)
 
-                window.set_mix_value(int(self.mixer_window.mix_value * 100))
+            # Apply current mixer state once the window's GL context is ready
+            def init_state(win=window):
+                win.set_mix_value(int(self.mixer_window.mix_value * 100))
                 if self.mixer_window.deck_a and self.mixer_window.deck_a.current_visualizer_name:
-                    window.set_deck_visualizer('A', self.mixer_window.deck_a.current_visualizer_name)
+                    win.set_deck_visualizer('A', self.mixer_window.deck_a.current_visualizer_name)
                 if self.mixer_window.deck_b and self.mixer_window.deck_b.current_visualizer_name:
-                    window.set_deck_visualizer('B', self.mixer_window.deck_b.current_visualizer_name)
+                    win.set_deck_visualizer('B', self.mixer_window.deck_b.current_visualizer_name)
+
+            window.gl_ready.connect(init_state)
+            if window.gl_initialized:
+                init_state()
 
             window.exit_fullscreen.connect(self.exit_fullscreen_mode)
             handle = window.windowHandle()
