@@ -57,5 +57,8 @@
     "Direction": 1,
     "Size": 33,
     "Intensity": 45
+  },
+  "Building Madness": {
+    "Camera Speed": 0
   }
 }
