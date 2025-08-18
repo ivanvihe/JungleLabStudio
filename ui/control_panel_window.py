@@ -847,7 +847,10 @@ class ControlPanelWindow(QMainWindow):
                 # Ensure the window handle exists before assigning the screen
                 handle = window.windowHandle()
                 if handle is None:
-                    window.winId()  # Force creation of the window handle without showing
+                    # Showing the window ensures a native handle is created
+                    # without relying on winId(), which can crash with multiple
+                    # monitors on some platforms.
+                    window.show()
                     handle = window.windowHandle()
                 if handle:
                     try:
