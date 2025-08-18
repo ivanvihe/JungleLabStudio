@@ -140,8 +140,27 @@ class MixerWindow(QMainWindow):
                 current_gl_context = QOpenGLContext.currentContext()
                 share_context_handle = None
                 if current_gl_context:
-                    share_context_handle = current_gl_context.rawHandle()
-                    logging.debug(f"🎮 MixerWindow: Sharing OpenGL context handle: {share_context_handle}")
+                    try:
+                        # PyQt5 provided rawHandle(), while PyQt6 exposes the
+                        # native context through nativeInterface().  Try both so
+                        # the code works across Qt versions and platforms.
+                        share_context_handle = current_gl_context.rawHandle()  # type: ignore[attr-defined]
+                    except AttributeError:
+                        try:
+                            native = current_gl_context.nativeInterface()
+                            if native and hasattr(native, "context"):
+                                share_context_handle = native.context()
+                        except Exception as e:  # pragma: no cover - best effort
+                            logging.debug(f"Could not obtain native GL handle: {e}")
+
+                    if share_context_handle:
+                        logging.debug(
+                            f"🎮 MixerWindow: Sharing OpenGL context handle: {share_context_handle}"
+                        )
+                    else:
+                        logging.warning(
+                            "⚠️ MixerWindow: Failed to obtain shareable GL context handle."
+                        )
                 else:
                     logging.warning("⚠️ MixerWindow: No current OpenGL context to share.")
 
