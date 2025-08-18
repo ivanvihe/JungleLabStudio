@@ -450,9 +450,11 @@ class MixerWindow(QMainWindow):
             
             # Now composite them in the main framebuffer
             self.gl_widget.makeCurrent() # Ensure context is current before binding framebuffer
-            OpenGLSafety.safe_bind_framebuffer(
+            if not OpenGLSafety.safe_bind_framebuffer(
                 GL_FRAMEBUFFER, self.gl_widget.defaultFramebufferObject()
-            )
+            ):
+                logging.warning("⚠️ MixerWindow: Unable to bind default framebuffer")
+                return
             pixel_ratio = self.gl_widget.devicePixelRatio()
             glViewport(0, 0, int(self.gl_widget.width() * pixel_ratio), int(self.gl_widget.height() * pixel_ratio))
 

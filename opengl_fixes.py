@@ -88,6 +88,16 @@ class OpenGLSafety:
             # optimistically continue and rely on the GL error check below.
             pass
 
+        # Extra safety: try a cheap GL query to ensure a context is active.
+        # If this raises, we skip the bind to avoid noisy GL errors.
+        try:
+            glGetIntegerv(GL_FRAMEBUFFER_BINDING)
+        except Exception:
+            logging.warning(
+                f"OpenGL error binding framebuffer {framebuffer}: no active context"
+            )
+            return False
+
         try:
             glBindFramebuffer(target, int(framebuffer))
             error = glGetError()
@@ -105,7 +115,9 @@ class OpenGLSafety:
                 return False
             return True
         except Exception as e:
-            logging.error(f"Error binding framebuffer {framebuffer}: {e}")
+            logging.warning(
+                f"OpenGL error binding framebuffer {framebuffer}: {e}"
+            )
             return False
 
     @staticmethod
