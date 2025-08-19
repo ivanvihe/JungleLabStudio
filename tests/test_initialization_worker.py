@@ -5,6 +5,7 @@ import importlib
 
 from PySide6.QtCore import QCoreApplication, QThread
 
+
 repo_root = Path(__file__).resolve().parents[1]
 sys.path.append(str(repo_root))
 
@@ -38,6 +39,7 @@ stub_modules = {
     'audio.audio_analyzer': audio_analyzer_mod,
     'utils': utils_pkg,
     'utils.settings_manager': settings_mod,
+
     'ui.mixer_window': types.ModuleType('ui.mixer_window'),
     'ui.control_panel_window': types.ModuleType('ui.control_panel_window'),
 }
@@ -59,6 +61,7 @@ stub_modules['midi.midi_engine'].DummyMidiEngine = _FailOnCall
 stub_modules['visuals.visualizer_manager'].VisualizerManager = DummyVisualizerManager
 stub_modules['audio.audio_analyzer'].AudioAnalyzer = _FailOnCall
 stub_modules['audio.audio_analyzer'].DummyAudioAnalyzer = _FailOnCall
+
 stub_modules['utils.settings_manager'].SettingsManager = object
 stub_modules['ui.mixer_window'].MixerWindow = object
 stub_modules['ui.control_panel_window'].ControlPanelWindow = object
@@ -84,4 +87,5 @@ def test_initialization_worker_emits_visualizer_manager(monkeypatch):
 
     assert len(received) == 1
     assert isinstance(received[0], DummyVisualizerManager)
+
 
