@@ -197,7 +197,7 @@ def handle_exception(exc_type, exc_value, exc_traceback):
 
 def main():
     """Enhanced main entry point."""
-    print("🚀 Starting Audio Visualizer Pro...")
+    print("Starting Audio Visualizer Pro...")
     print("=" * 50)
     
     # Set up logging first
@@ -239,7 +239,8 @@ def main():
         
     except Exception as e:
         logging.critical(f"💥 Critical error in main: {e}", exc_info=True)
-        print(f"\n❌ Critical error: {e}")
+        print(f"
+[ERROR] Critical error: {e}")
         print(f"📝 Check log file for details: {log_file}")
         return 1
 
