@@ -1,0 +1,192 @@
+{
+  "name": "Plasma Ray",
+  "description": "Rayos de plasma energéticos con efectos eléctricos y descargas dinámicas",
+  "author": "AudioVisualizer",
+  "version": "1.0.0",
+  "category": "energy",
+  "tags": ["plasma", "energy", "electric", "lightning", "rays", "power"],
+  "thumbnail": "plasma_ray_thumb.png",
+  "defaultConfig": {
+    "opacity": 1.0,
+    "fadeMs": 150,
+    "raySystem": {
+      "primaryRays": 12,
+      "secondaryRays": 24,
+      "branches": 48,
+      "maxLength": 4.0,
+      "thickness": 0.05
+    },
+    "colors": {
+      "coreEnergy": "#00FFFF",
+      "plasmaBlue": "#0080FF",
+      "electricPurple": "#8000FF",
+      "highVoltage": "#FF00FF",
+      "discharge": "#FFFFFF",
+      "ambient": "#001122"
+    },
+    "energy": {
+      "coreIntensity": 2.5,
+      "pulseFrequency": 8.0,
+      "dischargeRate": 0.6,
+      "fieldStrength": 1.8,
+      "volatility": 0.4,
+      "resonance": 1.2
+    },
+    "lightning": {
+      "branchProbability": 0.3,
+      "segmentLength": 0.1,
+      "randomness": 0.4,
+      "fadeSpeed": 2.0,
+      "sparkIntensity": 1.5
+    },
+    "effects": {
+      "enableDischarge": true,
+      "enableBranching": true,
+      "enableGlow": true,
+      "enableSpark": true,
+      "enableField": true,
+      "enableResonance": true
+    },
+    "physics": {
+      "electricField": 1.0,
+      "magneticField": 0.5,
+      "conductivity": 0.8,
+      "resistance": 0.3
+    }
+  },
+  "controls": [
+    {
+      "name": "energy.coreIntensity",
+      "type": "slider",
+      "label": "Intensidad del Núcleo",
+      "min": 0.5,
+      "max": 5.0,
+      "step": 0.1,
+      "default": 2.5
+    },
+    {
+      "name": "energy.pulseFrequency",
+      "type": "slider",
+      "label": "Frecuencia de Pulso",
+      "min": 1.0,
+      "max": 20.0,
+      "step": 0.5,
+      "default": 8.0
+    },
+    {
+      "name": "energy.dischargeRate",
+      "type": "slider",
+      "label": "Tasa de Descarga",
+      "min": 0.1,
+      "max": 2.0,
+      "step": 0.1,
+      "default": 0.6
+    },
+    {
+      "name": "lightning.branchProbability",
+      "type": "slider",
+      "label": "Probabilidad de Ramificación",
+      "min": 0.0,
+      "max": 1.0,
+      "step": 0.1,
+      "default": 0.3
+    },
+    {
+      "name": "lightning.randomness",
+      "type": "slider",
+      "label": "Aleatoriedad del Rayo",
+      "min": 0.0,
+      "max": 1.0,
+      "step": 0.1,
+      "default": 0.4
+    },
+    {
+      "name": "physics.electricField",
+      "type": "slider",
+      "label": "Campo Eléctrico",
+      "min": 0.0,
+      "max": 3.0,
+      "step": 0.1,
+      "default": 1.0
+    },
+    {
+      "name": "physics.conductivity",
+      "type": "slider",
+      "label": "Conductividad",
+      "min": 0.1,
+      "max": 2.0,
+      "step": 0.1,
+      "default": 0.8
+    },
+    {
+      "name": "effects.enableDischarge",
+      "type": "checkbox",
+      "label": "Descargas Eléctricas",
+      "default": true
+    },
+    {
+      "name": "effects.enableBranching",
+      "type": "checkbox",
+      "label": "Ramificación de Rayos",
+      "default": true
+    },
+    {
+      "name": "effects.enableGlow",
+      "type": "checkbox",
+      "label": "Efecto de Brillo",
+      "default": true
+    },
+    {
+      "name": "effects.enableSpark",
+      "type": "checkbox",
+      "label": "Chispas",
+      "default": true
+    },
+    {
+      "name": "colors.coreEnergy",
+      "type": "color",
+      "label": "Energía del Núcleo",
+      "default": "#00FFFF"
+    },
+    {
+      "name": "colors.plasmaBlue",
+      "type": "color",
+      "label": "Azul Plasma",
+      "default": "#0080FF"
+    },
+    {
+      "name": "colors.electricPurple",
+      "type": "color",
+      "label": "Púrpura Eléctrico",
+      "default": "#8000FF"
+    },
+    {
+      "name": "colors.highVoltage",
+      "type": "color",
+      "label": "Alta Tensión",
+      "default": "#FF00FF"
+    }
+  ],
+  "audioMapping": {
+    "low": {
+      "description": "Controla la intensidad del núcleo y campo base",
+      "frequency": "20-250 Hz",
+      "effect": "Energía fundamental y campo magnético base"
+    },
+    "mid": {
+      "description": "Modula las descargas y ramificaciones",
+      "frequency": "250-4000 Hz",
+      "effect": "Actividad de rayos y patrones de descarga"
+    },
+    "high": {
+      "description": "Desencadena chispas y efectos de alta frecuencia",
+      "frequency": "4000+ Hz",
+      "effect": "Chispas, resonancia y efectos de alta energía"
+    }
+  },
+  "performance": {
+    "complexity": "high",
+    "recommendedFPS": 60,
+    "gpuIntensive": true
+  }
+}
