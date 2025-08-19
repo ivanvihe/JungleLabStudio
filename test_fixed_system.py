@@ -37,11 +37,11 @@ def test_system():
             logging.info("=" * 60)
             
             # Test deck A
-            logging.info("\n🎮 Testing Deck A...")
+            logging.info("\n Testing Deck A...")
             app.mixer_window.safe_set_deck_visualizer('A', 'Intro Background')
             
             # Test deck B  
-            logging.info("\n🎮 Testing Deck B...")
+            logging.info("\n Testing Deck B...")
             visualizers = app.visualizer_manager.get_visualizer_names()
             if len(visualizers) > 1:
                 app.mixer_window.safe_set_deck_visualizer('B', visualizers[1])
@@ -49,13 +49,13 @@ def test_system():
                 app.mixer_window.safe_set_deck_visualizer('B', 'Intro Background')
             
             # Test crossfader
-            logging.info("\n🎚️ Testing Crossfader...")
+            logging.info("\n Testing Crossfader...")
             for value in [0, 25, 50, 75, 100]:
                 app.mixer_window.safe_set_mix_value(value)
                 logging.info(f"  Mix value: {value}%")
             
             # Check deck states
-            logging.info("\n📊 System Status:")
+            logging.info("\n System Status:")
             current_vis = app.mixer_window.get_current_visualizers()
             logging.info(f"  Deck A: {current_vis.get('A', 'Unknown')}")
             logging.info(f"  Deck B: {current_vis.get('B', 'Unknown')}")
@@ -66,11 +66,11 @@ def test_system():
                 from OpenGL.GL import glGetError, GL_NO_ERROR
                 error = glGetError()
                 if error == GL_NO_ERROR:
-                    logging.info("  ✅ No OpenGL errors")
+                    logging.info("No OpenGL errors")
                 else:
-                    logging.error(f"  ❌ OpenGL error: {error}")
+                    logging.error(f"   OpenGL error: {error}")
             except Exception:
-                logging.info("  ⚠️ OpenGL library not available")
+                logging.info("OpenGL library not available")
             
             logging.info("\n" + "=" * 60)
             logging.info("TEST SEQUENCE COMPLETE")
@@ -83,7 +83,7 @@ def test_system():
         return app.run()
         
     except Exception as e:
-        logging.error(f"❌ Test failed: {e}")
+        logging.error(f"Test failed: {e}")
         import traceback
         traceback.print_exc()
         return 1

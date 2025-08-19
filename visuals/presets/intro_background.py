@@ -83,7 +83,7 @@ class IntroBackgroundVisualizer(BaseVisualizer):
                 return
             
             self.initialized = True
-            logging.info("✅ IntroBackgroundVisualizer initialized successfully")
+            logging.info("IntroBackgroundVisualizer initialized successfully")
             
         except Exception as e:
             logging.error(f"Error in IntroBackgroundVisualizer.initializeGL: {e}")

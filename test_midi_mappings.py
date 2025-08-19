@@ -29,12 +29,12 @@ def test_midi_mappings():
 
     for channel in range(12, 16):
         logging.info(
-            f"\n🎵 Testing {sample_visual} on channel {channel+1}: note {sample_note}"
+            f"\n Testing {sample_visual} on channel {channel+1}: note {sample_note}"
         )
         midi_engine.test_midi_mapping(sample_note, channel=channel)
         time.sleep(0.2)
 
-    logging.info("\n✅ MIDI mapping tests completed")
+    logging.info("\n MIDI mapping tests completed")
 
 
 def test_preset_names():

@@ -74,7 +74,7 @@ class OneshotCircuitSignalVisualizer(BaseVisualizer):
                 return
             
             self.initialized = True
-            logging.info("⚡ TouchDesigner electric flow initialized")
+            logging.info("TouchDesigner electric flow initialized")
             
         except Exception as e:
             logging.error(f"Error in initialization: {e}")
@@ -416,7 +416,7 @@ class OneshotCircuitSignalVisualizer(BaseVisualizer):
         }
         
         self.active_flows.append(flow)
-        logging.info(f"⚡ Electric flow created on path {path_index}")
+        logging.info(f"Electric flow created on path {path_index}")
 
     def interpolate_path(self, path, progress):
         """Interpolate position along path"""
@@ -645,4 +645,4 @@ class OneshotCircuitSignalVisualizer(BaseVisualizer):
         """Handle MIDI triggers"""
         if action_name == "flow" or action_name == "electric" or action_name == "signal":
             self.create_electric_flow()
-            logging.info("⚡ Electric flow triggered via MIDI")
+            logging.info("Electric flow triggered via MIDI")

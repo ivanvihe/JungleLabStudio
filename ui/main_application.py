@@ -120,7 +120,7 @@ class MainApplication:
     """Enhanced main application with modern UI and improved graphics support."""
     
     def __init__(self):
-        logging.info("🚀 Initializing Audio Visualizer Pro...")
+        logging.info("Initializing Audio Visualizer Pro...")
         
         self.app = None
         self.splash = None
@@ -144,10 +144,10 @@ class MainApplication:
             self.app = QApplication(sys.argv)
             self._apply_modern_styling()
             
-            logging.info("✅ Application setup complete")
+            logging.info("Application setup complete")
             
         except Exception as e:
-            logging.error(f"❌ Application setup failed: {e}")
+            logging.error(f"Application setup failed: {e}")
             raise
 
     def _configure_opengl(self):
@@ -192,14 +192,14 @@ class MainApplication:
                 format.setSwapInterval(1)  # VSync
                 
                 QSurfaceFormat.setDefaultFormat(format)
-                logging.info(f"✅ OpenGL configured: {config['description']}")
+                logging.info(f"OpenGL configured: {config['description']}")
                 break
                 
             except Exception as e:
-                logging.warning(f"⚠️ Failed to set {config['description']}: {e}")
+                logging.warning(f"Failed to set {config['description']}: {e}")
                 continue
         else:
-            logging.warning("⚠️ All OpenGL configurations failed, using defaults")
+            logging.warning("All OpenGL configurations failed, using defaults")
 
     def _configure_ui_attributes(self):
         """Configure UI attributes for modern appearance."""
@@ -302,7 +302,7 @@ class MainApplication:
             self.worker_thread.start()
             
         except Exception as e:
-            logging.error(f"❌ Component initialization failed: {e}")
+            logging.error(f"Component initialization failed: {e}")
             self._show_error_dialog("Initialization Error", str(e))
 
     def _update_splash_progress(self, progress: int, message: str):
@@ -338,10 +338,10 @@ class MainApplication:
                 self.worker_thread.quit()
                 self.worker_thread.wait()
 
-            logging.info("✅ Application initialization complete")
+            logging.info("Application initialization complete")
 
         except Exception as e:
-            logging.error(f"❌ Failed to complete initialization: {e}")
+            logging.error(f"Failed to complete initialization: {e}")
             self._show_error_dialog("Startup Error", str(e))
 
     def _on_initialization_error(self, error_message: str):
@@ -384,10 +384,10 @@ class MainApplication:
             self.mixer_window.raise_()
             self.mixer_window.activateWindow()
             
-            logging.info("✅ Main windows created and shown")
+            logging.info("Main windows created and shown")
             
         except Exception as e:
-            logging.error(f"❌ Failed to create main windows: {e}")
+            logging.error(f"Failed to create main windows: {e}")
             raise
 
     def _position_windows(self):
@@ -445,14 +445,14 @@ class MainApplication:
             self.initialize_components()
             
             # Run event loop
-            logging.info("🎬 Starting application event loop...")
+            logging.info("Starting application event loop...")
             exit_code = self.app.exec()
             
-            logging.info(f"📋 Application finished with exit code: {exit_code}")
+            logging.info(f"Application finished with exit code: {exit_code}")
             return exit_code
             
         except Exception as e:
-            logging.error(f"❌ Application run failed: {e}")
+            logging.error(f"Application run failed: {e}")
             if self.app:
                 self._show_error_dialog("Critical Error", str(e))
             return 1
@@ -462,7 +462,7 @@ class MainApplication:
     def cleanup(self):
         """Clean up application resources."""
         try:
-            logging.info("🧹 Cleaning up application resources...")
+            logging.info("Cleaning up application resources...")
             
             # Clean up worker thread
             if self.worker_thread and self.worker_thread.isRunning():
@@ -479,10 +479,10 @@ class MainApplication:
             if self.splash:
                 self.splash.close()
                 
-            logging.info("✅ Cleanup complete")
+            logging.info("Cleanup complete")
             
         except Exception as e:
-            logging.error(f"❌ Cleanup failed: {e}")
+            logging.error(f"Cleanup failed: {e}")
 
 
 def main():
@@ -498,7 +498,7 @@ def main():
     
     # Check Python version
     if sys.version_info < (3, 8):
-        print("❌ Python 3.8 or higher is required")
+        print("Python 3.8 or higher is required")
         return 1
     
     # Check for required dependencies
@@ -512,7 +512,7 @@ def main():
             missing_modules.append(module)
     
     if missing_modules:
-        print(f"❌ Missing required modules: {', '.join(missing_modules)}")
+        print(f" Missing required modules: {', '.join(missing_modules)}")
         print("Please install them using: pip install " + " ".join(missing_modules))
         return 1
     
@@ -521,7 +521,7 @@ def main():
         app = MainApplication()
         return app.run()
     except Exception as e:
-        logging.error(f"❌ Failed to start application: {e}")
+        logging.error(f"Failed to start application: {e}")
         return 1
 
 

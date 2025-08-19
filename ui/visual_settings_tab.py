@@ -44,7 +44,7 @@ def create_visual_settings_tab(self):
     # Header ---------------------------------------------------------------
     header_layout = QHBoxLayout()
 
-    header_label = QLabel("🖼️ CONFIGURACIÓN DE VISUALES Y MIDI")
+    header_label = QLabel(" CONFIGURACIÓN DE VISUALES Y MIDI")
     header_label.setStyleSheet(
         """
         QLabel {
@@ -61,7 +61,7 @@ def create_visual_settings_tab(self):
     header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
     header_layout.addWidget(header_label)
 
-    save_button = QPushButton("💾 Guardar Cambios")
+    save_button = QPushButton(" Guardar Cambios")
     save_button.setStyleSheet(
         """
         QPushButton {
@@ -88,7 +88,7 @@ def create_visual_settings_tab(self):
 
     # Instructions ---------------------------------------------------------
     instructions = QLabel(
-        "💡 Edit the MIDI note for each visual. Changes are saved "
+        " Edit the MIDI note for each visual. Changes are saved "
         "automatically when leaving the field or pressing 'Save Changes'."
     )
     instructions.setStyleSheet(
@@ -148,9 +148,9 @@ def create_visual_settings_list(self, container):
         layout.addStretch()
         self.visual_settings_layout = layout
         self.visual_mappings = current_mappings
-        logging.info(f"✅ Created visual settings list with {len(visuals)} visuals")
+        logging.info(f"Created visual settings list with {len(visuals)} visuals")
     except Exception as e:
-        logging.error(f"❌ Error creating visual settings list: {e}")
+        logging.error(f"Error creating visual settings list: {e}")
         create_fallback_visual_grid(container)
 
 
@@ -204,13 +204,13 @@ def create_visual_settings_row(self, visual_name, current_mappings):
     thumb_label.setPixmap(generate_visual_thumbnail(visual_name, 80, 60))
 
     open_btn = QToolButton(thumb_container)
-    open_btn.setText("📂")
+    open_btn.setText("")
     open_btn.setToolTip("Change thumbnail")
     open_btn.setAutoRaise(True)
     open_btn.move(60, 0)
 
     clear_btn = QToolButton(thumb_container)
-    clear_btn.setText("✖")
+    clear_btn.setText("")
     clear_btn.setToolTip("Remove thumbnail")
     clear_btn.setAutoRaise(True)
     clear_btn.move(40, 0)
@@ -613,7 +613,7 @@ def create_fallback_visual_grid(container):
         """
     )
     error_layout = QVBoxLayout(error_frame)
-    error_label = QLabel("⚠️ Error creating visual settings grid")
+    error_label = QLabel(" Error creating visual settings grid")
     error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
     error_label.setStyleSheet("color: #d32f2f; font-size: 16px; font-weight: bold;")
     error_layout.addWidget(error_label)

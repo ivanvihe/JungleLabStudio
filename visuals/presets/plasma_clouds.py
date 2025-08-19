@@ -67,7 +67,7 @@ class PlasmaCloudsVisualizer(BaseVisualizer):
             
             self.start_time = time.time()
             self.initialized = True
-            logging.info("✅ PlasmaCloudsVisualizer initialized successfully")
+            logging.info("PlasmaCloudsVisualizer initialized successfully")
             
         except Exception as e:
             logging.error(f"Error in PlasmaCloudsVisualizer.initializeGL: {e}")

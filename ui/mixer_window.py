@@ -111,13 +111,13 @@ class MixerWindow(QMainWindow):
         self.animation_timer.timeout.connect(self.animate)
         self.animation_timer.start(16)  # ~60 FPS
 
-        logging.info("🖥️ MixerWindow initialized with transparency support")
+        logging.info("MixerWindow initialized with transparency support")
 
     def initializeGL(self):
         """Initialize OpenGL context and resources"""
         with QMutexLocker(self._mutex):
             try:
-                logging.info("🎮 MixerWindow.initializeGL called")
+                logging.info("MixerWindow.initializeGL called")
                 
                 # Make context current
                 self.gl_widget.makeCurrent()
@@ -133,7 +133,7 @@ class MixerWindow(QMainWindow):
                             f"MixerWindow: Software renderer detected ({info.get('renderer')})"
                         )
                     else:
-                        logging.info(f"🎮 MixerWindow: Using GPU renderer: {info.get('renderer')}")
+                        logging.info(f"MixerWindow: Using GPU renderer: {info.get('renderer')}")
                 except Exception as e:
                     logging.warning(f"Could not log GL info: {e}")
 
@@ -150,15 +150,15 @@ class MixerWindow(QMainWindow):
                 
                 # Load shaders and setup geometry
                 if not self.load_shaders():
-                    logging.error("❌ Failed to load mixer shaders")
+                    logging.error("Failed to load mixer shaders")
                     return
                     
                 if not self.setup_quad():
-                    logging.error("❌ Failed to setup quad geometry")
+                    logging.error("Failed to setup quad geometry")
                     return
                 
                 # Create decks with proper configuration
-                logging.info("🎨 Creating decks...")
+                logging.info("Creating decks...")
                 
                 # Get GPU settings
                 gpu_index = 0
@@ -167,7 +167,7 @@ class MixerWindow(QMainWindow):
                     gpu_index = self.settings_manager.get_setting("visual_settings.gpu_index", 0)
                     backend = self.settings_manager.get_setting("visual_settings.backend", "OpenGL")
                     use_moderngl = (backend == "ModernGL")
-                    logging.info(f"🎮 Using GPU {gpu_index} with {backend} backend")
+                    logging.info(f"Using GPU {gpu_index} with {backend} backend")
 
                 # Determine which OpenGL context handle to share with child
                 # components.  If an external handle was provided at
@@ -176,7 +176,7 @@ class MixerWindow(QMainWindow):
                 share_context_handle = self._external_share_context
                 if share_context_handle is not None:
                     logging.debug(
-                        "🎮 MixerWindow: Using externally provided OpenGL context handle"
+                        " MixerWindow: Using externally provided OpenGL context handle"
                     )
                 else:
                     current_gl_context = QOpenGLContext.currentContext()
@@ -198,15 +198,15 @@ class MixerWindow(QMainWindow):
 
                         if share_context_handle:
                             logging.debug(
-                                f"🎮 MixerWindow: Sharing OpenGL context handle: {share_context_handle}"
+                                f" MixerWindow: Sharing OpenGL context handle: {share_context_handle}"
                             )
                         else:
                             logging.warning(
-                                "⚠️ MixerWindow: Failed to obtain shareable GL context handle."
+                                " MixerWindow: Failed to obtain shareable GL context handle."
                             )
                     else:
                         logging.warning(
-                            "⚠️ MixerWindow: No current OpenGL context to share."
+                            " MixerWindow: No current OpenGL context to share."
                         )
 
                 # Create decks
@@ -235,18 +235,18 @@ class MixerWindow(QMainWindow):
                     max(int(self.gl_widget.height() * pixel_ratio), 600)
                 )
                 
-                logging.info(f"📏 Initializing decks with size: {current_size.width()}x{current_size.height()}")
+                logging.info(f"Initializing decks with size: {current_size.width()}x{current_size.height()}")
                 self.deck_a.resize(current_size)
                 self.deck_b.resize(current_size)
                 
                 # Verify deck initialization
                 if not self.deck_a.is_ready():
-                    logging.warning("⚠️ Deck A not ready after initialization")
+                    logging.warning("Deck A not ready after initialization")
                 if not self.deck_b.is_ready():
-                    logging.warning("⚠️ Deck B not ready after initialization")
+                    logging.warning("Deck B not ready after initialization")
 
                 self.gl_initialized = True
-                logging.info("✅ MixerWindow OpenGL initialized successfully")
+                logging.info("MixerWindow OpenGL initialized successfully")
                 # Notify listeners that the GL context is ready
                 self.gl_ready.emit()
 
@@ -254,7 +254,7 @@ class MixerWindow(QMainWindow):
                 QTimer.singleShot(100, self.force_initial_render)
                 
             except Exception as e:
-                logging.error(f"❌ Error in initializeGL: {e}")
+                logging.error(f"Error in initializeGL: {e}")
                 import traceback
                 traceback.print_exc()
                 self.gl_initialized = False
@@ -267,9 +267,9 @@ class MixerWindow(QMainWindow):
                 self.deck_a._fbo_dirty = True
                 self.deck_b._fbo_dirty = True
                 self.gl_widget.update()
-                logging.debug("🔄 Forced initial render")
+                logging.debug("Forced initial render")
         except Exception as e:
-            logging.error(f"❌ Error in force_initial_render: {e}")
+            logging.error(f"Error in force_initial_render: {e}")
 
     def load_shaders(self):
         """Load and compile enhanced shaders for mixing with transparency support"""
@@ -325,7 +325,7 @@ class MixerWindow(QMainWindow):
             return self.compile_shader_program(vs_src, fs_src)
             
         except Exception as e:
-            logging.error(f"❌ Failed to load mixer shaders: {e}")
+            logging.error(f"Failed to load mixer shaders: {e}")
             return False
 
     def compile_shader_program(self, vs_src, fs_src):
@@ -338,7 +338,7 @@ class MixerWindow(QMainWindow):
             
             if not glGetShaderiv(vs, GL_COMPILE_STATUS):
                 error = glGetShaderInfoLog(vs).decode()
-                logging.error(f"❌ Vertex shader compilation failed: {error}")
+                logging.error(f"Vertex shader compilation failed: {error}")
                 return False
 
             # Compile fragment shader
@@ -348,7 +348,7 @@ class MixerWindow(QMainWindow):
             
             if not glGetShaderiv(fs, GL_COMPILE_STATUS):
                 error = glGetShaderInfoLog(fs).decode()
-                logging.error(f"❌ Fragment shader compilation failed: {error}")
+                logging.error(f"Fragment shader compilation failed: {error}")
                 return False
 
             # Link program
@@ -359,17 +359,17 @@ class MixerWindow(QMainWindow):
             
             if not glGetProgramiv(self.shader_program, GL_LINK_STATUS):
                 error = glGetProgramInfoLog(self.shader_program).decode()
-                logging.error(f"❌ Shader program linking failed: {error}")
+                logging.error(f"Shader program linking failed: {error}")
                 return False
 
             # Clean up individual shaders
             glDeleteShader(vs)
             glDeleteShader(fs)
-            logging.debug("✅ Enhanced mixer shaders compiled successfully")
+            logging.debug("Enhanced mixer shaders compiled successfully")
             return True
             
         except Exception as e:
-            logging.error(f"❌ Error compiling shader program: {e}")
+            logging.error(f"Error compiling shader program: {e}")
             return False
 
     def setup_quad(self):
@@ -402,11 +402,11 @@ class MixerWindow(QMainWindow):
             glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * 4, ctypes.c_void_p(2 * 4))
             
             glBindVertexArray(0)
-            logging.debug("✅ Quad geometry setup complete")
+            logging.debug("Quad geometry setup complete")
             return True
             
         except Exception as e:
-            logging.error(f"❌ Error setting up quad geometry: {e}")
+            logging.error(f"Error setting up quad geometry: {e}")
             return False
 
     def animate(self):
@@ -434,7 +434,7 @@ class MixerWindow(QMainWindow):
                     self.deck_a.paint()
                     deck_a_rendered = True
                 except Exception as e:
-                    logging.error(f"❌ Error painting deck A: {e}")
+                    logging.error(f"Error painting deck A: {e}")
                 finally:
                     # ModernGL renders can change the current context; make sure
                     # our Qt context is current again before continuing
@@ -445,7 +445,7 @@ class MixerWindow(QMainWindow):
                     self.deck_b.paint()
                     deck_b_rendered = True
                 except Exception as e:
-                    logging.error(f"❌ Error painting deck B: {e}")
+                    logging.error(f"Error painting deck B: {e}")
                 finally:
                     # Ensure Qt's GL context remains current after ModernGL calls
                     self.gl_widget.makeCurrent()
@@ -455,7 +455,7 @@ class MixerWindow(QMainWindow):
             if not OpenGLSafety.safe_bind_framebuffer(
                 GL_FRAMEBUFFER, self.gl_widget.defaultFramebufferObject()
             ):
-                logging.warning("⚠️ MixerWindow: Unable to bind default framebuffer")
+                logging.warning("MixerWindow: Unable to bind default framebuffer")
                 return
             pixel_ratio = self.gl_widget.devicePixelRatio()
             glViewport(0, 0, int(self.gl_widget.width() * pixel_ratio), int(self.gl_widget.height() * pixel_ratio))
@@ -502,7 +502,7 @@ class MixerWindow(QMainWindow):
             # Debug logging
             if self.frame_count % 300 == 0:  # Every 5 seconds at 60fps
                 logging.debug(
-                    f"🎬 Frame {self.frame_count}: A_active={deck_a_active}, B_active={deck_b_active}, "
+                    f" Frame {self.frame_count}: A_active={deck_a_active}, B_active={deck_b_active}, "
                     f"A_tex={texture_a}, B_tex={texture_b}"
                 )
 
@@ -529,7 +529,7 @@ class MixerWindow(QMainWindow):
                 glUniform1i(glGetUniformLocation(self.shader_program, "deck_a_active"), int(deck_a_active))
                 glUniform1i(glGetUniformLocation(self.shader_program, "deck_b_active"), int(deck_b_active))
             except Exception as e:
-                logging.error(f"❌ Error setting shader uniforms: {e}")
+                logging.error(f"Error setting shader uniforms: {e}")
 
             # Draw the full-screen quad
             try:
@@ -537,7 +537,7 @@ class MixerWindow(QMainWindow):
                 glDrawArrays(GL_TRIANGLES, 0, 6)
                 glBindVertexArray(0)
             except Exception as e:
-                logging.error(f"❌ Error drawing quad: {e}")
+                logging.error(f"Error drawing quad: {e}")
             
             # Clean up
             glUseProgram(0)
@@ -552,12 +552,12 @@ class MixerWindow(QMainWindow):
             if current_time - self.last_fps_time > 5.0:
                 fps = self.frame_count / (current_time - self.last_fps_time)
                 if self.frame_count > 60:
-                    logging.debug(f"🎬 Mixer FPS: {fps:.1f}")
+                    logging.debug(f"Mixer FPS: {fps:.1f}")
                 self.last_fps_time = current_time
                 self.frame_count = 0
             
         except Exception as e:
-            logging.error(f"❌ Error in paintGL: {e}")
+            logging.error(f"Error in paintGL: {e}")
             import traceback
             traceback.print_exc()
             # Render fallback
@@ -569,7 +569,7 @@ class MixerWindow(QMainWindow):
         try:
             pixel_ratio = self.gl_widget.devicePixelRatio()
             current_size = QSize(int(w * pixel_ratio), int(h * pixel_ratio))
-            logging.debug(f"📏 MixerWindow resized to {w}x{h} (px ratio {pixel_ratio})")
+            logging.debug(f"MixerWindow resized to {w}x{h} (px ratio {pixel_ratio})")
             
             if not self.gl_initialized:
                 return
@@ -584,7 +584,7 @@ class MixerWindow(QMainWindow):
                 self.deck_b.resize(current_size)
             
         except Exception as e:
-            logging.error(f"❌ Error in resizeGL: {e}")
+            logging.error(f"Error in resizeGL: {e}")
 
     # Main slot methods
     @Slot(int)
@@ -592,7 +592,7 @@ class MixerWindow(QMainWindow):
         """Set crossfader mix value (0-100)"""
         with QMutexLocker(self._mutex):
             self.mix_value = max(0.0, min(1.0, value / 100.0))
-            logging.debug(f"🎚️ Mix value set to: {self.mix_value:.2f} ({value}%)")
+            logging.debug(f"Mix value set to: {self.mix_value:.2f} ({value}%)")
 
     @Slot(str, object)
     def set_deck_visualizer(self, deck_id, visualizer_name):
@@ -614,10 +614,10 @@ class MixerWindow(QMainWindow):
             return
 
         with QMutexLocker(self._mutex):
-            logging.info(f"🎮 Setting deck {deck_id} to visualizer: {visualizer_name}")
+            logging.info(f"Setting deck {deck_id} to visualizer: {visualizer_name}")
 
             if not self.gl_initialized:
-                logging.warning("⚠️ OpenGL not initialized, queuing visualizer change")
+                logging.warning("OpenGL not initialized, queuing visualizer change")
                 QTimer.singleShot(500, lambda: self.set_deck_visualizer(deck_id, visualizer_name))
                 return
 
@@ -626,19 +626,19 @@ class MixerWindow(QMainWindow):
             if deck_id == 'A' and self.deck_a:
                 if visualizer_name is None or visualizer_name == "-- No preset selected --":
                     self.deck_a.clear_visualizer()
-                    logging.info("🚫 Deck A cleared - no visualizer")
+                    logging.info("Deck A cleared - no visualizer")
                 else:
                     self.deck_a.set_visualizer(visualizer_name)
-                    logging.info(f"✅ Deck A set to: {visualizer_name}")
+                    logging.info(f"Deck A set to: {visualizer_name}")
             elif deck_id == 'B' and self.deck_b:
                 if visualizer_name is None or visualizer_name == "-- No preset selected --":
                     self.deck_b.clear_visualizer()
-                    logging.info("🚫 Deck B cleared - no visualizer")
+                    logging.info("Deck B cleared - no visualizer")
                 else:
                     self.deck_b.set_visualizer(visualizer_name)
-                    logging.info(f"✅ Deck B set to: {visualizer_name}")
+                    logging.info(f"Deck B set to: {visualizer_name}")
             else:
-                logging.warning(f"⚠️ Unknown deck ID: {deck_id}")
+                logging.warning(f"Unknown deck ID: {deck_id}")
 
     def _fade_and_set_visualizer(self, deck_id, visualizer_name, fade_ms):
         """Fade out current visualizer, switch, and fade back in"""
@@ -693,7 +693,7 @@ class MixerWindow(QMainWindow):
     def update_deck_control(self, deck_id, name, value):
         """Update a control parameter for a specific deck"""
         with QMutexLocker(self._mutex):
-            logging.debug(f"🎛️ Updating deck {deck_id} control {name} to {value}")
+            logging.debug(f"Updating deck {deck_id} control {name} to {value}")
             
             if not self.gl_initialized:
                 return
@@ -707,7 +707,7 @@ class MixerWindow(QMainWindow):
     def trigger_deck_action(self, deck_id, action):
         """Trigger a custom action for a specific deck"""
         with QMutexLocker(self._mutex):
-            logging.debug(f"🎬 Triggering action {action} on deck {deck_id}")
+            logging.debug(f"Triggering action {action} on deck {deck_id}")
             if not self.gl_initialized:
                 return
             if deck_id == 'A' and self.deck_a:
@@ -722,16 +722,16 @@ class MixerWindow(QMainWindow):
             opacity = max(0.0, min(1.0, opacity))
             if deck_id == 'A':
                 self.deck_a_opacity = opacity
-                logging.debug(f"🎚️ Deck A opacity set to: {opacity:.2f}")
+                logging.debug(f"Deck A opacity set to: {opacity:.2f}")
             elif deck_id == 'B':
                 self.deck_b_opacity = opacity
-                logging.debug(f"🎚️ Deck B opacity set to: {opacity:.2f}")
+                logging.debug(f"Deck B opacity set to: {opacity:.2f}")
 
     def set_deck_fade_time(self, deck_id, fade_ms):
         """Configure fade time for deck transitions in milliseconds"""
         with QMutexLocker(self._mutex):
             self.deck_fade_times[deck_id] = max(0, int(fade_ms))
-            logging.debug(f"⏱️ Deck {deck_id} fade time set to {fade_ms} ms")
+            logging.debug(f"Deck {deck_id} fade time set to {fade_ms} ms")
 
     # Thread-safe public methods
     def safe_set_mix_value(self, value):
@@ -758,7 +758,7 @@ class MixerWindow(QMainWindow):
         """Set global brightness (0.0-1.0)"""
         with QMutexLocker(self._mutex):
             self.global_brightness = max(0.0, min(2.0, brightness))  # Allow up to 200% brightness
-            logging.debug(f"🔆 Global brightness set to: {self.global_brightness:.2f}")
+            logging.debug(f"Global brightness set to: {self.global_brightness:.2f}")
 
     # Utility methods
     def get_deck_controls(self, deck_id):
@@ -841,7 +841,7 @@ class MixerWindow(QMainWindow):
     def apply_gpu_selection(self, index, backend_type=None):
         """Apply GPU selection to decks"""
         with QMutexLocker(self._mutex):
-            logging.info(f"🎮 Applying GPU selection: index={index}, backend={backend_type}")
+            logging.info(f"Applying GPU selection: index={index}, backend={backend_type}")
             
             if self.deck_a:
                 self.deck_a.set_gpu_index(index, backend_type)
@@ -877,9 +877,9 @@ class MixerWindow(QMainWindow):
                     if self.deck_b:
                         self.deck_b.cleanup()
                         
-                    logging.info("✅ OpenGL resources cleaned up")
+                    logging.info("OpenGL resources cleaned up")
                 except Exception as e:
-                    logging.error(f"❌ Error during cleanup: {e}")
+                    logging.error(f"Error during cleanup: {e}")
 
     def closeEvent(self, event):
         """Handle window close event"""
@@ -888,7 +888,7 @@ class MixerWindow(QMainWindow):
             self.cleanup()
             super().closeEvent(event)
         except Exception as e:
-            logging.error(f"❌ Error in closeEvent: {e}")
+            logging.error(f"Error in closeEvent: {e}")
             super().closeEvent(event)
 
     def keyPressEvent(self, event):

@@ -46,7 +46,7 @@ class MidiEngine(QObject):
         self._build_midi_lookup()
         
         # DEBUG mejorado
-        logging.info(f"🎹 MIDI ENGINE INITIALIZED:")
+        logging.info(f"MIDI ENGINE INITIALIZED:")
         logging.info(f"   Total mappings loaded: {len(self.midi_mappings)}")
         logging.info(f"   Accepted MIDI channels: {self.accepted_channels}")
         logging.info(f"   Default channel: {self.default_channel}")
@@ -95,7 +95,7 @@ class MidiEngine(QObject):
         else:
             self.accepted_channels = list(range(16))  # Todos los canales
         
-        logging.info(f"🎹 MIDI channels updated: {self.accepted_channels}")
+        logging.info(f"MIDI channels updated: {self.accepted_channels}")
         
         # Reconstruir lookup table con nuevos canales
         self._build_midi_lookup()
@@ -107,7 +107,7 @@ class MidiEngine(QObject):
         """Configurar canal MIDI por defecto para nuevos mappings"""
         if 0 <= channel <= 15:
             self.default_channel = channel
-            logging.info(f"🎹 Default MIDI channel set to: {channel}")
+            logging.info(f"Default MIDI channel set to: {channel}")
             # Actualizar en visual mapper
             self.visual_mapper.set_default_channel(channel)
 
@@ -122,14 +122,14 @@ class MidiEngine(QObject):
             
             # IMPORTANTE: Verificar si el canal está aceptado
             if channel not in self.accepted_channels:
-                logging.debug(f"🚫 Channel {channel} not in accepted channels {self.accepted_channels}")
+                logging.debug(f"Channel {channel} not in accepted channels {self.accepted_channels}")
                 return None
             
-            logging.debug(f"🔑 Creating key for {msg.type} on channel {channel}")
+            logging.debug(f"Creating key for {msg.type} on channel {channel}")
             
             if msg.type == 'note_on':
                 note_on_key = f"note_on_ch{channel}_note{msg.note}"
-                logging.debug(f"🔑 Note_on key: {note_on_key}")
+                logging.debug(f"Note_on key: {note_on_key}")
                 return note_on_key
                 
             elif msg.type == 'note_off':
@@ -137,30 +137,30 @@ class MidiEngine(QObject):
                 
             elif msg.type == 'control_change':
                 cc_key = f"cc_ch{channel}_cc{msg.control}"
-                logging.debug(f"🔑 CC key: {cc_key}")
+                logging.debug(f"CC key: {cc_key}")
                 return cc_key
                 
             elif msg.type == 'program_change':
                 pc_key = f"pc_ch{channel}_prog{msg.program}"
-                logging.debug(f"🔑 PC key: {pc_key}")
+                logging.debug(f"PC key: {pc_key}")
                 return pc_key
                 
             elif msg.type == 'pitchwheel':
                 pw_key = f"pitchwheel_ch{channel}"
-                logging.debug(f"🔑 Pitchwheel key: {pw_key}")
+                logging.debug(f"Pitchwheel key: {pw_key}")
                 return pw_key
             else:
-                logging.debug(f"🔑 Unknown MIDI type: {msg.type}")
+                logging.debug(f"Unknown MIDI type: {msg.type}")
                 return None
                 
         except Exception as e:
-            logging.error(f"❌ Error creating message key: {e}")
+            logging.error(f"Error creating message key: {e}")
             return None
 
     def create_default_midi_mappings(self):
         """NUEVO: Crear mappings usando el visual mapper dinámico"""
         try:
-            logging.info("🎨 Creating dynamic MIDI mappings using MidiVisualMapper...")
+            logging.info("Creating dynamic MIDI mappings using MidiVisualMapper...")
             
             # Sincronizar con visuales disponibles
             self.visual_mapper.sync_with_available_visuals()
@@ -168,7 +168,7 @@ class MidiEngine(QObject):
             # Generar mappings dinámicos
             dynamic_mappings = self.visual_mapper.generate_all_visual_mappings()
             
-            logging.info(f"✅ Generated {len(dynamic_mappings)} dynamic MIDI mappings")
+            logging.info(f"Generated {len(dynamic_mappings)} dynamic MIDI mappings")
             
             # Mostrar información de mappings
             self.visual_mapper.print_current_visual_mappings()
@@ -176,7 +176,7 @@ class MidiEngine(QObject):
             return dynamic_mappings
             
         except Exception as e:
-            logging.error(f"❌ Error creating dynamic mappings: {e}")
+            logging.error(f"Error creating dynamic mappings: {e}")
             # Fallback a mappings vacíos
             return {}
 
@@ -195,7 +195,7 @@ class MidiEngine(QObject):
                 velocity = getattr(msg, 'velocity', 0)
                 
                 if velocity > 0:  # Solo note_on reales
-                    logging.info(f"🎵 MIDI: {msg.type} Ch{channel+1} Note{note} Vel{velocity}")
+                    logging.info(f"MIDI: {msg.type} Ch{channel+1} Note{note} Vel{velocity}")
             
             # Crear clave de mensaje
             message_key = self.create_message_key(msg)
@@ -214,10 +214,10 @@ class MidiEngine(QObject):
                 action_id, mapping_data = self.midi_lookup[message_key]
                 action_type = mapping_data.get('type', 'unknown')
                 params = mapping_data.get('params', {})
-                logging.info(f"✅ FOUND MAPPING: {message_key} -> {action_id} ({action_type})")
+                logging.info(f"FOUND MAPPING: {message_key} -> {action_id} ({action_type})")
             else:
                 # Solo log debug para mappings no encontrados
-                logging.debug(f"❌ NO MAPPING for: {message_key}")
+                logging.debug(f"NO MAPPING for: {message_key}")
             
             # Procesar diferentes tipos de mensaje
             if msg.type == 'note_on':
@@ -230,7 +230,7 @@ class MidiEngine(QObject):
                     # Note on real
                     self.process_bpm_from_note()
                     if mapping_exists:
-                        logging.info(f"🚀 EXECUTING note_on action for {message_key}")
+                        logging.info(f"EXECUTING note_on action for {message_key}")
                         self.mapped_action_triggered.emit(message_key, velocity)
                 else:
                     # Note on con velocity 0 = note off
@@ -249,7 +249,7 @@ class MidiEngine(QObject):
                     self.mapped_action_triggered.emit(message_key, program)
 
         except Exception as e:
-            logging.error(f"❌ Error handling MIDI message: {e}")
+            logging.error(f"Error handling MIDI message: {e}")
             import traceback
             traceback.print_exc()
 
@@ -277,9 +277,9 @@ class MidiEngine(QObject):
                         'midi': midi_key,
                     }
                     self.midi_lookup[midi_key] = (action_id, mapping_data)
-            logging.info(f"✅ MIDI lookup table built with {len(self.midi_lookup)} entries")
+            logging.info(f"MIDI lookup table built with {len(self.midi_lookup)} entries")
         except Exception as e:
-            logging.error(f"❌ Error building MIDI lookup: {e}")
+            logging.error(f"Error building MIDI lookup: {e}")
             self.midi_lookup = {}
 
     # === FUNCIONES PARA UI DE CONFIGURACIÓN ===
@@ -312,11 +312,11 @@ class MidiEngine(QObject):
             if self.settings_manager:
                 self.settings_manager.save_midi_mappings(self.midi_mappings)
             
-            logging.info(f"✅ Custom mapping added: {action_id} -> {midi_key}")
+            logging.info(f"Custom mapping added: {action_id} -> {midi_key}")
             return action_id
             
         except Exception as e:
-            logging.error(f"❌ Error adding custom mapping: {e}")
+            logging.error(f"Error adding custom mapping: {e}")
             return None
     
     def remove_mapping(self, action_id):
@@ -331,10 +331,10 @@ class MidiEngine(QObject):
                 if self.settings_manager:
                     self.settings_manager.save_midi_mappings(self.midi_mappings)
                 
-                logging.info(f"✅ Mapping removed: {action_id} ({midi_key})")
+                logging.info(f"Mapping removed: {action_id} ({midi_key})")
                 return True
         except Exception as e:
-            logging.error(f"❌ Error removing mapping: {e}")
+            logging.error(f"Error removing mapping: {e}")
         return False
     
     def update_mapping(self, action_id, new_midi_key=None, new_params=None):
@@ -356,11 +356,11 @@ class MidiEngine(QObject):
             if self.settings_manager:
                 self.settings_manager.save_midi_mappings(self.midi_mappings)
             
-            logging.info(f"✅ Mapping updated: {action_id}")
+            logging.info(f"Mapping updated: {action_id}")
             return True
             
         except Exception as e:
-            logging.error(f"❌ Error updating mapping: {e}")
+            logging.error(f"Error updating mapping: {e}")
             return False
 
     def get_mappings_for_channel(self, channel):
@@ -419,10 +419,10 @@ class MidiEngine(QObject):
         try:
             with open(filename, 'w', encoding='utf-8') as f:
                 json.dump(self.midi_mappings, f, indent=2, ensure_ascii=False)
-            logging.info(f"✅ Mappings exported to {filename}")
+            logging.info(f"Mappings exported to {filename}")
             return True
         except Exception as e:
-            logging.error(f"❌ Error exporting mappings: {e}")
+            logging.error(f"Error exporting mappings: {e}")
             return False
 
     def import_mappings_from_file(self, filename):
@@ -439,10 +439,10 @@ class MidiEngine(QObject):
                 if self.settings_manager:
                     self.settings_manager.save_midi_mappings(self.midi_mappings)
                 
-                logging.info(f"✅ Mappings imported from {filename}")
+                logging.info(f"Mappings imported from {filename}")
                 return True
         except Exception as e:
-            logging.error(f"❌ Error importing mappings: {e}")
+            logging.error(f"Error importing mappings: {e}")
         return False
 
     # === FUNCIONES HEREDADAS (mantenidas para compatibilidad) ===
@@ -458,10 +458,10 @@ class MidiEngine(QObject):
                     
                     if isinstance(config_mappings, dict) and len(config_mappings) > 0:
                         self.midi_mappings = copy.deepcopy(config_mappings)
-                        logging.info(f"✅ Loaded {len(self.midi_mappings)} mappings from {config_mappings_path}")
+                        logging.info(f"Loaded {len(self.midi_mappings)} mappings from {config_mappings_path}")
                         return
                 except Exception as e:
-                    logging.error(f"❌ Error loading from {config_mappings_path}: {e}")
+                    logging.error(f"Error loading from {config_mappings_path}: {e}")
             
             # Fallback a settings_manager
             if self.settings_manager:
@@ -469,24 +469,24 @@ class MidiEngine(QObject):
                     settings_mappings = self.settings_manager.load_midi_mappings()
                     if isinstance(settings_mappings, dict) and len(settings_mappings) > 0:
                         self.midi_mappings = copy.deepcopy(settings_mappings)
-                        logging.info(f"✅ Loaded {len(self.midi_mappings)} mappings from settings")
+                        logging.info(f"Loaded {len(self.midi_mappings)} mappings from settings")
                         return
                 except Exception as e:
-                    logging.error(f"❌ Error loading from settings: {e}")
+                    logging.error(f"Error loading from settings: {e}")
             
             # Mappings vacíos
             self.midi_mappings = {}
-            logging.warning("⚠️ No mappings found - will create defaults")
+            logging.warning("No mappings found - will create defaults")
             
         except Exception as e:
-            logging.error(f"❌ Critical error loading mappings: {e}")
+            logging.error(f"Critical error loading mappings: {e}")
             self.midi_mappings = {}
     
     def set_application_references(self, mixer_window=None, control_panel=None):
         """Set references to application components for executing actions"""
         self.mixer_window = mixer_window
         self.control_panel = control_panel
-        logging.info(f"✅ Application references set in MidiEngine")
+        logging.info(f"Application references set in MidiEngine")
 
     def list_input_ports(self):
         """List available MIDI input ports"""
@@ -503,7 +503,7 @@ class MidiEngine(QObject):
             
             available_ports = mido.get_input_names()
             if port_name not in available_ports:
-                logging.error(f"❌ Port '{port_name}' not available")
+                logging.error(f"Port '{port_name}' not available")
                 return False
             
             self.input_port = mido.open_input(port_name, callback=self._enqueue_midi_message)
@@ -512,12 +512,12 @@ class MidiEngine(QObject):
             if self.settings_manager:
                 self.settings_manager.set_setting("last_midi_device", port_name)
             
-            logging.info(f"✅ MIDI port opened: {port_name}")
+            logging.info(f"MIDI port opened: {port_name}")
             self.device_connected.emit(port_name)
             return True
             
         except Exception as e:
-            logging.error(f"❌ Failed to open MIDI port: {e}")
+            logging.error(f"Failed to open MIDI port: {e}")
             return False
 
     def close_input_port(self):
@@ -529,7 +529,7 @@ class MidiEngine(QObject):
                 self.input_port = None
                 self.running = False
                 self.device_disconnected.emit(old_port_name)
-                logging.info("✅ MIDI port closed")
+                logging.info("MIDI port closed")
             except Exception as e:
                 logging.error(f"Error closing MIDI port: {e}")
 
@@ -548,7 +548,7 @@ class MidiEngine(QObject):
         try:
             self._message_queue.put(msg)
         except Exception as e:
-            logging.error(f"❌ Error enqueuing MIDI message: {e}")
+            logging.error(f"Error enqueuing MIDI message: {e}")
 
     def _process_midi_queue(self):
         """Process all pending MIDI messages from the queue"""
@@ -557,18 +557,18 @@ class MidiEngine(QObject):
                 msg = self._message_queue.get_nowait()
                 self.handle_midi_message(msg)
         except Exception as e:
-            logging.error(f"❌ Error processing MIDI queue: {e}")
+            logging.error(f"Error processing MIDI queue: {e}")
 
     def execute_mapped_action_safe(self, message_key, value):
         """Thread-safe wrapper for executing mapped actions"""
         try:
             if message_key not in self.midi_lookup:
-                logging.error(f"❌ Attempting to execute non-existent mapping: {message_key}")
+                logging.error(f"Attempting to execute non-existent mapping: {message_key}")
                 return
             
             self.execute_mapped_action(message_key, value)
         except Exception as e:
-            logging.error(f"❌ Error in execute_mapped_action_safe: {e}")
+            logging.error(f"Error in execute_mapped_action_safe: {e}")
 
     def execute_mapped_action(self, message_key, value):
         """Execute action mapped to a MIDI message"""
@@ -581,7 +581,7 @@ class MidiEngine(QObject):
             action_type = mapping_data.get('type')
             params = mapping_data.get('params', {})
             
-            logging.info(f"🎹 EXECUTING: {action_id} ({action_type}) with value {value}")
+            logging.info(f"EXECUTING: {action_id} ({action_type}) with value {value}")
             
             if action_type == "load_preset":
                 self.execute_load_preset_action(params)
@@ -594,10 +594,10 @@ class MidiEngine(QObject):
             elif action_type == "preset_action":
                 self.execute_preset_action(params)
             else:
-                logging.warning(f"⚠️ Unknown action type: {action_type}")
+                logging.warning(f"Unknown action type: {action_type}")
                 
         except Exception as e:
-            logging.error(f"❌ Error executing mapped action: {e}")
+            logging.error(f"Error executing mapped action: {e}")
 
     def execute_load_preset_action(self, params):
         """Execute load preset action"""
@@ -607,7 +607,7 @@ class MidiEngine(QObject):
             custom_values = params.get('custom_values', '')
             
             if not self.mixer_window:
-                logging.error("❌ Mixer window reference not available!")
+                logging.error("Mixer window reference not available!")
                 return
             
             if deck_id and preset_name is not None:
@@ -617,14 +617,14 @@ class MidiEngine(QObject):
                     self.apply_custom_values(deck_id, custom_values)
 
                 if preset_name is None:
-                    logging.info(f"✅ Deck {deck_id} cleared")
+                    logging.info(f"Deck {deck_id} cleared")
                     self.preset_loaded_on_deck.emit(deck_id, "-- No preset selected --")
                 else:
-                    logging.info(f"✅ Preset '{preset_name}' loaded on deck {deck_id}")
+                    logging.info(f"Preset '{preset_name}' loaded on deck {deck_id}")
                     self.preset_loaded_on_deck.emit(deck_id, preset_name)
                     
         except Exception as e:
-            logging.error(f"❌ Error in execute_load_preset_action: {e}")
+            logging.error(f"Error in execute_load_preset_action: {e}")
 
     def execute_crossfade_action(self, params):
         """Execute crossfade action"""
@@ -669,7 +669,7 @@ class MidiEngine(QObject):
             self.execute_animate_crossfade_action(animation_params)
             
         except Exception as e:
-            logging.error(f"❌ Error executing crossfade action: {e}")
+            logging.error(f"Error executing crossfade action: {e}")
 
     def execute_animate_crossfade_action(self, params):
         """Execute animated crossfade action"""
@@ -678,7 +678,7 @@ class MidiEngine(QObject):
             duration_ms = params.get('duration_ms', 1000)
             
             if not self.mixer_window:
-                logging.error("❌ Mixer window not available for crossfade animation")
+                logging.error("Mixer window not available for crossfade animation")
                 return
             
             current_value = self.mixer_window.get_mix_value() if hasattr(self.mixer_window, 'get_mix_value') else 0.5
@@ -697,7 +697,7 @@ class MidiEngine(QObject):
             self.crossfade_timer.start(16)  # 60 FPS
             
         except Exception as e:
-            logging.error(f"❌ Error executing animate crossfade action: {e}")
+            logging.error(f"Error executing animate crossfade action: {e}")
 
     def update_crossfade_animation(self):
         """Update crossfade animation frame"""
@@ -716,10 +716,10 @@ class MidiEngine(QObject):
                 if self.crossfade_timer:
                     self.crossfade_timer.stop()
                     self.crossfade_timer = None
-                logging.info(f"✅ Crossfade animation completed at {self.crossfade_target_value:.2f}")
+                logging.info(f"Crossfade animation completed at {self.crossfade_target_value:.2f}")
             
         except Exception as e:
-            logging.error(f"❌ Error updating crossfade animation: {e}")
+            logging.error(f"Error updating crossfade animation: {e}")
             if self.crossfade_timer:
                 self.crossfade_timer.stop()
                 self.crossfade_timer = None
@@ -739,10 +739,10 @@ class MidiEngine(QObject):
                 
                 if hasattr(self.mixer_window, 'safe_update_deck_control'):
                     self.mixer_window.safe_update_deck_control(deck_id, parameter_name, scaled_value)
-                    logging.info(f"✅ Updated {deck_id}.{parameter_name} to {scaled_value}")
+                    logging.info(f"Updated {deck_id}.{parameter_name} to {scaled_value}")
             
         except Exception as e:
-            logging.error(f"❌ Error executing control parameter action: {e}")
+            logging.error(f"Error executing control parameter action: {e}")
 
     def execute_preset_action(self, params):
         """Trigger a custom action on a deck's current preset"""
@@ -752,7 +752,7 @@ class MidiEngine(QObject):
             action = params.get('custom_values', '')
 
             if not self.mixer_window:
-                logging.error("❌ Mixer window reference not available!")
+                logging.error("Mixer window reference not available!")
                 return
 
             target_deck = None
@@ -763,12 +763,12 @@ class MidiEngine(QObject):
 
             if target_deck and target_deck.get_current_visualizer_name() == preset_name:
                 self.mixer_window.safe_trigger_deck_action(deck_id, action)
-                logging.info(f"✅ Triggered action '{action}' on deck {deck_id}")
+                logging.info(f"Triggered action '{action}' on deck {deck_id}")
             else:
                 logging.debug(f"Deck {deck_id} not running preset {preset_name}")
 
         except Exception as e:
-            logging.error(f"❌ Error executing preset action: {e}")
+            logging.error(f"Error executing preset action: {e}")
 
     def apply_custom_values(self, deck_id, custom_values):
         """Apply custom parameter values to a deck"""
@@ -793,10 +793,10 @@ class MidiEngine(QObject):
                     
                     if self.mixer_window and hasattr(self.mixer_window, 'safe_update_deck_control'):
                         self.mixer_window.safe_update_deck_control(deck_id, param_name, param_value)
-                        logging.info(f"✅ Applied custom value: {deck_id}.{param_name} = {param_value}")
+                        logging.info(f"Applied custom value: {deck_id}.{param_name} = {param_value}")
                         
         except Exception as e:
-            logging.error(f"❌ Error applying custom values: {e}")
+            logging.error(f"Error applying custom values: {e}")
 
     def process_bpm_from_note(self):
         """Process BPM calculation from note timing"""
@@ -831,15 +831,15 @@ class MidiEngine(QObject):
         """Setup default MIDI mappings"""
         try:
             if not self.midi_mappings or len(self.midi_mappings) == 0:
-                logging.info("🎹 Creating default MIDI mappings...")
+                logging.info("Creating default MIDI mappings...")
                 default_mappings = self.create_default_midi_mappings()
                 self.set_midi_mappings(default_mappings)
-                logging.info("✅ Default MIDI mappings created and saved")
+                logging.info("Default MIDI mappings created and saved")
             else:
-                logging.info(f"🎹 Using existing MIDI mappings: {len(self.midi_mappings)} mappings loaded")
+                logging.info(f"Using existing MIDI mappings: {len(self.midi_mappings)} mappings loaded")
                 
         except Exception as e:
-            logging.error(f"❌ Error setting up default mappings: {e}")
+            logging.error(f"Error setting up default mappings: {e}")
 
     def test_midi_mapping(self, note_number, channel=None):
         """Test a specific MIDI mapping by note number and optional channel"""
@@ -848,7 +848,7 @@ class MidiEngine(QObject):
                 channel = self.default_channel
             test_key = f"note_on_ch{channel}_note{note_number}"
             logging.info(
-                f"🧪 TESTING MIDI mapping for note {note_number} on ch{channel} (key: {test_key})"
+                f" TESTING MIDI mapping for note {note_number} on ch{channel} (key: {test_key})"
             )
 
             found_visual = None
@@ -858,16 +858,16 @@ class MidiEngine(QObject):
                     break
 
             if found_visual:
-                logging.info(f"✅ Found mapping: {found_visual}")
-                logging.info("🚀 SIMULATING execution...")
+                logging.info(f"Found mapping: {found_visual}")
+                logging.info("SIMULATING execution...")
                 self.execute_mapped_action(test_key, 127)
             else:
                 note_name = self.get_note_name(note_number)
                 logging.warning(
-                    f"❌ No mapping found for {note_name} (note {note_number}) on ch{channel}"
+                    f" No mapping found for {note_name} (note {note_number}) on ch{channel}"
                 )
         except Exception as e:
-            logging.error(f"❌ Error testing MIDI mapping: {e}")
+            logging.error(f"Error testing MIDI mapping: {e}")
 
     def set_midi_mappings(self, mappings):
         """Set MIDI mappings"""
@@ -876,10 +876,10 @@ class MidiEngine(QObject):
             self._build_midi_lookup()
             if self.settings_manager:
                 self.settings_manager.save_midi_mappings(self.midi_mappings)
-            logging.info(f"🎹 MIDI mappings updated and saved: {len(self.midi_mappings)} mappings")
+            logging.info(f"MIDI mappings updated and saved: {len(self.midi_mappings)} mappings")
                 
         except Exception as e:
-            logging.error(f"❌ Error setting MIDI mappings: {e}")
+            logging.error(f"Error setting MIDI mappings: {e}")
 
     def get_midi_mappings(self):
         """Get current MIDI mappings"""
@@ -951,17 +951,17 @@ class MidiEngine(QObject):
             if msg.type == 'clock':
                 self.process_midi_clock()
             elif msg.type == 'start':
-                logging.info("▶️ MIDI Start received")
+                logging.info("MIDI Start received")
                 self.midi_transport_start()
             elif msg.type == 'stop':
-                logging.info("⏹️ MIDI Stop received")
+                logging.info("MIDI Stop received")
                 self.midi_transport_stop()
             elif msg.type == 'continue':
-                logging.info("⏯️ MIDI Continue received")
+                logging.info("MIDI Continue received")
                 self.midi_transport_continue()
             elif msg.type == 'song_position':
                 position = getattr(msg, 'pos', 0)
-                logging.debug(f"🎶 MIDI Song Position: {position}")
+                logging.debug(f"MIDI Song Position: {position}")
                 self.midi_song_position(position)
 
         except Exception as e:
@@ -1049,10 +1049,10 @@ class MidiEngine(QObject):
                             del clean_mappings[existing_id]
                         clean_mappings[action_id] = mapping_data
                         seen_midi_keys[midi_key] = action_id
-                        logging.info(f"🔄 Replaced duplicate {existing_id} with {action_id}")
+                        logging.info(f"Replaced duplicate {existing_id} with {action_id}")
                     else:
                         # Mantener el existente
-                        logging.debug(f"⏭️ Keeping existing {existing_id} over {action_id}")
+                        logging.debug(f"Keeping existing {existing_id} over {action_id}")
                 else:
                     # Nuevo MIDI key
                     clean_mappings[action_id] = mapping_data
@@ -1060,7 +1060,7 @@ class MidiEngine(QObject):
             
             # Aplicar mappings limpios
             if len(clean_mappings) != len(mappings):
-                logging.info(f"🧹 Cleaned mappings: {len(mappings)} -> {len(clean_mappings)}")
+                logging.info(f"Cleaned mappings: {len(mappings)} -> {len(clean_mappings)}")
                 self.set_midi_mappings(clean_mappings)
             
         except Exception as e:
@@ -1071,7 +1071,7 @@ class MidiEngine(QObject):
     def refresh_visual_mappings(self):
         """Refrescar mappings de visuales dinámicamente"""
         try:
-            logging.info("🔄 Refreshing visual mappings...")
+            logging.info("Refreshing visual mappings...")
             
             # Sincronizar con visuales disponibles
             self.visual_mapper.sync_with_available_visuals()
@@ -1094,13 +1094,13 @@ class MidiEngine(QObject):
             # Aplicar nuevos mappings
             self.set_midi_mappings(combined_mappings)
             
-            logging.info(f"✅ Visual mappings refreshed: {len(new_visual_mappings)} visual + {len(custom_mappings)} custom")
+            logging.info(f"Visual mappings refreshed: {len(new_visual_mappings)} visual + {len(custom_mappings)} custom")
             
             # Mostrar información actualizada
             self.visual_mapper.print_current_visual_mappings()
             
         except Exception as e:
-            logging.error(f"❌ Error refreshing visual mappings: {e}")
+            logging.error(f"Error refreshing visual mappings: {e}")
 
     def add_visual_to_mappings(self, visual_name, priority_position=None):
         """Añadir un nuevo visual a los mappings MIDI"""
@@ -1111,14 +1111,14 @@ class MidiEngine(QObject):
             if success:
                 # Refrescar mappings
                 self.refresh_visual_mappings()
-                logging.info(f"✅ Visual '{visual_name}' added to MIDI mappings")
+                logging.info(f"Visual '{visual_name}' added to MIDI mappings")
                 return True
             else:
-                logging.warning(f"⚠️ Failed to add visual '{visual_name}' to mappings")
+                logging.warning(f"Failed to add visual '{visual_name}' to mappings")
                 return False
                 
         except Exception as e:
-            logging.error(f"❌ Error adding visual to mappings: {e}")
+            logging.error(f"Error adding visual to mappings: {e}")
             return False
 
     def remove_visual_from_mappings(self, visual_name):
@@ -1130,14 +1130,14 @@ class MidiEngine(QObject):
             if success:
                 # Refrescar mappings
                 self.refresh_visual_mappings()
-                logging.info(f"✅ Visual '{visual_name}' removed from MIDI mappings")
+                logging.info(f"Visual '{visual_name}' removed from MIDI mappings")
                 return True
             else:
-                logging.warning(f"⚠️ Failed to remove visual '{visual_name}' from mappings")
+                logging.warning(f"Failed to remove visual '{visual_name}' from mappings")
                 return False
                 
         except Exception as e:
-            logging.error(f"❌ Error removing visual from mappings: {e}")
+            logging.error(f"Error removing visual from mappings: {e}")
             return False
 
     def update_visual_priority(self, visual_name, new_position):
@@ -1149,14 +1149,14 @@ class MidiEngine(QObject):
             if success:
                 # Refrescar mappings
                 self.refresh_visual_mappings()
-                logging.info(f"✅ Visual '{visual_name}' priority updated to position {new_position}")
+                logging.info(f"Visual '{visual_name}' priority updated to position {new_position}")
                 return True
             else:
-                logging.warning(f"⚠️ Failed to update visual '{visual_name}' priority")
+                logging.warning(f"Failed to update visual '{visual_name}' priority")
                 return False
                 
         except Exception as e:
-            logging.error(f"❌ Error updating visual priority: {e}")
+            logging.error(f"Error updating visual priority: {e}")
             return False
 
     def get_visual_mapping_info(self):
@@ -1164,7 +1164,7 @@ class MidiEngine(QObject):
         try:
             return self.visual_mapper.get_visual_mapping_info()
         except Exception as e:
-            logging.error(f"❌ Error getting visual mapping info: {e}")
+            logging.error(f"Error getting visual mapping info: {e}")
             return {}
 
     def get_available_visuals(self):
@@ -1172,7 +1172,7 @@ class MidiEngine(QObject):
         try:
             return self.visual_mapper.get_available_visuals()
         except Exception as e:
-            logging.error(f"❌ Error getting available visuals: {e}")
+            logging.error(f"Error getting available visuals: {e}")
             return []
 
     def get_visual_priority_order(self):
@@ -1180,7 +1180,7 @@ class MidiEngine(QObject):
         try:
             return self.visual_mapper.visual_mappings_config.get("visual_priority_order", [])
         except Exception as e:
-            logging.error(f"❌ Error getting visual priority order: {e}")
+            logging.error(f"Error getting visual priority order: {e}")
             return []
 
     def remove_duplicate_mappings_smart(self):
@@ -1199,10 +1199,10 @@ class MidiEngine(QObject):
                 self.midi_mappings = clean
                 if self.settings_manager:
                     self.settings_manager.save_midi_mappings(self.midi_mappings)
-                logging.info(f"🧹 Removed {duplicates_removed} duplicate MIDI mappings")
+                logging.info(f"Removed {duplicates_removed} duplicate MIDI mappings")
             return duplicates_removed
         except Exception as e:
-            logging.error(f"❌ Error removing duplicate mappings: {e}")
+            logging.error(f"Error removing duplicate mappings: {e}")
             return 0
 
 
@@ -1277,7 +1277,7 @@ class MidiEngine(QObject):
     def clean_midi_mappings_manual(self):
         """Limpiar mappings MIDI manualmente desde UI"""
         try:
-            logging.info("🧹 Manual MIDI cleanup requested by user")
+            logging.info("Manual MIDI cleanup requested by user")
 
             original_count = len(self.midi_mappings)
             duplicates_removed = self.remove_duplicate_mappings_smart()
@@ -1287,21 +1287,21 @@ class MidiEngine(QObject):
                 self._build_midi_lookup()
 
                 message = (
-                          f"✅ Cleanup completado!\n\n"
+                          f" Cleanup completado!\n\n"
                           f"Mappings originales: {original_count}\n"
                           f"Duplicados removidos: {duplicates_removed}\n"
                           f"Mappings finales: {len(self.midi_mappings)}"
                       )
 
-                logging.info(f"✅ Manual cleanup complete: removed {duplicates_removed} duplicates")
+                logging.info(f"Manual cleanup complete: removed {duplicates_removed} duplicates")
                 return True, message
             else:
-                message = "✨ No se encontraron duplicados - los mappings ya están limpios!"
-                logging.info("✨ Manual cleanup: no duplicates found")
+                message = " No se encontraron duplicados - los mappings ya están limpios!"
+                logging.info("Manual cleanup: no duplicates found")
                 return True, message
 
         except Exception as e:
-            error_msg = f"❌ Error durante limpieza manual: {str(e)}"
+            error_msg = f" Error durante limpieza manual: {str(e)}"
             logging.error(error_msg)
             return False, error_msg
 

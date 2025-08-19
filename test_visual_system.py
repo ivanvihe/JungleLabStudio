@@ -36,7 +36,7 @@ def test_visualizer_loading():
         vm = VisualizerManager()
         names = vm.get_visualizer_names()
         
-        logging.info(f"✅ Found {len(names)} visualizers:")
+        logging.info(f"Found {len(names)} visualizers:")
         for name in names:
             logging.info(f"   • {name}")
             
@@ -46,7 +46,7 @@ def test_visualizer_loading():
                 vis_class = vm.get_visualizer_class(name)
                 if vis_class:
                     instance = vis_class()
-                    logging.info(f"   ✅ Created instance of {name}")
+                    logging.info(f"    Created instance of {name}")
                     
                     # Check if it has required methods
                     has_init = hasattr(instance, 'initializeGL')
@@ -56,12 +56,12 @@ def test_visualizer_loading():
                     logging.info(f"      Methods: init={has_init}, paint={has_paint}, resize={has_resize}")
                     
             except Exception as e:
-                logging.error(f"   ❌ Failed to create {name}: {e}")
+                logging.error(f"    Failed to create {name}: {e}")
                 
         return len(names) > 0
         
     except Exception as e:
-        logging.error(f"❌ Failed to test visualizer loading: {e}")
+        logging.error(f"Failed to test visualizer loading: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -162,7 +162,7 @@ class TestWindow(QMainWindow):
             names = vm.get_visualizer_names()
             
             if not names:
-                self.info_label.setText("❌ No visualizers found!")
+                self.info_label.setText(" No visualizers found!")
                 return
                 
             # Test the first visualizer
@@ -173,18 +173,18 @@ class TestWindow(QMainWindow):
             if vis_class:
                 visualizer = vis_class()
                 self.gl_widget.set_visualizer(visualizer)
-                logging.info(f"✅ Set visualizer: {test_name}")
+                logging.info(f"Set visualizer: {test_name}")
                 
                 # Cycle through visualizers
                 self.cycle_visualizers(vm, names)
             else:
-                self.info_label.setText(f"❌ Failed to get {test_name}")
+                self.info_label.setText(f" Failed to get {test_name}")
                 
         except Exception as e:
-            logging.error(f"❌ Test failed: {e}")
+            logging.error(f"Test failed: {e}")
             import traceback
             traceback.print_exc()
-            self.info_label.setText(f"❌ Error: {e}")
+            self.info_label.setText(f" Error: {e}")
             
     def cycle_visualizers(self, vm, names):
         """Cycle through all visualizers"""
@@ -204,9 +204,9 @@ class TestWindow(QMainWindow):
                 if vis_class:
                     visualizer = vis_class()
                     self.gl_widget.set_visualizer(visualizer)
-                    logging.info(f"✅ Switched to: {name}")
+                    logging.info(f"Switched to: {name}")
             except Exception as e:
-                logging.error(f"❌ Failed to switch to {name}: {e}")
+                logging.error(f"Failed to switch to {name}: {e}")
                 
             self.current_index += 1
             
@@ -224,7 +224,7 @@ def main():
     
     # Test loading first
     if not test_visualizer_loading():
-        logging.error("❌ Visualizer loading test failed!")
+        logging.error("Visualizer loading test failed!")
         return 1
         
     # Setup OpenGL format

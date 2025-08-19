@@ -75,7 +75,7 @@ class GridSnakeWaveVisualizer(BaseVisualizer):
                 return
             
             self.initialized = True
-            logging.info("🔲 TouchDesigner-quality grid snake wave initialized")
+            logging.info("TouchDesigner-quality grid snake wave initialized")
             
         except Exception as e:
             logging.error(f"Error in initialization: {e}")
@@ -350,7 +350,7 @@ class GridSnakeWaveVisualizer(BaseVisualizer):
         }
         
         self.waves.append(wave)
-        logging.info(f"🔲 TouchDesigner grid snake wave created (mode: {self.wave_mode})")
+        logging.info(f"TouchDesigner grid snake wave created (mode: {self.wave_mode})")
 
     def update_vertex_data(self):
         """Update vertex buffer with grid squares"""
@@ -580,4 +580,4 @@ class GridSnakeWaveVisualizer(BaseVisualizer):
         """Handle MIDI triggers"""
         if action_name == "wave" or action_name == "snake" or action_name == "grid":
             self.create_wave()
-            logging.info("🔲 TouchDesigner GRID SNAKE WAVE! Triggered via MIDI")
+            logging.info("TouchDesigner GRID SNAKE WAVE! Triggered via MIDI")

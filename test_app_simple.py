@@ -13,7 +13,7 @@ sys.path.insert(0, project_root)
 logging.basicConfig(level=logging.INFO, format='%(levelname)s - %(message)s')
 
 def test_simple_app():
-    print("🚀 Testing Simple Audio Visualizer...")
+    print("Testing Simple Audio Visualizer...")
     
     try:
         # Import Qt
@@ -58,7 +58,7 @@ def test_simple_app():
                 layout = QVBoxLayout(central_widget)
                 
                 # Title
-                title = QLabel("🎵 Audio Visualizer Pro - Working! 🎵")
+                title = QLabel(" Audio Visualizer Pro - Working! ")
                 title.setStyleSheet("font-size: 24px; font-weight: bold; color: #4080ff; padding: 20px;")
                 layout.addWidget(title)
                 
@@ -77,10 +77,10 @@ def test_simple_app():
                 layout.addWidget(self.status_label)
                 
                 # Info
-                info_text = f"✅ Found {len(visualizers)} visualizers\n"
-                info_text += "✅ OpenGL initialized\n"
-                info_text += "✅ Taichi working\n"
-                info_text += "✅ Application running!"
+                info_text = f" Found {len(visualizers)} visualizers\n"
+                info_text += " OpenGL initialized\n"
+                info_text += " Taichi working\n"
+                info_text += " Application running!"
                 
                 info_label = QLabel(info_text)
                 info_label.setStyleSheet("background: #f0f0f0; padding: 10px; border-radius: 5px;")
@@ -120,15 +120,15 @@ def test_simple_app():
         window = SimpleVisualizerWindow()
         window.show()
         
-        print("✅ Simple app created successfully!")
-        print("✅ Window should be visible now")
-        print("✅ Try selecting different visualizers from the dropdown")
+        print("Simple app created successfully!")
+        print("Window should be visible now")
+        print("Try selecting different visualizers from the dropdown")
         
         # Run app
         return app.exec()
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f" Error: {e}")
         import traceback
         traceback.print_exc()
         return 1

@@ -66,7 +66,7 @@ class OneshotBoomExplosionVisualizer(BaseVisualizer):
                 return
             
             self.initialized = True
-            logging.info("✅ OneshotBoomExplosionVisualizer initialized successfully")
+            logging.info("OneshotBoomExplosionVisualizer initialized successfully")
             
         except Exception as e:
             logging.error(f"Error in OneshotBoomExplosionVisualizer.initializeGL: {e}")
@@ -258,7 +258,7 @@ class OneshotBoomExplosionVisualizer(BaseVisualizer):
             explosion['particles'].append(particle)
         
         self.explosions.append(explosion)
-        logging.info(f"💥 Created SIMPLE explosion at ({center_x:.2f}, {center_y:.2f})")
+        logging.info(f"Created SIMPLE explosion at ({center_x:.2f}, {center_y:.2f})")
 
     def update_vertex_data(self):
         """Update vertex buffer - EXACTLY like intro_background"""
@@ -436,4 +436,4 @@ class OneshotBoomExplosionVisualizer(BaseVisualizer):
         """Handle MIDI triggers"""
         if action_name == "boom" or action_name == "explosion":
             self.create_explosion()
-            logging.info("💥 BOOM! Simple explosion triggered via MIDI")
+            logging.info("BOOM! Simple explosion triggered via MIDI")
