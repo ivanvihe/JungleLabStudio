@@ -323,7 +323,10 @@ class MainApplication:
         try:
             # Close splash screen
             if self.splash:
-                self.splash.finish(None)
+                # Close and delete the splash screen explicitly to avoid it
+                # hanging around if initialization completes successfully
+                self.splash.close()
+                self.splash.deleteLater()
                 self.splash = None
                 
             # Create main windows
@@ -343,7 +346,9 @@ class MainApplication:
     def _on_initialization_error(self, error_message: str):
         """Handle initialization error."""
         if self.splash:
-            self.splash.finish(None)
+            # Ensure the splash is closed even when initialization fails
+            self.splash.close()
+            self.splash.deleteLater()
             self.splash = None
             
         self._show_error_dialog("Initialization Failed", error_message)
