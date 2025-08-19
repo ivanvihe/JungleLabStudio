@@ -223,8 +223,8 @@ class NeuralNode {
       ? 0.8 + 0.4 * Math.sin(time * pulseSpeed + this.pulseOffset + this.activity * 5)
       : 1.0;
 
-    // Escala con crecimiento, pulso y zoom global
-    const zoomScale = 1 + zoom * 0.2;
+    // Escala con crecimiento, pulso y compensa el zoom global
+    const zoomScale = 1 / (1 + zoom * 0.2);
     const scale =
       this.originalScale *
       this.growthFactor *
@@ -636,12 +636,14 @@ class NeuralNetworkPreset extends BasePreset {
     // Intensidad de audio promedio
     const overallAudio = (this.audioData.low + this.audioData.mid + this.audioData.high) / 3;
 
-    // Zoom progresivo hacia la red
+    // Zoom progresivo alejándose de la red (zoom out continuo)
     this.zoomLevel += deltaTime * (this.currentConfig.animation?.networkExpansion ?? 0.5);
-    this.camera.position.z = this.initialCameraZ - this.zoomLevel;
-    if (this.camera.position.z < 1) {
-      this.zoomLevel = 0;
-      this.camera.position.z = this.initialCameraZ;
+    this.camera.position.z = this.initialCameraZ + this.zoomLevel;
+
+    // Ajustar el plano lejano para evitar recortes
+    if (this.camera.position.z + 100 > this.camera.far) {
+      this.camera.far = this.camera.position.z + 100;
+      this.camera.updateProjectionMatrix();
     }
 
     // Update input nodes
