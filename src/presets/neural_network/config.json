@@ -1,0 +1,106 @@
+{
+  "name": "Neural Network",
+  "description": "Visualización de red neuronal que responde al audio con nodos pulsantes y conexiones animadas",
+  "author": "AudioVisualizer",
+  "version": "1.0.0",
+  "category": "abstract",
+  "tags": ["neural", "network", "ai", "nodes", "connections", "abstract"],
+  "thumbnail": "neural_network_thumb.png",
+  "defaultConfig": {
+    "opacity": 1.0,
+    "fadeMs": 200,
+    "nodeCount": {
+      "input": 4,
+      "hidden1": 6,
+      "hidden2": 4,
+      "output": 2
+    },
+    "colors": {
+      "input": "#4FC3F7",
+      "hidden1": "#81C784",
+      "hidden2": "#FFB74D",
+      "output": "#F06292",
+      "connections": "#64B5F6"
+    },
+    "animation": {
+      "pulseSpeed": 2.0,
+      "flowSpeed": 0.5,
+      "responseIntensity": 1.0
+    }
+  },
+  "controls": [
+    {
+      "name": "animation.pulseSpeed",
+      "type": "slider",
+      "label": "Velocidad de Pulso",
+      "min": 0.1,
+      "max": 5.0,
+      "step": 0.1,
+      "default": 2.0
+    },
+    {
+      "name": "animation.flowSpeed",
+      "type": "slider",
+      "label": "Velocidad de Flujo",
+      "min": 0.1,
+      "max": 2.0,
+      "step": 0.1,
+      "default": 0.5
+    },
+    {
+      "name": "animation.responseIntensity",
+      "type": "slider",
+      "label": "Intensidad de Respuesta",
+      "min": 0.1,
+      "max": 3.0,
+      "step": 0.1,
+      "default": 1.0
+    },
+    {
+      "name": "colors.input",
+      "type": "color",
+      "label": "Color Nodos Entrada",
+      "default": "#4FC3F7"
+    },
+    {
+      "name": "colors.hidden1",
+      "type": "color",
+      "label": "Color Capa Oculta 1",
+      "default": "#81C784"
+    },
+    {
+      "name": "colors.hidden2",
+      "type": "color",
+      "label": "Color Capa Oculta 2",
+      "default": "#FFB74D"
+    },
+    {
+      "name": "colors.output",
+      "type": "color",
+      "label": "Color Nodos Salida",
+      "default": "#F06292"
+    }
+  ],
+  "audioMapping": {
+    "low": {
+      "description": "Controla los nodos de entrada y sus conexiones",
+      "frequency": "20-250 Hz",
+      "effect": "Activación de la capa de entrada"
+    },
+    "mid": {
+      "description": "Controla la primera capa oculta",
+      "frequency": "250-4000 Hz",
+      "effect": "Activación de neuronas intermedias"
+    },
+    "high": {
+      "description": "Controla la segunda capa oculta y salida",
+      "frequency": "4000+ Hz",
+      "effect": "Activación de capas de procesamiento final"
+    }
+  },
+  "performance": {
+    "complexity": "medium",
+    "recommendedFPS": 60,
+    "gpuIntensive": false
+  }
+}

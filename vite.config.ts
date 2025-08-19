@@ -1,10 +1,22 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig(({ mode }) => ({
-  base: mode === 'development' ? '/' : './',
+export default defineConfig({
   plugins: [react()],
+  base: './',  // ← ESTO ES CRÍTICO
+  server: {
+    port: 3000,
+    strictPort: true,
+  },
   build: {
-    target: 'esnext'
+    rollupOptions: {
+      input: {
+        main: './index.html',
+      }
+    }
+  },
+  assetsInclude: ['**/*.wgsl'],
+  json: {
+    stringify: false
   }
-}));
+});

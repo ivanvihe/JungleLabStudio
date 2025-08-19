@@ -1,0 +1,175 @@
+{
+  "name": "Abstract Lines",
+  "description": "Líneas abstractas que aparecen y desaparecen creando formas orgánicas con colores tenues",
+  "author": "AudioVisualizer",
+  "version": "1.0.0",
+  "category": "abstract",
+  "tags": ["abstract", "lines", "organic", "fluid", "minimal", "geometric"],
+  "thumbnail": "abstract_lines_thumb.png",
+  "defaultConfig": {
+    "opacity": 1.0,
+    "fadeMs": 300,
+    "lineCount": {
+      "primary": 20,
+      "secondary": 35,
+      "detail": 50
+    },
+    "colors": {
+      "primary": "#E8F4F8",
+      "secondary": "#F0F8E8",
+      "detail": "#F8F0E8",
+      "accent": "#F8E8F0",
+      "background": "#0A0F14"
+    },
+    "animation": {
+      "appearanceSpeed": 0.8,
+      "movementSpeed": 0.3,
+      "formationSpeed": 1.2,
+      "flickerIntensity": 0.4,
+      "morphingRate": 0.6,
+      "flowComplexity": 2.0
+    },
+    "effects": {
+      "enableFlicker": true,
+      "enableMorphing": true,
+      "enableFormation": true,
+      "enableFlow": true,
+      "enableDepth": true
+    },
+    "geometry": {
+      "maxLength": 2.5,
+      "minLength": 0.3,
+      "curvature": 0.4,
+      "thickness": 0.8
+    }
+  },
+  "controls": [
+    {
+      "name": "animation.appearanceSpeed",
+      "type": "slider",
+      "label": "Velocidad de Aparición",
+      "min": 0.1,
+      "max": 3.0,
+      "step": 0.1,
+      "default": 0.8
+    },
+    {
+      "name": "animation.movementSpeed",
+      "type": "slider",
+      "label": "Velocidad de Movimiento",
+      "min": 0.1,
+      "max": 2.0,
+      "step": 0.1,
+      "default": 0.3
+    },
+    {
+      "name": "animation.formationSpeed",
+      "type": "slider",
+      "label": "Velocidad de Formación",
+      "min": 0.2,
+      "max": 4.0,
+      "step": 0.1,
+      "default": 1.2
+    },
+    {
+      "name": "animation.flickerIntensity",
+      "type": "slider",
+      "label": "Intensidad de Parpadeo",
+      "min": 0.0,
+      "max": 1.0,
+      "step": 0.1,
+      "default": 0.4
+    },
+    {
+      "name": "animation.morphingRate",
+      "type": "slider",
+      "label": "Velocidad de Transformación",
+      "min": 0.1,
+      "max": 2.0,
+      "step": 0.1,
+      "default": 0.6
+    },
+    {
+      "name": "geometry.curvature",
+      "type": "slider",
+      "label": "Curvatura de Líneas",
+      "min": 0.0,
+      "max": 1.0,
+      "step": 0.1,
+      "default": 0.4
+    },
+    {
+      "name": "geometry.thickness",
+      "type": "slider",
+      "label": "Grosor de Líneas",
+      "min": 0.1,
+      "max": 2.0,
+      "step": 0.1,
+      "default": 0.8
+    },
+    {
+      "name": "effects.enableFlicker",
+      "type": "checkbox",
+      "label": "Efecto Parpadeo",
+      "default": true
+    },
+    {
+      "name": "effects.enableMorphing",
+      "type": "checkbox",
+      "label": "Transformación Continua",
+      "default": true
+    },
+    {
+      "name": "effects.enableFormation",
+      "type": "checkbox",
+      "label": "Formación de Patrones",
+      "default": true
+    },
+    {
+      "name": "colors.primary",
+      "type": "color",
+      "label": "Color Primario",
+      "default": "#E8F4F8"
+    },
+    {
+      "name": "colors.secondary",
+      "type": "color",
+      "label": "Color Secundario",
+      "default": "#F0F8E8"
+    },
+    {
+      "name": "colors.detail",
+      "type": "color",
+      "label": "Color de Detalle",
+      "default": "#F8F0E8"
+    },
+    {
+      "name": "colors.accent",
+      "type": "color",
+      "label": "Color de Acento",
+      "default": "#F8E8F0"
+    }
+  ],
+  "audioMapping": {
+    "low": {
+      "description": "Controla la aparición y movimiento de líneas primarias",
+      "frequency": "20-250 Hz",
+      "effect": "Generación de líneas principales y formaciones básicas"
+    },
+    "mid": {
+      "description": "Controla las líneas secundarias y transformaciones",
+      "frequency": "250-4000 Hz",
+      "effect": "Morfología y patrones intermedios"
+    },
+    "high": {
+      "description": "Controla los detalles finos y efectos de parpadeo",
+      "frequency": "4000+ Hz",
+      "effect": "Líneas de detalle y efectos sutiles"
+    }
+  },
+  "performance": {
+    "complexity": "medium",
+    "recommendedFPS": 60,
+    "gpuIntensive": false
+  }
+}
