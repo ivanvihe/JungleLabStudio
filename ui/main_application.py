@@ -363,7 +363,8 @@ class MainApplication:
                 visualizer_manager=visualizer_manager,
                 mixer_window=self.mixer_window,
                 settings_manager=SettingsManager(),
-                midi_engine=midi_engine
+                midi_engine=midi_engine,
+                audio_analyzer=audio_analyzer
             )
             
             # Position windows nicely
