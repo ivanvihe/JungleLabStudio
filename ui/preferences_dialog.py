@@ -189,7 +189,7 @@ class PreferencesDialog(QDialog):
         self.gpu_selector.clear()
         self.gpu_info.clear()
 
-        logging.info("🔍 Detecting GPU devices...")
+        logging.info("Detecting GPU devices...")
 
         # Method 1: Try PyOpenGL + WGL/GLX for NVIDIA/AMD detection
         try:
@@ -217,7 +217,7 @@ class PreferencesDialog(QDialog):
 
         # Fallback: Add at least one default option
         if not self.gpu_info:
-            logging.warning("⚠️ No GPUs detected, adding default option")
+            logging.warning("No GPUs detected, adding default option")
             self.gpu_info.append((0, "Default GPU (Automatic)", "OpenGL"))
             self.gpu_selector.addItem("Default GPU (Automatic)")
 
@@ -235,7 +235,7 @@ class PreferencesDialog(QDialog):
         if self.gpu_info:
             self.gpu_selector.setCurrentIndex(selected_row)
 
-        logging.info(f"✅ GPU detection complete. Found {len(self.gpu_info)} options")
+        logging.info(f"GPU detection complete. Found {len(self.gpu_info)} options")
         for i, (idx, name, backend) in enumerate(self.gpu_info):
             logging.info(f"   {i}: GPU {idx} - {name} ({backend})")
 
@@ -271,7 +271,7 @@ class PreferencesDialog(QDialog):
                     self.gpu_info.append((0, gpu_name, "OpenGL"))
                     self.gpu_selector.addItem(f"{gpu_name} (OpenGL)")
                     
-                    logging.info(f"🎮 OpenGL GPU detected: {gpu_name}")
+                    logging.info(f"OpenGL GPU detected: {gpu_name}")
                     logging.debug(f"   Version: {version}")
                     
                 except Exception as e:
@@ -306,7 +306,7 @@ class PreferencesDialog(QDialog):
                         if not any(name == gpu_name for _, name, _ in self.gpu_info):
                             self.gpu_info.append((device_index, gpu_name, "ModernGL"))
                             self.gpu_selector.addItem(f"{gpu_name} (ModernGL)")
-                            logging.info(f"🎮 ModernGL GPU {device_index} detected: {gpu_name}")
+                            logging.info(f"ModernGL GPU {device_index} detected: {gpu_name}")
                     
                     ctx.release()
                     
@@ -333,7 +333,7 @@ class PreferencesDialog(QDialog):
                 if not any(gpu_name in name for _, name, _ in self.gpu_info):
                     self.gpu_info.append((gpu.id, gpu_name, "OpenGL"))
                     self.gpu_selector.addItem(f"{gpu_name} (NVIDIA)")
-                    logging.info(f"🎮 NVIDIA GPU {gpu.id} detected: {gpu.name}")
+                    logging.info(f"NVIDIA GPU {gpu.id} detected: {gpu.name}")
                     
         except ImportError:
             logging.debug("GPUtil not available")
@@ -357,7 +357,7 @@ class PreferencesDialog(QDialog):
                     if not any(gpu_name in name for _, name, _ in self.gpu_info):
                         self.gpu_info.append((0, gpu_name, "OpenGL"))
                         self.gpu_selector.addItem(f"{gpu_name} (Windows)")
-                        logging.info(f"🎮 Windows GPU detected: {gpu_name}")
+                        logging.info(f"Windows GPU detected: {gpu_name}")
                         
         except ImportError:
             logging.debug("WMI not available")
@@ -395,7 +395,7 @@ class PreferencesDialog(QDialog):
             self.settings_manager.set_setting("visual_settings.backend", backend)
             self.settings_manager.set_setting("visual_settings.gpu_name", gpu_name)
             
-            logging.info(f"🎮 GPU selection changed: {gpu_name} (Index: {device_index}, Backend: {backend})")
+            logging.info(f"GPU selection changed: {gpu_name} (Index: {device_index}, Backend: {backend})")
             
             # Apply changes to application
             if hasattr(self.parent(), 'apply_gpu_selection'):
@@ -413,7 +413,7 @@ class PreferencesDialog(QDialog):
     def on_backend_changed(self, backend_name):
         """Handle backend selection change"""
         self.settings_manager.set_setting("visual_settings.backend", backend_name)
-        logging.info(f"🔧 Backend changed to: {backend_name}")
+        logging.info(f"Backend changed to: {backend_name}")
 
         # Re-populate GPU list for the new backend and reapply selection
         self.populate_gpu_devices()

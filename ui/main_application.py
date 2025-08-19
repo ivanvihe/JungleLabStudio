@@ -6,43 +6,11 @@ import logging
 import platform
 from typing import Optional
 
-import sys
-import os
-import logging
-import platform
-from typing import Optional
-
 from PySide6.QtWidgets import (
     QApplication, QMessageBox, QSplashScreen, QStyleFactory,
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QProgressBar, QFrame
 )
-from PySide6.QtGui import (
-    QSurfaceFormat, QPixmap, QPalette, QColor, QFont, 
-    QLinearGradient, QBrush, QPainter, QIcon
-)
-from PySide6.QtCore import QTimer, Qt, QSize, QThread, Signal, QObject
-
-from utils.settings_manager import SettingsManager
-from midi.midi_engine import MidiEngine
-from visuals.visualizer_manager import VisualizerManager
-from audio.audio_analyzer import AudioAnalyzer
-from .mixer_window import MixerWindow
-from .control_panel_window import ControlPanelWindow
-
-# Get the root logger configured in main.py
-logger = logging.getLogger(__name__)
-
-# Set specific logger levels
-loggers_config = {
-    'visuals.deck': logging.DEBUG,
-    'ui.mixer_window': logging.INFO,
-    'visuals.visualizer_manager': logging.INFO,
-    'visuals.render_backend': logging.INFO
-}
-
-for logger_name, level in loggers_config.items():
-    logging.getLogger(logger_name).setLevel(level)
 from PySide6.QtGui import (
     QSurfaceFormat, QPixmap, QPalette, QColor, QFont, 
     QLinearGradient, QBrush, QPainter, QIcon
@@ -81,8 +49,9 @@ for logger_name, level in loggers_config.items():
 class InitializationWorker(QObject):
     """Worker thread for heavy initialization tasks."""
     
-    progress_updated = Signal(int, str)
-    initialization_complete = Signal(object, object)  # visualizer_manager, audio_analyzer
+    progress_updated = Signal(int, str)  # progress percentage, status message
+    # Emit only the visualizer manager once heavy loading is finished
+    initialization_complete = Signal(object)
     error_occurred = Signal(str)
 
     def __init__(self, settings_manager):
@@ -92,10 +61,8 @@ class InitializationWorker(QObject):
     def run(self):
         """Run initialization in separate thread."""
         try:
-            self.progress_updated.emit(10, "Initializing audio...")
-            audio_analyzer = AudioAnalyzer()
-
             self.progress_updated.emit(30, "Loading visualizers...")
+
             # Force reload of visualizer manager
             import importlib
             import visuals.visualizer_manager
@@ -109,7 +76,9 @@ class InitializationWorker(QObject):
             QThread.msleep(500)
 
             self.progress_updated.emit(100, "Ready!")
-            self.initialization_complete.emit(visualizer_manager, audio_analyzer)
+            # Emit only the manager; QObject-based components will be created on
+            # the main thread to avoid thread affinity issues
+            self.initialization_complete.emit(visualizer_manager)
 
         except Exception as e:
             logging.error(f"Initialization failed: {e}")
@@ -151,7 +120,7 @@ class MainApplication:
     """Enhanced main application with modern UI and improved graphics support."""
     
     def __init__(self):
-                    logger.info("Initializing Audio Visualizer Pro...")
+        logging.info("Initializing Audio Visualizer Pro...")
         
         self.app = None
         self.splash = None
@@ -175,10 +144,10 @@ class MainApplication:
             self.app = QApplication(sys.argv)
             self._apply_modern_styling()
             
-            logging.info("✅ Application setup complete")
+            logging.info("Application setup complete")
             
         except Exception as e:
-            logging.error(f"❌ Application setup failed: {e}")
+            logging.error(f"Application setup failed: {e}")
             raise
 
     def _configure_opengl(self):
@@ -223,14 +192,14 @@ class MainApplication:
                 format.setSwapInterval(1)  # VSync
                 
                 QSurfaceFormat.setDefaultFormat(format)
-                logging.info(f"✅ OpenGL configured: {config['description']}")
+                logging.info(f"OpenGL configured: {config['description']}")
                 break
                 
             except Exception as e:
-                logging.warning(f"⚠️ Failed to set {config['description']}: {e}")
+                logging.warning(f"Failed to set {config['description']}: {e}")
                 continue
         else:
-            logging.warning("⚠️ All OpenGL configurations failed, using defaults")
+            logging.warning("All OpenGL configurations failed, using defaults")
 
     def _configure_ui_attributes(self):
         """Configure UI attributes for modern appearance."""
@@ -333,7 +302,7 @@ class MainApplication:
             self.worker_thread.start()
             
         except Exception as e:
-            logging.error(f"❌ Component initialization failed: {e}")
+            logging.error(f"Component initialization failed: {e}")
             self._show_error_dialog("Initialization Error", str(e))
 
     def _update_splash_progress(self, progress: int, message: str):
@@ -344,12 +313,13 @@ class MainApplication:
                                   QColor(255, 255, 255))
             self.app.processEvents()
 
-    def _on_initialization_complete(self, visualizer_manager, audio_analyzer):
+    def _on_initialization_complete(self, visualizer_manager):
         """Handle successful initialization."""
         try:
             # Create QObject-based components on the main thread to avoid
             # thread affinity issues that would prevent the splash screen from
             # closing and the windows from showing.
+            audio_analyzer = AudioAnalyzer()
             midi_engine = MidiEngine(self.worker.settings_manager, visualizer_manager)
 
             # Close splash screen
@@ -368,10 +338,10 @@ class MainApplication:
                 self.worker_thread.quit()
                 self.worker_thread.wait()
 
-            logging.info("✅ Application initialization complete")
+            logging.info("Application initialization complete")
 
         except Exception as e:
-            logging.error(f"❌ Failed to complete initialization: {e}")
+            logging.error(f"Failed to complete initialization: {e}")
             self._show_error_dialog("Startup Error", str(e))
 
     def _on_initialization_error(self, error_message: str):
@@ -414,10 +384,10 @@ class MainApplication:
             self.mixer_window.raise_()
             self.mixer_window.activateWindow()
             
-            logging.info("✅ Main windows created and shown")
+            logging.info("Main windows created and shown")
             
         except Exception as e:
-            logging.error(f"❌ Failed to create main windows: {e}")
+            logging.error(f"Failed to create main windows: {e}")
             raise
 
     def _position_windows(self):
@@ -475,14 +445,14 @@ class MainApplication:
             self.initialize_components()
             
             # Run event loop
-            logging.info("🎬 Starting application event loop...")
+            logging.info("Starting application event loop...")
             exit_code = self.app.exec()
             
-            logging.info(f"📋 Application finished with exit code: {exit_code}")
+            logging.info(f"Application finished with exit code: {exit_code}")
             return exit_code
             
         except Exception as e:
-            logging.error(f"❌ Application run failed: {e}")
+            logging.error(f"Application run failed: {e}")
             if self.app:
                 self._show_error_dialog("Critical Error", str(e))
             return 1
@@ -492,7 +462,7 @@ class MainApplication:
     def cleanup(self):
         """Clean up application resources."""
         try:
-            logging.info("🧹 Cleaning up application resources...")
+            logging.info("Cleaning up application resources...")
             
             # Clean up worker thread
             if self.worker_thread and self.worker_thread.isRunning():
@@ -509,10 +479,10 @@ class MainApplication:
             if self.splash:
                 self.splash.close()
                 
-            logging.info("✅ Cleanup complete")
+            logging.info("Cleanup complete")
             
         except Exception as e:
-            logging.error(f"❌ Cleanup failed: {e}")
+            logging.error(f"Cleanup failed: {e}")
 
 
 def main():
@@ -528,7 +498,7 @@ def main():
     
     # Check Python version
     if sys.version_info < (3, 8):
-        print("❌ Python 3.8 or higher is required")
+        print("Python 3.8 or higher is required")
         return 1
     
     # Check for required dependencies
@@ -542,7 +512,7 @@ def main():
             missing_modules.append(module)
     
     if missing_modules:
-        print(f"❌ Missing required modules: {', '.join(missing_modules)}")
+        print(f" Missing required modules: {', '.join(missing_modules)}")
         print("Please install them using: pip install " + " ".join(missing_modules))
         return 1
     
@@ -551,7 +521,7 @@ def main():
         app = MainApplication()
         return app.run()
     except Exception as e:
-        logging.error(f"❌ Failed to start application: {e}")
+        logging.error(f"Failed to start application: {e}")
         return 1
 
 

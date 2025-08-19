@@ -15,7 +15,7 @@ class VisualizerManager:
             # Get the directory where this file is located
             current_dir = Path(__file__).parent
             presets_dir = current_dir / "presets"
-            logging.info(f"🔍 Loading visualizers from: {presets_dir}")
+            logging.info(f"Loading visualizers from: {presets_dir}")
             
             # Dynamically collect all visualizer modules in presets directory
             visualizer_modules = []
@@ -32,7 +32,7 @@ class VisualizerManager:
                     # Check if file exists
                     module_file = presets_dir / f"{module_name}.py"
                     if not module_file.exists():
-                        logging.debug(f"⚠️ Module file not found: {module_file}")
+                        logging.debug(f"Module file not found: {module_file}")
                         continue
                     
                     # Import the module
@@ -63,37 +63,37 @@ class VisualizerManager:
                     if visualizer_class and visualizer_name:
                         self.visualizers[visualizer_name] = visualizer_class
                         loaded_count += 1
-                        logging.info(f"✅ Loaded visualizer: {visualizer_name} from {module_name}")
+                        logging.info(f"Loaded visualizer: {visualizer_name} from {module_name}")
                     else:
-                        logging.warning(f"⚠️ No visualizer class found in {module_name}")
+                        logging.warning(f"No visualizer class found in {module_name}")
                         failed_modules.append(module_name)
                         
                 except ImportError as e:
-                    logging.error(f"❌ Failed to import {module_name}: {e}")
+                    logging.error(f"Failed to import {module_name}: {e}")
                     failed_modules.append(module_name)
                 except Exception as e:
-                    logging.error(f"❌ Error loading {module_name}: {e}")
+                    logging.error(f"Error loading {module_name}: {e}")
                     failed_modules.append(module_name)
             
             # Log summary
-            logging.info(f"📊 Visualizer loading complete:")
-            logging.info(f"   ✅ Successfully loaded: {loaded_count} visualizers")
+            logging.info(f"Visualizer loading complete:")
+            logging.info(f"    Successfully loaded: {loaded_count} visualizers")
             if failed_modules:
-                logging.info(f"   ❌ Failed to load: {failed_modules}")
+                logging.info(f"    Failed to load: {failed_modules}")
             
             # List all loaded visualizers
             if self.visualizers:
-                logging.info(f"📋 Available visualizers:")
+                logging.info(f"Available visualizers:")
                 for name in self.visualizers.keys():
                     logging.info(f"   • {name}")
             else:
-                logging.error("❌ No visualizers loaded! Application may not work correctly.")
+                logging.error("No visualizers loaded! Application may not work correctly.")
                 
                 # Try to create at least a fallback visualizer
                 self._create_fallback_visualizer()
                 
         except Exception as e:
-            logging.error(f"❌ Critical error in load_visualizers: {e}")
+            logging.error(f"Critical error in load_visualizers: {e}")
             import traceback
             traceback.print_exc()
             
@@ -103,7 +103,7 @@ class VisualizerManager:
     def _create_fallback_visualizer(self):
         """Create a minimal fallback visualizer"""
         try:
-            logging.info("🛠️ Creating fallback visualizer...")
+            logging.info("Creating fallback visualizer...")
             
             from .base_visualizer import BaseVisualizer
             from OpenGL.GL import glClearColor, glClear, GL_COLOR_BUFFER_BIT
@@ -132,27 +132,27 @@ class VisualizerManager:
                     return {}
             
             self.visualizers["Fallback"] = FallbackVisualizer
-            logging.info("✅ Fallback visualizer created")
+            logging.info("Fallback visualizer created")
             
         except Exception as e:
-            logging.error(f"❌ Failed to create fallback visualizer: {e}")
+            logging.error(f"Failed to create fallback visualizer: {e}")
 
     def get_visualizer_names(self):
         """Get list of available visualizer names"""
         names = list(self.visualizers.keys())
-        logging.debug(f"📋 Available visualizers: {names}")
+        logging.debug(f"Available visualizers: {names}")
         return names
 
     def get_visualizer_class(self, name):
         """Get visualizer class by name"""
         visualizer_class = self.visualizers.get(name)
         if visualizer_class:
-            logging.debug(f"✅ Found visualizer class for: {name}")
+            logging.debug(f"Found visualizer class for: {name}")
         else:
-            logging.error(f"❌ Visualizer not found: {name}")
+            logging.error(f"Visualizer not found: {name}")
             # Return fallback if available
             if "Fallback" in self.visualizers:
-                logging.warning(f"⚠️ Using fallback visualizer instead of {name}")
+                logging.warning(f"Using fallback visualizer instead of {name}")
                 return self.visualizers["Fallback"]
         return visualizer_class
 
@@ -162,16 +162,16 @@ class VisualizerManager:
         if visualizer_class:
             try:
                 instance = visualizer_class()
-                logging.info(f"✅ Created instance of {name}")
+                logging.info(f"Created instance of {name}")
                 return instance
             except Exception as e:
-                logging.error(f"❌ Failed to create instance of {name}: {e}")
+                logging.error(f"Failed to create instance of {name}: {e}")
                 import traceback
                 traceback.print_exc()
         return None
 
     def reload_visualizers(self):
         """Reload all visualizers (useful for development)"""
-        logging.info("🔄 Reloading all visualizers...")
+        logging.info("Reloading all visualizers...")
         self.visualizers.clear()
         self.load_visualizers()

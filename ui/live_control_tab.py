@@ -111,7 +111,7 @@ def create_modern_header(self):
     layout.addStretch()
     
     # Fullscreen button with modern styling
-    fs_button = QPushButton("⛶ FULLSCREEN")
+    fs_button = QPushButton(" FULLSCREEN")
     fs_button.setStyleSheet(f"""
         QPushButton {{
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
@@ -188,7 +188,7 @@ def create_modern_4layer_grid(self, container):
         if hasattr(self, "visualizer_manager") and self.visualizer_manager:
             try:
                 visuals = self.visualizer_manager.get_visualizer_names()
-                logging.info(f"🎨 Found {len(visuals)} visuals for modern grid")
+                logging.info(f"Found {len(visuals)} visuals for modern grid")
             except Exception as e:
                 logging.error(f"Error getting visualizer names: {e}")
                 visuals = ["Abstract Lines", "Wire Terrain", "Geometric Particles"]
@@ -244,7 +244,7 @@ def create_modern_4layer_grid(self, container):
             grid.addWidget(clear_btn, row, len(visuals) + 1)
 
     except Exception as e:
-        logging.error(f"❌ Error creating modern 4-layer grid: {e}")
+        logging.error(f"Error creating modern 4-layer grid: {e}")
         create_modern_fallback_grid(container)
 
 def create_modern_layer_header(self, layer_id, config):
@@ -448,7 +448,7 @@ def create_modern_visual_cell(parent, layer_id, visual_name, midi_info, layer_co
 
 def create_modern_clear_button(layer_id, layer_color):
     """Create modern clear button for layer."""
-    clear_btn = QPushButton("✕ CLEAR")
+    clear_btn = QPushButton(" CLEAR")
     clear_btn.setFixedSize(100, 100)
     clear_btn.setStyleSheet(f"""
         QPushButton {{
@@ -530,7 +530,7 @@ def trigger_visual_from_grid(self, layer_id, visual_name):
                 color = getattr(self, 'live_grid_deck_colors', {}).get(layer_id, MODERN_COLORS['accent_orange'])
                 animate_cell_click(cell, color)
         
-        logging.info(f"🎨 Modern grid: Triggered {visual_name} on layer {layer_id}")
+        logging.info(f"Modern grid: Triggered {visual_name} on layer {layer_id}")
         
     except Exception as e:
         logging.error(f"Error triggering visual {visual_name} on layer {layer_id}: {e}")
@@ -554,7 +554,7 @@ def create_modern_fallback_grid(container):
     
     error_layout = QVBoxLayout(error_frame)
     
-    error_label = QLabel("⚠️ NO VISUALS DETECTED")
+    error_label = QLabel(" NO VISUALS DETECTED")
     error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
     error_label.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
     error_label.setStyleSheet(f"color: {MODERN_COLORS['accent_orange']};")
@@ -566,7 +566,7 @@ def create_modern_fallback_grid(container):
     help_label.setStyleSheet(f"color: {MODERN_COLORS['text_secondary']};")
     error_layout.addWidget(help_label)
     
-    retry_btn = QPushButton("🔄 RETRY")
+    retry_btn = QPushButton(" RETRY")
     retry_btn.setStyleSheet(f"""
         QPushButton {{
             background: {MODERN_COLORS['accent_orange']};
