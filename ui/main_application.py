@@ -50,7 +50,8 @@ class InitializationWorker(QObject):
     """Worker thread for heavy initialization tasks."""
     
     progress_updated = Signal(int, str)  # progress percentage, status message
-    initialization_complete = Signal(object, object, object)  # managers
+    # Emit only the visualizer manager once heavy loading is finished
+    initialization_complete = Signal(object)
     error_occurred = Signal(str)
 
     def __init__(self, settings_manager):
@@ -60,31 +61,25 @@ class InitializationWorker(QObject):
     def run(self):
         """Run initialization in separate thread."""
         try:
-            self.progress_updated.emit(10, "Initializing audio system...")
-            
-            # Initialize audio analyzer
-            audio_analyzer = AudioAnalyzer()
             self.progress_updated.emit(30, "Loading visualizers...")
-            
+
             # Force reload of visualizer manager
             import importlib
             import visuals.visualizer_manager
             importlib.reload(visuals.visualizer_manager)
-            
+
             # Initialize visualizer manager
             visualizer_manager = VisualizerManager()
-            self.progress_updated.emit(60, "Setting up MIDI engine...")
-            
-            # Initialize MIDI engine
-            midi_engine = MidiEngine(self.settings_manager, visualizer_manager)
-            self.progress_updated.emit(80, "Preparing interface...")
-            
+            self.progress_updated.emit(90, "Finalizing setup...")
+
             # Small delay to show progress
             QThread.msleep(500)
-            
+
             self.progress_updated.emit(100, "Ready!")
-            self.initialization_complete.emit(visualizer_manager, midi_engine, audio_analyzer)
-            
+            # Emit only the manager; QObject-based components will be created on
+            # the main thread to avoid thread affinity issues
+            self.initialization_complete.emit(visualizer_manager)
+
         except Exception as e:
             logging.error(f"Initialization failed: {e}")
             self.error_occurred.emit(str(e))
@@ -318,9 +313,15 @@ class MainApplication:
                                   QColor(255, 255, 255))
             self.app.processEvents()
 
-    def _on_initialization_complete(self, visualizer_manager, midi_engine, audio_analyzer):
+    def _on_initialization_complete(self, visualizer_manager):
         """Handle successful initialization."""
         try:
+            # Create QObject-based components on the main thread to avoid
+            # thread affinity issues that would prevent the splash screen from
+            # closing and the windows from showing.
+            audio_analyzer = AudioAnalyzer()
+            midi_engine = MidiEngine(self.worker.settings_manager, visualizer_manager)
+
             # Close splash screen
             if self.splash:
                 # Close and delete the splash screen explicitly to avoid it
@@ -328,17 +329,17 @@ class MainApplication:
                 self.splash.close()
                 self.splash.deleteLater()
                 self.splash = None
-                
+
             # Create main windows
             self._create_main_windows(visualizer_manager, midi_engine, audio_analyzer)
-            
+
             # Clean up worker thread
             if self.worker_thread:
                 self.worker_thread.quit()
                 self.worker_thread.wait()
-                
+
             logging.info("✅ Application initialization complete")
-            
+
         except Exception as e:
             logging.error(f"❌ Failed to complete initialization: {e}")
             self._show_error_dialog("Startup Error", str(e))
