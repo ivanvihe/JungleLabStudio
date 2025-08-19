@@ -24,6 +24,7 @@ class AbstractLinesVisualizer(TaichiVisual):
         self.renderer.add_pass("lines", lambda img: _lines(img, self.offset, self.spacing))
 
     def render(self):
+        img = super().render()
         if self.spacing > 0:
             self.offset = (self.offset + 1) % self.spacing
-        return super().render()
+        return img
