@@ -1,0 +1,134 @@
+{
+  "name": "ROBOTICA Text Intro",
+  "description": "Visualización de texto 'R O B O T I C A' con animación cinematográfica de aparición letra por letra con efectos de brillo",
+  "author": "AudioVisualizer",
+  "version": "1.0.0",
+  "category": "text",
+  "tags": ["text", "intro", "robotica", "cinematic", "glow", "animation"],
+  "thumbnail": "robotica_intro_thumb.png",
+  "defaultConfig": {
+    "opacity": 1.0,
+    "fadeMs": 200,
+    "text": {
+      "content": "R O B O T I C A",
+      "scale": 1.0,
+      "color": "#FFFFFF"
+    },
+    "animation": {
+      "duration": 15.0,
+      "fadeDuration": 6.0,
+      "letterDelay": 0.3,
+      "glowIntensity": 1.2,
+      "pulseSpeed": 2.0,
+      "animationOrder": [2, 8, 4, 6, 10, 14, 12, 0]
+    },
+    "colors": {
+      "text": "#FFFFFF",
+      "glow": "#FFFFFF"
+    },
+    "effects": {
+      "enableGlow": true,
+      "enablePulse": true,
+      "enableSparkle": true
+    }
+  },
+  "controls": [
+    {
+      "name": "text.scale",
+      "type": "slider",
+      "label": "Escala del Texto",
+      "min": 0.5,
+      "max": 3.0,
+      "step": 0.1,
+      "default": 1.0
+    },
+    {
+      "name": "animation.fadeDuration",
+      "type": "slider",
+      "label": "Duración de Fade",
+      "min": 2.0,
+      "max": 10.0,
+      "step": 0.5,
+      "default": 6.0
+    },
+    {
+      "name": "animation.letterDelay",
+      "type": "slider",
+      "label": "Velocidad de Animación",
+      "min": 0.1,
+      "max": 1.0,
+      "step": 0.05,
+      "default": 0.3
+    },
+    {
+      "name": "animation.glowIntensity",
+      "type": "slider",
+      "label": "Intensidad de Brillo",
+      "min": 0.0,
+      "max": 3.0,
+      "step": 0.1,
+      "default": 1.2
+    },
+    {
+      "name": "animation.pulseSpeed",
+      "type": "slider",
+      "label": "Velocidad de Pulso",
+      "min": 0.5,
+      "max": 5.0,
+      "step": 0.1,
+      "default": 2.0
+    },
+    {
+      "name": "colors.text",
+      "type": "color",
+      "label": "Color del Texto",
+      "default": "#FFFFFF"
+    },
+    {
+      "name": "colors.glow",
+      "type": "color",
+      "label": "Color del Brillo",
+      "default": "#FFFFFF"
+    },
+    {
+      "name": "effects.enableGlow",
+      "type": "checkbox",
+      "label": "Efectos de Brillo",
+      "default": true
+    },
+    {
+      "name": "effects.enablePulse",
+      "type": "checkbox",
+      "label": "Pulso",
+      "default": true
+    },
+    {
+      "name": "effects.enableSparkle",
+      "type": "checkbox",
+      "label": "Destellos",
+      "default": true
+    }
+  ],
+  "audioMapping": {
+    "low": {
+      "description": "Controla la velocidad de animación y aparición de letras",
+      "frequency": "20-250 Hz",
+      "effect": "Velocidad de aparición de letras"
+    },
+    "mid": {
+      "description": "Controla el pulso y efectos de brillo",
+      "frequency": "250-4000 Hz",
+      "effect": "Intensidad de pulso y brillo"
+    },
+    "high": {
+      "description": "Controla los destellos y efectos especiales",
+      "frequency": "4000+ Hz",
+      "effect": "Destellos y efectos de sparkle"
+    }
+  },
+  "performance": {
+    "complexity": "medium",
+    "recommendedFPS": 60,
+    "gpuIntensive": false
+  }
+}
