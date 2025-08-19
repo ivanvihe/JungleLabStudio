@@ -50,8 +50,8 @@ class InitializationWorker(QObject):
     """Worker thread for heavy initialization tasks."""
     
     progress_updated = Signal(int, str)  # progress percentage, status message
-    # Emit visualizer manager and hardware components
-    initialization_complete = Signal(object, object, object)
+    # Emit visualizer manager; hardware components are created on the main thread
+    initialization_complete = Signal(object)
     error_occurred = Signal(str)
 
     def __init__(self, settings_manager):
@@ -308,7 +308,7 @@ class MainApplication:
             # Connect signals
             self.worker.progress_updated.connect(self._update_splash_progress)
             self.worker.initialization_complete.connect(
-                lambda vm, aa, me: QTimer.singleShot(0, lambda: self._on_initialization_complete(vm, aa, me))
+                lambda vm: QTimer.singleShot(0, lambda: self._on_initialization_complete(vm))
             )
             self.worker.error_occurred.connect(self._on_initialization_error)
             self.worker_thread.started.connect(self.worker.run)
@@ -330,7 +330,7 @@ class MainApplication:
                                   QColor(255, 255, 255))
             self.app.processEvents()
 
-    def _on_initialization_complete(self, visualizer_manager, audio_analyzer, midi_engine):
+    def _on_initialization_complete(self, visualizer_manager):
         """Handle successful initialization."""
         try:
             logging.info("Initialization worker signaled completion")
