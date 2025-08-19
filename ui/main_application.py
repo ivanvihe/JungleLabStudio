@@ -18,9 +18,9 @@ from PySide6.QtGui import (
 from PySide6.QtCore import QTimer, Qt, QSize, QThread, Signal, QObject
 
 from utils.settings_manager import SettingsManager
-from midi.midi_engine import MidiEngine
+from midi.midi_engine import MidiEngine, DummyMidiEngine
 from visuals.visualizer_manager import VisualizerManager
-from audio.audio_analyzer import AudioAnalyzer
+from audio.audio_analyzer import AudioAnalyzer, DummyAudioAnalyzer
 from .mixer_window import MixerWindow
 from .control_panel_window import ControlPanelWindow
 
@@ -50,8 +50,8 @@ class InitializationWorker(QObject):
     """Worker thread for heavy initialization tasks."""
     
     progress_updated = Signal(int, str)  # progress percentage, status message
-    # Emit only the visualizer manager once heavy loading is finished
-    initialization_complete = Signal(object)
+    # Emit visualizer manager and hardware components
+    initialization_complete = Signal(object, object, object)
     error_occurred = Signal(str)
 
     def __init__(self, settings_manager):
@@ -70,15 +70,23 @@ class InitializationWorker(QObject):
 
             # Initialize visualizer manager
             visualizer_manager = VisualizerManager()
+
+            self.progress_updated.emit(60, "Initializing hardware...")
+            use_dummy = bool(os.getenv("AVP_DUMMY_HARDWARE"))
+            if use_dummy:
+                audio_analyzer = DummyAudioAnalyzer()
+                midi_engine = DummyMidiEngine(self.settings_manager, visualizer_manager)
+            else:
+                audio_analyzer = AudioAnalyzer()
+                midi_engine = MidiEngine(self.settings_manager, visualizer_manager)
+
             self.progress_updated.emit(90, "Finalizing setup...")
 
             # Small delay to show progress
             QThread.msleep(500)
 
             self.progress_updated.emit(100, "Ready!")
-            # Emit only the manager; QObject-based components will be created on
-            # the main thread to avoid thread affinity issues
-            self.initialization_complete.emit(visualizer_manager)
+            self.initialization_complete.emit(visualizer_manager, audio_analyzer, midi_engine)
 
         except Exception as e:
             logging.error(f"Initialization failed: {e}")
@@ -291,15 +299,16 @@ class MainApplication:
             self.worker_thread = QThread()
             self.worker = InitializationWorker(settings_manager)
             self.worker.moveToThread(self.worker_thread)
-            
+
             # Connect signals
             self.worker.progress_updated.connect(self._update_splash_progress)
             self.worker.initialization_complete.connect(
-                lambda vm: QTimer.singleShot(0, lambda: self._on_initialization_complete(vm))
+                lambda vm, aa, me: QTimer.singleShot(0, lambda: self._on_initialization_complete(vm, aa, me))
             )
             self.worker.error_occurred.connect(self._on_initialization_error)
             self.worker_thread.started.connect(self.worker.run)
-            
+            self.worker_thread.finished.connect(self._cleanup_worker_thread)
+
             # Start worker thread
             self.worker_thread.start()
             
@@ -315,30 +324,19 @@ class MainApplication:
                                   QColor(255, 255, 255))
             self.app.processEvents()
 
-    def _on_initialization_complete(self, visualizer_manager):
+    def _on_initialization_complete(self, visualizer_manager, audio_analyzer, midi_engine):
         """Handle successful initialization."""
         try:
-            # Create QObject-based components on the main thread to avoid
-            # thread affinity issues that would prevent the splash screen from
-            # closing and the windows from showing.
-            audio_analyzer = AudioAnalyzer()
-            midi_engine = MidiEngine(self.worker.settings_manager, visualizer_manager)
-
-            # Close splash screen
             if self.splash:
-                # Close and delete the splash screen explicitly to avoid it
-                # hanging around if initialization completes successfully
                 self.splash.close()
                 self.splash.deleteLater()
                 self.splash = None
 
-            # Create main windows
             self._create_main_windows(visualizer_manager, midi_engine, audio_analyzer)
 
-            # Clean up worker thread
-            if self.worker_thread:
-                self.worker_thread.quit()
-                self.worker_thread.wait()
+            if self.worker:
+                self.worker.deleteLater()
+                self.worker = None
 
             logging.info("Application initialization complete")
 
@@ -346,49 +344,20 @@ class MainApplication:
             logging.error(f"Failed to complete initialization: {e}")
             self._show_error_dialog("Startup Error", str(e))
 
-    def _on_initialization_error(self, error_message: str):
-        """Handle initialization error."""
-        if self.splash:
-            # Ensure the splash is closed even when initialization fails
-            self.splash.close()
-            self.splash.deleteLater()
-            self.splash = None
-            
-        self._show_error_dialog("Initialization Failed", error_message)
-
-    def cleanup(self):
-        """Clean up application resources."""
-        try:
-            logging.info("Cleaning up application resources...")
-            
-            # Clean up worker thread
-            if self.worker_thread and self.worker_thread.isRunning():
-                self.worker_thread.quit()
-                self.worker_thread.wait(3000)  # Wait up to 3 seconds
-                
-            # Close windows
-            if self.mixer_window:
-                self.mixer_window.close()
-            if self.control_panel:
-                self.control_panel.close()
-                
-            # Close splash if still open
-            if self.splash:
-                self.splash.close()
-                
-            logging.info("Cleanup complete")
-            
-        except Exception as e:
-            logging.error(f"Cleanup failed: {e}")
+    def _cleanup_worker_thread(self):
+        """Handle worker thread completion."""
+        if self.worker_thread:
+            self.worker_thread.deleteLater()
+            self.worker_thread = None
 
     def _on_initialization_error(self, error_message: str):
         """Handle initialization error."""
         if self.splash:
-            # Ensure the splash is closed even when initialization fails
             self.splash.close()
             self.splash.deleteLater()
             self.splash = None
-            
+
+        self.cleanup()
         self._show_error_dialog("Initialization Failed", error_message)
 
     def _create_main_windows(self, visualizer_manager, midi_engine, audio_analyzer):
@@ -504,7 +473,8 @@ class MainApplication:
             # Clean up worker thread
             if self.worker_thread and self.worker_thread.isRunning():
                 self.worker_thread.quit()
-                self.worker_thread.wait(3000)  # Wait up to 3 seconds
+                self.worker_thread.wait(3000)
+            self._cleanup_worker_thread()
                 
             # Close windows
             if self.mixer_window:
