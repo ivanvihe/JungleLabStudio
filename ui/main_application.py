@@ -61,6 +61,7 @@ class InitializationWorker(QObject):
     def run(self):
         """Run initialization in separate thread."""
         try:
+            logging.info("InitializationWorker started")
             self.progress_updated.emit(30, "Loading visualizers...")
 
             # Force reload of visualizer manager
@@ -86,7 +87,11 @@ class InitializationWorker(QObject):
             QThread.msleep(500)
 
             self.progress_updated.emit(100, "Ready!")
-            self.initialization_complete.emit(visualizer_manager, audio_analyzer, midi_engine)
+            logging.info("InitializationWorker finished successfully")
+            # Emit only the manager; QObject-based components will be created on
+            # the main thread to avoid thread affinity issues
+            self.initialization_complete.emit(visualizer_manager)
+
 
         except Exception as e:
             logging.error(f"Initialization failed: {e}")
@@ -310,6 +315,7 @@ class MainApplication:
             self.worker_thread.finished.connect(self._cleanup_worker_thread)
 
             # Start worker thread
+            logging.info("Starting initialization worker thread")
             self.worker_thread.start()
             
         except Exception as e:
@@ -327,10 +333,22 @@ class MainApplication:
     def _on_initialization_complete(self, visualizer_manager, audio_analyzer, midi_engine):
         """Handle successful initialization."""
         try:
+            logging.info("Initialization worker signaled completion")
+
+            # Create QObject-based components on the main thread to avoid
+            # thread affinity issues that would prevent the splash screen from
+            # closing and the windows from showing.
+            audio_analyzer = AudioAnalyzer()
+            midi_engine = MidiEngine(self.worker.settings_manager, visualizer_manager)
+            logging.info("Hardware components created on main thread")
+
+            # Close splash screen
+
             if self.splash:
                 self.splash.close()
                 self.splash.deleteLater()
                 self.splash = None
+                logging.info("Splash screen closed")
 
             self._create_main_windows(visualizer_manager, midi_engine, audio_analyzer)
 
@@ -344,15 +362,11 @@ class MainApplication:
             logging.error(f"Failed to complete initialization: {e}")
             self._show_error_dialog("Startup Error", str(e))
 
-    def _cleanup_worker_thread(self):
-        """Handle worker thread completion."""
-        if self.worker_thread:
-            self.worker_thread.deleteLater()
-            self.worker_thread = None
-
     def _on_initialization_error(self, error_message: str):
         """Handle initialization error."""
         if self.splash:
+            # Ensure the splash is closed even when initialization fails
+
             self.splash.close()
             self.splash.deleteLater()
             self.splash = None
@@ -360,9 +374,17 @@ class MainApplication:
         self.cleanup()
         self._show_error_dialog("Initialization Failed", error_message)
 
+    def _cleanup_worker_thread(self):
+        """Handle worker thread completion."""
+        if self.worker_thread:
+            self.worker_thread.deleteLater()
+            self.worker_thread = None
+
     def _create_main_windows(self, visualizer_manager, midi_engine, audio_analyzer):
         """Create and show main application windows."""
         try:
+            logging.info("Creating main application windows")
+
             # Create mixer window (main output)
             self.mixer_window = MixerWindow(
                 visualizer_manager=visualizer_manager,
@@ -381,7 +403,7 @@ class MainApplication:
             
             # Position windows nicely
             self._position_windows()
-            
+
             # Show windows
             self.mixer_window.show()
             self.control_panel.show()
@@ -389,7 +411,7 @@ class MainApplication:
             # Bring to front
             self.mixer_window.raise_()
             self.mixer_window.activateWindow()
-            
+
             logging.info("Main windows created and shown")
             
         except Exception as e:
@@ -475,6 +497,10 @@ class MainApplication:
                 self.worker_thread.quit()
                 self.worker_thread.wait(3000)
             self._cleanup_worker_thread()
+            if self.worker:
+                self.worker.deleteLater()
+                self.worker = None
+
                 
             # Close windows
             if self.mixer_window:
