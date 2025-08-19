@@ -91,10 +91,8 @@ export class PresetLoader {
   private availablePresets = [
     'neural_network',
     'abstract-lines',
-    'abstract-shapes',
-    'evolutive-particles', 
-    'plasma-ray',
-    'shot-text'
+    'evolutive-particles',
+    'plasma-ray'
   ];
 
   constructor(
@@ -129,24 +127,15 @@ export class PresetLoader {
       let shaderCode: string | undefined;
       let createPreset: LoadedPreset['createPreset'];
 
-      // Importar por preset específico (más confiable)
-      switch (presetId) {
-        case 'neural_network':
-          // Importar config embebido en el preset.ts
-          const neuralModule = await import(`../presets/${presetId}/preset.ts`);
-          config = neuralModule.config;
-          createPreset = neuralModule.createPreset;
-          
-          try {
-            const shaderModule = await import(`../presets/${presetId}/shader.wgsl?raw`);
-            shaderCode = shaderModule.default;
-          } catch {
-            console.warn(`No shader found for preset ${presetId}`);
-          }
-          break;
+      const module = await import(`../presets/${presetId}/preset.ts`);
+      config = module.config;
+      createPreset = module.createPreset;
 
-        default:
-          throw new Error(`Preset ${presetId} not implemented yet`);
+      try {
+        const shaderModule = await import(`../presets/${presetId}/shader.wgsl?raw`);
+        shaderCode = shaderModule.default;
+      } catch {
+        console.warn(`No shader found for preset ${presetId}`);
       }
 
       const loadedPreset: LoadedPreset = {
