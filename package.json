@@ -3,10 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "main": "electron.cjs",
   "scripts": {
     "dev": "vite",
     "build": "tauri build",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "electron": "vite build && electron ./electron.cjs",
+    "electron:package": "vite build && electron-builder"
   },
   "dependencies": {
     "@tauri-apps/api": "^1.5.0",
@@ -21,6 +24,18 @@
     "@vitejs/plugin-react": "^4.2.0",
     "typescript": "^5.2.0",
     "vite": "^5.0.0",
-    "@types/react-grid-layout": "^1.3.2"
+    "@types/react-grid-layout": "^1.3.2",
+    "electron": "^27.0.0",
+    "electron-builder": "^24.6.0"
+  },
+  "build": {
+    "appId": "com.audiovisualizer.app",
+    "files": [
+      "dist/**/*",
+      "electron.cjs"
+    ],
+    "extraMetadata": {
+      "main": "electron.cjs"
+    }
   }
 }
