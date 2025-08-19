@@ -1,10 +1,21 @@
-# ui/main_application.py - FIXED VERSION
+"""Enhanced main application with modern graphics support and improved UI."""
+
 import sys
 import os
 import logging
-from PySide6.QtWidgets import QApplication, QMessageBox, QSplashScreen
-from PySide6.QtGui import QSurfaceFormat, QPixmap, QPalette, QColor
-from PySide6.QtCore import QTimer, Qt
+import platform
+from typing import Optional
+
+from PySide6.QtWidgets import (
+    QApplication, QMessageBox, QSplashScreen, QStyleFactory,
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
+    QProgressBar, QFrame
+)
+from PySide6.QtGui import (
+    QSurfaceFormat, QPixmap, QPalette, QColor, QFont, 
+    QLinearGradient, QBrush, QPainter, QIcon
+)
+from PySide6.QtCore import QTimer, Qt, QSize, QThread, Signal, QObject
 
 from utils.settings_manager import SettingsManager
 from midi.midi_engine import MidiEngine
@@ -13,601 +24,499 @@ from audio.audio_analyzer import AudioAnalyzer
 from .mixer_window import MixerWindow
 from .control_panel_window import ControlPanelWindow
 
-# Force reload of visualizer_manager to ensure fresh loading
-import importlib
-import visuals.visualizer_manager
-
-from visuals.visualizer_manager import VisualizerManager
-
-# Configure logging with better formatting
+# Enhanced logging setup
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler('audiovisualizer.log', mode='w')
+        logging.FileHandler('audiovisualizer.log', mode='w', encoding='utf-8')
     ]
 )
 
-# Get specific loggers and set their levels to DEBUG
-logging.getLogger('visuals.deck').setLevel(logging.DEBUG)
-logging.getLogger('ui.mixer_window').setLevel(logging.DEBUG)
-logging.getLogger('visuals.visualizer_manager').setLevel(logging.DEBUG)
+# Set specific logger levels
+loggers_config = {
+    'visuals.deck': logging.DEBUG,
+    'ui.mixer_window': logging.INFO,
+    'visuals.visualizer_manager': logging.INFO,
+    'visuals.render_backend': logging.INFO
+}
+
+for logger_name, level in loggers_config.items():
+    logging.getLogger(logger_name).setLevel(level)
+
+
+class InitializationWorker(QObject):
+    """Worker thread for heavy initialization tasks."""
+    
+    progress_updated = Signal(int, str)  # progress percentage, status message
+    initialization_complete = Signal(object, object, object)  # managers
+    error_occurred = Signal(str)
+
+    def __init__(self, settings_manager):
+        super().__init__()
+        self.settings_manager = settings_manager
+
+    def run(self):
+        """Run initialization in separate thread."""
+        try:
+            self.progress_updated.emit(10, "Initializing audio system...")
+            
+            # Initialize audio analyzer
+            audio_analyzer = AudioAnalyzer()
+            self.progress_updated.emit(30, "Loading visualizers...")
+            
+            # Force reload of visualizer manager
+            import importlib
+            import visuals.visualizer_manager
+            importlib.reload(visuals.visualizer_manager)
+            
+            # Initialize visualizer manager
+            visualizer_manager = VisualizerManager()
+            self.progress_updated.emit(60, "Setting up MIDI engine...")
+            
+            # Initialize MIDI engine
+            midi_engine = MidiEngine(self.settings_manager, visualizer_manager)
+            self.progress_updated.emit(80, "Preparing interface...")
+            
+            # Small delay to show progress
+            QThread.msleep(500)
+            
+            self.progress_updated.emit(100, "Ready!")
+            self.initialization_complete.emit(visualizer_manager, midi_engine, audio_analyzer)
+            
+        except Exception as e:
+            logging.error(f"Initialization failed: {e}")
+            self.error_occurred.emit(str(e))
+
+
+class ModernSplashScreen(QSplashScreen):
+    """Enhanced splash screen with modern design."""
+    
+    def __init__(self):
+        # Create a modern gradient background
+        pixmap = QPixmap(600, 400)
+        pixmap.fill(Qt.GlobalColor.transparent)
+        
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # Create gradient background
+        gradient = QLinearGradient(0, 0, 600, 400)
+        gradient.setColorAt(0.0, QColor(45, 45, 60))
+        gradient.setColorAt(0.5, QColor(60, 45, 80))
+        gradient.setColorAt(1.0, QColor(80, 45, 60))
+        
+        painter.fillRect(pixmap.rect(), QBrush(gradient))
+        
+        # Add title
+        painter.setFont(QFont("Arial", 28, QFont.Weight.Bold))
+        painter.setPen(QColor(255, 255, 255))
+        painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, 
+                        "Audio Visualizer Pro\nLoading...")
+        
+        painter.end()
+        
+        super().__init__(pixmap)
+        self.setWindowFlags(Qt.WindowType.SplashScreen | Qt.WindowType.FramelessWindowHint)
+
 
 class MainApplication:
+    """Enhanced main application with modern UI and improved graphics support."""
+    
     def __init__(self):
         logging.info("🚀 Initializing Audio Visualizer Pro...")
         
+        self.app = None
+        self.splash = None
+        self.mixer_window = None
+        self.control_panel = None
+        self.worker_thread = None
+        self.worker = None
+        
+        self._setup_application()
+
+    def _setup_application(self):
+        """Set up the main application with enhanced graphics."""
         try:
-            # Set up OpenGL format for better compatibility
-            format = QSurfaceFormat()
-            format.setVersion(3, 3)
-            format.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
-            format.setDepthBufferSize(24)
-            format.setStencilBufferSize(8)
-            format.setSwapBehavior(QSurfaceFormat.SwapBehavior.DoubleBuffer)
-            format.setSamples(4)  # Anti-aliasing
-            QSurfaceFormat.setDefaultFormat(format)
-            logging.debug("✅ OpenGL format configured")
-
-            # High DPI support and modern dark theme
-            QApplication.setAttribute(Qt.ApplicationAttribute.AA_EnableHighDpiScaling)
-            QApplication.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps)
-
+            # Configure OpenGL format for maximum compatibility
+            self._configure_opengl()
+            
+            # Set up high DPI and modern UI
+            self._configure_ui_attributes()
+            
+            # Create application instance
             self.app = QApplication(sys.argv)
-            self.app.setApplicationName("Audio Visualizer Pro")
-            self.app.setApplicationVersion("1.0")
-            self.app.setStyle("Fusion")
-
-            # Apply a dark palette for a more modern appearance
-            palette = QPalette()
-            palette.setColor(QPalette.ColorRole.Window, QColor(30, 30, 30))
-            palette.setColor(QPalette.ColorRole.WindowText, QColor(220, 220, 220))
-            palette.setColor(QPalette.ColorRole.Base, QColor(45, 45, 45))
-            palette.setColor(QPalette.ColorRole.AlternateBase, QColor(53, 53, 53))
-            palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(255, 255, 255))
-            palette.setColor(QPalette.ColorRole.ToolTipText, QColor(220, 220, 220))
-            palette.setColor(QPalette.ColorRole.Text, QColor(220, 220, 220))
-            palette.setColor(QPalette.ColorRole.Button, QColor(53, 53, 53))
-            palette.setColor(QPalette.ColorRole.ButtonText, QColor(220, 220, 220))
-            palette.setColor(QPalette.ColorRole.Highlight, QColor(42, 130, 218))
-            palette.setColor(QPalette.ColorRole.HighlightedText, QColor(0, 0, 0))
-            self.app.setPalette(palette)
-
-            # Simple loading splash while initializing components
-            pixmap = QPixmap(400, 300)
-            pixmap.fill(Qt.GlobalColor.black)
-            self.splash = QSplashScreen(pixmap)
-            self.splash.showMessage(
-                "Loading visuals and mappings...",
-                Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignBottom,
-                Qt.GlobalColor.white,
-            )
-            self.splash.show()
-            self.app.processEvents()
-
-            # Initialize core components
-            self.initialize_components()
+            self._apply_modern_styling()
             
-            # Validate components
-            self.validate_initialization()
-            
-            # Create UI windows with proper sequencing
-            self.create_windows()
-
-            # Close splash once windows are ready
-            self.splash.finish(self.mixer_window)
-            
-            # CRITICAL: Setup connections and references BEFORE auto-connect
-            self.setup_connections()
-            
-            # Setup debug connections for MIDI
-            self.setup_debug_connections()
-            
-            logging.info("✅ Audio Visualizer Pro initialized successfully!")
+            logging.info("✅ Application setup complete")
             
         except Exception as e:
-            logging.critical(f"❌ Failed to initialize application: {e}")
-            import traceback
-            traceback.print_exc()
-            self.show_critical_error("Initialization Error", str(e))
-            sys.exit(1)
+            logging.error(f"❌ Application setup failed: {e}")
+            raise
 
-    
+    def _configure_opengl(self):
+        """Configure OpenGL with multiple fallback options."""
+        # Try different OpenGL configurations for maximum compatibility
+        configs = [
+            # Modern Core Profile
+            {
+                'version': (4, 1),
+                'profile': QSurfaceFormat.OpenGLContextProfile.CoreProfile,
+                'description': 'OpenGL 4.1 Core'
+            },
+            # Fallback Core Profile
+            {
+                'version': (3, 3),
+                'profile': QSurfaceFormat.OpenGLContextProfile.CoreProfile,
+                'description': 'OpenGL 3.3 Core'
+            },
+            # Compatibility Profile
+            {
+                'version': (3, 3),
+                'profile': QSurfaceFormat.OpenGLContextProfile.CompatibilityProfile,
+                'description': 'OpenGL 3.3 Compatibility'
+            },
+            # Legacy fallback
+            {
+                'version': (2, 1),
+                'profile': QSurfaceFormat.OpenGLContextProfile.NoProfile,
+                'description': 'OpenGL 2.1 Legacy'
+            }
+        ]
+        
+        for config in configs:
+            try:
+                format = QSurfaceFormat()
+                format.setVersion(config['version'][0], config['version'][1])
+                format.setProfile(config['profile'])
+                format.setDepthBufferSize(24)
+                format.setStencilBufferSize(8)
+                format.setSwapBehavior(QSurfaceFormat.SwapBehavior.DoubleBuffer)
+                format.setSamples(4)  # Anti-aliasing
+                format.setSwapInterval(1)  # VSync
+                
+                QSurfaceFormat.setDefaultFormat(format)
+                logging.info(f"✅ OpenGL configured: {config['description']}")
+                break
+                
+            except Exception as e:
+                logging.warning(f"⚠️ Failed to set {config['description']}: {e}")
+                continue
+        else:
+            logging.warning("⚠️ All OpenGL configurations failed, using defaults")
+
+    def _configure_ui_attributes(self):
+        """Configure UI attributes for modern appearance."""
+        # High DPI support
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_EnableHighDpiScaling)
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps)
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
+        
+        # Improve rendering quality
+        if hasattr(Qt.ApplicationAttribute, 'AA_UseDesktopOpenGL'):
+            QApplication.setAttribute(Qt.ApplicationAttribute.AA_UseDesktopOpenGL)
+
+    def _apply_modern_styling(self):
+        """Apply modern dark theme and styling."""
+        # Set application metadata
+        self.app.setApplicationName("Audio Visualizer Pro")
+        self.app.setApplicationVersion("2.0")
+        self.app.setApplicationDisplayName("Audio Visualizer Pro")
+        
+        # Use Fusion style for better cross-platform appearance
+        if "Fusion" in QStyleFactory.keys():
+            self.app.setStyle("Fusion")
+        
+        # Create modern dark palette
+        palette = self._create_dark_palette()
+        self.app.setPalette(palette)
+        
+        # Set application icon if available
+        try:
+            if os.path.exists("assets/icon.png"):
+                self.app.setWindowIcon(QIcon("assets/icon.png"))
+        except:
+            pass
+
+    def _create_dark_palette(self) -> QPalette:
+        """Create a modern dark color palette."""
+        palette = QPalette()
+        
+        # Base colors
+        dark_color = QColor(30, 30, 35)
+        darker_color = QColor(25, 25, 30)
+        light_color = QColor(240, 240, 240)
+        accent_color = QColor(100, 150, 255)
+        highlight_color = QColor(80, 120, 200)
+        
+        # Set palette colors
+        palette.setColor(QPalette.ColorRole.Window, dark_color)
+        palette.setColor(QPalette.ColorRole.WindowText, light_color)
+        palette.setColor(QPalette.ColorRole.Base, darker_color)
+        palette.setColor(QPalette.ColorRole.AlternateBase, QColor(45, 45, 50))
+        palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(60, 60, 70))
+        palette.setColor(QPalette.ColorRole.ToolTipText, light_color)
+        palette.setColor(QPalette.ColorRole.Text, light_color)
+        palette.setColor(QPalette.ColorRole.Button, QColor(50, 50, 55))
+        palette.setColor(QPalette.ColorRole.ButtonText, light_color)
+        palette.setColor(QPalette.ColorRole.BrightText, QColor(255, 100, 100))
+        palette.setColor(QPalette.ColorRole.Link, accent_color)
+        palette.setColor(QPalette.ColorRole.Highlight, highlight_color)
+        palette.setColor(QPalette.ColorRole.HighlightedText, QColor(255, 255, 255))
+        
+        # Disabled colors
+        palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText, QColor(127, 127, 127))
+        palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor(127, 127, 127))
+        palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.ButtonText, QColor(127, 127, 127))
+        palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Highlight, QColor(80, 80, 80))
+        palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.HighlightedText, QColor(127, 127, 127))
+        
+        return palette
+
+    def show_splash_screen(self):
+        """Show enhanced splash screen during initialization."""
+        self.splash = ModernSplashScreen()
+        self.splash.show()
+        self.app.processEvents()
 
     def initialize_components(self):
-        """Initialize all core components"""
+        """Initialize application components with progress tracking."""
         try:
-            # Initialize settings manager first
-            logging.info("📋 Initializing Settings Manager...")
-            self.settings_manager = SettingsManager()
+            # Show splash screen
+            self.show_splash_screen()
             
-            # Initialize visualizer manager
-            logging.info("🎨 Initializing Visualizer Manager...")
-            self.visualizer_manager = VisualizerManager()
+            # Initialize settings manager
+            self.splash.showMessage("Initializing settings...", Qt.AlignmentFlag.AlignBottom, QColor(255, 255, 255))
+            self.app.processEvents()
             
-            # Initialize MIDI engine
-            logging.info("🎹 Initializing MIDI Engine...")
-            self.midi_engine = MidiEngine(self.settings_manager, self.visualizer_manager)
+            settings_manager = SettingsManager()
             
-            # Initialize audio analyzer
-            logging.info("🎵 Initializing Audio Analyzer...")
-            self.audio_analyzer = AudioAnalyzer()
+            # Start background initialization
+            self.worker_thread = QThread()
+            self.worker = InitializationWorker(settings_manager)
+            self.worker.moveToThread(self.worker_thread)
             
-            logging.info("✅ Core components initialized")
+            # Connect signals
+            self.worker.progress_updated.connect(self._update_splash_progress)
+            self.worker.initialization_complete.connect(self._on_initialization_complete)
+            self.worker.error_occurred.connect(self._on_initialization_error)
+            self.worker_thread.started.connect(self.worker.run)
+            
+            # Start worker thread
+            self.worker_thread.start()
             
         except Exception as e:
-            logging.error(f"❌ Error initializing components: {e}")
-            raise
+            logging.error(f"❌ Component initialization failed: {e}")
+            self._show_error_dialog("Initialization Error", str(e))
 
-    def validate_initialization(self):
-        """Validate that all components initialized correctly"""
+    def _update_splash_progress(self, progress: int, message: str):
+        """Update splash screen with progress."""
+        if self.splash:
+            self.splash.showMessage(f"{message} ({progress}%)", 
+                                  Qt.AlignmentFlag.AlignBottom, 
+                                  QColor(255, 255, 255))
+            self.app.processEvents()
+
+    def _on_initialization_complete(self, visualizer_manager, midi_engine, audio_analyzer):
+        """Handle successful initialization."""
         try:
-            # Check visualizers
-            visualizer_names = self.visualizer_manager.get_visualizer_names()
-            if not visualizer_names:
-                raise Exception("No visualizers found! Check your visuals directory.")
+            # Close splash screen
+            if self.splash:
+                self.splash.finish(None)
+                self.splash = None
+                
+            # Create main windows
+            self._create_main_windows(visualizer_manager, midi_engine, audio_analyzer)
             
-            logging.info(f"🎨 Loaded {len(visualizer_names)} visualizers: {visualizer_names}")
-            
-            # Check MIDI mappings
-            midi_mappings = self.midi_engine.get_midi_mappings()
-            logging.info(f"🎹 Loaded {len(midi_mappings)} MIDI mappings")
-            
-            # Check settings
-            settings = self.settings_manager.get_all_settings()
-            logging.info(f"📋 Loaded settings with {len(settings)} entries")
-            
-            # Log GPU configuration
-            gpu_index = self.settings_manager.get_setting("visual_settings.gpu_index", 0)
-            backend = self.settings_manager.get_setting("visual_settings.backend", "OpenGL")
-            gpu_name = self.settings_manager.get_setting("visual_settings.gpu_name", "Unknown")
-            logging.info(f"🎮 GPU Configuration: {gpu_name} (Index: {gpu_index}, Backend: {backend})")
+            # Clean up worker thread
+            if self.worker_thread:
+                self.worker_thread.quit()
+                self.worker_thread.wait()
+                
+            logging.info("✅ Application initialization complete")
             
         except Exception as e:
-            logging.error(f"❌ Validation failed: {e}")
-            raise
+            logging.error(f"❌ Failed to complete initialization: {e}")
+            self._show_error_dialog("Startup Error", str(e))
 
-    def create_windows(self):
-        """Create and setup UI windows"""
-        try:
-            logging.info("🖥️ Creating UI windows...")
+    def _on_initialization_error(self, error_message: str):
+        """Handle initialization error."""
+        if self.splash:
+            self.splash.finish(None)
+            self.splash = None
             
-            # Create mixer window first
+        self._show_error_dialog("Initialization Failed", error_message)
+
+    def _create_main_windows(self, visualizer_manager, midi_engine, audio_analyzer):
+        """Create and show main application windows."""
+        try:
+            # Create mixer window (main output)
             self.mixer_window = MixerWindow(
-                self.visualizer_manager,
-                self.settings_manager,
-                self.audio_analyzer,
+                visualizer_manager=visualizer_manager,
+                settings_manager=SettingsManager(),
+                audio_analyzer=audio_analyzer
             )
-            logging.info("✅ Mixer window created")
             
-            # Create control panel (rediseñado para operación MIDI)
+            # Create control panel
             self.control_panel = ControlPanelWindow(
-                self.mixer_window,
-                self.settings_manager,
-                self.midi_engine,
-                self.visualizer_manager,
-                self.audio_analyzer,
-            )
-            logging.info("✅ Control panel created")
-            
-        except Exception as e:
-            logging.error(f"❌ Error creating windows: {e}")
-            raise
-
-    def setup_connections(self):
-        """Setup all signal connections and references - CRITICAL ORDER"""
-        try:
-            logging.info("🔗 Setting up connections and references...")
-            
-            # STEP 1: Set application references in MIDI engine FIRST
-            logging.info("🔗 Setting MIDI engine references...")
-            self.midi_engine.set_application_references(
+                visualizer_manager=visualizer_manager,
                 mixer_window=self.mixer_window,
-                control_panel=self.control_panel
+                settings_manager=SettingsManager(),
+                midi_engine=midi_engine
             )
             
-            # STEP 2: Connect MIDI signals to control panel for UI updates
-            logging.info("🔗 Connecting MIDI signals...")
-            if hasattr(self.midi_engine, 'device_connected'):
-                self.midi_engine.device_connected.connect(self.on_midi_device_connected)
-            if hasattr(self.midi_engine, 'device_disconnected'):
-                self.midi_engine.device_disconnected.connect(self.on_midi_device_disconnected)
-            if hasattr(self.midi_engine, 'bpm_changed'):
-                self.midi_engine.bpm_changed.connect(self.on_bpm_changed)
+            # Position windows nicely
+            self._position_windows()
             
-            # STEP 3: Verify references are set
-            if not self.midi_engine.mixer_window:
-                logging.error("❌ CRITICAL: mixer_window reference not set in MIDI engine!")
-                raise Exception("MIDI engine mixer_window reference failed")
-            
-            if not self.midi_engine.control_panel:
-                logging.error("❌ CRITICAL: control_panel reference not set in MIDI engine!")
-                raise Exception("MIDI engine control_panel reference failed")
-            
-            logging.info("✅ All connections and references established")
-            
-        except Exception as e:
-            logging.error(f"❌ Error setting up connections: {e}")
-            raise
-
-    def setup_debug_connections(self):
-        """Setup debug connections for MIDI monitoring"""
-        try:
-            # Connect to MIDI learning signal for debugging
-            if hasattr(self.midi_engine, 'midi_message_received_for_learning'):
-                self.midi_engine.midi_message_received_for_learning.connect(self.debug_midi_message)
-            
-            # Connect to raw MIDI messages for activity monitoring
-            if hasattr(self.midi_engine, 'midi_message_received'):
-                self.midi_engine.midi_message_received.connect(self.debug_raw_midi_message)
-            
-            logging.info("🛠 Debug connections established")
-            
-        except Exception as e:
-            logging.warning(f"⚠️ Could not setup debug connections: {e}")
-
-    def debug_midi_message(self, message_key):
-        """Debug method to log all MIDI messages and check mappings"""
-        try:
-            logging.debug(f"🎹 MIDI Learning Signal: {message_key}")
-
-            # Look up mapping information using the MIDI lookup table
-            mapping_entry = getattr(self.midi_engine, 'midi_lookup', {}).get(message_key)
-            if mapping_entry:
-                action_id, mapping_data = mapping_entry
-                action_type = mapping_data.get('type', 'unknown')
-                params = mapping_data.get('params', {})
-                logging.debug(f"🎯 Found mapping: {action_id} -> {action_type} {params}")
-            else:
-                logging.debug(f"🔍 No mapping found for: {message_key}")
-                
-        except Exception as e:
-            logging.error(f"Error in debug_midi_message: {e}")
-
-    def debug_raw_midi_message(self, msg):
-        """Debug raw MIDI messages"""
-        try:
-            if hasattr(msg, 'type'):
-                if msg.type in ['note_on', 'note_off', 'control_change']:
-                    logging.debug(f"🎼 Raw MIDI: {msg.type} - {msg}")
-        except Exception as e:
-            logging.error(f"Error in debug_raw_midi_message: {e}")
-
-    def on_midi_device_connected(self, device_name):
-        """Handle MIDI device connection"""
-        try:
-            if hasattr(self, 'control_panel'):
-                self.control_panel.update_midi_device_display(device_name)
-            logging.info(f"🎹 MIDI device connected: {device_name}")
-                
-        except Exception as e:
-            logging.error(f"Error handling MIDI device connection: {e}")
-
-    def on_midi_device_disconnected(self, device_name):
-        """Handle MIDI device disconnection"""
-        try:
-            if hasattr(self, 'control_panel'):
-                self.control_panel.update_midi_device_display(None)
-            logging.info(f"🎹 MIDI device disconnected: {device_name}")
-        except Exception as e:
-            logging.error(f"Error handling MIDI device disconnection: {e}")
-
-    def on_bpm_changed(self, bpm):
-        """Handle BPM change"""
-        try:
-            if hasattr(self, 'control_panel'):
-                # Update BPM display if control panel has this method
-                if hasattr(self.control_panel, 'update_bpm_display'):
-                    self.control_panel.update_bpm_display(bpm)
-            logging.debug(f"🥁 BPM updated: {bpm:.1f}")
-        except Exception as e:
-            logging.error(f"Error handling BPM change: {e}")
-
-    def auto_connect_devices(self):
-        """Auto-connect previously saved devices"""
-        try:
-            logging.info("🔌 Auto-connecting saved devices...")
-            
-            # Auto-connect MIDI device
-            last_midi_device = self.settings_manager.get_setting("last_midi_device", "")
-            if last_midi_device:
-                available_midi = self.midi_engine.list_input_ports()
-                logging.debug(f"Available MIDI devices: {available_midi}")
-                
-                if last_midi_device in available_midi:
-                    if self.midi_engine.open_input_port(last_midi_device):
-                        logging.info(f"✅ Auto-connected to MIDI device: {last_midi_device}")
-                    else:
-                        logging.warning(f"⚠️ Failed to auto-connect to MIDI device: {last_midi_device}")
-                else:
-                    logging.info(f"❌ Previously used MIDI device '{last_midi_device}' not available")
-            else:
-                logging.info("ℹ️ No MIDI device saved for auto-connection")
-            
-            # Auto-connect audio device
-            last_audio_device = self.settings_manager.get_setting("audio_settings.input_device", "")
-            if last_audio_device:
-                try:
-                    available_audio = self.audio_analyzer.get_available_devices()
-                    logging.debug(f"Available audio devices: {len(available_audio)} devices")
-                    
-                    for device in available_audio:
-                        device_text = f"{device['name']} ({device['channels']} ch)"
-                        if device_text == last_audio_device:
-                            self.audio_analyzer.set_input_device(device['index'])
-                            self.audio_analyzer.start_analysis()
-                            logging.info(f"✅ Auto-connected to audio device: {last_audio_device}")
-                            break
-                    else:
-                        logging.info(f"❌ Previously used audio device '{last_audio_device}' not available")
-                except Exception as e:
-                    logging.warning(f"⚠️ Error auto-connecting audio device: {e}")
-            else:
-                logging.info("ℹ️ No audio device saved for auto-connection")
-                
-        except Exception as e:
-            logging.error(f"Error in auto_connect_devices: {e}")
-
-    def show_critical_error(self, title, message):
-        """Show critical error dialog"""
-        try:
-            app = QApplication.instance()
-            if app:
-                QMessageBox.critical(None, title, message)
-        except:
-            print(f"CRITICAL ERROR: {title} - {message}")
-
-    def show_windows(self):
-        """Show both windows with proper positioning"""
-        try:
-            logging.info("🖥️ Showing application windows...")
-            
-            # Show mixer window first
+            # Show windows
             self.mixer_window.show()
-            
-            # Show control panel
             self.control_panel.show()
             
-            # Apply saved window positions
-            QTimer.singleShot(200, self.apply_window_positions)
+            # Bring to front
+            self.mixer_window.raise_()
+            self.mixer_window.activateWindow()
             
-            # IMPORTANT: Auto-connect devices AFTER windows are shown and connections established
-            QTimer.singleShot(1000, self.auto_connect_devices)
-
-            # Only load a test visualizer when explicitly requested
-            if os.getenv("AVP_LOAD_TEST_VISUALS") == "1":
-                QTimer.singleShot(2000, self.load_test_visualizers)
-            
-            logging.info("✅ Windows displayed")
+            logging.info("✅ Main windows created and shown")
             
         except Exception as e:
-            logging.error(f"Error showing windows: {e}")
+            logging.error(f"❌ Failed to create main windows: {e}")
             raise
 
-    def load_test_visualizers(self):
-        """Load a test visualizer to verify the rendering pipeline (debug only)"""
-        try:
-            logging.info("🎨 Loading test visualizers...")
+    def _position_windows(self):
+        """Position windows in an optimal layout."""
+        if self.mixer_window and self.control_panel:
+            # Get screen geometry
+            screen = self.app.primaryScreen().geometry()
             
-            # Get available visualizers
-            visualizers = self.visualizer_manager.get_visualizer_names()
-            if not visualizers:
-                logging.error("❌ No visualizers available for testing!")
+            # Position mixer window (left side)
+            mixer_width = min(800, screen.width() // 2)
+            mixer_height = min(600, screen.height() - 100)
+            self.mixer_window.resize(mixer_width, mixer_height)
+            self.mixer_window.move(50, 50)
+            
+            # Position control panel (right side)
+            panel_width = min(400, screen.width() // 3)
+            panel_height = mixer_height
+            self.control_panel.resize(panel_width, panel_height)
+            self.control_panel.move(mixer_width + 70, 50)
+
+    def _show_error_dialog(self, title: str, message: str):
+        """Show error dialog with modern styling."""
+        msg_box = QMessageBox()
+        msg_box.setIcon(QMessageBox.Icon.Critical)
+        msg_box.setWindowTitle(title)
+        msg_box.setText(message)
+        msg_box.setDetailedText(f"Check the log file for more details: audiovisualizer.log")
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg_box.exec()
+
+    def setup_error_handling(self):
+        """Set up global error handling."""
+        def handle_exception(exc_type, exc_value, exc_traceback):
+            if issubclass(exc_type, KeyboardInterrupt):
+                sys.__excepthook__(exc_type, exc_value, exc_traceback)
                 return
-            
-            # Try to load a simple visualizer on Deck A for testing
-            test_visualizer = None
-            preferred_order = ['Intro Background', 'Abstract Lines', 'Geometric Particles']
-            
-            for preferred in preferred_order:
-                if preferred in visualizers:
-                    test_visualizer = preferred
-                    break
-            
-            if not test_visualizer:
-                # Use the first available visualizer
-                test_visualizer = visualizers[0]
-            
-            logging.info(f"🧪 Loading test visualizer '{test_visualizer}' on Deck A")
-            
-            # Load the test visualizer on Deck A
-            self.mixer_window.safe_set_deck_visualizer('A', test_visualizer)
-            
-            # Wait a bit and check if it worked
-            QTimer.singleShot(1000, lambda: self.verify_test_visualizer(test_visualizer))
-            
-        except Exception as e:
-            logging.error(f"Error loading test visualizers: {e}")
-
-    def verify_test_visualizer(self, expected_visualizer):
-        """Verify that the test visualizer loaded correctly"""
-        try:
-            current_visualizers = self.mixer_window.get_current_visualizers()
-            deck_a_visualizer = current_visualizers.get('A')
-            
-            if deck_a_visualizer == expected_visualizer:
-                logging.info(f"✅ Test visualizer '{expected_visualizer}' loaded successfully on Deck A")
                 
-                # Get deck status for additional verification
-                deck_status = self.mixer_window.get_deck_status('A')
-                logging.info(f"🎮 Deck A Status: {deck_status}")
-                
-                if deck_status.get('is_ready'):
-                    logging.info("✅ Deck A is ready and should be rendering")
-                else:
-                    logging.warning("⚠️ Deck A loaded visualizer but is not ready")
-                    
-            else:
-                logging.error(f"❌ Test visualizer failed to load. Expected: '{expected_visualizer}', Got: '{deck_a_visualizer}'")
-                
-                # Try troubleshooting
-                self.troubleshoot_visualizer_loading()
-                
-        except Exception as e:
-            logging.error(f"Error verifying test visualizer: {e}")
-
-    def troubleshoot_visualizer_loading(self):
-        """Troubleshoot visualizer loading issues"""
-        try:
-            logging.info("🔧 Troubleshooting visualizer loading...")
+            logging.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
             
-            # Check OpenGL status
-            if self.mixer_window.gl_initialized:
-                logging.info("✅ Mixer window OpenGL is initialized")
-            else:
-                logging.error("❌ Mixer window OpenGL is NOT initialized")
-            
-            # Check deck status
-            if self.mixer_window.deck_a:
-                deck_info = self.mixer_window.deck_a.get_deck_info()
-                logging.info(f"🎮 Deck A Info: {deck_info}")
-                
-                if deck_info.get('gl_initialized'):
-                    logging.info("✅ Deck A OpenGL is initialized")
-                else:
-                    logging.error("❌ Deck A OpenGL is NOT initialized")
-                    
-                # Try to force initialization
-                logging.info("🔄 Attempting to force Deck A refresh...")
-                self.mixer_window.deck_a.force_refresh()
-            else:
-                logging.error("❌ Deck A is None!")
-            
-            # Check visualizer manager
-            available = self.visualizer_manager.get_visualizer_names()
-            logging.info(f"🎨 Available visualizers: {len(available)} - {available[:5]}...")
-            
-        except Exception as e:
-            logging.error(f"Error in troubleshooting: {e}")
-
-    def apply_window_positions(self):
-        """Apply saved window positions"""
-        try:
-            # Get saved positions
-            cp_position = self.settings_manager.get_window_position("control_panel")
-            mixer_position = self.settings_manager.get_window_position("main_window")
-            
-            # Apply control panel position
-            if cp_position and hasattr(self, 'control_panel'):
-                self.control_panel.setGeometry(
-                    cp_position.get('x', 50),
-                    cp_position.get('y', 50),
-                    cp_position.get('width', 1600),
-                    cp_position.get('height', 900)
+            if self.app:
+                self._show_error_dialog(
+                    "Unexpected Error",
+                    f"An unexpected error occurred: {exc_value}"
                 )
-            
-            # Apply mixer window position
-            if mixer_position:
-                self.mixer_window.setGeometry(
-                    mixer_position.get('x', 100),
-                    mixer_position.get('y', 100),
-                    mixer_position.get('width', 800),
-                    mixer_position.get('height', 600)
-                )
-                
-            logging.debug("✅ Window positions applied")
-            
-        except Exception as e:
-            logging.error(f"Error applying window positions: {e}")
+        
+        sys.excepthook = handle_exception
 
-    def save_window_positions(self):
-        """Save current window positions"""
+    def run(self):
+        """Run the application."""
         try:
-            # Save control panel position
-            if hasattr(self, 'control_panel'):
-                cp_geometry = self.control_panel.geometry()
-                self.settings_manager.set_window_position(
-                    "control_panel",
-                    cp_geometry.x(),
-                    cp_geometry.y(), 
-                    cp_geometry.width(),
-                    cp_geometry.height()
-                )
+            # Set up error handling
+            self.setup_error_handling()
             
-            # Save mixer window position
-            mixer_geometry = self.mixer_window.geometry()
-            self.settings_manager.set_window_position(
-                "main_window",
-                mixer_geometry.x(),
-                mixer_geometry.y(),
-                mixer_geometry.width(), 
-                mixer_geometry.height()
-            )
+            # Initialize components
+            self.initialize_components()
             
-            logging.debug("✅ Window positions saved")
+            # Run event loop
+            logging.info("🎬 Starting application event loop...")
+            exit_code = self.app.exec()
+            
+            logging.info(f"📋 Application finished with exit code: {exit_code}")
+            return exit_code
             
         except Exception as e:
-            logging.error(f"Error saving window positions: {e}")
-
-    def apply_gpu_selection(self, device_index, backend_type=None):
-        """Apply GPU selection changes to the mixer window"""
-        try:
-            logging.info(f"🎮 Applying GPU selection: index={device_index}, backend={backend_type}")
-            
-            if self.mixer_window:
-                self.mixer_window.apply_gpu_selection(device_index, backend_type)
-                
-            # Save the settings
-            if backend_type:
-                self.settings_manager.set_setting("visual_settings.backend", backend_type)
-            self.settings_manager.set_setting("visual_settings.gpu_index", device_index)
-            
-            logging.info("✅ GPU selection applied")
-            
-        except Exception as e:
-            logging.error(f"Error applying GPU selection: {e}")
+            logging.error(f"❌ Application run failed: {e}")
+            if self.app:
+                self._show_error_dialog("Critical Error", str(e))
+            return 1
+        finally:
+            self.cleanup()
 
     def cleanup(self):
-        """Cleanup application resources"""
+        """Clean up application resources."""
         try:
             logging.info("🧹 Cleaning up application resources...")
             
-            # Save window positions
-            self.save_window_positions()
-            
-            # Close MIDI connection
-            if hasattr(self, 'midi_engine') and self.midi_engine:
-                self.midi_engine.close_input_port()
-                logging.debug("✅ MIDI connection closed")
-            
-            # Stop audio analysis
-            if hasattr(self, 'audio_analyzer') and self.audio_analyzer:
-                self.audio_analyzer.stop_analysis()
-                logging.debug("✅ Audio analysis stopped")
-            
-            # Cleanup mixer window OpenGL resources
-            if hasattr(self, 'mixer_window') and self.mixer_window:
-                self.mixer_window.cleanup()
-                logging.debug("✅ OpenGL resources cleaned")
-            
-            # Cleanup control panel
-            if hasattr(self, 'control_panel') and self.control_panel:
-                self.control_panel.cleanup()
-                logging.debug("✅ Control panel cleaned")
-            
-            logging.info("✅ Cleanup completed")
+            # Clean up worker thread
+            if self.worker_thread and self.worker_thread.isRunning():
+                self.worker_thread.quit()
+                self.worker_thread.wait(3000)  # Wait up to 3 seconds
+                
+            # Close windows
+            if self.mixer_window:
+                self.mixer_window.close()
+            if self.control_panel:
+                self.control_panel.close()
+                
+            # Close splash if still open
+            if self.splash:
+                self.splash.close()
+                
+            logging.info("✅ Cleanup complete")
             
         except Exception as e:
-            logging.error(f"Error during cleanup: {e}")
+            logging.error(f"❌ Cleanup failed: {e}")
 
-    def run(self):
-        """Run the application"""
+
+def main():
+    """Main entry point with enhanced error handling."""
+    # Set up platform-specific optimizations
+    if platform.system() == "Windows":
+        # Enable high DPI awareness on Windows
         try:
-            logging.info("🚀 Starting Audio Visualizer Pro...")
-            
-            # Show windows
-            self.show_windows()
-            
-            # Run the application
-            result = self.app.exec()
-            
-            logging.info(f"📱 Application finished with exit code: {result}")
-            return result
-            
-        except Exception as e:
-            logging.error(f"Error running application: {e}")
-            return 1
-        finally:
-            # Always cleanup
-            self.cleanup()
+            import ctypes
+            ctypes.windll.shcore.SetProcessDpiAwareness(1)
+        except:
+            pass
+    
+    # Check Python version
+    if sys.version_info < (3, 8):
+        print("❌ Python 3.8 or higher is required")
+        return 1
+    
+    # Check for required dependencies
+    required_modules = ['PySide6', 'numpy', 'taichi']
+    missing_modules = []
+    
+    for module in required_modules:
+        try:
+            __import__(module)
+        except ImportError:
+            missing_modules.append(module)
+    
+    if missing_modules:
+        print(f"❌ Missing required modules: {', '.join(missing_modules)}")
+        print("Please install them using: pip install " + " ".join(missing_modules))
+        return 1
+    
+    # Create and run application
+    try:
+        app = MainApplication()
+        return app.run()
+    except Exception as e:
+        logging.error(f"❌ Failed to start application: {e}")
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
