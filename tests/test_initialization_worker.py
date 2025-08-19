@@ -1,29 +1,67 @@
 from pathlib import Path
 import sys
 import types
+import importlib
+
+from PySide6.QtCore import QCoreApplication, QThread
+
 
 repo_root = Path(__file__).resolve().parents[1]
 sys.path.append(str(repo_root))
 
-# Stub out heavy dependencies before importing the module under test
+# Stub heavy dependencies before importing the module under test
+midi_pkg = types.ModuleType('midi')
+midi_pkg.__path__ = []
+midi_engine_mod = types.ModuleType('midi.midi_engine')
+midi_pkg.midi_engine = midi_engine_mod
+
+visuals_pkg = types.ModuleType('visuals')
+visuals_pkg.__path__ = []
+visualizer_mod = types.ModuleType('visuals.visualizer_manager')
+visuals_pkg.visualizer_manager = visualizer_mod
+
+audio_pkg = types.ModuleType('audio')
+audio_pkg.__path__ = []
+audio_analyzer_mod = types.ModuleType('audio.audio_analyzer')
+audio_pkg.audio_analyzer = audio_analyzer_mod
+
+utils_pkg = types.ModuleType('utils')
+utils_pkg.__path__ = []
+settings_mod = types.ModuleType('utils.settings_manager')
+utils_pkg.settings_manager = settings_mod
+
 stub_modules = {
-    'midi': types.ModuleType('midi'),
-    'midi.midi_engine': types.ModuleType('midi.midi_engine'),
-    'visuals': types.ModuleType('visuals'),
-    'visuals.visualizer_manager': types.ModuleType('visuals.visualizer_manager'),
-    'audio': types.ModuleType('audio'),
-    'audio.audio_analyzer': types.ModuleType('audio.audio_analyzer'),
-    'utils': types.ModuleType('utils'),
-    'utils.settings_manager': types.ModuleType('utils.settings_manager'),
+    'midi': midi_pkg,
+    'midi.midi_engine': midi_engine_mod,
+    'visuals': visuals_pkg,
+    'visuals.visualizer_manager': visualizer_mod,
+    'audio': audio_pkg,
+    'audio.audio_analyzer': audio_analyzer_mod,
+    'utils': utils_pkg,
+    'utils.settings_manager': settings_mod,
+
     'ui.mixer_window': types.ModuleType('ui.mixer_window'),
     'ui.control_panel_window': types.ModuleType('ui.control_panel_window'),
 }
 
-stub_modules['midi.midi_engine'].MidiEngine = object
-stub_modules['midi.midi_engine'].DummyMidiEngine = object
-stub_modules['visuals.visualizer_manager'].VisualizerManager = object
-stub_modules['audio.audio_analyzer'].AudioAnalyzer = object
-stub_modules['audio.audio_analyzer'].DummyAudioAnalyzer = object
+
+class _FailOnCall:
+    """Sentinel that fails if instantiated."""
+
+    def __init__(self, *args, **kwargs):  # pragma: no cover - should never run
+        raise AssertionError("Hardware classes should not be instantiated in worker")
+
+
+class DummyVisualizerManager:
+    pass
+
+
+stub_modules['midi.midi_engine'].MidiEngine = _FailOnCall
+stub_modules['midi.midi_engine'].DummyMidiEngine = _FailOnCall
+stub_modules['visuals.visualizer_manager'].VisualizerManager = DummyVisualizerManager
+stub_modules['audio.audio_analyzer'].AudioAnalyzer = _FailOnCall
+stub_modules['audio.audio_analyzer'].DummyAudioAnalyzer = _FailOnCall
+
 stub_modules['utils.settings_manager'].SettingsManager = object
 stub_modules['ui.mixer_window'].MixerWindow = object
 stub_modules['ui.control_panel_window'].ControlPanelWindow = object
@@ -34,14 +72,20 @@ for name, module in stub_modules.items():
 from ui.main_application import InitializationWorker
 
 
-class DummySettings:
-    pass
+def test_initialization_worker_emits_visualizer_manager(monkeypatch):
+    # Avoid actual module reloading and thread sleeping
+    monkeypatch.setattr(importlib, 'reload', lambda m: m)
+    monkeypatch.setattr(QThread, 'msleep', staticmethod(lambda ms: None))
 
+    app = QCoreApplication.instance() or QCoreApplication([])
 
-def test_initialization_complete_emits_visualizer_manager():
-    worker = InitializationWorker(DummySettings())
+    worker = InitializationWorker(object())
     received = []
-    worker.initialization_complete.connect(lambda vm: received.append(vm))
-    sentinel = object()
-    worker.initialization_complete.emit(sentinel)
-    assert received == [sentinel]
+    worker.initialization_complete.connect(received.append)
+
+    worker.run()
+
+    assert len(received) == 1
+    assert isinstance(received[0], DummyVisualizerManager)
+
+

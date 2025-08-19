@@ -72,16 +72,7 @@ class InitializationWorker(QObject):
             # Initialize visualizer manager
             visualizer_manager = VisualizerManager()
 
-            self.progress_updated.emit(60, "Initializing hardware...")
-            use_dummy = bool(os.getenv("AVP_DUMMY_HARDWARE"))
-            if use_dummy:
-                audio_analyzer = DummyAudioAnalyzer()
-                midi_engine = DummyMidiEngine(self.settings_manager, visualizer_manager)
-            else:
-                audio_analyzer = AudioAnalyzer()
-                midi_engine = MidiEngine(self.settings_manager, visualizer_manager)
-
-            self.progress_updated.emit(90, "Finalizing setup...")
+            self.progress_updated.emit(60, "Finalizing setup...")
 
             # Small delay to show progress
             QThread.msleep(500)
@@ -338,8 +329,13 @@ class MainApplication:
             # Create QObject-based components on the main thread to avoid
             # thread affinity issues that would prevent the splash screen from
             # closing and the windows from showing.
-            audio_analyzer = AudioAnalyzer()
-            midi_engine = MidiEngine(self.worker.settings_manager, visualizer_manager)
+            use_dummy = bool(os.getenv("AVP_DUMMY_HARDWARE"))
+            if use_dummy:
+                audio_analyzer = DummyAudioAnalyzer()
+                midi_engine = DummyMidiEngine(self.worker.settings_manager, visualizer_manager)
+            else:
+                audio_analyzer = AudioAnalyzer()
+                midi_engine = MidiEngine(self.worker.settings_manager, visualizer_manager)
             logging.info("Hardware components created on main thread")
 
             # Close splash screen
