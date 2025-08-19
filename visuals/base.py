@@ -16,17 +16,64 @@ try:  # pragma: no cover - exercised indirectly in tests
     from OpenGL.GL import (
         GL_FLOAT,
         GL_LUMINANCE,
+        GL_RED,
+        GL_TEXTURE_2D,
         GL_UNPACK_ALIGNMENT,
+        GL_TEXTURE_MIN_FILTER,
+        GL_TEXTURE_MAG_FILTER,
+        GL_LINEAR,
+        GL_TRIANGLE_STRIP,
         glDrawPixels,
         glPixelStorei,
+        glGenTextures,
+        glBindTexture,
+        glTexImage2D,
+        glTexParameteri,
+        glBegin,
+        glEnd,
+        glTexCoord2f,
+        glVertex2f,
+        glEnable,
+        glDisable,
     )
 except Exception:  # pragma: no cover - gracefully handle missing OpenGL
-    GL_FLOAT = GL_LUMINANCE = GL_UNPACK_ALIGNMENT = 0
+    GL_FLOAT = GL_LUMINANCE = GL_RED = GL_TEXTURE_2D = GL_UNPACK_ALIGNMENT = 0
+    GL_TEXTURE_MIN_FILTER = GL_TEXTURE_MAG_FILTER = GL_LINEAR = GL_TRIANGLE_STRIP = 0
 
     def glDrawPixels(*_args, **_kwargs):
         return None
 
     def glPixelStorei(*_args, **_kwargs):
+        return None
+
+    def glGenTextures(*_args, **_kwargs):
+        return 0
+
+    def glBindTexture(*_args, **_kwargs):
+        return None
+
+    def glTexImage2D(*_args, **_kwargs):
+        return None
+
+    def glTexParameteri(*_args, **_kwargs):
+        return None
+
+    def glBegin(*_args, **_kwargs):
+        return None
+
+    def glEnd(*_args, **_kwargs):
+        return None
+
+    def glTexCoord2f(*_args, **_kwargs):
+        return None
+
+    def glVertex2f(*_args, **_kwargs):
+        return None
+
+    def glEnable(*_args, **_kwargs):
+        return None
+
+    def glDisable(*_args, **_kwargs):
         return None
 
 from render.taichi_renderer import TaichiRenderer
@@ -48,6 +95,9 @@ class TaichiVisual(BaseVisualizer):
         self.resolution = resolution
         self.renderer = TaichiRenderer(resolution)
         self.setup()
+        # Texture handle used when ``glDrawPixels`` is unavailable.  Created
+        # lazily to avoid requiring an active GL context during construction.
+        self._texture_id: int | None = None
 
     # ------------------------------------------------------------------
     # Life-cycle hooks --------------------------------------------------
@@ -69,14 +119,49 @@ class TaichiVisual(BaseVisualizer):
             self.setup()
 
     def paintGL(self, time: float = 0.0, size: Tuple[int, int] | None = None, backend=None):
-        """Render the Taichi frame and blit it using OpenGL."""
+        """Render the Taichi frame and upload it to the current target."""
         img = self.render()
         # ``TaichiRenderer`` returns an array shaped (width, height)
         h = img.shape[1]
         w = img.shape[0]
+        data = np.ascontiguousarray(img.T)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
-        # Transpose so rows correspond to the Y axis for OpenGL
-        glDrawPixels(w, h, GL_LUMINANCE, GL_FLOAT, np.ascontiguousarray(img.T))
+        try:  # First try the simple legacy path.
+            glDrawPixels(w, h, GL_LUMINANCE, GL_FLOAT, data)
+            return
+        except Exception:
+            # ``glDrawPixels`` is not supported in modern core contexts.  Fall
+            # back to uploading the image to a temporary texture and drawing a
+            # screen-aligned quad.  This keeps Taichi visuals working on
+            # systems where deprecated functionality has been removed.
+            pass
+
+        if self._texture_id is None:
+            self._texture_id = glGenTextures(1)
+            glBindTexture(GL_TEXTURE_2D, self._texture_id)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        else:
+            glBindTexture(GL_TEXTURE_2D, self._texture_id)
+
+        # Upload the grayscale buffer as a single channel texture.
+        glTexImage2D(
+            GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_FLOAT, data
+        )
+
+        glEnable(GL_TEXTURE_2D)
+        glBegin(GL_TRIANGLE_STRIP)
+        glTexCoord2f(0.0, 0.0)
+        glVertex2f(-1.0, -1.0)
+        glTexCoord2f(1.0, 0.0)
+        glVertex2f(1.0, -1.0)
+        glTexCoord2f(0.0, 1.0)
+        glVertex2f(-1.0, 1.0)
+        glTexCoord2f(1.0, 1.0)
+        glVertex2f(1.0, 1.0)
+        glEnd()
+        glDisable(GL_TEXTURE_2D)
+        glBindTexture(GL_TEXTURE_2D, 0)
 
     # ------------------------------------------------------------------
     # Rendering ---------------------------------------------------------
