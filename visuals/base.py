@@ -5,13 +5,29 @@ from __future__ import annotations
 from typing import Tuple
 
 import numpy as np
-from OpenGL.GL import (
-    GL_FLOAT,
-    GL_LUMINANCE,
-    GL_UNPACK_ALIGNMENT,
-    glDrawPixels,
-    glPixelStorei,
-)
+
+# ``PyOpenGL`` is an optional dependency.  Importing it eagerly makes any
+# module that pulls in :mod:`visuals.base` require a working OpenGL runtime
+# which is not available in the headless test environment.  Instead we try to
+# import the symbols lazily and fall back to no-op stubs when OpenGL cannot be
+# loaded.  This allows the render logic to be exercised without an actual GL
+# context (the tests only invoke :meth:`render` and never :meth:`paintGL`).
+try:  # pragma: no cover - exercised indirectly in tests
+    from OpenGL.GL import (
+        GL_FLOAT,
+        GL_LUMINANCE,
+        GL_UNPACK_ALIGNMENT,
+        glDrawPixels,
+        glPixelStorei,
+    )
+except Exception:  # pragma: no cover - gracefully handle missing OpenGL
+    GL_FLOAT = GL_LUMINANCE = GL_UNPACK_ALIGNMENT = 0
+
+    def glDrawPixels(*_args, **_kwargs):
+        return None
+
+    def glPixelStorei(*_args, **_kwargs):
+        return None
 
 from render.taichi_renderer import TaichiRenderer
 from .base_visualizer import BaseVisualizer
