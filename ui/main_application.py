@@ -18,9 +18,9 @@ from PySide6.QtGui import (
 from PySide6.QtCore import QTimer, Qt, QSize, QThread, Signal, QObject
 
 from utils.settings_manager import SettingsManager
-from midi.midi_engine import MidiEngine
+from midi.midi_engine import MidiEngine, DummyMidiEngine
 from visuals.visualizer_manager import VisualizerManager
-from audio.audio_analyzer import AudioAnalyzer
+from audio.audio_analyzer import AudioAnalyzer, DummyAudioAnalyzer
 from .mixer_window import MixerWindow
 from .control_panel_window import ControlPanelWindow
 
@@ -50,8 +50,8 @@ class InitializationWorker(QObject):
     """Worker thread for heavy initialization tasks."""
     
     progress_updated = Signal(int, str)  # progress percentage, status message
-    # Emit only the visualizer manager once heavy loading is finished
-    initialization_complete = Signal(object)
+    # Emit visualizer manager and hardware components
+    initialization_complete = Signal(object, object, object)
     error_occurred = Signal(str)
 
     def __init__(self, settings_manager):
@@ -71,6 +71,16 @@ class InitializationWorker(QObject):
 
             # Initialize visualizer manager
             visualizer_manager = VisualizerManager()
+
+            self.progress_updated.emit(60, "Initializing hardware...")
+            use_dummy = bool(os.getenv("AVP_DUMMY_HARDWARE"))
+            if use_dummy:
+                audio_analyzer = DummyAudioAnalyzer()
+                midi_engine = DummyMidiEngine(self.settings_manager, visualizer_manager)
+            else:
+                audio_analyzer = AudioAnalyzer()
+                midi_engine = MidiEngine(self.settings_manager, visualizer_manager)
+
             self.progress_updated.emit(90, "Finalizing setup...")
 
             # Small delay to show progress
@@ -81,6 +91,7 @@ class InitializationWorker(QObject):
             # Emit only the manager; QObject-based components will be created on
             # the main thread to avoid thread affinity issues
             self.initialization_complete.emit(visualizer_manager)
+
 
         except Exception as e:
             logging.error(f"Initialization failed: {e}")
@@ -293,11 +304,11 @@ class MainApplication:
             self.worker_thread = QThread()
             self.worker = InitializationWorker(settings_manager)
             self.worker.moveToThread(self.worker_thread)
-            
+
             # Connect signals
             self.worker.progress_updated.connect(self._update_splash_progress)
             self.worker.initialization_complete.connect(
-                lambda vm: QTimer.singleShot(0, lambda: self._on_initialization_complete(vm))
+                lambda vm, aa, me: QTimer.singleShot(0, lambda: self._on_initialization_complete(vm, aa, me))
             )
             self.worker.error_occurred.connect(self._on_initialization_error)
             self.worker_thread.started.connect(self.worker.run)
@@ -319,7 +330,7 @@ class MainApplication:
                                   QColor(255, 255, 255))
             self.app.processEvents()
 
-    def _on_initialization_complete(self, visualizer_manager):
+    def _on_initialization_complete(self, visualizer_manager, audio_analyzer, midi_engine):
         """Handle successful initialization."""
         try:
             logging.info("Initialization worker signaled completion")
@@ -332,13 +343,13 @@ class MainApplication:
             logging.info("Hardware components created on main thread")
 
             # Close splash screen
+
             if self.splash:
                 self.splash.close()
                 self.splash.deleteLater()
                 self.splash = None
                 logging.info("Splash screen closed")
 
-            # Create main windows
             self._create_main_windows(visualizer_manager, midi_engine, audio_analyzer)
 
             if self.worker:
@@ -355,6 +366,7 @@ class MainApplication:
         """Handle initialization error."""
         if self.splash:
             # Ensure the splash is closed even when initialization fails
+
             self.splash.close()
             self.splash.deleteLater()
             self.splash = None
@@ -488,6 +500,7 @@ class MainApplication:
             if self.worker:
                 self.worker.deleteLater()
                 self.worker = None
+
                 
             # Close windows
             if self.mixer_window:
