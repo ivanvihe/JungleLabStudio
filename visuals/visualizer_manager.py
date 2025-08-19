@@ -85,7 +85,7 @@ class VisualizerManager:
             if self.visualizers:
                 logging.info(f"Available visualizers:")
                 for name in self.visualizers.keys():
-                    logging.info(f"   • {name}")
+                    logging.info(f"   - {name}")
             else:
                 logging.error("No visualizers loaded! Application may not work correctly.")
                 

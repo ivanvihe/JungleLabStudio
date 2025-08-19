@@ -294,7 +294,9 @@ class MainApplication:
             
             # Connect signals
             self.worker.progress_updated.connect(self._update_splash_progress)
-            self.worker.initialization_complete.connect(self._on_initialization_complete)
+            self.worker.initialization_complete.connect(
+                lambda vm: QTimer.singleShot(0, lambda: self._on_initialization_complete(vm))
+            )
             self.worker.error_occurred.connect(self._on_initialization_error)
             self.worker_thread.started.connect(self.worker.run)
             
@@ -343,6 +345,41 @@ class MainApplication:
         except Exception as e:
             logging.error(f"Failed to complete initialization: {e}")
             self._show_error_dialog("Startup Error", str(e))
+
+    def _on_initialization_error(self, error_message: str):
+        """Handle initialization error."""
+        if self.splash:
+            # Ensure the splash is closed even when initialization fails
+            self.splash.close()
+            self.splash.deleteLater()
+            self.splash = None
+            
+        self._show_error_dialog("Initialization Failed", error_message)
+
+    def cleanup(self):
+        """Clean up application resources."""
+        try:
+            logging.info("Cleaning up application resources...")
+            
+            # Clean up worker thread
+            if self.worker_thread and self.worker_thread.isRunning():
+                self.worker_thread.quit()
+                self.worker_thread.wait(3000)  # Wait up to 3 seconds
+                
+            # Close windows
+            if self.mixer_window:
+                self.mixer_window.close()
+            if self.control_panel:
+                self.control_panel.close()
+                
+            # Close splash if still open
+            if self.splash:
+                self.splash.close()
+                
+            logging.info("Cleanup complete")
+            
+        except Exception as e:
+            logging.error(f"Cleanup failed: {e}")
 
     def _on_initialization_error(self, error_message: str):
         """Handle initialization error."""
