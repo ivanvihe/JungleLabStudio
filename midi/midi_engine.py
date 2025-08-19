@@ -79,9 +79,10 @@ class MidiEngine(QObject):
 
         # Timer para procesar mensajes MIDI en cola
         self._queue_timer = QTimer()
-        self._queue_timer.setInterval(1)
+        self._queue_timer.setInterval(10)
         self._queue_timer.timeout.connect(self._process_midi_queue)
-        self._queue_timer.start()
+        # Iniciar tras un pequeño retraso para no saturar el arranque
+        QTimer.singleShot(100, self._queue_timer.start)
 
         # Configurar mappings por defecto después de inicialización
         QTimer.singleShot(1000, self.setup_default_mappings)
@@ -1311,3 +1312,25 @@ class MidiEngine(QObject):
             self.close_input_port()
         except:
             pass
+
+
+class DummyMidiEngine(QObject):
+    """Simplified engine that bypasses hardware access."""
+
+    midi_message_received = Signal(object)
+    control_changed = Signal(str, int)
+    note_on_received = Signal(int, int)
+    note_off_received = Signal(int)
+    preset_loaded_on_deck = Signal(str, str)
+    midi_message_received_for_learning = Signal(str)
+    bpm_changed = Signal(float)
+    device_connected = Signal(str)
+    device_disconnected = Signal(str)
+    mapped_action_triggered = Signal(str, int)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        logging.info("DummyMidiEngine initialized")
+
+    def cleanup(self):
+        pass

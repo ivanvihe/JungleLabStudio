@@ -276,6 +276,31 @@ class AudioAnalyzer(QObject):
         self.cleanup()
 
 
+class DummyAudioAnalyzer(QObject):
+    """Minimal analyzer that emits silence for debugging."""
+
+    audio_data_ready = Signal(np.ndarray)
+    fft_data_ready = Signal(np.ndarray)
+    level_changed = Signal(float)
+
+    def __init__(self, chunk_size=1024):
+        super().__init__()
+        self.chunk_size = chunk_size
+        self._timer = QTimer()
+        self._timer.setInterval(100)
+        self._timer.timeout.connect(self._emit_silence)
+        self._timer.start()
+
+    def _emit_silence(self):
+        audio = np.zeros(self.chunk_size, dtype=np.float32)
+        self.audio_data_ready.emit(audio)
+        self.fft_data_ready.emit(np.zeros(self.chunk_size // 2 + 1, dtype=np.float32))
+        self.level_changed.emit(0.0)
+
+    def cleanup(self):
+        self._timer.stop()
+
+
 # Try to import pyaudio and create full version if available
 try:
     import pyaudio
