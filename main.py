@@ -26,7 +26,7 @@ try:
     from opengl_fixes import init_opengl_debug, get_opengl_info, test_opengl_functionality
     from visuals.render_backend import get_backend_info
 except ImportError as e:
-    print(f"❌ Failed to import required modules: {e}")
+    print(f"Failed to import required modules: {e}")
     print("Make sure all dependencies are installed:")
     print("pip install PySide6 numpy taichi pyopengl")
     sys.exit(1)
@@ -87,28 +87,28 @@ def check_dependencies():
     for module_name, pip_name in required_modules.items():
         try:
             __import__(module_name)
-            logging.info(f"✅ {module_name} available")
+            logging.info(f"{module_name} available")
         except ImportError:
             missing_required.append(pip_name)
-            logging.error(f"❌ {module_name} not found")
+            logging.error(f"{module_name} not found")
     
     # Check optional modules
     for module_name, pip_name in optional_modules.items():
         try:
             __import__(module_name)
-            logging.info(f"✅ {module_name} available (optional)")
+            logging.info(f"{module_name} available (optional)")
         except ImportError:
             missing_optional.append(pip_name)
-            logging.warning(f"⚠️ {module_name} not found (optional)")
+            logging.warning(f"{module_name} not found (optional)")
     
     if missing_required:
-        print("❌ Missing required dependencies:")
-        print(f"   pip install {' '.join(missing_required)}")
+        print("Missing required dependencies:")
+        print(f"  pip install {' '.join(missing_required)}")
         return False
         
     if missing_optional:
-        print("ℹ️ Optional dependencies not found (some features may be limited):")
-        print(f"   pip install {' '.join(missing_optional)}")
+        print("Optional dependencies not found (some features may be limited):")
+        print(f"  pip install {' '.join(missing_optional)}")
     
     return True
 
@@ -117,57 +117,57 @@ def check_system_info():
     """Check and log system information."""
     import platform
     
-    logging.info("📋 System Information:")
-    logging.info(f"   OS: {platform.system()} {platform.release()}")
-    logging.info(f"   Python: {platform.python_version()}")
-    logging.info(f"   Architecture: {platform.machine()}")
+    logging.info("System Information:")
+    logging.info(f"OS: {platform.system()} {platform.release()}")
+    logging.info(f"Python: {platform.python_version()}")
+    logging.info(f"Architecture: {platform.machine()}")
     
     # Check available memory
     try:
         import psutil
         memory = psutil.virtual_memory()
-        logging.info(f"   RAM: {memory.total // (1024**3)} GB ({memory.percent}% used)")
+        logging.info(f"RAM: {memory.total // (1024**3)} GB ({memory.percent}% used)")
     except ImportError:
-        logging.info("   RAM: Unknown (psutil not available)")
+        logging.info("RAM: Unknown (psutil not available)")
 
 
 def test_graphics_backends():
     """Test available graphics backends."""
-    logging.info("🎮 Testing Graphics Backends:")
+    logging.info("Testing Graphics Backends:")
     
     # Test OpenGL
     try:
         opengl_info = get_opengl_info()
         if opengl_info.get('available'):
-            logging.info(f"   OpenGL: {opengl_info['version']} - {opengl_info['renderer']}")
-            logging.info(f"   Core Profile: {opengl_info['core_profile']}")
+            logging.info(f"OpenGL: {opengl_info['version']} - {opengl_info['renderer']}")
+            logging.info(f"Core Profile: {opengl_info['core_profile']}")
             
             # Test functionality
             func_tests = test_opengl_functionality()
             for test, result in func_tests.items():
                 if result is True:
-                    logging.info(f"     ✅ {test}")
+                    logging.info(f"     {test}")
                 elif result is False:
-                    logging.warning(f"     ❌ {test}")
+                    logging.warning(f"     {test}")
                 else:
-                    logging.info(f"     ➖ {test} (not supported)")
+                    logging.info(f"     {test} (not supported)")
         else:
-            logging.warning("   OpenGL: Not available")
+            logging.warning("OpenGL: Not available")
     except Exception as e:
-        logging.error(f"   OpenGL test failed: {e}")
+        logging.error(f"OpenGL test failed: {e}")
     
     # Test render backends
     try:
         backend_info = get_backend_info()
-        logging.info(f"   Available backends: {backend_info['available_backends']}")
-        logging.info(f"   Recommended: {backend_info['recommended_backend']}")
+        logging.info(f"Available backends: {backend_info['available_backends']}")
+        logging.info(f"Recommended: {backend_info['recommended_backend']}")
         
         for backend, test_result in backend_info['backend_tests'].items():
-            status = "✅" if test_result['success'] else "❌"
-            logging.info(f"     {status} {backend}: {test_result['message']}")
+            status = "OK" if test_result['success'] else "FAIL"
+            logging.info(f"    {status} {backend}: {test_result['message']}")
             
     except Exception as e:
-        logging.error(f"   Backend test failed: {e}")
+        logging.error(f"Backend test failed: {e}")
 
 
 def handle_exception(exc_type, exc_value, exc_traceback):
@@ -176,7 +176,7 @@ def handle_exception(exc_type, exc_value, exc_traceback):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
     
-    logging.critical("💥 Uncaught exception occurred!", exc_info=(exc_type, exc_value, exc_traceback))
+    logging.critical("Uncaught exception occurred!", exc_info=(exc_type, exc_value, exc_traceback))
     
     # Try to show error dialog if possible
     try:
@@ -197,20 +197,20 @@ def handle_exception(exc_type, exc_value, exc_traceback):
 
 def main():
     """Enhanced main entry point."""
-    print("🚀 Starting Audio Visualizer Pro...")
+    print("Starting Audio Visualizer Pro...")
     print("=" * 50)
     
     # Set up logging first
     log_file = setup_logging()
-    logging.info("🚀 Audio Visualizer Pro starting...")
-    logging.info(f"📝 Log file: {log_file}")
+    logging.info("Audio Visualizer Pro starting...")
+    logging.info(f"Log file: {log_file}")
     
     # Set global exception handler
     sys.excepthook = handle_exception
     
     try:
         # System checks
-        logging.info("🔍 Performing system checks...")
+        logging.info("Performing system checks...")
         check_system_info()
         
         if not check_dependencies():
@@ -220,40 +220,40 @@ def main():
         test_graphics_backends()
         
         # Initialize OpenGL debugging
-        logging.info("🎮 Initializing graphics...")
+        logging.info("Initializing graphics...")
         init_opengl_debug()
         
         # Create and run application
-        logging.info("🏗️ Creating application...")
+        logging.info("Creating application...")
         app = MainApplication()
         
-        logging.info("▶️ Starting application...")
+        logging.info("Starting application...")
         exit_code = app.run()
         
-        logging.info(f"🏁 Application finished with exit code: {exit_code}")
+        logging.info(f"Application finished with exit code: {exit_code}")
         return exit_code
         
     except KeyboardInterrupt:
-        logging.info("⏹️ Application interrupted by user")
+        logging.info("Application interrupted by user")
         return 0
         
     except Exception as e:
-        logging.critical(f"💥 Critical error in main: {e}", exc_info=True)
-        print(f"\n❌ Critical error: {e}")
-        print(f"📝 Check log file for details: {log_file}")
+        logging.critical(f"Critical error in main: {e}", exc_info=True)
+        print(f"\nCritical error: {e}")
+        print(f"Check log file for details: {log_file}")
         return 1
 
 
 if __name__ == "__main__":
     # Ensure we're running with Python 3.8+
     if sys.version_info < (3, 8):
-        print("❌ Python 3.8 or higher is required")
-        print(f"   Current version: {sys.version}")
+        print("Python 3.8 or higher is required")
+        print(f"  Current version: {sys.version}")
         sys.exit(1)
     
     # Check if we're in the right directory
     if not (project_root / "visuals").exists():
-        print("❌ Please run this script from the project root directory")
+        print("Please run this script from the project root directory")
         sys.exit(1)
     
     # Run the application

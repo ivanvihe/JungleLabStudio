@@ -74,21 +74,21 @@ class Deck:
         # Create backend
         try:
             if use_moderngl:
-                logging.info(f"🎮 Deck {deck_id}: Creating ModernGL backend with GPU {gpu_index}, sharing context: {share_context is not None}")
+                logging.info(f"Deck {deck_id}: Creating ModernGL backend with GPU {gpu_index}, sharing context: {share_context is not None}")
                 self.backend = ModernGLBackend(device_index=gpu_index, share_context=share_context)
             else:
-                logging.info(f"🎮 Deck {deck_id}: Creating OpenGL backend")
+                logging.info(f"Deck {deck_id}: Creating OpenGL backend")
                 self.backend = GLBackend()
         except Exception as e:
-            logging.error(f"❌ Deck {deck_id}: Failed to create backend: {e}")
+            logging.error(f"Deck {deck_id}: Failed to create backend: {e}")
             # Fallback to OpenGL
-            logging.info(f"🔄 Deck {deck_id}: Falling back to OpenGL backend")
+            logging.info(f"Deck {deck_id}: Falling back to OpenGL backend")
             self.backend = GLBackend()
             self.use_moderngl = False
             
         self.use_post = use_post
 
-        logging.info(f"🎮 Deck {deck_id} initialized with size {self.size.width()}x{self.size.height()}, Backend: {'ModernGL' if self.use_moderngl else 'OpenGL'}")
+        logging.info(f"Deck {deck_id} initialized with size {self.size.width()}x{self.size.height()}, Backend: {'ModernGL' if self.use_moderngl else 'OpenGL'}")
 
     def _check_gl_context(self):
         """Check if OpenGL context is valid"""
@@ -136,7 +136,7 @@ class Deck:
                 self.fbo = QOpenGLFramebufferObject(self.size, fbo_format)
 
                 if not self.fbo.isValid():
-                    logging.error(f"❌ Deck {self.deck_id}: Failed to create valid FBO")
+                    logging.error(f"Deck {self.deck_id}: Failed to create valid FBO")
                     self.fbo = None
                     return
 
@@ -144,7 +144,7 @@ class Deck:
                 tex_id = self.fbo.texture()
                 
                 logging.debug(
-                    f"✅ Deck {self.deck_id}: Created FBO {self.size.width()}x{self.size.height()}, Texture: {tex_id}"
+                    f" Deck {self.deck_id}: Created FBO {self.size.width()}x{self.size.height()}, Texture: {tex_id}"
                 )
                 
                 # FIXED: Only apply texture filtering if we have a valid texture ID and context
@@ -173,31 +173,31 @@ class Deck:
                                 # Check for errors after setting parameters
                                 error = glGetError()
                                 if error == GL_NO_ERROR:
-                                    logging.debug(f"✅ Deck {self.deck_id}: Applied texture filtering to FBO texture {tex_id}")
+                                    logging.debug(f"Deck {self.deck_id}: Applied texture filtering to FBO texture {tex_id}")
                                 else:
-                                    logging.warning(f"⚠️ Deck {self.deck_id}: Error setting texture parameters: {error}")
+                                    logging.warning(f"Deck {self.deck_id}: Error setting texture parameters: {error}")
                             else:
-                                logging.warning(f"⚠️ Deck {self.deck_id}: Error binding texture {tex_id}: {error}")
+                                logging.warning(f"Deck {self.deck_id}: Error binding texture {tex_id}: {error}")
                             
                             # Restore previous texture binding
                             glBindTexture(GL_TEXTURE_2D, current_texture)
                         else:
-                            logging.warning(f"⚠️ Deck {self.deck_id}: Texture {tex_id} is not a valid GL texture")
+                            logging.warning(f"Deck {self.deck_id}: Texture {tex_id} is not a valid GL texture")
                             
                     except Exception as tex_e:
-                        logging.error(f"❌ Deck {self.deck_id}: Exception during texture filtering: {tex_e}")
+                        logging.error(f"Deck {self.deck_id}: Exception during texture filtering: {tex_e}")
                         # Clear any errors that might have been set
                         self._clear_gl_errors()
                 else:
                     if tex_id <= 0:
-                        logging.warning(f"⚠️ Deck {self.deck_id}: Invalid texture ID: {tex_id}")
+                        logging.warning(f"Deck {self.deck_id}: Invalid texture ID: {tex_id}")
                     if not self._check_gl_context():
-                        logging.warning(f"⚠️ Deck {self.deck_id}: No OpenGL context for texture operations")
+                        logging.warning(f"Deck {self.deck_id}: No OpenGL context for texture operations")
                 
                 self._fbo_dirty = True
                     
         except Exception as e:
-            logging.error(f"❌ Deck {self.deck_id}: Error recreating FBO: {e}")
+            logging.error(f"Deck {self.deck_id}: Error recreating FBO: {e}")
             import traceback
             traceback.print_exc()
             self.fbo = None
@@ -263,13 +263,13 @@ class Deck:
                 # Recreate backend with new type
                 try:
                     if use_moderngl:
-                        logging.info(f"🔄 Deck {self.deck_id}: Switching to ModernGL backend")
+                        logging.info(f"Deck {self.deck_id}: Switching to ModernGL backend")
                         self.backend = ModernGLBackend(device_index=index)
                     else:
-                        logging.info(f"🔄 Deck {self.deck_id}: Switching to OpenGL backend")
+                        logging.info(f"Deck {self.deck_id}: Switching to OpenGL backend")
                         self.backend = GLBackend()
                 except Exception as e:
-                    logging.error(f"❌ Deck {self.deck_id}: Failed to switch backend: {e}")
+                    logging.error(f"Deck {self.deck_id}: Failed to switch backend: {e}")
                     # Keep current backend
                     return
         
@@ -277,9 +277,9 @@ class Deck:
         if isinstance(self.backend, ModernGLBackend):
             try:
                 self.backend = ModernGLBackend(device_index=index, share_context=self.backend.share_context) # Pass existing share_context
-                logging.info(f"🎮 Deck {self.deck_id}: ModernGL backend updated to GPU {index}")
+                logging.info(f"Deck {self.deck_id}: ModernGL backend updated to GPU {index}")
             except Exception as e:
-                logging.error(f"❌ Deck {self.deck_id}: Failed to update ModernGL backend: {e}")
+                logging.error(f"Deck {self.deck_id}: Failed to update ModernGL backend: {e}")
                 
         self._gl_initialized = False
         self._fbo_dirty = True
@@ -288,7 +288,7 @@ class Deck:
     def set_visualizer(self, visualizer_name):
         """Set a new visualizer for this deck"""
         with QMutexLocker(self._mutex):
-            logging.info(f"🎨 Deck {self.deck_id}: Setting visualizer to {visualizer_name}")
+            logging.info(f"Deck {self.deck_id}: Setting visualizer to {visualizer_name}")
             
             # Clean up old visualizer first
             self._cleanup_current_visualizer()
@@ -324,22 +324,22 @@ class Deck:
                     # Update controls cache after applying properties
                     self._update_controls_cache()
 
-                    logging.info(f"✅ Deck {self.deck_id}: Created visualizer instance: {visualizer_name}")
+                    logging.info(f"Deck {self.deck_id}: Created visualizer instance: {visualizer_name}")
                     
                 except Exception as e:
-                    logging.error(f"❌ Deck {self.deck_id}: Error creating visualizer {visualizer_name}: {e}")
+                    logging.error(f"Deck {self.deck_id}: Error creating visualizer {visualizer_name}: {e}")
                     import traceback
                     traceback.print_exc()
                     self.current_visualizer = None
                     self.controls = {}
             else:
-                logging.error(f"❌ Deck {self.deck_id}: Visualizer class not found: {visualizer_name}")
+                logging.error(f"Deck {self.deck_id}: Visualizer class not found: {visualizer_name}")
 
     def clear_visualizer(self):
         """Clear the current visualizer and show nothing (black)"""
         with QMutexLocker(self._mutex):
             try:
-                logging.info(f"🚫 Clearing visualizer for deck {self.deck_id}")
+                logging.info(f"Clearing visualizer for deck {self.deck_id}")
                 
                 # Cleanup current visualizer
                 self._cleanup_current_visualizer()
@@ -351,10 +351,10 @@ class Deck:
                 self._gl_initialized = False
                 self._fbo_dirty = True
                 
-                logging.info(f"✅ Deck {self.deck_id} visualizer cleared")
+                logging.info(f"Deck {self.deck_id} visualizer cleared")
                 
             except Exception as e:
-                logging.error(f"❌ Error clearing visualizer for deck {self.deck_id}: {e}")
+                logging.error(f"Error clearing visualizer for deck {self.deck_id}: {e}")
 
     def has_active_visualizer(self):
         """Check if deck has an active visualizer"""
@@ -364,14 +364,14 @@ class Deck:
     def _cleanup_current_visualizer(self):
         """Clean up current visualizer"""
         if self.current_visualizer:
-            logging.debug(f"🧹 Deck {self.deck_id}: Cleaning up visualizer: {self.current_visualizer_name}")
+            logging.debug(f"Deck {self.deck_id}: Cleaning up visualizer: {self.current_visualizer_name}")
             try:
                 if hasattr(self.current_visualizer, 'set_audio_analyzer'):
                     self.current_visualizer.set_audio_analyzer(None)
                 if hasattr(self.current_visualizer, 'cleanup'):
                     self.current_visualizer.cleanup()
             except Exception as e:
-                logging.error(f"❌ Deck {self.deck_id}: Error cleaning up visualizer: {e}")
+                logging.error(f"Deck {self.deck_id}: Error cleaning up visualizer: {e}")
             
             self.current_visualizer = None
             self._gl_initialized = False
@@ -381,11 +381,11 @@ class Deck:
         try:
             if self.current_visualizer and hasattr(self.current_visualizer, 'get_controls'):
                 self.controls = self.current_visualizer.get_controls() or {}
-                logging.debug(f"🎛️ Deck {self.deck_id}: Cached {len(self.controls)} controls")
+                logging.debug(f"Deck {self.deck_id}: Cached {len(self.controls)} controls")
             else:
                 self.controls = {}
         except Exception as e:
-            logging.error(f"❌ Deck {self.deck_id}: Error updating controls cache: {e}")
+            logging.error(f"Deck {self.deck_id}: Error updating controls cache: {e}")
             self.controls = {}
 
     def _initialize_visualizer_in_fbo(self):
@@ -394,7 +394,7 @@ class Deck:
             return False
             
         try:
-            logging.debug(f"🔧 Deck {self.deck_id}: Initializing visualizer {self.current_visualizer_name} in FBO")
+            logging.debug(f"Deck {self.deck_id}: Initializing visualizer {self.current_visualizer_name} in FBO")
             
             # Clear any existing GL errors
             self._clear_gl_errors()
@@ -419,7 +419,7 @@ class Deck:
                         self.gl_info = OpenGLSafety.get_gl_info()
                     
                     renderer = (self.gl_info.get('renderer') or '').lower()
-                    logging.info(f"🎮 Deck {self.deck_id}: GPU Renderer: {self.gl_info.get('renderer')}")
+                    logging.info(f"Deck {self.deck_id}: GPU Renderer: {self.gl_info.get('renderer')}")
                     
                     if 'llvmpipe' in renderer or 'software' in renderer:
                         logging.warning(
@@ -437,12 +437,12 @@ class Deck:
                     else:
                         self.current_visualizer.initializeGL()
                 except Exception as init_e:
-                    logging.error(f"❌ Deck {self.deck_id}: Error in initializeGL: {init_e}")
+                    logging.error(f"Deck {self.deck_id}: Error in initializeGL: {init_e}")
                     # Try without backend
                     try:
                         self.current_visualizer.initializeGL()
                     except Exception as fallback_e:
-                        logging.error(f"❌ Deck {self.deck_id}: Fallback initializeGL also failed: {fallback_e}")
+                        logging.error(f"Deck {self.deck_id}: Fallback initializeGL also failed: {fallback_e}")
                         return False
 
             # Resize visualizer
@@ -458,23 +458,23 @@ class Deck:
                             self.size.width(), self.size.height()
                         )
                 except Exception as resize_e:
-                    logging.error(f"❌ Deck {self.deck_id}: Error in resizeGL: {resize_e}")
+                    logging.error(f"Deck {self.deck_id}: Error in resizeGL: {resize_e}")
                     # Try basic resize
                     try:
                         self.current_visualizer.resizeGL(self.size.width(), self.size.height())
                     except Exception as fallback_resize_e:
-                        logging.error(f"❌ Deck {self.deck_id}: Fallback resizeGL also failed: {fallback_resize_e}")
+                        logging.error(f"Deck {self.deck_id}: Fallback resizeGL also failed: {fallback_resize_e}")
             
             self._gl_initialized = True
             
             # Update controls after initialization
             self._update_controls_cache()
             
-            logging.info(f"✅ Deck {self.deck_id}: Visualizer {self.current_visualizer_name} initialized")
+            logging.info(f"Deck {self.deck_id}: Visualizer {self.current_visualizer_name} initialized")
             return True
             
         except Exception as e:
-            logging.error(f"❌ Deck {self.deck_id}: Error initializing visualizer: {e}")
+            logging.error(f"Deck {self.deck_id}: Error initializing visualizer: {e}")
             import traceback
             traceback.print_exc()
             return False
@@ -507,7 +507,7 @@ class Deck:
 
                 # Bind our FBO
                 if not self.fbo.bind():
-                    logging.error(f"❌ Deck {self.deck_id}: Failed to bind FBO")
+                    logging.error(f"Deck {self.deck_id}: Failed to bind FBO")
                     return False
 
                 # Set viewport and begin target
@@ -557,13 +557,13 @@ class Deck:
                             # Log frame info every 300 frames for debugging
                             if self._total_frames % 300 == 0:
                                 logging.debug(
-                                    f"🎬 Deck {self.deck_id}: {self.current_visualizer_name} - Frame {self._total_frames}"
+                                    f" Deck {self.deck_id}: {self.current_visualizer_name} - Frame {self._total_frames}"
                                 )
 
                         except Exception as e:
                             current_time = time.time()
                             if current_time - self._last_error_log > 5.0:
-                                logging.error(f"❌ Deck {self.deck_id}: Error in paintGL: {e}")
+                                logging.error(f"Deck {self.deck_id}: Error in paintGL: {e}")
                                 import traceback
                                 traceback.print_exc()
                                 self._last_error_log = current_time
@@ -610,7 +610,7 @@ class Deck:
                 return True
                 
             except Exception as e:
-                logging.error(f"❌ Deck {self.deck_id}: Error rendering to FBO: {e}")
+                logging.error(f"Deck {self.deck_id}: Error rendering to FBO: {e}")
                 import traceback
                 traceback.print_exc()
                 if self.fbo and self.fbo.isBound():
@@ -653,7 +653,7 @@ class Deck:
             if self.size == size:
                 return
                 
-            logging.debug(f"📏 Deck {self.deck_id}: Resizing from {self.size.width()}x{self.size.height()} to {size.width()}x{size.height()}")
+            logging.debug(f"Deck {self.deck_id}: Resizing from {self.size.width()}x{self.size.height()} to {size.width()}x{size.height()}")
             self.size = size
             self._recreate_fbo()
             
@@ -676,7 +676,7 @@ class Deck:
                     self.controls = controls  # Update cache
                     return controls.copy()
                 except Exception as e:
-                    logging.error(f"❌ Deck {self.deck_id}: Error getting controls: {e}")
+                    logging.error(f"Deck {self.deck_id}: Error getting controls: {e}")
             
             return {}
 
@@ -692,9 +692,9 @@ class Deck:
                     if name in self.controls:
                         self.controls[name]['value'] = value
                     
-                    logging.debug(f"🎛️ Deck {self.deck_id}: Updated {name} = {value}")
+                    logging.debug(f"Deck {self.deck_id}: Updated {name} = {value}")
                 except Exception as e:
-                    logging.error(f"❌ Deck {self.deck_id}: Error updating control {name}: {e}")
+                    logging.error(f"Deck {self.deck_id}: Error updating control {name}: {e}")
 
     def trigger_action(self, action_name):
         """Trigger a custom action on the current visualizer"""
@@ -703,9 +703,9 @@ class Deck:
                 try:
                     self.current_visualizer.trigger_action(action_name)
                     self._fbo_dirty = True
-                    logging.debug(f"🎬 Deck {self.deck_id}: Triggered action {action_name}")
+                    logging.debug(f"Deck {self.deck_id}: Triggered action {action_name}")
                 except Exception as e:
-                    logging.error(f"❌ Deck {self.deck_id}: Error triggering action {action_name}: {e}")
+                    logging.error(f"Deck {self.deck_id}: Error triggering action {action_name}: {e}")
 
     def get_current_visualizer_name(self):
         """Get the name of the current visualizer"""
@@ -746,7 +746,7 @@ class Deck:
     def cleanup(self):
         """Clean up resources"""
         with QMutexLocker(self._mutex):
-            logging.debug(f"🧹 Deck {self.deck_id}: Cleaning up")
+            logging.debug(f"Deck {self.deck_id}: Cleaning up")
             
             # Clean up visualizer
             self._cleanup_current_visualizer()
@@ -763,9 +763,9 @@ class Deck:
                 try:
                     self.backend.cleanup()
                 except Exception as e:
-                    logging.error(f"❌ Deck {self.deck_id}: Error cleaning up backend: {e}")
+                    logging.error(f"Deck {self.deck_id}: Error cleaning up backend: {e}")
             
             # Clear controls
             self.controls = {}
 
-            logging.debug(f"✅ Deck {self.deck_id}: Cleanup completed")
+            logging.debug(f"Deck {self.deck_id}: Cleanup completed")

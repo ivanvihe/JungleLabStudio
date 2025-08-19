@@ -45,15 +45,15 @@ class MidiConfigWidget(QWidget):
 
         # Editor único que muestra todos los mappings
         advanced_tab = self.create_advanced_tab()
-        tabs.addTab(advanced_tab, "🎛️ Editor MIDI")
+        tabs.addTab(advanced_tab, " Editor MIDI")
 
         # Tab 2: Configuración de canales
         channels_tab = self.create_channels_tab()
-        tabs.addTab(channels_tab, "📡 Canales MIDI")
+        tabs.addTab(channels_tab, " Canales MIDI")
 
         # Tab 3: Importar/Exportar
         import_export_tab = self.create_import_export_tab()
-        tabs.addTab(import_export_tab, "💾 Importar/Exportar")
+        tabs.addTab(import_export_tab, " Importar/Exportar")
         
         layout.addWidget(tabs)
         
@@ -77,7 +77,7 @@ class MidiConfigWidget(QWidget):
         layout = QHBoxLayout(header)
         
         # Título
-        title = QLabel("🎹 CONFIGURACIÓN MIDI")
+        title = QLabel(" CONFIGURACIÓN MIDI")
         title.setStyleSheet("color: #00ff00; font-size: 16px; font-weight: bold;")
         layout.addWidget(title)
         
@@ -173,19 +173,19 @@ class MidiConfigWidget(QWidget):
         # Controles superiores
         controls_layout = QHBoxLayout()
         
-        add_btn = QPushButton("➕ Añadir Mapping")
+        add_btn = QPushButton(" Añadir Mapping")
         add_btn.clicked.connect(self.add_custom_mapping)
         add_btn.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold; padding: 8px;")
         controls_layout.addWidget(add_btn)
         
-        clear_btn = QPushButton("🗑️ Limpiar Todo")
+        clear_btn = QPushButton(" Limpiar Todo")
         clear_btn.clicked.connect(self.clear_all_mappings)
         clear_btn.setStyleSheet("background-color: #f44336; color: white; font-weight: bold; padding: 8px;")
         controls_layout.addWidget(clear_btn)
         
         controls_layout.addStretch()
         
-        reset_btn = QPushButton("🔄 Restaurar Defaults")
+        reset_btn = QPushButton(" Restaurar Defaults")
         reset_btn.clicked.connect(self.restore_defaults)
         reset_btn.setStyleSheet("background-color: #ff9800; color: white; font-weight: bold; padding: 8px;")
         controls_layout.addWidget(reset_btn)
@@ -279,11 +279,11 @@ class MidiConfigWidget(QWidget):
         
         export_buttons = QHBoxLayout()
         
-        export_json_btn = QPushButton("📄 Exportar como JSON")
+        export_json_btn = QPushButton(" Exportar como JSON")
         export_json_btn.clicked.connect(self.export_json)
         export_buttons.addWidget(export_json_btn)
         
-        export_readable_btn = QPushButton("📝 Exportar Legible")
+        export_readable_btn = QPushButton(" Exportar Legible")
         export_readable_btn.clicked.connect(self.export_readable)
         export_buttons.addWidget(export_readable_btn)
         
@@ -301,7 +301,7 @@ class MidiConfigWidget(QWidget):
         
         import_buttons = QHBoxLayout()
         
-        import_btn = QPushButton("📁 Importar desde JSON")
+        import_btn = QPushButton(" Importar desde JSON")
         import_btn.clicked.connect(self.import_json)
         import_buttons.addWidget(import_btn)
         
@@ -319,15 +319,15 @@ class MidiConfigWidget(QWidget):
         
         templates_buttons = QHBoxLayout()
         
-        ableton_btn = QPushButton("🎛️ Ableton Push")
+        ableton_btn = QPushButton(" Ableton Push")
         ableton_btn.clicked.connect(lambda: self.load_template("ableton_push"))
         templates_buttons.addWidget(ableton_btn)
         
-        apc_btn = QPushButton("🎹 APC40")
+        apc_btn = QPushButton(" APC40")
         apc_btn.clicked.connect(lambda: self.load_template("apc40"))
         templates_buttons.addWidget(apc_btn)
         
-        generic_btn = QPushButton("🎮 Controlador Genérico")
+        generic_btn = QPushButton(" Controlador Genérico")
         generic_btn.clicked.connect(lambda: self.load_template("generic"))
         templates_buttons.addWidget(generic_btn)
         
@@ -355,12 +355,12 @@ class MidiConfigWidget(QWidget):
         layout.addStretch()
         
         # Botón de test
-        test_btn = QPushButton("🧪 Test Mapping")
+        test_btn = QPushButton(" Test Mapping")
         test_btn.clicked.connect(self.test_random_mapping)
         layout.addWidget(test_btn)
         
         # Botón de guardar
-        save_btn = QPushButton("💾 Guardar")
+        save_btn = QPushButton(" Guardar")
         save_btn.clicked.connect(self.save_mappings)
         save_btn.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold; padding: 8px;")
         layout.addWidget(save_btn)
@@ -642,7 +642,7 @@ class MidiConfigWidget(QWidget):
             # Guardar mapping si se creó
             if mapping_data:
                 self.midi_engine.add_midi_mapping(action_id, mapping_data)
-                logging.info(f"✅ Saved mapping for note {note}: {action_text}")
+                logging.info(f"Saved mapping for note {note}: {action_text}")
                 self.mapping_changed.emit()
                 self.update_mappings_info()
             
@@ -668,7 +668,7 @@ class MidiConfigWidget(QWidget):
             
             for action_id in to_delete:
                 self.midi_engine.remove_midi_mapping(action_id)
-                logging.info(f"✅ Deleted mapping for note {note}")
+                logging.info(f"Deleted mapping for note {note}")
             
             if to_delete:
                 self.mapping_changed.emit()
@@ -704,7 +704,7 @@ class MidiConfigWidget(QWidget):
             
             self.learning_key = f"note_on_ch{channel}_note{note}"
             
-            self.learning_status.setText(f"🎵 Aprendiendo nota {note}...")
+            self.learning_status.setText(f" Aprendiendo nota {note}...")
             self.learning_status.setStyleSheet("color: #ffaa00; font-weight: bold;")
             
             self.start_learning.emit(self.learning_key)
@@ -737,7 +737,7 @@ class MidiConfigWidget(QWidget):
                     
                     # Si es la nota correcta, actualizar
                     if learned_note == expected_note:
-                        self.learning_status.setText(f"✅ Nota {learned_note} aprendida!")
+                        self.learning_status.setText(f" Nota {learned_note} aprendida!")
                         self.learning_status.setStyleSheet("color: #00ff00; font-weight: bold;")
                         
                         # Actualizar la tabla
@@ -758,7 +758,7 @@ class MidiConfigWidget(QWidget):
                     pass
             
             # Si no coincide, mostrar advertencia
-            self.learning_status.setText(f"⚠️ Se recibió {message_key}, esperando nota específica...")
+            self.learning_status.setText(f" Se recibió {message_key}, esperando nota específica...")
             self.learning_status.setStyleSheet("color: #ffaa00; font-weight: bold;")
             
         except Exception as e:
@@ -903,14 +903,14 @@ class MidiConfigWidget(QWidget):
         layout.setContentsMargins(2, 2, 2, 2)
         
         # Botón Edit
-        edit_btn = QPushButton("✏️")
+        edit_btn = QPushButton("")
         edit_btn.setMaximumWidth(30)
         edit_btn.setToolTip("Editar")
         edit_btn.clicked.connect(lambda: self.edit_mapping(action_id))
         layout.addWidget(edit_btn)
         
         # Botón Delete
-        delete_btn = QPushButton("🗑️")
+        delete_btn = QPushButton("")
         delete_btn.setMaximumWidth(30)
         delete_btn.setToolTip("Eliminar")
         delete_btn.setStyleSheet("background-color: #ff4444; color: white;")
@@ -934,16 +934,16 @@ class MidiConfigWidget(QWidget):
         """Actualizar estado MIDI"""
         try:
             if not self.midi_engine:
-                self.midi_status.setText("❌ Engine no disponible")
+                self.midi_status.setText(" Engine no disponible")
                 self.midi_status.setStyleSheet("color: #ff4444; font-weight: bold;")
                 return
                 
             if self.midi_engine.is_port_open():
                 device_name = self.midi_engine.get_connected_device_name()
-                self.midi_status.setText(f"✅ {device_name}")
+                self.midi_status.setText(f" {device_name}")
                 self.midi_status.setStyleSheet("color: #00ff00; font-weight: bold;")
             else:
-                self.midi_status.setText("❌ Desconectado")
+                self.midi_status.setText(" Desconectado")
                 self.midi_status.setStyleSheet("color: #ff4444; font-weight: bold;")
                 
         except Exception as e:
@@ -1385,7 +1385,7 @@ class CompactMidiConfigWidget(QWidget):
         header_layout.addStretch()
         
         # Botón para abrir configuración completa
-        config_btn = QPushButton("⚙️")
+        config_btn = QPushButton("")
         config_btn.setMaximumWidth(30)
         config_btn.setToolTip("Configuración completa")
         config_btn.clicked.connect(self.open_full_config)
@@ -1450,7 +1450,7 @@ class CompactMidiConfigWidget(QWidget):
                 self.compact_table.setItem(row, 1, preset_item)
                 
                 # Controles compactos
-                controls = QPushButton("⚙️")
+                controls = QPushButton("")
                 controls.setMaximumWidth(30)
                 controls.clicked.connect(lambda checked, aid=action_id: self.edit_compact_mapping(aid))
                 self.compact_table.setCellWidget(row, 2, controls)

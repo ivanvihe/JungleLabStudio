@@ -23,7 +23,7 @@ def create_monitor_tab(self):
 
 def create_midi_activity_section(self):
     """Crear sección de actividad MIDI para el tab de monitoreo"""
-    section = QGroupBox("🎵 Actividad MIDI en Tiempo Real")
+    section = QGroupBox(" Actividad MIDI en Tiempo Real")
     section.setStyleSheet(
         """
         QGroupBox {
@@ -63,11 +63,11 @@ def create_midi_activity_section(self):
 
     controls_layout = QHBoxLayout()
 
-    clear_activity_btn = QPushButton("🗑️ Limpiar")
+    clear_activity_btn = QPushButton(" Limpiar")
     clear_activity_btn.clicked.connect(self.clear_midi_activity)
     controls_layout.addWidget(clear_activity_btn)
 
-    pause_activity_btn = QPushButton("⏸️ Pausar")
+    pause_activity_btn = QPushButton(" Pausar")
     pause_activity_btn.clicked.connect(self.toggle_midi_activity_monitoring)
     controls_layout.addWidget(pause_activity_btn)
 
@@ -88,7 +88,7 @@ def create_midi_activity_section(self):
 
 def create_system_info_section(self):
     """Crear sección de información del sistema"""
-    section = QGroupBox("📊 Información del Sistema")
+    section = QGroupBox(" Información del Sistema")
     section.setStyleSheet(
         """
         QGroupBox {
@@ -125,7 +125,7 @@ def create_system_info_section(self):
     )
     layout.addWidget(self.system_info_text)
 
-    events_label = QLabel("📝 Log de Eventos:")
+    events_label = QLabel(" Log de Eventos:")
     events_label.setStyleSheet("color: #ffffff; font-weight: bold; margin-top: 10px;")
     layout.addWidget(events_label)
 
@@ -147,11 +147,11 @@ def create_system_info_section(self):
 
     log_controls = QHBoxLayout()
 
-    clear_log_btn = QPushButton("🗑️ Limpiar Log")
+    clear_log_btn = QPushButton(" Limpiar Log")
     clear_log_btn.clicked.connect(self.clear_events_log)
     log_controls.addWidget(clear_log_btn)
 
-    export_log_btn = QPushButton("💾 Exportar Log")
+    export_log_btn = QPushButton(" Exportar Log")
     export_log_btn.clicked.connect(self.export_events_log)
     log_controls.addWidget(export_log_btn)
 

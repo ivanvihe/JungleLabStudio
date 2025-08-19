@@ -109,7 +109,7 @@ class GridLayerWidget(QFrame):
         layout.addWidget(midi_label)
         
         # Active indicator
-        self.active_indicator = QLabel("●")
+        self.active_indicator = QLabel("*")
         self.active_indicator.setFont(QFont("Arial", 16))
         self.active_indicator.setStyleSheet("color: #444;")
         layout.addWidget(self.active_indicator)
@@ -465,10 +465,10 @@ class VisualSettingsPanel(QWidget):
         midi_layout = QVBoxLayout(midi_group)
         
         mapping_info = QLabel(
-            "Channel 13 → Layer A\n"
-            "Channel 14 → Layer B\n"
-            "Channel 15 → Layer C\n"
-            "Channel 16 → Layer D"
+            "Channel 13 -> Layer A\n"
+            "Channel 14 -> Layer B\n"
+            "Channel 15 -> Layer C\n"
+            "Channel 16 -> Layer D"
         )
         mapping_info.setStyleSheet("color: #ccc; font-family: monospace;")
         midi_layout.addWidget(mapping_info)
@@ -613,10 +613,10 @@ class AudioVisualizerGridApp(QMainWindow):
         """Handle incoming MIDI note and route to appropriate layer."""
         # Map MIDI channels to layers
         channel_to_layer = {
-            13: 1,  # Channel 13 → Layer A
-            14: 2,  # Channel 14 → Layer B  
-            15: 3,  # Channel 15 → Layer C
-            16: 4   # Channel 16 → Layer D
+            13: 1,  # Channel 13 -> Layer A
+            14: 2,  # Channel 14 -> Layer B  
+            15: 3,  # Channel 15 -> Layer C
+            16: 4   # Channel 16 -> Layer D
         }
         
         layer_num = channel_to_layer.get(channel)
@@ -624,7 +624,7 @@ class AudioVisualizerGridApp(QMainWindow):
             layer = self.grid_layers[layer_num]
             layer.trigger_visual_by_midi_note(note)
             
-            logging.info(f"MIDI: Note {note} on Channel {channel} → Layer {layer_num}")
+            logging.info(f"MIDI: Note {note} on Channel {channel} -> Layer {layer_num}")
         else:
             logging.debug(f"MIDI: Note {note} on unmapped Channel {channel}")
             
@@ -715,10 +715,10 @@ def main():
     window = AudioVisualizerGridApp()
     window.show()
     
-    print("🎛️ AudioVisualizer Grid Interface started!")
-    print("✅ 4-layer Grid active")
-    print("✅ MIDI channels: 13→A, 14→B, 15→C, 16→D")
-    print("✅ Visual Settings panel ready")
+    print("AudioVisualizer Grid Interface started!")
+    print("4-layer Grid active")
+    print("MIDI channels: 13->A, 14->B, 15->C, 16->D")
+    print("Visual Settings panel ready")
     
     return app.exec()
 

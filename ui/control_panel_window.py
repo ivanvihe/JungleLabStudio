@@ -127,7 +127,7 @@ class ControlPanelWindow(QMainWindow):
         # MIDI menu
         midi_menu = menubar.addMenu('MIDI')
         
-        midi_config_action = QAction('🎹 MIDI Configuration...', self)
+        midi_config_action = QAction(' MIDI Configuration...', self)
         midi_config_action.triggered.connect(self.show_midi_config)
         midi_menu.addAction(midi_config_action)
         
@@ -143,7 +143,7 @@ class ControlPanelWindow(QMainWindow):
         
         midi_menu.addSeparator()
         
-        debug_midi_action = QAction('🔧 Debug MIDI Connection', self)
+        debug_midi_action = QAction(' Debug MIDI Connection', self)
         debug_midi_action.triggered.connect(self.run_midi_debug)
         midi_menu.addAction(debug_midi_action)
 
@@ -154,7 +154,7 @@ class ControlPanelWindow(QMainWindow):
         refresh_action.triggered.connect(self.refresh_devices)
         view_menu.addAction(refresh_action)
         
-        refresh_visuals_action = QAction('🔄 Refresh Visual Grids', self)
+        refresh_visuals_action = QAction(' Refresh Visual Grids', self)
         refresh_visuals_action.triggered.connect(self.refresh_visual_grids)
         view_menu.addAction(refresh_visuals_action)
 
@@ -184,15 +184,15 @@ class ControlPanelWindow(QMainWindow):
         
         # Tab 1: Modern Live Control Grid (4 layers)
         live_tab = create_live_control_tab(self)
-        main_tabs.addTab(live_tab, "🎛️ LIVE GRID")
+        main_tabs.addTab(live_tab, " LIVE GRID")
 
         # Tab 2: Visual Settings 
         visuals_tab = create_visual_settings_tab(self)
-        main_tabs.addTab(visuals_tab, "🖼️ VISUAL SETTINGS")
+        main_tabs.addTab(visuals_tab, " VISUAL SETTINGS")
 
         # Tab 3: Monitoring and Debug
         monitor_tab = create_monitor_tab(self)
-        main_tabs.addTab(monitor_tab, "📊 MONITORING")
+        main_tabs.addTab(monitor_tab, " MONITORING")
 
         main_layout.addWidget(main_tabs)
 
@@ -400,7 +400,7 @@ class ControlPanelWindow(QMainWindow):
     def refresh_visual_grids(self):
         """Refresh visual grids with modern animation feedback."""
         try:
-            logging.info("🔄 Refreshing modern visual grids...")
+            logging.info("Refreshing modern visual grids...")
             
             # Find and refresh tabs with modern transition
             main_tabs = self.centralWidget().findChild(QTabWidget)
@@ -414,7 +414,7 @@ class ControlPanelWindow(QMainWindow):
                         old_widget = main_tabs.widget(i)
                         new_widget = create_live_control_tab(self)
                         main_tabs.removeTab(i)
-                        main_tabs.insertTab(i, new_widget, "🎛️ LIVE GRID")
+                        main_tabs.insertTab(i, new_widget, " LIVE GRID")
                         old_widget.deleteLater()
                         break
                 
@@ -425,7 +425,7 @@ class ControlPanelWindow(QMainWindow):
                         old_widget = main_tabs.widget(i)
                         new_widget = create_visual_settings_tab(self)
                         main_tabs.removeTab(i)
-                        main_tabs.insertTab(i, new_widget, "🖼️ VISUAL SETTINGS")
+                        main_tabs.insertTab(i, new_widget, " VISUAL SETTINGS")
                         old_widget.deleteLater()
                         break
                 
@@ -433,12 +433,12 @@ class ControlPanelWindow(QMainWindow):
                 main_tabs.setCurrentIndex(current_index)
             
             # Modern success notification
-            self.show_modern_notification("✅ Visual grids refreshed successfully!", "success")
-            logging.info("✅ Modern visual grids refreshed")
+            self.show_modern_notification(" Visual grids refreshed successfully!", "success")
+            logging.info("Modern visual grids refreshed")
             
         except Exception as e:
-            logging.error(f"❌ Error refreshing modern visual grids: {e}")
-            self.show_modern_notification(f"⚠️ Error refreshing grids: {str(e)}", "error")
+            logging.error(f"Error refreshing modern visual grids: {e}")
+            self.show_modern_notification(f" Error refreshing grids: {str(e)}", "error")
 
     def show_modern_notification(self, message, type="info"):
         """Show modern notification with professional styling."""
@@ -586,7 +586,7 @@ class ControlPanelWindow(QMainWindow):
         """Show modern MIDI configuration dialog."""
         try:
             dialog = QDialog(self)
-            dialog.setWindowTitle("🎹 MIDI Configuration")
+            dialog.setWindowTitle(" MIDI Configuration")
             dialog.setModal(True)
             dialog.resize(1400, 900)
             
@@ -670,7 +670,7 @@ class ControlPanelWindow(QMainWindow):
     def run_midi_debug(self):
         """Run complete MIDI debug"""
         try:
-            logging.info("🔧 USER REQUESTED MIDI DEBUG")
+            logging.info("USER REQUESTED MIDI DEBUG")
             
             if not self.midi_engine:
                 QMessageBox.warning(self, "Debug Error", "MIDI Engine not available")
@@ -688,11 +688,11 @@ class ControlPanelWindow(QMainWindow):
     def debug_midi_connection(self):
         """Complete MIDI connection debug"""
         try:
-            logging.info("🔧 STARTING MIDI CONNECTION DEBUG")
+            logging.info("STARTING MIDI CONNECTION DEBUG")
             logging.info("=" * 80)
             
             if not self.midi_engine:
-                logging.error("❌ MIDI Engine does not exist!")
+                logging.error("MIDI Engine does not exist!")
                 return
             
             # Check port status
@@ -713,11 +713,11 @@ class ControlPanelWindow(QMainWindow):
             
             # Check references
             logging.info("4. CHECKING REFERENCES:")
-            logging.info(f"   mixer_window: {'✅' if self.midi_engine.mixer_window else '❌'}")
-            logging.info(f"   control_panel: {'✅' if self.midi_engine.control_panel else '❌'}")
+            logging.info(f"   mixer_window: {'' if self.midi_engine.mixer_window else ''}")
+            logging.info(f"   control_panel: {'' if self.midi_engine.control_panel else ''}")
             
             logging.info("=" * 80)
-            logging.info("🔧 DEBUG COMPLETED")
+            logging.info("DEBUG COMPLETED")
             
         except Exception as e:
             logging.error(f"Error in debug_midi_connection: {e}")
@@ -752,7 +752,7 @@ class ControlPanelWindow(QMainWindow):
             # Update grid highlight
             self.update_live_grid_highlight(deck_id, preset_name)
 
-            logging.info(f"✅ UI updated for deck {deck_id} to preset {preset_name}")
+            logging.info(f"UI updated for deck {deck_id} to preset {preset_name}")
         except Exception as e:
             logging.error(f"Error updating preset selector for deck {deck_id}: {e}")
 
@@ -816,7 +816,7 @@ class ControlPanelWindow(QMainWindow):
                     self.deck_b_controls_label.setText(f"CC {control}={value}")
 
         except Exception as e:
-            logging.error(f"❌ ERROR IN on_midi_activity: {e}")
+            logging.error(f"ERROR IN on_midi_activity: {e}")
             import traceback
             traceback.print_exc()
 
@@ -828,7 +828,7 @@ class ControlPanelWindow(QMainWindow):
             note_names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
             octave = note // 12 - 1
             note_name = note_names[note % 12]
-            logging.debug(f"🎵 [{timestamp}] Note: {note_name}{octave} Vel:{velocity}")
+            logging.debug(f"[{timestamp}] Note: {note_name}{octave} Vel:{velocity}")
         except Exception as e:
             logging.error(f"Error handling note activity: {e}")
 
@@ -837,7 +837,7 @@ class ControlPanelWindow(QMainWindow):
         try:
             import time
             timestamp = time.strftime("%H:%M:%S")
-            logging.debug(f"🎛️ [{timestamp}] CC: {control_id} = {value}")
+            logging.debug(f"[{timestamp}] CC: {control_id} = {value}")
         except Exception as e:
             logging.error(f"Error handling CC activity: {e}")
 
@@ -845,7 +845,7 @@ class ControlPanelWindow(QMainWindow):
         """Handle MIDI device connection"""
         try:
             self.update_midi_device_display(device_name)
-            logging.info(f"🎹 MIDI device connected: {device_name}")
+            logging.info(f"MIDI device connected: {device_name}")
         except Exception as e:
             logging.error(f"Error handling MIDI device connection: {e}")
 
@@ -853,7 +853,7 @@ class ControlPanelWindow(QMainWindow):
         """Handle MIDI device disconnection"""
         try:
             self.update_midi_device_display(None)
-            logging.info(f"🎹 MIDI device disconnected: {device_name}")
+            logging.info(f"MIDI device disconnected: {device_name}")
         except Exception as e:
             logging.error(f"Error handling MIDI device disconnection: {e}")
 
@@ -1005,7 +1005,7 @@ class ControlPanelWindow(QMainWindow):
                     try:
                         main_gl_context = self.mixer_window.gl_widget.context()
                     except Exception as e:
-                        logging.warning(f"⚠️ Could not access mixer OpenGL context: {e}")
+                        logging.warning(f"Could not access mixer OpenGL context: {e}")
                         main_gl_context = None
 
                     if main_gl_context:
@@ -1107,7 +1107,7 @@ class ControlPanelWindow(QMainWindow):
         try:
             if self.midi_engine:
                 self.midi_engine.simulate_midi_message(midi_key)
-                logging.info(f"🧪 Testing mix action: {midi_key}")
+                logging.info(f"Testing mix action: {midi_key}")
         except Exception as e:
             logging.error(f"Error testing mix action: {e}")
 
@@ -1118,7 +1118,7 @@ class ControlPanelWindow(QMainWindow):
             if hasattr(self, 'update_timer'):
                 self.update_timer.stop()
             
-            logging.debug("✅ Control panel cleaned up")
+            logging.debug("Control panel cleaned up")
             
         except Exception as e:
             logging.error(f"Error cleaning up control panel: {e}")

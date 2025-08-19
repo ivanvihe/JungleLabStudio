@@ -221,43 +221,43 @@ class SettingsManager:
                     data = json.load(f)
                 if isinstance(data, dict):
                     logging.info(
-                        f"✅ Loaded {len(data)} MIDI mappings from {self.mappings_file}"
+                        f"Loaded {len(data)} MIDI mappings from {self.mappings_file}"
                     )
                     # keep backup in settings
                     self.set_setting("midi_mappings", data)
                     return data
                 logging.warning(
-                    f"⚠️ MIDI mappings file {self.mappings_file} is invalid"
+                    f"MIDI mappings file {self.mappings_file} is invalid"
                 )
             # fallback to settings backup
             data = self.get_setting("midi_mappings", {})
             if isinstance(data, dict) and data:
                 logging.info(
-                    f"⚠️ Loaded {len(data)} MIDI mappings from settings backup"
+                    f" Loaded {len(data)} MIDI mappings from settings backup"
                 )
                 return data
         except Exception as e:
-            logging.error(f"❌ Error loading MIDI mappings: {e}")
+            logging.error(f"Error loading MIDI mappings: {e}")
         return {}
 
     def save_midi_mappings(self, mappings):
         """Save MIDI mappings to config file and settings backup."""
         try:
             if not isinstance(mappings, dict):
-                logging.error("❌ Invalid mappings format, must be a dictionary")
+                logging.error("Invalid mappings format, must be a dictionary")
                 return
 
             os.makedirs(os.path.dirname(self.mappings_file), exist_ok=True)
             with open(self.mappings_file, "w", encoding="utf-8") as f:
                 json.dump(mappings, f, indent=2, ensure_ascii=False)
             logging.info(
-                f"✅ Saved {len(mappings)} MIDI mappings to {self.mappings_file}"
+                f" Saved {len(mappings)} MIDI mappings to {self.mappings_file}"
             )
 
             # save backup in settings
             self.set_setting("midi_mappings", mappings)
         except Exception as e:
-            logging.error(f"❌ Error saving MIDI mappings: {e}")
+            logging.error(f"Error saving MIDI mappings: {e}")
 
     def get_midi_device_settings(self):
         """Get MIDI device settings"""
@@ -404,7 +404,7 @@ class SettingsManager:
             if issues:
                 logging.warning(f"Settings validation found {len(issues)} issues:")
                 for issue in issues:
-                    logging.warning(f"  - {issue}")
+                    logging.warning(f" - {issue}")
                 return False
             else:
                 logging.info("Settings validation passed")

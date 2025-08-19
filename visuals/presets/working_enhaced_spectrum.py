@@ -272,9 +272,9 @@ if __name__ == "__main__":
             img = viz.render()
             print(f"Frame {frame}: {img.shape}, max: {img.max():.3f}")
             
-        print("✅ Working Spectrum Visualizer test passed!")
+        print("Working Spectrum Visualizer test passed!")
         
     except Exception as e:
-        print(f"❌ Test failed: {e}")
+        print(f" Test failed: {e}")
         import traceback
         traceback.print_exc()

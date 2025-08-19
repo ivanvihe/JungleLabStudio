@@ -67,7 +67,7 @@ class InfiniteNeuralNetworkVisualizer(BaseVisualizer):
         self.node_count = 0
         self.connection_count = 0
         
-        logging.info("🧠 Ultra-high quality Infinite Neural Network created")
+        logging.info("Ultra-high quality Infinite Neural Network created")
         
         # Initialize the network
         self.generate_initial_network()
@@ -115,7 +115,7 @@ class InfiniteNeuralNetworkVisualizer(BaseVisualizer):
                 return
             
             self.initialized = True
-            logging.info("🚀 Ultra-premium infinite neural network initialized")
+            logging.info("Ultra-premium infinite neural network initialized")
             
         except Exception as e:
             logging.error(f"Error in initialization: {e}")
@@ -829,7 +829,7 @@ class InfiniteNeuralNetworkVisualizer(BaseVisualizer):
             self.travel_speed = min(2.0, self.travel_speed * 1.5)
             
             # Reset speed after a short time (this would need a timer in a real implementation)
-            logging.info(f"🧠 NEURAL BURST ACTIVATED! {burst_count} nodes spawned via MIDI trigger")
+            logging.info(f"NEURAL BURST ACTIVATED! {burst_count} nodes spawned via MIDI trigger")
         
         elif action_name in ["pulse", "fire", "activate"]:
             # Pulse all nodes simultaneously
@@ -840,7 +840,7 @@ class InfiniteNeuralNetworkVisualizer(BaseVisualizer):
                 node['pulse'] = pulse_phase
                 node['activity'] = min(1.0, node['activity'] + 0.5)
             
-            logging.info("⚡ NEURAL PULSE! All nodes synchronized via MIDI")
+            logging.info("NEURAL PULSE! All nodes synchronized via MIDI")
         
         elif action_name in ["reset", "clear", "restart"]:
             # Clear network and restart
@@ -852,7 +852,7 @@ class InfiniteNeuralNetworkVisualizer(BaseVisualizer):
             # Regenerate initial network
             self.generate_initial_network()
             
-            logging.info("🔄 NEURAL NETWORK RESET! Starting fresh journey")
+            logging.info("NEURAL NETWORK RESET! Starting fresh journey")
 
     def get_visual_info(self):
         """Return information about this visualizer"""

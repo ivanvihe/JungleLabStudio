@@ -366,7 +366,7 @@ class MidiMappingDialog(QDialog):
         layout.addWidget(learn_btn)
 
         # Botón Delete
-        delete_btn = QPushButton("✕")
+        delete_btn = QPushButton("")
         delete_btn.setFixedSize(25, 25)
         delete_btn.setToolTip("Eliminar mapeo")
         delete_btn.setStyleSheet("background-color: #ffcccc;")
@@ -461,7 +461,7 @@ class MidiMappingDialog(QDialog):
         self.start_midi_learn.emit(row)
         
         # Actualizar UI
-        self.learning_status_label.setText(f"🎵 Escuchando MIDI para fila {row + 1}...")
+        self.learning_status_label.setText(f" Escuchando MIDI para fila {row + 1}...")
         self.learning_status_label.setStyleSheet("color: blue; font-weight: bold;")
         
         # Mostrar progreso
@@ -536,7 +536,7 @@ class MidiMappingDialog(QDialog):
             self.mappings[self.learning_row]['midi'] = message_key
             
             # Actualizar UI
-            self.learning_status_label.setText(f"✅ Asignado: {message_key}")
+            self.learning_status_label.setText(f" Asignado: {message_key}")
             self.learning_status_label.setStyleSheet("color: green; font-weight: bold;")
             
             # Actualizar tabla
@@ -597,7 +597,7 @@ class MidiMappingDialog(QDialog):
     def update_midi_status(self):
         """Actualizar estado MIDI"""
         if not self.midi_engine:
-            self.midi_status_label.setText("❌ Motor MIDI no disponible")
+            self.midi_status_label.setText(" Motor MIDI no disponible")
             self.midi_status_label.setStyleSheet("color: red; font-weight: bold;")
             return
 
@@ -613,14 +613,14 @@ class MidiMappingDialog(QDialog):
                 if hasattr(self.midi_engine, 'get_connected_device_name'):
                     device_name = self.midi_engine.get_connected_device_name() or ""
                 
-                self.midi_status_label.setText(f"✅ MIDI conectado: {device_name}")
+                self.midi_status_label.setText(f" MIDI conectado: {device_name}")
                 self.midi_status_label.setStyleSheet("color: green; font-weight: bold;")
             else:
-                self.midi_status_label.setText("❌ MIDI desconectado")
+                self.midi_status_label.setText(" MIDI desconectado")
                 self.midi_status_label.setStyleSheet("color: red; font-weight: bold;")
                 
         except Exception as e:
-            self.midi_status_label.setText(f"❌ Error MIDI: {str(e)}")
+            self.midi_status_label.setText(f" Error MIDI: {str(e)}")
             self.midi_status_label.setStyleSheet("color: red; font-weight: bold;")
 
     def convert_to_engine_format(self):
@@ -704,7 +704,7 @@ class MidiMappingDialog(QDialog):
             
             self.mappings_saved.emit(engine_mappings)
             
-            self.learning_status_label.setText("✅ Mapeos aplicados correctamente")
+            self.learning_status_label.setText(" Mapeos aplicados correctamente")
             self.learning_status_label.setStyleSheet("color: green; font-weight: bold;")
             
             QTimer.singleShot(2000, lambda: self.learning_status_label.setText("Listo para configurar mapeos MIDI"))

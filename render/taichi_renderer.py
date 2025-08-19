@@ -27,18 +27,18 @@ class TaichiRenderer:
         for backend in backends:
             try:
                 ti.init(arch=backend, debug=False)
-                print(f"✅ Taichi initialized with {backend}")
+                print(f" Taichi initialized with {backend}")
                 return
             except Exception as e:
-                print(f"⚠️ Failed to initialize {backend}: {e}")
+                print(f" Failed to initialize {backend}: {e}")
                 continue
                 
         # Fallback
         try:
             ti.init(arch=ti.cpu, debug=False)
-            print("✅ Taichi initialized with CPU fallback")
+            print("Taichi initialized with CPU fallback")
         except Exception as e:
-            print(f"❌ Failed to initialize Taichi: {e}")
+            print(f" Failed to initialize Taichi: {e}")
             raise
         
     def add_pass(self, name: str, compute_func: Callable):

@@ -43,7 +43,7 @@ def create_midi_activity_indicator(self):
     indicator_layout.addWidget(midi_label)
 
     # Modern LED indicator with glow effect
-    self.midi_led = QLabel("●")
+    self.midi_led = QLabel("*")
     self.midi_led.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
     self.midi_led.setStyleSheet(f"""
         QLabel {{
@@ -227,7 +227,7 @@ def create_modern_tips_section():
     tips_layout.setSpacing(2)
 
     # Icon and label
-    tip_header = QLabel("💡 TIP")
+    tip_header = QLabel("TIP")
     tip_header.setFont(QFont("Segoe UI", 8, QFont.Weight.Bold))
     tip_header.setStyleSheet(f"""
         QLabel {{

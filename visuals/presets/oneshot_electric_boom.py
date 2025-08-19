@@ -66,7 +66,7 @@ class OneshotElectricBoomVisualizer(BaseVisualizer):
                 return
             
             self.initialized = True
-            logging.info("🌊 TouchDesigner-quality shockwave initialized")
+            logging.info("TouchDesigner-quality shockwave initialized")
             
         except Exception as e:
             logging.error(f"Error in initialization: {e}")
@@ -385,7 +385,7 @@ class OneshotElectricBoomVisualizer(BaseVisualizer):
         }
         
         self.shockwaves.append(shockwave)
-        logging.info(f"🌊 TouchDesigner shockwave at ({center_x:.2f}, {center_y:.2f})")
+        logging.info(f"TouchDesigner shockwave at ({center_x:.2f}, {center_y:.2f})")
 
     def update_vertex_data(self):
         """Update vertex buffer with high-quality shockwaves"""
@@ -561,4 +561,4 @@ class OneshotElectricBoomVisualizer(BaseVisualizer):
         """Handle MIDI triggers"""
         if action_name == "boom" or action_name == "explosion" or action_name == "shockwave":
             self.create_shockwave()
-            logging.info("🌊 TouchDesigner SHOCKWAVE! Triggered via MIDI")
+            logging.info("TouchDesigner SHOCKWAVE! Triggered via MIDI")
