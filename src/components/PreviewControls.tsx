@@ -23,10 +23,10 @@ export default function PreviewControls() {
           color: '#fff',
         }}
       >
-        Preview Output
+        Ventana Visuales
       </div>
       <div style={{ width: 250, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <h3>Audio FFT</h3>
+        <h3>Controles Visuales activos</h3>
         <label>
           Sensitivity
           <input
