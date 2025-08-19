@@ -203,7 +203,8 @@ class NeuralNode {
     audioIntensity: number,
     globalOpacity: number,
     config: any,
-    time: number
+    time: number,
+    zoom: number
   ) {
     this.targetActivity = targetActivity * audioIntensity;
     this.activity += (this.targetActivity - this.activity) * deltaTime * 5;
@@ -222,8 +223,14 @@ class NeuralNode {
       ? 0.8 + 0.4 * Math.sin(time * pulseSpeed + this.pulseOffset + this.activity * 5)
       : 1.0;
 
-    // Escala con crecimiento y pulso
-    const scale = this.originalScale * this.growthFactor * (1 + this.activity * 0.6) * pulse;
+    // Escala con crecimiento, pulso y zoom global
+    const zoomScale = 1 + zoom * 0.2;
+    const scale =
+      this.originalScale *
+      this.growthFactor *
+      (1 + this.activity * 0.6) *
+      pulse *
+      zoomScale;
     this.mesh.scale.setScalar(scale);
 
     // Destellos aleatorios
@@ -455,6 +462,8 @@ class NeuralNetworkPreset extends BasePreset {
   private particleSystem: ParticleSystem;
   private gridHelper!: THREE.GridHelper;
   private currentConfig: any;
+  private zoomLevel: number = 0;
+  private initialCameraZ: number;
 
   constructor(
     scene: THREE.Scene,
@@ -480,6 +489,7 @@ class NeuralNetworkPreset extends BasePreset {
 
     this.currentConfig = { ...config.defaultConfig };
     this.particleSystem = new ParticleSystem(150);
+    this.initialCameraZ = this.camera.position.z;
   }
 
   public init(): void {
@@ -626,28 +636,36 @@ class NeuralNetworkPreset extends BasePreset {
     // Intensidad de audio promedio
     const overallAudio = (this.audioData.low + this.audioData.mid + this.audioData.high) / 3;
 
+    // Zoom progresivo hacia la red
+    this.zoomLevel += deltaTime * (this.currentConfig.animation?.networkExpansion ?? 0.5);
+    this.camera.position.z = this.initialCameraZ - this.zoomLevel;
+    if (this.camera.position.z < 1) {
+      this.zoomLevel = 0;
+      this.camera.position.z = this.initialCameraZ;
+    }
+
     // Update input nodes
     this.nodes.input.forEach((node, index) => {
       const baseActivity = 0.3 + 0.7 * Math.sin(time * 1.5 + index * 0.5);
-      node.update(deltaTime, baseActivity, this.audioData.low * 2, this.opacity, this.currentConfig, time);
+      node.update(deltaTime, baseActivity, this.audioData.low * 2, this.opacity, this.currentConfig, time, this.zoomLevel);
     });
 
     // Update hidden1 nodes
     this.nodes.hidden1.forEach((node, index) => {
       const baseActivity = 0.2 + 0.8 * Math.sin(time * 1.2 + index * 0.3);
-      node.update(deltaTime, baseActivity, this.audioData.mid * 1.5, this.opacity, this.currentConfig, time);
+      node.update(deltaTime, baseActivity, this.audioData.mid * 1.5, this.opacity, this.currentConfig, time, this.zoomLevel);
     });
 
     // Update hidden2 nodes
     this.nodes.hidden2.forEach((node, index) => {
       const baseActivity = 0.25 + 0.75 * Math.sin(time * 1.8 + index * 0.4);
-      node.update(deltaTime, baseActivity, this.audioData.mid * 1.8, this.opacity, this.currentConfig, time);
+      node.update(deltaTime, baseActivity, this.audioData.mid * 1.8, this.opacity, this.currentConfig, time, this.zoomLevel);
     });
 
     // Update output nodes
     this.nodes.output.forEach((node, index) => {
       const baseActivity = 0.4 + 0.6 * Math.sin(time * 2.2 + index * 0.6);
-      node.update(deltaTime, baseActivity, this.audioData.high * 2.5, this.opacity, this.currentConfig, time);
+      node.update(deltaTime, baseActivity, this.audioData.high * 2.5, this.opacity, this.currentConfig, time, this.zoomLevel);
     });
 
     // Update connections

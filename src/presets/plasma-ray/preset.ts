@@ -542,6 +542,7 @@ class PlasmaRayPreset extends BasePreset {
   private currentConfig: any;
   private dischargeTimer: number = 0;
   private energyBuildup: number = 0;
+  private horizontalOffset: number = 0;
   
   constructor(
     scene: THREE.Scene,
@@ -639,7 +640,24 @@ class PlasmaRayPreset extends BasePreset {
   public update(): void {
     const deltaTime = this.clock.getDelta();
     const time = this.clock.getElapsedTime();
-    
+
+    // Movimiento horizontal en bucle
+    this.horizontalOffset += deltaTime * 2;
+    const width = 4;
+    const x = ((this.horizontalOffset % (width * 2)) - width);
+
+    this.plasmaCore.mesh.position.x = x;
+    this.plasmaCore.glowMesh.position.x = x;
+    this.sparkSystem.sparks.position.x = x;
+    this.rays.forEach(ray => {
+      ray.line.position.x = x;
+      ray.glowLine.position.x = x;
+      ray.branches.forEach(branch => {
+        branch.line.position.x = x;
+        branch.glowLine.position.x = x;
+      });
+    });
+
     this.plasmaCore.update(deltaTime, this.audioData, this.currentConfig, time);
     
     this.energyBuildup += this.audioData.low * 0.02 + this.audioData.mid * 0.03 + this.audioData.high * 0.01;
@@ -681,7 +699,17 @@ class PlasmaRayPreset extends BasePreset {
     while (this.rays.length < this.currentConfig.raySystem.primaryRays / 2) {
       this.createPrimaryRay();
     }
-    
+
+    // Asegurar posición de nuevos rayos
+    this.rays.forEach(ray => {
+      ray.line.position.x = x;
+      ray.glowLine.position.x = x;
+      ray.branches.forEach(branch => {
+        branch.line.position.x = x;
+        branch.glowLine.position.x = x;
+      });
+    });
+
     const rayPositions = this.rays.flatMap(ray => ray.points);
     const audioIntensity = (this.audioData.low + this.audioData.mid + this.audioData.high) / 3;
     this.sparkSystem.update(deltaTime, audioIntensity, rayPositions);
