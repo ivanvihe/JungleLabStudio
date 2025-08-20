@@ -41,16 +41,6 @@ fn main() {
             midi::start(app.handle().clone());
             audio::start(app.handle().clone());
             tauri::async_runtime::spawn(gpu::init());
-            let handle = app.handle();
-            let _ = tauri::WindowBuilder::new(&handle, "screen1", tauri::WindowUrl::App("index.html".into()))
-                .fullscreen(true)
-                .build();
-            let _ = tauri::WindowBuilder::new(&handle, "screen2", tauri::WindowUrl::App("index.html".into()))
-                .fullscreen(true)
-                .build();
-            let _ = tauri::WindowBuilder::new(&handle, "screen3", tauri::WindowUrl::App("index.html".into()))
-                .fullscreen(true)
-                .build();
             Ok(())
         })
         .run(tauri::generate_context!())

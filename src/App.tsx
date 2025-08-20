@@ -60,7 +60,9 @@ const App: React.FC = () => {
   const [selectedMonitors, setSelectedMonitors] = useState<string[]>([]);
   const [glitchTextPads, setGlitchTextPads] = useState<number>(() => parseInt(localStorage.getItem('glitchTextPads') || '1'));
   const [clearSignal, setClearSignal] = useState(0);
-  const isFullscreenMode = new URLSearchParams(window.location.search).get('fullscreen') === 'true';
+  const [isFullscreenMode, setIsFullscreenMode] = useState(
+    () => new URLSearchParams(window.location.search).get('fullscreen') === 'true'
+  );
 
   // Persist selected devices across sessions
   useEffect(() => {
@@ -172,6 +174,15 @@ const App: React.FC = () => {
     };
 
     loadMonitors();
+  }, []);
+
+  useEffect(() => {
+    const handler = () => {
+      const param = new URLSearchParams(window.location.search).get('fullscreen') === 'true';
+      setIsFullscreenMode(param || !!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
   }, []);
 
   // Inicializar el engine
@@ -440,7 +451,11 @@ const App: React.FC = () => {
     if (isFullscreenMode) {
       const handler = (e: KeyboardEvent) => {
         if (e.key === 'Escape' || e.key === 'F11') {
-          window.close();
+          if ((window as any).__TAURI__) {
+            window.close();
+          } else if (document.fullscreenElement) {
+            document.exitFullscreen();
+          }
         }
       };
       window.addEventListener('keydown', handler);
@@ -529,6 +544,7 @@ const App: React.FC = () => {
       const elem: any = document.documentElement;
       if (elem.requestFullscreen) {
         await elem.requestFullscreen();
+        setIsFullscreenMode(true);
         setStatus('Fullscreen activado (navegador)');
       } else {
         setStatus('Error: Fullscreen no disponible');
