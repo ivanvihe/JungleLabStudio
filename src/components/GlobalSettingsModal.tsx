@@ -39,6 +39,8 @@ interface GlobalSettingsModalProps {
   onToggleMonitor: (id: string) => void;
   glitchTextPads: number;
   onGlitchPadChange: (value: number) => void;
+  hideUiHotkey: string;
+  onHideUiHotkeyChange: (value: string) => void;
 }
 
 export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
@@ -62,7 +64,9 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   selectedMonitors,
   onToggleMonitor,
   glitchTextPads,
-  onGlitchPadChange
+  onGlitchPadChange,
+  hideUiHotkey,
+  onHideUiHotkeyChange
 }) => {
   const [activeTab, setActiveTab] = useState('audio');
   
@@ -491,7 +495,23 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
           {activeTab === 'visual' && (
             <div className="settings-section">
               <h3>🎨 Configuración Visual</h3>
-              
+              <div className="setting-group">
+                <label className="setting-label">
+                  <span>Tecla para ocultar UI</span>
+                  <input
+                    type="text"
+                    value={hideUiHotkey}
+                    onKeyDown={(e) => {
+                      e.preventDefault();
+                      onHideUiHotkeyChange(e.key);
+                    }}
+                    className="setting-number"
+                    readOnly
+                  />
+                </label>
+                <small className="setting-hint">Presiona una tecla (por defecto F10)</small>
+              </div>
+
               <div className="setting-group">
                 <label className="setting-label">
                   <span>Pads de Texto Glitch: {glitchTextPads}</span>
