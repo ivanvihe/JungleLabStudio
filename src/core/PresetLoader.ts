@@ -92,7 +92,8 @@ export class PresetLoader {
     'neural_network',
     'abstract-lines',
     'evolutive-particles',
-    'plasma-ray'
+    'plasma-ray',
+    'text-glitch'
   ];
 
   constructor(

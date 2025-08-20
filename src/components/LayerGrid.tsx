@@ -79,7 +79,8 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
       'abstract-shapes': '🔷',
       'evolutive-particles': '✨',
       'plasma-ray': '⚡',
-      'shot-text': '📝'
+      'shot-text': '📝',
+      'text-glitch': '🔤'
     };
     return thumbnails[preset.id] || '🎨';
   };
@@ -151,11 +152,6 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
                   <div className="preset-info">
                     <div className="preset-name">{preset.config.name}</div>
                     <div className="preset-category">{preset.config.category}</div>
-                  </div>
-                  <div className="preset-tags">
-                    {preset.config.tags.slice(0, 2).map(tag => (
-                      <span key={tag} className="tag">{tag}</span>
-                    ))}
                   </div>
                   
                   {isActive && (

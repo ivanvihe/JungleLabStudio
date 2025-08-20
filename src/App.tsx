@@ -157,15 +157,8 @@ const App: React.FC = () => {
     if (!engineRef.current) return;
 
     console.log(`🎨 Activating preset ${presetId} on layer ${layerId}`);
-    
-    // Desactivar preset anterior de esta capa si existe
-    const previousPreset = activeLayers[layerId];
-    if (previousPreset) {
-      engineRef.current.deactivateCurrentPreset();
-    }
 
-    // Activar nuevo preset
-    const success = engineRef.current.activatePreset(presetId);
+    const success = engineRef.current.activatePreset(layerId, presetId);
     if (success) {
       setActiveLayers(prev => ({ ...prev, [layerId]: presetId }));
       setStatus(`Layer ${layerId}: ${availablePresets.find(p => p.id === presetId)?.config.name}`);
@@ -176,7 +169,7 @@ const App: React.FC = () => {
     if (!engineRef.current) return;
 
     console.log(`🗑️ Clearing layer ${layerId}`);
-    engineRef.current.deactivateCurrentPreset();
+    engineRef.current.deactivateLayerPreset(layerId);
     
     setActiveLayers(prev => {
       const newLayers = { ...prev };
@@ -194,11 +187,11 @@ const App: React.FC = () => {
     
     // Aplicar cambios de opacidad
     if (config.opacity !== undefined) {
-      engineRef.current.setOpacity(config.opacity / 100);
+      engineRef.current.setLayerOpacity(layerId, config.opacity / 100);
     }
-    
+
     // Aplicar otros cambios de configuración
-    engineRef.current.updatePresetConfig(config);
+    engineRef.current.updateLayerConfig(layerId, config);
   };
 
   const getCurrentPresetName = (): string => {
