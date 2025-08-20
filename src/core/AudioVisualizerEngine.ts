@@ -3,7 +3,11 @@
 import * as THREE from 'three';
 import { PresetLoader, LoadedPreset, AudioData } from './PresetLoader';
 import fs from 'fs';
-import path from 'path';
+// Using simple path helpers instead of Node's `path` module which is not
+// available in the browser runtime. Node's `path.join` was causing errors
+// after bundling (e.g. `TypeError: Bi.join is not a function`).
+// For our use case we only need basic string concatenation to build and
+// inspect paths, so we implement lightweight helpers below.
 import { setNestedValue } from '../utils/objectPath';
 
 interface LayerState {
@@ -348,8 +352,11 @@ export class AudioVisualizerEngine {
     }
   }
 
+  // Build the path to the config file for a given layer preset using simple
+  // string concatenation. Using `path.join` from Node would fail in the
+  // browser/tauri environment.
   private getLayerConfigPath(presetId: string, layerId: string): string {
-    return path.join('src', 'presets', presetId, 'layers', `${layerId}.json`);
+    return `src/presets/${presetId}/layers/${layerId}.json`;
   }
 
   private loadLayerPresetConfig(presetId: string, layerId: string): any {
@@ -367,7 +374,8 @@ export class AudioVisualizerEngine {
   private saveLayerPresetConfig(presetId: string, layerId: string, cfg: any): void {
     try {
       const cfgPath = this.getLayerConfigPath(presetId, layerId);
-      fs.mkdirSync(path.dirname(cfgPath), { recursive: true });
+      const dir = cfgPath.substring(0, cfgPath.lastIndexOf('/'));
+      fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2));
     } catch (err) {
       console.warn(`Could not save config for ${presetId} layer ${layerId}:`, err);
