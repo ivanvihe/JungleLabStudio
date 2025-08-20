@@ -13,6 +13,7 @@ export const config: PresetConfig = {
   defaultConfig: {
     opacity: 1.0,
     fadeMs: 200,
+    effect: 'jitter',
     text: {
       content: 'TEXT',
       fontSize: 120,
@@ -30,6 +31,7 @@ export const config: PresetConfig = {
     { name: 'text.fontSize', type: 'slider', label: 'Font Size', min: 40, max: 200, step: 10, default: 120 },
     { name: 'glitch.intensity', type: 'slider', label: 'Glitch Intensity', min: 0, max: 0.5, step: 0.01, default: 0.05 },
     { name: 'glitch.frequency', type: 'slider', label: 'Glitch Frequency', min: 0, max: 10, step: 0.1, default: 2.0 },
+    { name: 'effect', type: 'select', label: 'Effect', options: ['jitter', 'robotica'], default: 'jitter' },
     { name: 'color', type: 'color', label: 'Color', default: '#ffffff' }
   ],
   audioMapping: {
@@ -40,13 +42,79 @@ export const config: PresetConfig = {
   performance: { complexity: 'low', recommendedFPS: 60, gpuIntensive: false }
 };
 
+class CinematicLetter {
+  public mesh: THREE.Mesh;
+  private texture: THREE.Texture;
+  private material: THREE.ShaderMaterial;
+  private startOffset: number;
+
+  constructor(char: string, fontSize: number, fontFamily: string, position: THREE.Vector3, color: string, index: number) {
+    const canvas = document.createElement('canvas');
+    canvas.width = fontSize * 1.5;
+    canvas.height = fontSize * 1.5;
+    const ctx = canvas.getContext('2d')!;
+    ctx.font = `bold ${fontSize}px ${fontFamily}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(char, canvas.width / 2, canvas.height / 2);
+
+    this.texture = new THREE.Texture(canvas);
+    this.texture.needsUpdate = true;
+    this.material = new THREE.ShaderMaterial({
+      transparent: true,
+      uniforms: {
+        uTexture: { value: this.texture },
+        uOpacity: { value: 0 },
+        uColor: { value: new THREE.Color(color) }
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main(){
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+        }
+      `,
+      fragmentShader: `
+        varying vec2 vUv;
+        uniform sampler2D uTexture;
+        uniform float uOpacity;
+        uniform vec3 uColor;
+        void main(){
+          vec4 t = texture2D(uTexture, vUv);
+          if(t.a < 0.1) discard;
+          gl_FragColor = vec4(uColor, t.a * uOpacity);
+        }
+      `
+    });
+    const geometry = new THREE.PlaneGeometry(canvas.width/100, canvas.height/100);
+    this.mesh = new THREE.Mesh(geometry, this.material);
+    this.mesh.position.copy(position);
+    this.startOffset = index * 0.1;
+  }
+
+  update(time: number, color: string): void {
+    const progress = THREE.MathUtils.clamp((time - this.startOffset) / 0.5, 0, 1);
+    this.material.uniforms.uOpacity.value = progress;
+    this.material.uniforms.uColor.value.set(color);
+  }
+
+  dispose(): void {
+    this.mesh.geometry.dispose();
+    this.material.dispose();
+    this.texture.dispose();
+  }
+}
+
 class CustomGlitchTextPreset extends BasePreset {
   private group!: THREE.Group;
-  private mesh!: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
-  private canvas!: HTMLCanvasElement;
-  private ctx!: CanvasRenderingContext2D;
-  private texture!: THREE.Texture;
+  private mesh?: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+  private canvas?: HTMLCanvasElement;
+  private ctx?: CanvasRenderingContext2D;
+  private texture?: THREE.Texture;
+  private letters: CinematicLetter[] = [];
   private currentConfig: any;
+  private start = 0;
 
   constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, cfg: PresetConfig) {
     super(scene, camera, renderer, cfg);
@@ -56,59 +124,91 @@ class CustomGlitchTextPreset extends BasePreset {
     this.currentConfig = JSON.parse(JSON.stringify(this.config.defaultConfig));
     this.group = new THREE.Group();
     this.scene.add(this.group);
+    this.buildEffect();
+  }
 
+  private buildEffect(): void {
+    this.disposeMeshes();
+    if (this.currentConfig.effect === 'robotica') {
+      this.buildRobotica();
+    } else {
+      this.buildGlitch();
+    }
+  }
+
+  private buildGlitch(): void {
     this.canvas = document.createElement('canvas');
     this.canvas.width = 1024;
     this.canvas.height = 256;
     this.ctx = this.canvas.getContext('2d')!;
-
     this.texture = new THREE.Texture(this.canvas);
     this.texture.needsUpdate = true;
-
     this.mesh = new THREE.Mesh(
       new THREE.PlaneGeometry(2, 0.5),
       new THREE.MeshBasicMaterial({ map: this.texture, transparent: true, color: new THREE.Color(this.currentConfig.color) })
     );
     this.group.add(this.mesh);
-
     this.updateCanvas();
   }
 
+  private buildRobotica(): void {
+    this.letters = [];
+    const { content, fontSize, fontFamily, letterSpacing } = this.currentConfig.text;
+    const totalWidth = content.length * (fontSize/100 + letterSpacing);
+    for (let i = 0; i < content.length; i++) {
+      const char = content[i];
+      const x = i * (fontSize/100 + letterSpacing) - totalWidth/2;
+      const letter = new CinematicLetter(char, fontSize, fontFamily, new THREE.Vector3(x,0,0), this.currentConfig.color, i);
+      this.group.add(letter.mesh);
+      this.letters.push(letter);
+    }
+    this.start = this.clock.getElapsedTime();
+  }
+
   private updateCanvas(): void {
+    if (!this.ctx || !this.canvas) return;
     const { content, fontSize, fontFamily } = this.currentConfig.text;
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
     this.ctx.fillStyle = '#ffffff';
     this.ctx.font = `${fontSize}px ${fontFamily}`;
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
-    this.ctx.fillText(content, this.canvas.width / 2, this.canvas.height / 2);
-    this.texture.needsUpdate = true;
+    this.ctx.fillText(content, this.canvas.width/2, this.canvas.height/2);
+    this.texture!.needsUpdate = true;
   }
 
   public update(): void {
-    const delta = this.clock.getDelta();
-    const { intensity, frequency } = this.currentConfig.glitch;
-
-    if (Math.random() < frequency * delta) {
-      this.mesh.position.x = (Math.random() - 0.5) * intensity;
-      this.mesh.position.y = (Math.random() - 0.5) * intensity;
-      this.mesh.material.color.setHSL(Math.random(), 1, 0.5);
+    if (this.currentConfig.effect === 'robotica') {
+      const t = this.clock.getElapsedTime() - this.start;
+      this.letters.forEach(l => l.update(t, this.currentConfig.color));
     } else {
-      this.mesh.position.set(0, 0, 0);
-      this.mesh.material.color.set(this.currentConfig.color);
+      const delta = this.clock.getDelta();
+      const { intensity, frequency } = this.currentConfig.glitch;
+      if (Math.random() < frequency * delta) {
+        this.mesh!.position.x = (Math.random() - 0.5) * intensity;
+        this.mesh!.position.y = (Math.random() - 0.5) * intensity;
+        this.mesh!.material.color.setHSL(Math.random(), 1, 0.5);
+      } else {
+        this.mesh!.position.set(0,0,0);
+        this.mesh!.material.color.set(this.currentConfig.color);
+      }
+      const scaleBump = 1 + this.audioData.low * 0.1;
+      this.group.scale.setScalar(scaleBump);
     }
-
-    const scaleBump = 1 + this.audioData.low * 0.1;
-    this.group.scale.setScalar(scaleBump);
   }
 
   public updateConfig(newConfig: any): void {
     this.currentConfig = this.deepMerge(this.currentConfig, newConfig);
-    if (newConfig.text) {
-      this.updateCanvas();
-    }
-    if (newConfig.color) {
-      this.mesh.material.color.set(newConfig.color);
+    if (newConfig.text || newConfig.effect) {
+      this.buildEffect();
+    } else if (newConfig.color) {
+      if (this.currentConfig.effect === 'robotica') {
+        const t = this.clock.getElapsedTime() - this.start;
+        this.letters.forEach(l => l.update(t, this.currentConfig.color));
+      } else {
+        this.mesh!.material.color.set(newConfig.color);
+        this.updateCanvas();
+      }
     }
   }
 
@@ -124,12 +224,21 @@ class CustomGlitchTextPreset extends BasePreset {
     return result;
   }
 
+  private disposeMeshes(): void {
+    if (this.mesh) {
+      this.group.remove(this.mesh);
+      this.mesh.geometry.dispose();
+      this.mesh.material.dispose();
+      this.mesh = undefined;
+    }
+    this.letters.forEach(l => { this.group.remove(l.mesh); l.dispose(); });
+    this.letters = [];
+    if (this.texture) this.texture.dispose();
+  }
+
   public dispose(): void {
-    this.group.remove(this.mesh);
+    this.disposeMeshes();
     this.scene.remove(this.group);
-    this.mesh.geometry.dispose();
-    this.mesh.material.dispose();
-    this.texture.dispose();
   }
 }
 

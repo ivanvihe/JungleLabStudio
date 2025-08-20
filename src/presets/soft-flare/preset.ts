@@ -45,7 +45,8 @@ class SoftFlarePreset extends BasePreset {
       transparent: true,
       uniforms: {
         uColor: { value: new THREE.Color(this.currentConfig.color) },
-        uProgress: { value: 0 }
+        uProgress: { value: 0 },
+        uCenter: { value: new THREE.Vector2(Math.random(), Math.random()) }
       },
       vertexShader: `
         varying vec2 vUv;
@@ -58,8 +59,9 @@ class SoftFlarePreset extends BasePreset {
         varying vec2 vUv;
         uniform vec3 uColor;
         uniform float uProgress;
+        uniform vec2 uCenter;
         void main(){
-          float dist = length(vUv - vec2(0.5));
+          float dist = length(vUv - uCenter);
           float alpha = smoothstep(0.5, 0.0, dist) * (1.0 - uProgress);
           gl_FragColor = vec4(uColor, alpha);
         }
