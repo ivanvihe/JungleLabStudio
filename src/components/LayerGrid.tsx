@@ -88,25 +88,36 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
     <div className="layer-grid">
       {layers.map((layer) => (
         <div key={layer.id} className="layer-section">
-          {/* Layer Header */}
-          <div 
-            className="layer-header"
+          {/* Layer Controls - 100x100 square */}
+          <div
+            className="layer-sidebar"
             style={{ borderLeftColor: layer.color }}
           >
-            <div className="layer-title">
-              <span className="layer-name" style={{ color: layer.color }}>
-                {layer.name}
-              </span>
-              <span className="layer-midi">MIDI Ch. {layer.midiChannel}</span>
+            <div className="layer-letter" style={{ color: layer.color }}>
+              {layer.id}
             </div>
-            
-            <div className="layer-controls">
-              <div className="control-group">
-                <label>Fade</label>
+            <div className="sidebar-controls">
+              <input
+                type="range"
+                value={layer.opacity}
+                onChange={(e) =>
+                  handleLayerConfigChange(layer.id, 'opacity', parseInt(e.target.value))
+                }
+                className="opacity-slider"
+                min="0"
+                max="100"
+              />
+              <div className="fade-control">
                 <input
                   type="number"
                   value={layer.fadeTime}
-                  onChange={(e) => handleLayerConfigChange(layer.id, 'fadeTime', parseInt(e.target.value))}
+                  onChange={(e) =>
+                    handleLayerConfigChange(
+                      layer.id,
+                      'fadeTime',
+                      parseInt(e.target.value)
+                    )
+                  }
                   className="fade-input"
                   min="0"
                   max="5000"
@@ -114,27 +125,6 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
                 />
                 <span className="unit">ms</span>
               </div>
-              
-              <div className="control-group">
-                <label>Opacity</label>
-                <input
-                  type="range"
-                  value={layer.opacity}
-                  onChange={(e) => handleLayerConfigChange(layer.id, 'opacity', parseInt(e.target.value))}
-                  className="opacity-slider"
-                  min="0"
-                  max="100"
-                />
-                <span className="value">{layer.opacity}%</span>
-              </div>
-              
-              <button
-                onClick={() => handleLayerClear(layer.id)}
-                className="clear-button"
-                style={{ borderColor: layer.color }}
-              >
-                Clear
-              </button>
             </div>
           </div>
 
