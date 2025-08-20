@@ -6,7 +6,15 @@
   "category": "energy",
   "tags": ["plasma", "energy", "electric", "lightning", "rays", "power"],
   "thumbnail": "plasma_ray_thumb.png",
+  "note": 54,
   "defaultConfig": {
+    "width": 1920,
+    "height": 1080,
+    "zoom": 1.0,
+    "audioSensitivity": 1.0,
+    "audioSmoothness": 0.5,
+    "audioReactivity": 1.0,
+    "paletteColor": "#ffffff",
     "opacity": 1.0,
     "fadeMs": 150,
     "raySystem": {

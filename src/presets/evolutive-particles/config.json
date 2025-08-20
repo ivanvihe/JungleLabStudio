@@ -6,7 +6,15 @@
   "category": "particles",
   "tags": ["particles", "evolution", "organic", "complex", "adaptive", "swarm"],
   "thumbnail": "evolutive_particles_thumb.png",
+  "note": 52,
   "defaultConfig": {
+    "width": 1920,
+    "height": 1080,
+    "zoom": 1.0,
+    "audioSensitivity": 1.0,
+    "audioSmoothness": 0.5,
+    "audioReactivity": 1.0,
+    "paletteColor": "#ffffff",
     "opacity": 1.0,
     "fadeMs": 250,
     "particleCount": {

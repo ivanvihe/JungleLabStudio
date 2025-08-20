@@ -16,8 +16,9 @@
 .layer-section {
   height: 100px; /* Altura fija: controles + grid */
   background: #111111;
-  border-bottom: 1px solid #222;
+  border-bottom: 1px solid #FFFFFF;
   display: flex;
+  gap: 1px;
 }
 
 .layer-sidebar {
@@ -31,6 +32,7 @@
   justify-content: center;
   gap: 6px;
   flex-shrink: 0;
+  border-radius: 0;
 }
 
 .layer-letter {
@@ -98,8 +100,8 @@
 .preset-grid {
   height: 100px;
   display: flex;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 1px;
+  padding: 1px;
   background: #0F0F0F;
   overflow-x: auto;
   overflow-y: hidden;
@@ -133,7 +135,7 @@
   min-width: 100px;
   background: linear-gradient(135deg, #1E1E1E, #181818);
   border: 1px solid #333;
-  border-radius: 6px;
+  border-radius: 0;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -190,8 +192,7 @@
   line-height: 10px;
   overflow: hidden;
 }
-
-.preset-category {
+.preset-details {
   height: 5px;
   font-size: 7px;
   color: #888;
@@ -199,6 +200,13 @@
   text-transform: uppercase;
   letter-spacing: 0.3px;
   line-height: 5px;
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.preset-note {
+  color: #aaa;
 }
 
 

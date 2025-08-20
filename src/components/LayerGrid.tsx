@@ -151,7 +151,12 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
                   </div>
                   <div className="preset-info">
                     <div className="preset-name">{preset.config.name}</div>
-                    <div className="preset-category">{preset.config.category}</div>
+                    <div className="preset-details">
+                      <span className="preset-category">{preset.config.category}</span>
+                      {preset.config.note !== undefined && (
+                        <span className="preset-note">note:{preset.config.note}</span>
+                      )}
+                    </div>
                   </div>
                   
                   {isActive && (
