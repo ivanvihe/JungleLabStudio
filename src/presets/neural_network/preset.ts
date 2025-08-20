@@ -13,7 +13,7 @@ export const config: PresetConfig = {
     opacity: 1.0,
     fadeMs: 150,
     topology: {
-      layers: [8, 16, 12, 6, 3],
+      layers: [16, 32, 48, 32, 16, 8],
       activationFunction: "sigmoid",
       learningRate: 0.01,
       momentum: 0.9
@@ -22,18 +22,18 @@ export const config: PresetConfig = {
       nodeSize: 0.08,
       connectionThickness: 1.5,
       activationIntensity: 2.0,
-      propagationSpeed: 5.0,
-      morphologyRate: 1.2
+      propagationSpeed: 2.0,
+      morphologyRate: 0.6
     },
     colors: {
-      input: "#00FFFF",
-      hidden: "#FF6B6B", 
-      output: "#FFE66D",
-      connection: "#64B5F6",
-      activation: "#FF00FF"
+      input: "#A0C4FF",
+      hidden: "#BDB2FF",
+      output: "#FFAFCC",
+      connection: "#CDB4DB",
+      activation: "#FFE5EC"
     },
     performance: {
-      maxConnections: 500,
+      maxConnections: 5000,
       updateFrequency: 60,
       cullingThreshold: 0.1
     }
@@ -125,20 +125,21 @@ class InterstellarNavigator {
   private originalPosition: THREE.Vector3 = new THREE.Vector3();
   private startX = -20;
   private endX = 20;
-  private speed = 5;
+  private speed = 1.5;
 
-  constructor(private camera: THREE.Camera) {
+  constructor(private camera: THREE.Camera, private onLoop?: () => void) {
     this.originalPosition.copy(camera.position);
     this.camera.position.set(this.startX, 0, 0);
     this.camera.lookAt(0, 0, 0);
   }
 
   update(delta: number, intensity: number): void {
-    this.camera.position.x += delta * this.speed * (0.5 + intensity * 2.0);
+    this.camera.position.x += delta * this.speed * (0.5 + intensity);
     this.camera.lookAt(this.camera.position.x + 1, 0, 0);
 
     if (this.camera.position.x > this.endX) {
       this.camera.position.x = this.startX;
+      this.onLoop?.();
     }
   }
 
@@ -534,6 +535,8 @@ class NeuralNetworkGenesis extends BasePreset {
   private learningPhase: number = 0;
   private frameCount: number = 0;
   private navigator: InterstellarNavigator;
+  private frustum: THREE.Frustum = new THREE.Frustum();
+  private viewProjectionMatrix: THREE.Matrix4 = new THREE.Matrix4();
   
   constructor(
     scene: THREE.Scene,
@@ -543,7 +546,7 @@ class NeuralNetworkGenesis extends BasePreset {
   ) {
     super(scene, camera, renderer, config);
     this.currentConfig = { ...config.defaultConfig };
-    this.navigator = new InterstellarNavigator(this.camera);
+    this.navigator = new InterstellarNavigator(this.camera, () => this.regenerateNetwork());
   }
   
   public init(): void {
@@ -564,37 +567,46 @@ class NeuralNetworkGenesis extends BasePreset {
       new THREE.Color(this.currentConfig.colors.hidden),
       new THREE.Color(this.currentConfig.colors.output)
     ];
-    
+
+    const spacing = 2.0;
+    const radiusMul = 0.4;
+
     for (let layerIdx = 0; layerIdx < topology.length; layerIdx++) {
       const layer: Neuron[] = [];
       const nodeCount = topology[layerIdx];
       const color = colors[Math.min(layerIdx, colors.length - 1)];
-      
-      // Distribución espacial orgánica
+
+      // Distribución espacial orgánica y aleatoria
       for (let nodeIdx = 0; nodeIdx < nodeCount; nodeIdx++) {
         let position: THREE.Vector3;
-        
+
         if (nodeCount === 1) {
           position = new THREE.Vector3(
-            (layerIdx - topology.length / 2) * 1.5,
+            (layerIdx - topology.length / 2) * spacing,
             0,
             0
           );
         } else {
           const angle = (nodeIdx / nodeCount) * Math.PI * 2;
-          const radius = Math.sqrt(nodeCount) * 0.2;
-          
+          const radius = Math.sqrt(nodeCount) * radiusMul;
+
           position = new THREE.Vector3(
-            (layerIdx - topology.length / 2) * 1.5,
+            (layerIdx - topology.length / 2) * spacing,
             Math.sin(angle) * radius,
             Math.cos(angle) * radius * 0.5
           );
         }
-        
+
+        position.add(new THREE.Vector3(
+          (Math.random() - 0.5) * 0.5,
+          (Math.random() - 0.5) * 0.5,
+          (Math.random() - 0.5) * 0.5
+        ));
+
         const neuron = new Neuron(position, color, this.currentConfig.visualization.nodeSize);
         layer.push(neuron);
       }
-      
+
       this.layers.push(layer);
     }
   }
@@ -627,6 +639,25 @@ class NeuralNetworkGenesis extends BasePreset {
     for (let i = 0; i < connectionLimit; i++) {
       this.connections[i].getMeshes().forEach(mesh => this.scene.add(mesh));
     }
+  }
+
+  private regenerateNetwork(): void {
+    // Remove existing objects
+    this.layers.flat().forEach(neuron => {
+      neuron.getMeshes().forEach(mesh => this.scene.remove(mesh));
+      neuron.dispose();
+    });
+    this.connections.forEach(conn => {
+      conn.getMeshes().forEach(mesh => this.scene.remove(mesh));
+      conn.dispose();
+    });
+
+    this.layers = [];
+    this.connections = [];
+
+    this.createNetworkTopology();
+    this.createConnections();
+    this.addToScene();
   }
   
   // Forward propagation
@@ -704,17 +735,26 @@ class NeuralNetworkGenesis extends BasePreset {
         deltaTime
       );
     });
-    
+
+    // Calcular visibilidad
+    this.camera.updateMatrixWorld();
+    this.viewProjectionMatrix.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse);
+    this.frustum.setFromProjectionMatrix(this.viewProjectionMatrix);
+
     // Actualizar neuronas
     this.layers.flat().forEach(neuron => {
       neuron.updateMorphology(deltaTime, audioIntensity, this.currentConfig);
-      neuron.update(deltaTime, time, this.opacity);
+      const visible = this.frustum.containsPoint(neuron.position);
+      neuron.update(deltaTime, time, this.opacity * (visible ? 1 : 0));
     });
-    
+
     // Actualizar conexiones (optimizado)
     const updateStep = Math.max(1, Math.floor(this.connections.length / 60));
     for (let i = this.frameCount % updateStep; i < this.connections.length; i += updateStep) {
-      this.connections[i].update(deltaTime, time, this.opacity);
+      const conn = this.connections[i];
+      const visible = this.frustum.containsPoint(conn.fromNeuron.position) ||
+                      this.frustum.containsPoint(conn.toNeuron.position);
+      conn.update(deltaTime, time, this.opacity * (visible ? 1 : 0));
     }
   }
   
