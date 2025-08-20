@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { listen } from '@tauri-apps/api/event';
 import { PresetLoader, LoadedPreset, AudioData } from './PresetLoader';
 
 export class AudioVisualizerApp {
@@ -76,13 +75,21 @@ export class AudioVisualizerApp {
 
   private async setupAudioListener(): Promise<void> {
     try {
+      // Importar dinámicamente la API de eventos de Tauri. El comentario
+      // `@vite-ignore` evita que Vite intente resolver este módulo en
+      // entornos donde no está disponible (por ejemplo, Electron puro).
+      const { listen } = await import(
+        /* @vite-ignore */ '@tauri-apps/api/event'
+      );
+
       await listen('audio_data', (event) => {
         const audioData = event.payload as AudioData;
         this.presetLoader.updateAudioData(audioData);
       });
       console.log('🎵 Audio listener setup complete');
     } catch (error) {
-      console.error('Failed to setup audio listener:', error);
+      // Si la API no está disponible simplemente registra un aviso.
+      console.warn('Failed to setup audio listener:', error);
     }
   }
 

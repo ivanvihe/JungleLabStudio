@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
-import { invoke } from '@tauri-apps/api';
 
 export default function PreviewControls() {
   const [sensitivity, setSensitivity] = useState(0.5);
   const [smoothness, setSmoothness] = useState(0.5);
 
-  const fullscreenAll = () => {
-    invoke('fullscreen_all').catch(() => {});
+  const fullscreenAll = async () => {
+    try {
+      // Importar dinámicamente para evitar errores cuando la API de Tauri no esté disponible.
+      const { invoke } = await import(/* @vite-ignore */ '@tauri-apps/api');
+      await invoke('fullscreen_all');
+    } catch (e) {
+      console.warn('Fullscreen not available:', e);
+    }
   };
 
   return (
