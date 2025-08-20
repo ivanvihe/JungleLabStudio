@@ -282,11 +282,19 @@ export class AudioVisualizerEngine {
         layer.scene.clear();
       }
 
-      // Cargar configuración guardada específica para el layer
+      // Buscar preset cargado
+      const loadedPreset = this.presetLoader.getLoadedPresets().find(p => p.id === presetId);
+      if (!loadedPreset) {
+        console.error(`Loaded preset ${presetId} no encontrado`);
+        return false;
+      }
+
+      // Cargar configuración guardada específica para el layer y clonar config base
       const savedConfig = this.loadLayerPresetConfig(presetId, layerId);
-      const loadedPresetConfig = {
-        ...loadedPreset.config,
-        defaultConfig: { ...loadedPreset.config.defaultConfig, ...savedConfig }
+      const loadedPresetConfig = JSON.parse(JSON.stringify(loadedPreset.config));
+      loadedPresetConfig.defaultConfig = {
+        ...loadedPresetConfig.defaultConfig,
+        ...savedConfig
       };
 
       // Activar nuevo preset con config específica del layer
@@ -298,13 +306,6 @@ export class AudioVisualizerEngine {
       );
       if (!presetInstance) {
         console.error(`No se pudo activar preset ${presetId}`);
-        return false;
-      }
-
-      // Encontrar el preset loaded para guardarlo
-      const loadedPreset = this.presetLoader.getLoadedPresets().find(p => p.id === presetId);
-      if (!loadedPreset) {
-        console.error(`Loaded preset ${presetId} no encontrado`);
         return false;
       }
 
