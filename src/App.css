@@ -50,7 +50,40 @@ body {
   border-radius: 12px;
   padding: 20px;
   overflow-y: auto;
+  overflow-x: visible;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.controls-panel.collapsed {
+  width: 40px;
+  padding: 20px 5px;
+  overflow: visible;
+}
+
+.toggle-sidebar {
+  position: absolute;
+  top: 10px;
+  left: -20px;
+  width: 20px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.no-preset-selected {
+  color: #ffaa44;
+  font-size: 14px;
+  text-align: center;
+  margin-top: 20px;
 }
 
 .panel-header h2 {

@@ -310,7 +310,7 @@ class RoboticaCinematicPreset extends BasePreset {
     const scale = this.currentConfig.text.scale;
 
     // Calcular espaciado total del texto
-    const letterWidth = fontSize * 0.8; // Aproximación del ancho de letra
+    const letterWidth = fontSize * 0.8; // Aproximación del ancho de letra en px
     const spacing = letterWidth * letterSpacing;
     const totalWidth = (text.length - 1) * spacing;
     
@@ -321,7 +321,8 @@ class RoboticaCinematicPreset extends BasePreset {
     for (let i = 0; i < text.length; i++) {
       const char = text[i];
       const x = startX + i * spacing;
-      const position = new THREE.Vector3(x * scale, 0, 0);
+      // Escalar coordenadas desde píxeles a unidades de Three.js
+      const position = new THREE.Vector3((x / 100) * scale, 0, 0);
       
       const letter = new CinematicLetter(char, fontSize, fontFamily, position);
       this.letters.push(letter);
