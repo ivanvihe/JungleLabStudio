@@ -13,12 +13,13 @@ export default defineConfig({
       input: {
         main: './index.html',
       },
-      // Externalizar el módulo de Tauri para que no falle el build
-      external: ['@tauri-apps/api/event'],
+      // Externalizar los módulos de Tauri para que no falle el build
+      external: ['@tauri-apps/api/event', '@tauri-apps/api/window'],
       output: {
         // Configurar cómo manejar los módulos externos
         globals: {
-          '@tauri-apps/api/event': 'TauriEvent'
+          '@tauri-apps/api/event': 'TauriEvent',
+          '@tauri-apps/api/window': 'TauriWindow'
         }
       }
     }
