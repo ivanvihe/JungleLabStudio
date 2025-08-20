@@ -19,6 +19,7 @@ interface LayerGridProps {
   onPresetSelect: (layerId: string, presetId: string) => void;
   clearAllSignal: number;
   externalTrigger?: { layerId: string; presetId: string } | null;
+  layerChannels: Record<string, number>;
 }
 
 export const LayerGrid: React.FC<LayerGridProps> = ({
@@ -28,12 +29,13 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
   onLayerConfigChange,
   onPresetSelect,
   clearAllSignal,
-  externalTrigger
+  externalTrigger,
+  layerChannels
 }) => {
   const [layers, setLayers] = useState<LayerConfig[]>([
-    { id: 'A', name: 'Layer A', color: '#FF6B6B', midiChannel: 14, fadeTime: 200, opacity: 100, activePreset: null },
-    { id: 'B', name: 'Layer B', color: '#4ECDC4', midiChannel: 15, fadeTime: 200, opacity: 100, activePreset: null },
-    { id: 'C', name: 'Layer C', color: '#45B7D1', midiChannel: 16, fadeTime: 200, opacity: 100, activePreset: null },
+    { id: 'A', name: 'Layer A', color: '#FF6B6B', midiChannel: layerChannels.A || 14, fadeTime: 200, opacity: 100, activePreset: null },
+    { id: 'B', name: 'Layer B', color: '#4ECDC4', midiChannel: layerChannels.B || 15, fadeTime: 200, opacity: 100, activePreset: null },
+    { id: 'C', name: 'Layer C', color: '#45B7D1', midiChannel: layerChannels.C || 16, fadeTime: 200, opacity: 100, activePreset: null },
   ]);
 
   useEffect(() => {
@@ -94,6 +96,13 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [externalTrigger]);
 
+  useEffect(() => {
+    setLayers(prev => prev.map(layer => ({
+      ...layer,
+      midiChannel: layerChannels[layer.id] || layer.midiChannel
+    })));
+  }, [layerChannels]);
+
   const getPresetThumbnail = (preset: LoadedPreset): string => {
     // Generar thumbnail basado en categoría/tipo
     const thumbnails: Record<string, string> = {
@@ -122,6 +131,7 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
             <div className="layer-letter" style={{ color: layer.color }}>
               {layer.id}
             </div>
+            <div className="midi-channel-label">CH {layer.midiChannel}</div>
             <div className="sidebar-controls">
               <input
                 type="range"
