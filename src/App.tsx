@@ -6,7 +6,8 @@ import { PresetControls } from './components/PresetControls';
 import { TopBar } from './components/TopBar';
 import { GlobalSettingsModal } from './components/GlobalSettingsModal';
 import { LoadedPreset, AudioData } from './core/PresetLoader';
-import { WebviewWindow, availableMonitors } from '@tauri-apps/api/window';
+// Tauri window APIs are loaded dynamically to avoid bundling issues
+// when running in non-Tauri environments like Electron.
 import './App.css';
 import './components/LayerGrid.css';
 
@@ -62,6 +63,10 @@ const App: React.FC = () => {
     const loadMonitors = async () => {
       if ((window as any).__TAURI__) {
         try {
+          // Load Tauri window API dynamically
+          const { availableMonitors } = await import(
+            /* @vite-ignore */ '@tauri-apps/api/window'
+          );
           const mons = await availableMonitors();
           const mapped = mons.map((m, idx) => ({
             id: m.name || `monitor-${idx}`,
@@ -432,9 +437,13 @@ const App: React.FC = () => {
   const audioLevel = Math.min((audioData.low + audioData.mid + audioData.high) / 3, 1);
 
   const handleAudioGainChange = (value: number) => setAudioGain(value);
-  const handleFullScreen = () => {
+  const handleFullScreen = async () => {
     if ((window as any).__TAURI__) {
       localStorage.setItem('activeLayers', JSON.stringify(activeLayers));
+      // Dynamically load the WebviewWindow constructor
+      const { WebviewWindow } = await import(
+        /* @vite-ignore */ '@tauri-apps/api/window'
+      );
       monitors
         .filter(m => selectedMonitors.includes(m.id))
         .forEach(m => {
