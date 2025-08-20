@@ -9,6 +9,7 @@ export const config: PresetConfig = {
   category: "energy",
   tags: ["energy", "wave", "flow", "horizontal", "plasma", "smooth"],
   thumbnail: "energy_wave_ray_thumb.png",
+  note: 57,
   defaultConfig: {
     opacity: 1.0,
     fadeMs: 100,

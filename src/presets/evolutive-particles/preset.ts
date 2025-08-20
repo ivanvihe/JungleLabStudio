@@ -10,6 +10,7 @@ export const config: PresetConfig = {
   category: "particles",
   tags: ["particles", "evolution", "organic", "complex", "adaptive", "swarm"],
   thumbnail: "evolutive_particles_thumb.png",
+  note: 56,
   defaultConfig: {
     opacity: 1.0,
     fadeMs: 250,

@@ -9,6 +9,7 @@ export const config: PresetConfig = {
   category: 'ai',
   tags: ['neural', 'network', 'infinite', 'starfield'],
   thumbnail: 'neural_network_thumb.png',
+  note: 54,
   defaultConfig: {
     speed: 5,
     nodeSize: 0.05,

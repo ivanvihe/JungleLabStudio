@@ -9,6 +9,7 @@ export const config: PresetConfig = {
   category: 'one-shot',
   tags: ['wave', 'bass', 'one-shot'],
   thumbnail: 'boom_wave_thumb.png',
+  note: 58,
   defaultConfig: {
     opacity: 1.0,
     fadeMs: 200,
