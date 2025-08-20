@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { listen } from '@tauri-apps/api/event';
 import { AudioVisualizerEngine } from './core/AudioVisualizerEngine';
 import { LayerGrid } from './components/LayerGrid';
 import { StatusBar } from './components/StatusBar';
@@ -61,21 +62,16 @@ const App: React.FC = () => {
   useEffect(() => {
     const setupAudioListener = async () => {
       try {
-        // Intenta importar dinámicamente la API de eventos de Tauri.
-        const { listen } = await import('@tauri-apps/api/event');
-
         await listen('audio_data', (event) => {
           const data = event.payload as AudioData;
           setAudioData(data);
-
+          
           if (engineRef.current) {
             engineRef.current.updateAudioData(data);
           }
         });
       } catch (error) {
-        // Si la API no está disponible (por ejemplo, en entorno Electron puro),
-        // simplemente registra un aviso en consola sin interrumpir la ejecución.
-        console.warn('Audio listener unavailable:', error);
+        console.error('Failed to setup audio listener:', error);
       }
     };
 
