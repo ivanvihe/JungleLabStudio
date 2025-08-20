@@ -47,6 +47,7 @@ const App: React.FC = () => {
   const [monitors, setMonitors] = useState<MonitorInfo[]>([]);
   const [selectedMonitors, setSelectedMonitors] = useState<string[]>([]);
   const [glitchTextPads, setGlitchTextPads] = useState<number>(() => parseInt(localStorage.getItem('glitchTextPads') || '1'));
+  const [clearSignal, setClearSignal] = useState(0);
   const isFullscreenMode = new URLSearchParams(window.location.search).get('fullscreen') === 'true';
 
   // Persist selected devices across sessions
@@ -473,8 +474,12 @@ const App: React.FC = () => {
 
   const handleClearAll = () => {
     if (!engineRef.current) return;
-    Object.keys(activeLayers).forEach(layerId => engineRef.current?.deactivateLayerPreset(layerId));
+    ['A', 'B', 'C'].forEach(layerId => engineRef.current?.deactivateLayerPreset(layerId));
+    engineRef.current.clearRenderer();
     setActiveLayers({});
+    setSelectedPreset(null);
+    setSelectedLayer(null);
+    setClearSignal(prev => prev + 1);
     setStatus('Capas limpiadas');
   };
 
@@ -550,7 +555,7 @@ const App: React.FC = () => {
                 delete newLayers[layerId];
                 return newLayers;
               });
-              
+
               // Limpiar selección si se limpia el layer seleccionado
               if (selectedLayer === layerId) {
                 setSelectedPreset(null);
@@ -563,6 +568,21 @@ const App: React.FC = () => {
               engineRef.current.updateLayerConfig(layerId, config);
             }
           }}
+          onPresetSelect={(layerId, presetId) => {
+            if (presetId) {
+              const preset = availablePresets.find(p => p.id === presetId);
+              if (preset) {
+                setSelectedPreset(preset);
+                setSelectedLayer(layerId);
+              }
+            } else {
+              if (selectedLayer === layerId) {
+                setSelectedPreset(null);
+                setSelectedLayer(null);
+              }
+            }
+          }}
+          clearAllSignal={clearSignal}
         />
       </div>
 

@@ -363,15 +363,20 @@ export class AudioVisualizerEngine {
 
   public getLayerStatus(): Record<string, { active: boolean; preset: string | null }> {
     const status: Record<string, { active: boolean; preset: string | null }> = {};
-    
+
     this.layers.forEach((layer, layerId) => {
       status[layerId] = {
         active: layer.isActive,
         preset: layer.preset?.id || null
       };
     });
-    
+
     return status;
+  }
+
+  public clearRenderer(): void {
+    this.renderer.setClearColor(0x000000, 0);
+    this.renderer.clear(true, true, true);
   }
 
   public dispose(): void {

@@ -177,11 +177,11 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
         {/* Tabs */}
         <div className="settings-tabs">
           {[
-            { id: 'audio', label: '🎵 Audio', icon: '🎵' },
-            { id: 'video', label: '🎮 Rendimiento', icon: '🎮' },
-            { id: 'fullscreen', label: '🖥️ Monitores', icon: '🖥️' },
-            { id: 'visual', label: '🎨 Visuales', icon: '🎨' },
-            { id: 'system', label: '🔧 Sistema', icon: '🔧' }
+            { id: 'audio', label: 'Audio', icon: '🎵' },
+            { id: 'video', label: 'Rendimiento', icon: '🎮' },
+            { id: 'fullscreen', label: 'Monitores', icon: '🖥️' },
+            { id: 'visual', label: 'Visuales', icon: '🎨' },
+            { id: 'system', label: 'Sistema', icon: '🔧' }
           ].map(tab => (
             <button
               key={tab.id}
