@@ -234,7 +234,12 @@ export interface LoadedPreset {
   private async persistNote(presetId: string, note: number): Promise<void> {
     try {
       const path = `src/presets/${presetId}/config.json`;
-      if (fs.existsSync(path)) {
+      if (
+        typeof fs?.existsSync === 'function' &&
+        typeof fs?.readFileSync === 'function' &&
+        typeof fs?.writeFileSync === 'function' &&
+        fs.existsSync(path)
+      ) {
         const json = JSON.parse(fs.readFileSync(path, 'utf-8'));
         json.note = note;
         fs.writeFileSync(path, JSON.stringify(json, null, 2));

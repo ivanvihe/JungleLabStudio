@@ -184,8 +184,15 @@ export class AudioVisualizerEngine {
 
   private updateSize(): void {
     const rect = this.canvas.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
+    let width = rect.width;
+    let height = rect.height;
+
+    // Al ir a fullscreen el canvas puede reportar 0x0 temporalmente.
+    // Evitamos propagar esos valores para no crear render targets inválidos.
+    if (width === 0 || height === 0) {
+      width = window.innerWidth;
+      height = window.innerHeight;
+    }
     const pixelRatio = Math.min(window.devicePixelRatio, 2);
 
     this.camera.aspect = width / height;
@@ -362,7 +369,11 @@ export class AudioVisualizerEngine {
   private loadLayerPresetConfig(presetId: string, layerId: string): any {
     try {
       const cfgPath = this.getLayerConfigPath(presetId, layerId);
-      if (fs.existsSync(cfgPath)) {
+      if (
+        typeof fs?.existsSync === 'function' &&
+        typeof fs?.readFileSync === 'function' &&
+        fs.existsSync(cfgPath)
+      ) {
         return JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
       }
     } catch (err) {
@@ -373,10 +384,15 @@ export class AudioVisualizerEngine {
 
   private saveLayerPresetConfig(presetId: string, layerId: string, cfg: any): void {
     try {
-      const cfgPath = this.getLayerConfigPath(presetId, layerId);
-      const dir = cfgPath.substring(0, cfgPath.lastIndexOf('/'));
-      fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2));
+      if (
+        typeof fs?.mkdirSync === 'function' &&
+        typeof fs?.writeFileSync === 'function'
+      ) {
+        const cfgPath = this.getLayerConfigPath(presetId, layerId);
+        const dir = cfgPath.substring(0, cfgPath.lastIndexOf('/'));
+        fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2));
+      }
     } catch (err) {
       console.warn(`Could not save config for ${presetId} layer ${layerId}:`, err);
     }
