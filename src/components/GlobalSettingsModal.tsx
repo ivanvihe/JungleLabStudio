@@ -37,10 +37,16 @@ interface GlobalSettingsModalProps {
   monitors: MonitorInfo[];
   selectedMonitors: string[];
   onToggleMonitor: (id: string) => void;
+  startMonitor: string | null;
+  onStartMonitorChange: (id: string | null) => void;
   glitchTextPads: number;
   onGlitchPadChange: (value: number) => void;
   hideUiHotkey: string;
   onHideUiHotkeyChange: (value: string) => void;
+  startMaximized: boolean;
+  onStartMaximizedChange: (value: boolean) => void;
+  sidebarCollapsed: boolean;
+  onSidebarCollapsedChange: (value: boolean) => void;
 }
 
 export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
@@ -63,10 +69,16 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   monitors,
   selectedMonitors,
   onToggleMonitor,
+  startMonitor,
+  onStartMonitorChange,
   glitchTextPads,
   onGlitchPadChange,
   hideUiHotkey,
-  onHideUiHotkeyChange
+  onHideUiHotkeyChange,
+  startMaximized,
+  onStartMaximizedChange,
+  sidebarCollapsed,
+  onSidebarCollapsedChange
 }) => {
   const [activeTab, setActiveTab] = useState('audio');
   
@@ -591,6 +603,44 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
           {activeTab === 'system' && (
             <div className="settings-section">
               <h3>🔧 Sistema y Mantenimiento</h3>
+
+              <div className="setting-group">
+                <label className="setting-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={startMaximized}
+                    onChange={(e) => onStartMaximizedChange(e.target.checked)}
+                  />
+                  <span>Iniciar maximizada</span>
+                </label>
+              </div>
+
+              <div className="setting-group">
+                <label className="setting-label">
+                  <span>Monitor de inicio</span>
+                  <select
+                    value={startMonitor || ''}
+                    onChange={(e) => onStartMonitorChange(e.target.value || null)}
+                    className="setting-select"
+                  >
+                    <option value="">Monitor principal</option>
+                    {monitors.map(m => (
+                      <option key={m.id} value={m.id}>{m.label}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="setting-group">
+                <label className="setting-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={sidebarCollapsed}
+                    onChange={(e) => onSidebarCollapsedChange(e.target.checked)}
+                  />
+                  <span>Plegar sidebar al iniciar</span>
+                </label>
+              </div>
 
               {memInfo && (
                 <div className="memory-usage">

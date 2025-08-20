@@ -1,19 +1,20 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('path');
 
+let mainWindow;
+
 function createWindow() {
-  const win = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    show: false,
     webPreferences: {
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.cjs')
       // Removido webSecurity: false
     },
   });
-
-  // Para debugging, abrir DevTools automáticamente
-  win.webContents.openDevTools();
 
   const startUrl = process.env.NODE_ENV === 'development'
     ? 'http://localhost:3000'  // Cambiado de 5173 a 3000 (puerto de Vite por defecto)
@@ -22,26 +23,53 @@ function createWindow() {
   console.log('Loading URL:', startUrl);
 
   if (startUrl.startsWith('http')) {
-    win.loadURL(startUrl);
+    mainWindow.loadURL(startUrl);
   } else {
-    win.loadFile(startUrl);
+    mainWindow.loadFile(startUrl);
   }
 
   // Log cuando la página esté lista
-  win.webContents.once('did-finish-load', () => {
+  mainWindow.webContents.once('did-finish-load', () => {
     console.log('✅ Page loaded successfully');
   });
 
   // Log errores de carga
-  win.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
     console.error('❌ Failed to load page:', errorCode, errorDescription);
   });
 
   // Log errores de consola de la página
-  win.webContents.on('console-message', (event, level, message, line, sourceId) => {
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
     console.log(`Console [${level}]:`, message);
   });
 }
+
+ipcMain.on('apply-settings', (event, settings) => {
+  if (!mainWindow) return;
+  if (settings.monitorId) {
+    const displays = screen.getAllDisplays();
+    const target = displays.find(d => d.id === settings.monitorId);
+    if (target) {
+      mainWindow.setBounds(target.bounds);
+    }
+  }
+  if (settings.maximize) {
+    mainWindow.maximize();
+  }
+  if (!mainWindow.isVisible()) {
+    mainWindow.show();
+  }
+});
+
+ipcMain.handle('get-displays', () => {
+  return screen.getAllDisplays().map(d => ({
+    id: d.id,
+    label: d.label || `Monitor ${d.id}`,
+    bounds: d.bounds,
+    scaleFactor: d.scaleFactor,
+    primary: d.primary
+  }));
+});
 
 app.whenReady().then(() => {
   createWindow();
