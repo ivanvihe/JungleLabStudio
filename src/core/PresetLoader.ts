@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import fs from 'fs';
 
 export interface PresetConfig {
   name: string;
@@ -88,15 +89,9 @@ export interface LoadedPreset {
     private loadedPresets: Map<string, LoadedPreset> = new Map();
     private activePresets: Map<string, BasePreset> = new Map();
 
-    // Registro manual de presets disponibles
-    private availablePresets = [
-      'neural_network',
-      'abstract-lines',
-      'evolutive-particles',
-      'plasma-ray',
-      'boom-wave',
-      'custom-glitch-text'
-    ];
+    // Carga dinámica de presets desde el sistema de archivos
+    private presetModules = import.meta.glob('../presets/*/preset.ts');
+    private shaderModules = import.meta.glob('../presets/*/shader.wgsl', { as: 'raw' });
 
     constructor(
       private camera: THREE.Camera,
@@ -109,41 +104,73 @@ export interface LoadedPreset {
     }
 
   public async loadAllPresets(): Promise<LoadedPreset[]> {
-    console.log('🔍 Loading presets:', this.availablePresets);
+    const moduleEntries = Object.entries(this.presetModules);
+    console.log('🔍 Loading presets:', moduleEntries.map(([p]) => p));
 
     this.loadedPresets.clear();
     const loadedPresets: LoadedPreset[] = [];
 
-    for (const presetId of this.availablePresets) {
+    // determinar la siguiente nota disponible
+    let maxNote = 0;
+    for (const [, loader] of moduleEntries) {
+      const mod: any = await loader();
+      const cfg: PresetConfig = mod.config;
+      if (typeof cfg.note === 'number' && cfg.note > maxNote) {
+        maxNote = cfg.note;
+      }
+    }
+    let nextNote = maxNote + 1;
+
+    for (const [path, loader] of moduleEntries) {
+      const presetId = path.split('/')[2];
+      const mod: any = await loader();
+      const cfg: PresetConfig = mod.config;
+      if (typeof cfg.note !== 'number') {
+        cfg.note = nextNote++;
+        await this.persistNote(presetId, cfg.note);
+      }
+      const createPreset = mod.createPreset;
+
+      let shaderCode: string | undefined;
+      const shaderPath = `../presets/${presetId}/shader.wgsl`;
+      const shaderLoader = this.shaderModules[shaderPath];
+      if (shaderLoader) {
+        const shaderModule: any = await (shaderLoader as any)();
+        shaderCode = shaderModule.default;
+      }
+
       if (presetId === 'custom-glitch-text') {
-        const base = await this.loadPreset(presetId);
-        if (base) {
-          // remove base so only clones are exposed
-          this.loadedPresets.delete(presetId);
-          for (let i = 1; i <= this.glitchTextPads; i++) {
-            const cloneConfig = JSON.parse(JSON.stringify(base.config));
-            cloneConfig.name = `${base.config.name} ${i}`;
-            if (cloneConfig.defaultConfig?.text?.content !== undefined) {
-              cloneConfig.defaultConfig.text.content = `Text ${i}`;
-            }
-            const clone: LoadedPreset = {
-              id: `${presetId}-${i}`,
-              config: cloneConfig,
-              createPreset: base.createPreset,
-              shaderCode: base.shaderCode,
-              folderPath: base.folderPath
-            };
-            this.loadedPresets.set(clone.id, clone);
-            loadedPresets.push(clone);
-            console.log(`✅ Preset loaded: ${clone.config.name}`);
+        // base config para clonación
+        const baseNote = cfg.note!;
+        for (let i = 1; i <= this.glitchTextPads; i++) {
+          const cloneConfig = JSON.parse(JSON.stringify(cfg));
+          cloneConfig.name = `${cfg.name} ${i}`;
+          if (cloneConfig.defaultConfig?.text?.content !== undefined) {
+            cloneConfig.defaultConfig.text.content = `Text ${i}`;
           }
+          cloneConfig.note = baseNote + (i - 1);
+          const clone: LoadedPreset = {
+            id: `${presetId}-${i}`,
+            config: cloneConfig,
+            createPreset,
+            shaderCode,
+            folderPath: `src/presets/${presetId}`,
+          };
+          this.loadedPresets.set(clone.id, clone);
+          loadedPresets.push(clone);
+          console.log(`✅ Preset loaded: ${clone.config.name}`);
         }
       } else {
-        const result = await this.loadPreset(presetId);
-        if (result) {
-          loadedPresets.push(result);
-          console.log(`✅ Preset loaded: ${result.config.name}`);
-        }
+        const loaded: LoadedPreset = {
+          id: presetId,
+          config: cfg,
+          createPreset,
+          shaderCode,
+          folderPath: `src/presets/${presetId}`
+        };
+        this.loadedPresets.set(presetId, loaded);
+        loadedPresets.push(loaded);
+        console.log(`✅ Preset loaded: ${cfg.name}`);
       }
     }
 
@@ -151,47 +178,16 @@ export interface LoadedPreset {
     return loadedPresets;
   }
 
-  private async loadPreset(presetId: string): Promise<LoadedPreset | null> {
+  private async persistNote(presetId: string, note: number): Promise<void> {
     try {
-      let config: PresetConfig;
-      let shaderCode: string | undefined;
-      let createPreset: LoadedPreset['createPreset'];
-
-      const module = await import(`../presets/${presetId}/preset.ts`);
-      config = module.config;
-      createPreset = module.createPreset;
-
-      try {
-        const shaderModule = await import(`../presets/${presetId}/shader.wgsl?raw`);
-        shaderCode = shaderModule.default;
-      } catch {
-        console.warn(`No shader found for preset ${presetId}`);
+      const path = `src/presets/${presetId}/config.json`;
+      if (fs.existsSync(path)) {
+        const json = JSON.parse(fs.readFileSync(path, 'utf-8'));
+        json.note = note;
+        fs.writeFileSync(path, JSON.stringify(json, null, 2));
       }
-
-      const loadedPreset: LoadedPreset = {
-        id: presetId,
-        config,
-        createPreset,
-        shaderCode,
-        folderPath: `src/presets/${presetId}`
-      };
-
-      this.loadedPresets.set(presetId, loadedPreset);
-      return loadedPreset;
-
-    } catch (error) {
-      console.error(`Failed to load preset from ${presetId}:`, error);
-      return null;
-    }
-  }
-
-  private async loadPresetModule(presetId: string): Promise<LoadedPreset['createPreset']> {
-    try {
-      const module = await import(`../presets/${presetId}/preset.ts`);
-      return module.createPreset;
-    } catch (error) {
-      console.error(`Failed to load preset module for ${presetId}:`, error);
-      throw error;
+    } catch (err) {
+      console.warn(`Could not persist note for ${presetId}:`, err);
     }
   }
 
