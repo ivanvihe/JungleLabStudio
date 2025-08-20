@@ -655,22 +655,57 @@ class NeuralNetworkGenesis extends BasePreset {
   }
 
   private regenerateNetwork(): void {
-    // Remove existing objects
-    this.layers.flat().forEach(neuron => {
-      neuron.getMeshes().forEach(mesh => this.scene.remove(mesh));
-      neuron.dispose();
-    });
+    // Reutilizar neuronas existentes para crear un viaje infinito
+    const topology = this.currentConfig.topology.layers;
+    const spacing = 2.0;
+    const radiusMul = 0.4;
+
+    for (let layerIdx = 0; layerIdx < topology.length; layerIdx++) {
+      const layer = this.layers[layerIdx];
+      const nodeCount = topology[layerIdx];
+
+      for (let nodeIdx = 0; nodeIdx < nodeCount; nodeIdx++) {
+        const neuron = layer[nodeIdx];
+        let position: THREE.Vector3;
+
+        if (nodeCount === 1) {
+          position = new THREE.Vector3(
+            (layerIdx - topology.length / 2) * spacing,
+            0,
+            0
+          );
+        } else {
+          const angle = (nodeIdx / nodeCount) * Math.PI * 2;
+          const radius = Math.sqrt(nodeCount) * radiusMul;
+          position = new THREE.Vector3(
+            (layerIdx - topology.length / 2) * spacing,
+            Math.sin(angle) * radius,
+            Math.cos(angle) * radius * 0.5
+          );
+        }
+
+        position.add(
+          new THREE.Vector3(
+            (Math.random() - 0.5) * 0.5,
+            (Math.random() - 0.5) * 0.5,
+            (Math.random() - 0.5) * 0.5
+          )
+        );
+
+        neuron.position.copy(position);
+        neuron.targetPosition.copy(position);
+        neuron.getMeshes().forEach(mesh => mesh.position.copy(position));
+        neuron.bias = Math.random() * 0.2 - 0.1;
+        neuron.activation = 0;
+      }
+    }
+
+    // Renovar pesos de conexiones y reiniciar progreso de señal
     this.connections.forEach(conn => {
-      conn.getMeshes().forEach(mesh => this.scene.remove(mesh));
-      conn.dispose();
+      conn.weight = (Math.random() - 0.5) * 2;
+      conn.propagationProgress = 0;
+      conn.signalStrength = 0;
     });
-
-    this.layers = [];
-    this.connections = [];
-
-    this.createNetworkTopology();
-    this.createConnections();
-    this.addToScene();
   }
   
   // Forward propagation
