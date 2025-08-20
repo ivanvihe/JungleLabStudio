@@ -124,6 +124,19 @@ export class AudioVisualizerEngine {
   public updateLayerConfig(layerId: string, config: any): void {
     const presetId = this.layerPresets.get(layerId);
     if (!presetId) return;
+    if (config.zoom !== undefined) {
+      this.camera.zoom = config.zoom;
+      this.camera.updateProjectionMatrix();
+    }
+
+    if (config.width !== undefined || config.height !== undefined) {
+      const width = config.width !== undefined ? config.width : this.renderer.domElement.width;
+      const height = config.height !== undefined ? config.height : this.renderer.domElement.height;
+      this.renderer.setSize(width, height);
+      this.camera.aspect = width / height;
+      this.camera.updateProjectionMatrix();
+    }
+
     const preset = this.presetLoader.getActivePreset(presetId);
     preset?.updateConfig(config);
   }
