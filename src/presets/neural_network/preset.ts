@@ -126,6 +126,10 @@ export class InfiniteNeuralNetwork extends BasePreset {
   private connections: Connection[] = [];
   private currentConfig: any;
   private nextSpawnX = 0;
+  private initialCameraPosition = new THREE.Vector3();
+  private initialCameraQuaternion = new THREE.Quaternion();
+  private originalBackground: THREE.Color | THREE.Texture | null = null;
+  private originalOverrideMaterial: THREE.Material | null = null;
 
   constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, config: PresetConfig) {
     super(scene, camera, renderer, config);
@@ -133,12 +137,17 @@ export class InfiniteNeuralNetwork extends BasePreset {
   }
 
   init(): void {
-    // CRÍTICO: Asegurar scene transparente
+    // Guardar estado inicial de la escena y cámara
+    this.originalBackground = this.scene.background;
+    this.originalOverrideMaterial = this.scene.overrideMaterial;
+    this.initialCameraPosition.copy(this.camera.position);
+    this.initialCameraQuaternion.copy(this.camera.quaternion);
+
+    // Asegurar scene transparente
     this.scene.background = null;
     this.scene.overrideMaterial = null;
-    
-    // NO modificar la cámara global aquí - usar posición relativa
-    const initialCameraX = this.camera.position.x;
+
+    // Colocar cámara en origen mirando al eje X
     this.camera.position.set(0, 0, 0);
     this.camera.lookAt(1, 0, 0);
 
@@ -269,6 +278,12 @@ export class InfiniteNeuralNetwork extends BasePreset {
     });
     this.nodes = [];
     this.connections = [];
+
+    // Restaurar estado original de escena y cámara
+    this.scene.background = this.originalBackground;
+    this.scene.overrideMaterial = this.originalOverrideMaterial;
+    this.camera.position.copy(this.initialCameraPosition);
+    this.camera.quaternion.copy(this.initialCameraQuaternion);
   }
 }
 
