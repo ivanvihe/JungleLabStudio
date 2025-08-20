@@ -6,8 +6,16 @@ import { PresetControls } from './components/PresetControls';
 import { TopBar } from './components/TopBar';
 import { GlobalSettingsModal } from './components/GlobalSettingsModal';
 import { LoadedPreset, AudioData } from './core/PresetLoader';
+import { WebviewWindow, availableMonitors } from '@tauri-apps/api/window';
 import './App.css';
 import './components/LayerGrid.css';
+
+interface MonitorInfo {
+  id: string;
+  label: string;
+  position: { x: number; y: number };
+  size: { width: number; height: number };
+}
 
 const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -33,10 +41,9 @@ const App: React.FC = () => {
   const [audioDeviceId, setAudioDeviceId] = useState<string | null>(null);
   const [audioGain, setAudioGain] = useState(1);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [monitors] = useState<{ id: string; label: string }[]>([
-    { id: 'primary', label: 'Primary Monitor' }
-  ]);
-  const [selectedMonitors, setSelectedMonitors] = useState<string[]>(['primary']);
+  const [monitors, setMonitors] = useState<MonitorInfo[]>([]);
+  const [selectedMonitors, setSelectedMonitors] = useState<string[]>([]);
+  const isFullscreenMode = new URLSearchParams(window.location.search).get('fullscreen') === 'true';
 
   // Persist selected devices across sessions
   useEffect(() => {
@@ -49,6 +56,63 @@ const App: React.FC = () => {
       setMidiDeviceId(savedMidi);
     }
   }, []);
+
+  // Enumerar monitores disponibles
+  useEffect(() => {
+    const loadMonitors = async () => {
+      if ((window as any).__TAURI__) {
+        try {
+          const mons = await availableMonitors();
+          const mapped = mons.map((m, idx) => ({
+            id: m.name || `monitor-${idx}`,
+            label: m.name || `Monitor ${idx + 1}`,
+            position: { x: m.position.x, y: m.position.y },
+            size: { width: m.size.width, height: m.size.height }
+          }));
+          setMonitors(mapped);
+          setSelectedMonitors(mapped.map(m => m.id));
+        } catch (err) {
+          console.warn('Monitor enumeration failed:', err);
+          const fallback = {
+            id: 'primary',
+            label: 'Primary Monitor',
+            position: { x: 0, y: 0 },
+            size: { width: window.innerWidth, height: window.innerHeight }
+          };
+          setMonitors([fallback]);
+          setSelectedMonitors([fallback.id]);
+        }
+      } else {
+        const fallback = {
+          id: 'primary',
+          label: 'Primary Monitor',
+          position: { x: 0, y: 0 },
+          size: { width: window.innerWidth, height: window.innerHeight }
+        };
+        setMonitors([fallback]);
+        setSelectedMonitors([fallback.id]);
+      }
+    };
+    loadMonitors();
+  }, []);
+
+  // Persistir capas activas para modo fullscreen
+  useEffect(() => {
+    localStorage.setItem('activeLayers', JSON.stringify(activeLayers));
+  }, [activeLayers]);
+
+  // Cerrar ventana fullscreen con ESC o F11
+  useEffect(() => {
+    if (isFullscreenMode) {
+      const handler = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' || e.key === 'F11') {
+          window.close();
+        }
+      };
+      window.addEventListener('keydown', handler);
+      return () => window.removeEventListener('keydown', handler);
+    }
+  }, [isFullscreenMode]);
 
   const handleSelectAudio = (id: string) => {
     setAudioDeviceId(id || null);
@@ -265,6 +329,19 @@ const App: React.FC = () => {
     };
   }, [isInitialized, audioGain, audioDeviceId]);
 
+  // Activar capas almacenadas en modo fullscreen
+  useEffect(() => {
+    if (isFullscreenMode && isInitialized && engineRef.current) {
+      const stored = localStorage.getItem('activeLayers');
+      if (stored) {
+        const layers = JSON.parse(stored) as Record<string, string>;
+        Object.entries(layers).forEach(([layerId, presetId]) => {
+          engineRef.current!.activatePreset(layerId, presetId);
+        });
+      }
+    }
+  }, [isFullscreenMode, isInitialized]);
+
   // Monitor FPS
   useEffect(() => {
     let frameCount = 0;
@@ -356,9 +433,28 @@ const App: React.FC = () => {
 
   const handleAudioGainChange = (value: number) => setAudioGain(value);
   const handleFullScreen = () => {
-    const elem: any = document.documentElement;
-    if (elem.requestFullscreen) {
-      elem.requestFullscreen();
+    if ((window as any).__TAURI__) {
+      localStorage.setItem('activeLayers', JSON.stringify(activeLayers));
+      monitors
+        .filter(m => selectedMonitors.includes(m.id))
+        .forEach(m => {
+          const label = `fullscreen-${m.id}-${Date.now()}`;
+          new WebviewWindow(label, {
+            url: 'index.html?fullscreen=true',
+            x: m.position.x,
+            y: m.position.y,
+            width: m.size.width,
+            height: m.size.height,
+            decorations: false,
+            fullscreen: true,
+            skipTaskbar: true
+          });
+        });
+    } else {
+      const elem: any = document.documentElement;
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+      }
     }
   };
   const handleClearAll = () => {
@@ -371,7 +467,11 @@ const App: React.FC = () => {
     setSelectedMonitors(prev => prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]);
   };
 
-  return (
+  return isFullscreenMode ? (
+    <div className="app fullscreen-mode">
+      <canvas ref={canvasRef} className="main-canvas" />
+    </div>
+  ) : (
     <div className="app">
       <TopBar
         midiActive={midiActive}

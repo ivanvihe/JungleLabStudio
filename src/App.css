@@ -19,6 +19,15 @@ body {
   grid-template-rows: 40px 300px 1fr;
 }
 
+.app.fullscreen-mode {
+  display: flex;
+  grid-template-rows: none;
+}
+
+.app.fullscreen-mode .main-canvas {
+  border: none;
+}
+
 .layer-grid-container {
   overflow: hidden;
   background: #0A0A0A;
