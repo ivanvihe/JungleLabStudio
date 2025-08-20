@@ -1,4 +1,4 @@
-// MEJORA 3: AudioVisualizerEngine.ts con independencia total de layers
+// AudioVisualizerEngine.ts - Corregido y completo
 
 import * as THREE from 'three';
 import { PresetLoader, LoadedPreset, AudioData } from './PresetLoader';
@@ -327,12 +327,19 @@ export class AudioVisualizerEngine {
     this.compositingMaterial.uniforms.globalOpacity.value = opacity;
   }
 
-ailablePresets(): LoadedPreset[] {
-    return this.presetLoader.getAllPresets();
+  // ✅ MÉTODOS CORREGIDOS - Compatibles con PresetLoader real
+  public getAvailablePresets(): LoadedPreset[] {
+    return this.presetLoader.getLoadedPresets();
   }
 
   public async updateGlitchPadCount(count: number): Promise<LoadedPreset[]> {
-    return await this.presetLoader.updateGlitchPadCount(count);
+    this.presetLoader.setGlitchTextPads(count);
+    await this.presetLoader.loadAllPresets();
+    return this.presetLoader.getLoadedPresets();
+  }
+
+  public updateAudioData(audioData: AudioData): void {
+    this.presetLoader.updateAudioData(audioData);
   }
 
   public getLayerStatus(): Record<string, { active: boolean; preset: string | null }> {
