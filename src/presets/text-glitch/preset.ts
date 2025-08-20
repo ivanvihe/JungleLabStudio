@@ -303,27 +303,23 @@ class RoboticaCinematicPreset extends BasePreset {
   }
 
   private createCinematicText(): void {
-    const text = this.currentConfig.text.content;
+    const rawText = this.currentConfig.text.content;
+    const letters = rawText.replace(/\s+/g, '').split('');
     const fontSize = this.currentConfig.text.fontSize;
     const fontFamily = this.currentConfig.text.fontFamily;
-    const letterSpacing = this.currentConfig.text.letterSpacing;
     const scale = this.currentConfig.text.scale;
 
-    // Calcular espaciado total del texto
-    const letterWidth = fontSize * 0.8; // Aproximación del ancho de letra en px
-    const spacing = letterWidth * letterSpacing;
-    const totalWidth = (text.length - 1) * spacing;
-    
-    // Posición inicial centrada
-    const startX = -totalWidth / 2;
+    const letterWidth = fontSize * 0.8; // Aproximación del ancho de cada letra en px
+    const availableWidth = (this.currentConfig.width || 1920) * 0.9375; // Usar el 94% del ancho
+    const spacing = (availableWidth - letterWidth) / Math.max(letters.length - 1, 1);
+    const startX = -availableWidth / 2 + letterWidth / 2;
 
-    // Crear cada letra
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
+    for (let i = 0; i < letters.length; i++) {
+      const char = letters[i];
       const x = startX + i * spacing;
       // Escalar coordenadas desde píxeles a unidades de Three.js
       const position = new THREE.Vector3((x / 100) * scale, 0, 0);
-      
+
       const letter = new CinematicLetter(char, fontSize, fontFamily, position);
       this.letters.push(letter);
       this.textGroup.add(letter.getMesh());
