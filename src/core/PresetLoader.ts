@@ -98,7 +98,6 @@ export class PresetLoader {
   ];
 
   constructor(
-    private scene: THREE.Scene,
     private camera: THREE.Camera,
     private renderer: THREE.WebGLRenderer
   ) {}
@@ -167,7 +166,7 @@ export class PresetLoader {
     }
   }
 
-  public activatePreset(presetId: string): BasePreset | null {
+  public activatePreset(presetId: string, scene: THREE.Scene, instanceId: string): BasePreset | null {
     const loadedPreset = this.loadedPresets.get(presetId);
     if (!loadedPreset) {
       console.error(`Preset ${presetId} not found`);
@@ -175,12 +174,10 @@ export class PresetLoader {
     }
 
     try {
-      // Desactivar preset anterior si existe
-      this.deactivatePreset(presetId);
+      this.deactivatePreset(instanceId);
 
-      // Crear nueva instancia del preset
       const presetInstance = loadedPreset.createPreset(
-        this.scene,
+        scene,
         this.camera,
         this.renderer,
         loadedPreset.config,
@@ -188,8 +185,8 @@ export class PresetLoader {
       );
 
       presetInstance.init();
-      this.activePresets.set(presetId, presetInstance);
-      
+      this.activePresets.set(instanceId, presetInstance);
+
       console.log(`🎨 Activated preset: ${loadedPreset.config.name}`);
       return presetInstance;
     } catch (error) {
@@ -198,12 +195,12 @@ export class PresetLoader {
     }
   }
 
-  public deactivatePreset(presetId: string): void {
-    const activePreset = this.activePresets.get(presetId);
+  public deactivatePreset(instanceId: string): void {
+    const activePreset = this.activePresets.get(instanceId);
     if (activePreset) {
       activePreset.dispose();
-      this.activePresets.delete(presetId);
-      console.log(`🗑️ Deactivated preset: ${presetId}`);
+      this.activePresets.delete(instanceId);
+      console.log(`🗑️ Deactivated preset: ${instanceId}`);
     }
   }
 
@@ -211,8 +208,8 @@ export class PresetLoader {
     return Array.from(this.loadedPresets.values());
   }
 
-  public getActivePreset(presetId: string): BasePreset | null {
-    return this.activePresets.get(presetId) || null;
+  public getActivePreset(instanceId: string): BasePreset | null {
+    return this.activePresets.get(instanceId) || null;
   }
 
   public getActivePresets(): BasePreset[] {
