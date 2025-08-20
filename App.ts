@@ -11,7 +11,7 @@ export class AudioVisualizerApp {
 
   constructor(container: HTMLElement) {
     this.initThreeJS(container);
-      this.presetLoader = new PresetLoader(this.camera, this.renderer);
+    this.presetLoader = new PresetLoader(this.camera, this.renderer);
     this.init();
   }
 
@@ -75,22 +75,54 @@ export class AudioVisualizerApp {
 
   private async setupAudioListener(): Promise<void> {
     try {
-      // Importar dinámicamente la API de eventos de Tauri. El comentario
-      // `@vite-ignore` evita que Vite intente resolver este módulo en
-      // entornos donde no está disponible (por ejemplo, Electron puro).
-      const { listen } = await import(
-        /* @vite-ignore */ '@tauri-apps/api/event'
-      );
+      // Detectar si estamos en un entorno Tauri
+      if (typeof window !== 'undefined' && (window as any).__TAURI__) {
+        console.log('🎵 Tauri environment detected, setting up audio listener...');
+        
+        // Importación dinámica solo si Tauri está disponible
+        const tauriEvent = await import('@tauri-apps/api/event').catch(err => {
+          console.warn('Tauri event API not available:', err);
+          return null;
+        });
 
-      await listen('audio_data', (event) => {
-        const audioData = event.payload as AudioData;
-        this.presetLoader.updateAudioData(audioData);
-      });
-      console.log('🎵 Audio listener setup complete');
+        if (tauriEvent) {
+          await tauriEvent.listen('audio_data', (event) => {
+            const audioData = event.payload as AudioData;
+            this.presetLoader.updateAudioData(audioData);
+          });
+          console.log('🎵 Audio listener setup complete');
+        } else {
+          console.warn('Tauri event API not available, using fallback');
+          this.setupFallbackAudio();
+        }
+      } else {
+        console.log('🎙️ Non-Tauri environment detected, using fallback audio');
+        this.setupFallbackAudio();
+      }
     } catch (error) {
-      // Si la API no está disponible simplemente registra un aviso.
       console.warn('Failed to setup audio listener:', error);
+      this.setupFallbackAudio();
     }
+  }
+
+  private setupFallbackAudio(): void {
+    // Audio de prueba para entornos sin Tauri
+    const generateTestAudio = () => {
+      const time = Date.now() * 0.001;
+      const audioData: AudioData = {
+        low: 0.3 + 0.2 * Math.sin(time * 2),
+        mid: 0.5 + 0.3 * Math.sin(time * 3),
+        high: 0.2 + 0.2 * Math.sin(time * 5),
+        fft: Array.from({ length: 256 }, (_, i) => 
+          0.1 + 0.3 * Math.sin(time + i * 0.1)
+        )
+      };
+      this.presetLoader.updateAudioData(audioData);
+    };
+
+    // Actualizar audio de prueba cada 16ms (~60fps)
+    setInterval(generateTestAudio, 16);
+    console.log('🎭 Fallback audio data generator started');
   }
 
   private startRenderLoop(): void {
@@ -308,10 +340,12 @@ export class PresetUI {
     controlsContainer.innerHTML = '';
 
     // Crear controles basados en la configuración del preset
-    preset.config.controls.forEach(control => {
-      const controlElement = this.createControl(control);
-      controlsContainer.appendChild(controlElement);
-    });
+    if (preset.config.controls) {
+      preset.config.controls.forEach((control: any) => {
+        const controlElement = this.createControl(control);
+        controlsContainer.appendChild(controlElement);
+      });
+    }
 
     // Mostrar información del preset
     const infoElement = document.createElement('div');
