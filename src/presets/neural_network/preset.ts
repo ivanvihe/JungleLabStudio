@@ -123,14 +123,21 @@ class ActivationFunctions {
 // Controla el movimiento de cámara simulando un viaje interestelar a través de la red
 class InterstellarNavigator {
   private originalPosition: THREE.Vector3 = new THREE.Vector3();
-  private startX = -20;
-  private endX = 20;
+  private startX: number;
+  private endX: number;
   private speed = 1.5;
 
-  constructor(private camera: THREE.Camera, private onLoop?: () => void) {
+  constructor(
+    private camera: THREE.Camera,
+    networkWidth: number,
+    private onLoop?: () => void
+  ) {
     this.originalPosition.copy(camera.position);
-    this.camera.position.set(this.startX, 0, 0);
-    this.camera.lookAt(0, 0, 0);
+    this.startX = -networkWidth / 2;
+    this.endX = networkWidth / 2;
+    // Start the camera inside the network to immediately navigate through nodes
+    this.camera.position.set(0, 0, 0);
+    this.camera.lookAt(1, 0, 0);
   }
 
   update(delta: number, intensity: number): void {
@@ -546,7 +553,13 @@ class NeuralNetworkGenesis extends BasePreset {
   ) {
     super(scene, camera, renderer, config);
     this.currentConfig = { ...config.defaultConfig };
-    this.navigator = new InterstellarNavigator(this.camera, () => this.regenerateNetwork());
+    const spacing = 2.0;
+    const networkWidth = this.currentConfig.topology.layers.length * spacing;
+    this.navigator = new InterstellarNavigator(
+      this.camera,
+      networkWidth,
+      () => this.regenerateNetwork()
+    );
   }
   
   public init(): void {
