@@ -582,15 +582,15 @@ body {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #555;
-  opacity: 0.3;
-  transition: opacity 0.3s, background 0.3s;
+  background: #90a4ae;
+  opacity: 0.4;
+  transition: opacity 0.3s, background 0.3s, box-shadow 0.3s;
 }
 
 .metronome-led.active {
-  background: #f00;
+  background: #4db6ac;
   opacity: 1;
-  box-shadow: 0 0 6px #f00;
+  box-shadow: 0 0 6px #4db6ac;
 }
 
 .separator {
