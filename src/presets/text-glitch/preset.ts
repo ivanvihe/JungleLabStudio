@@ -1,50 +1,51 @@
 import * as THREE from 'three';
 import { BasePreset, PresetConfig } from '../../core/PresetLoader';
 
+// Config para ROBOTICA Cinematic Intro
 export const config: PresetConfig = {
-  name: "Text Glitch",
-  description: "Texto animado con efectos glitch y aparición desordenada",
+  name: "ROBOTICA Cinematic Intro",
+  description: "Título cinematográfico 'ROBOTICA' con aparición letra por letra y efectos de brillo",
   author: "AudioVisualizer Pro",
   version: "1.0.0",
   category: "text",
-  tags: ["text", "glitch", "animated", "cyberpunk"],
-  thumbnail: "text_glitch_thumb.png",
+  tags: ["text", "intro", "robotica", "cinematic", "title"],
+  thumbnail: "robotica_cinematic_thumb.png",
   defaultConfig: {
     opacity: 1.0,
-    fadeMs: 500,
+    fadeMs: 200,
     text: {
-      content: "R O B O T I C A",
-      fontSize: 120,
-      fontFamily: "Arial Black, sans-serif",
-      letterSpacing: 0.3,
-      lineHeight: 1.2
+      content: "ROBOTICA",
+      fontSize: 180,
+      fontFamily: "Arial Black, Helvetica, sans-serif",
+      letterSpacing: 0.15,
+      scale: 1.0
     },
     animation: {
+      duration: 15.0,
       letterDelay: 0.8,
-      shuffleIntensity: 0.7,
-      glitchFrequency: 2.5,
-      fadeInDuration: 1.2,
-      repositionSpeed: 1.5
+      fadeInDuration: 2.0,
+      glowIntensity: 2.5,
+      pulseSpeed: 1.5,
+      // Orden de aparición: R-O-B-O-T-I-C-A (índices 0-7)
+      // Aparición desordenada: O(1), A(7), B(2), T(4), R(0), I(5), C(6), O(3)
+      animationOrder: [1, 7, 2, 4, 0, 5, 6, 3]
     },
     colors: {
-      primary: "#00FF88",
-      secondary: "#FF0088",
-      accent: "#88FF00",
-      glitch1: "#FF4444",
-      glitch2: "#4444FF"
+      text: "#FFFFFF",
+      glow: "#88CCFF",
+      accent: "#FFAA44"
     },
     effects: {
-      enableGlitch: true,
-      enableShuffle: true,
-      enableScanlines: true,
-      chromaticAberration: 0.3,
-      glitchIntensity: 0.8
+      enableGlow: true,
+      enablePulse: true,
+      enableSparkle: true,
+      enableCinematicFade: true
     }
   }
 };
 
-// Clase para manejar letras individuales con efectos
-class GlitchLetter {
+// Clase para manejar letras individuales con canvas
+class CinematicLetter {
   private canvas: HTMLCanvasElement;
   private context: CanvasRenderingContext2D;
   private texture: THREE.Texture;
@@ -53,40 +54,37 @@ class GlitchLetter {
   private mesh: THREE.Mesh;
   
   public letter: string;
-  public targetPosition: THREE.Vector3;
-  public currentPosition: THREE.Vector3;
-  public initialPosition: THREE.Vector3;
-  public age: number = 0;
-  public appearTime: number;
+  public alpha: number = 0;
+  public targetAlpha: number = 0;
+  public startTime: number | null = null;
+  public sparkleTimer: number = 0;
+  public pulseOffset: number;
   public isVisible: boolean = false;
-  public glitchPhase: number;
-  
+
   constructor(
     letter: string,
     fontSize: number,
     fontFamily: string,
-    appearTime: number
+    position: THREE.Vector3
   ) {
     this.letter = letter;
-    this.appearTime = appearTime;
-    this.glitchPhase = Math.random() * Math.PI * 2;
+    this.pulseOffset = Math.random() * Math.PI * 2;
     
     this.createCanvas(fontSize, fontFamily);
     this.createMaterial();
     this.createMesh();
     
-    this.currentPosition = new THREE.Vector3();
-    this.targetPosition = new THREE.Vector3();
-    this.initialPosition = new THREE.Vector3();
+    this.mesh.position.copy(position);
   }
 
   private createCanvas(fontSize: number, fontFamily: string): void {
     this.canvas = document.createElement('canvas');
-    this.canvas.width = fontSize * 2;
-    this.canvas.height = fontSize * 2;
+    // Canvas más grande para mejor calidad
+    this.canvas.width = fontSize * 1.5;
+    this.canvas.height = fontSize * 1.5;
     
     this.context = this.canvas.getContext('2d')!;
-    this.context.font = `${fontSize}px ${fontFamily}`;
+    this.context.font = `bold ${fontSize}px ${fontFamily}`;
     this.context.textAlign = 'center';
     this.context.textBaseline = 'middle';
     
@@ -94,13 +92,15 @@ class GlitchLetter {
     
     this.texture = new THREE.Texture(this.canvas);
     this.texture.needsUpdate = true;
+    this.texture.minFilter = THREE.LinearFilter;
+    this.texture.magFilter = THREE.LinearFilter;
   }
 
   private updateCanvasContent(): void {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     
-    // Dibujar letra con efecto glitch
-    this.context.fillStyle = '#ffffff';
+    // Dibujar letra en blanco sólido
+    this.context.fillStyle = '#FFFFFF';
     this.context.fillText(
       this.letter,
       this.canvas.width / 2,
@@ -116,43 +116,24 @@ class GlitchLetter {
         uTexture: { value: this.texture },
         uTime: { value: 0.0 },
         uOpacity: { value: 0.0 },
-        uGlitchIntensity: { value: 0.0 },
-        uColorPrimary: { value: new THREE.Color(0x00ff88) },
-        uColorGlitch1: { value: new THREE.Color(0xff4444) },
-        uColorGlitch2: { value: new THREE.Color(0x4444ff) },
-        uChromaticAberration: { value: 0.0 },
-        uGlitchPhase: { value: this.glitchPhase },
-        uDigitalNoise: { value: 0.0 }
+        uGlowIntensity: { value: 0.0 },
+        uColorText: { value: new THREE.Color(0xffffff) },
+        uColorGlow: { value: new THREE.Color(0x88ccff) },
+        uColorAccent: { value: new THREE.Color(0xffaa44) },
+        uPulsePhase: { value: this.pulseOffset },
+        uSparkle: { value: 0.0 }
       },
       vertexShader: `
         varying vec2 vUv;
         uniform float uTime;
-        uniform float uGlitchIntensity;
-        uniform float uGlitchPhase;
-        
-        // Función de ruido digital
-        float random(vec2 st) {
-          return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
-        }
+        uniform float uGlowIntensity;
         
         void main() {
           vUv = uv;
           vec3 pos = position;
           
-          // Efecto glitch en vértices
-          float glitchTime = uTime * 10.0 + uGlitchPhase;
-          float glitch = sin(glitchTime) * cos(glitchTime * 1.3) * uGlitchIntensity;
-          
-          // Distorsión digital aleatoria
-          float noise = random(vec2(glitchTime, pos.x)) - 0.5;
-          pos.x += glitch * noise * 0.1;
-          pos.y += sin(glitchTime * 2.0) * uGlitchIntensity * 0.05;
-          
-          // Efecto de "pixelado"
-          if (uGlitchIntensity > 0.5) {
-            pos.x = floor(pos.x * 20.0) / 20.0;
-            pos.y = floor(pos.y * 20.0) / 20.0;
-          }
+          // Ligero movimiento breathing
+          pos.y += sin(uTime * 0.5) * 0.02 * uGlowIntensity;
           
           gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
         }
@@ -162,129 +143,127 @@ class GlitchLetter {
         uniform sampler2D uTexture;
         uniform float uTime;
         uniform float uOpacity;
-        uniform float uGlitchIntensity;
-        uniform vec3 uColorPrimary;
-        uniform vec3 uColorGlitch1;
-        uniform vec3 uColorGlitch2;
-        uniform float uChromaticAberration;
-        uniform float uGlitchPhase;
-        uniform float uDigitalNoise;
-        
-        // Función de ruido
-        float random(vec2 st) {
-          return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
-        }
+        uniform float uGlowIntensity;
+        uniform vec3 uColorText;
+        uniform vec3 uColorGlow;
+        uniform vec3 uColorAccent;
+        uniform float uPulsePhase;
+        uniform float uSparkle;
         
         void main() {
-          vec2 uv = vUv;
+          vec4 textSample = texture2D(uTexture, vUv);
           
-          // Efecto de aberración cromática
-          vec2 rOffset = vec2(uChromaticAberration * 0.01, 0.0);
-          vec2 bOffset = vec2(-uChromaticAberration * 0.01, 0.0);
-          
-          float r = texture2D(uTexture, uv + rOffset).r;
-          float g = texture2D(uTexture, uv).g;
-          float b = texture2D(uTexture, uv + bOffset).b;
-          float a = texture2D(uTexture, uv).a;
-          
-          // Glitch temporal
-          float glitchTime = uTime * 8.0 + uGlitchPhase;
-          float glitchMask = step(0.7, sin(glitchTime)) * uGlitchIntensity;
-          
-          // Distorsión de UV durante glitch
-          if (glitchMask > 0.0) {
-            float distortion = random(vec2(floor(uv.y * 20.0), floor(uTime * 10.0)));
-            uv.x += (distortion - 0.5) * 0.1 * glitchMask;
-            
-            // Re-sample con distorsión
-            r = texture2D(uTexture, uv + rOffset).r;
-            g = texture2D(uTexture, uv).g;  
-            b = texture2D(uTexture, uv + bOffset).b;
+          if (textSample.a < 0.1) {
+            discard;
           }
           
-          // Color base
-          vec3 color = vec3(r, g, b);
+          // Color base del texto
+          vec3 baseColor = uColorText;
           
-          // Aplicar colores temáticos
-          if (a > 0.1) {
-            color = mix(color * uColorPrimary, color, 0.3);
-            
-            // Efectos glitch de color
-            if (glitchMask > 0.0) {
-              float colorGlitch = random(vec2(uv.x, uTime));
-              if (colorGlitch > 0.7) {
-                color = mix(color, uColorGlitch1, 0.6);
-              } else if (colorGlitch > 0.4) {
-                color = mix(color, uColorGlitch2, 0.4);
-              }
+          // Efecto de pulso
+          float pulse = sin(uTime * 1.5 + uPulsePhase) * 0.3 + 0.7;
+          
+          // Gradiente desde el centro
+          vec2 center = vec2(0.5, 0.5);
+          float distFromCenter = distance(vUv, center);
+          float gradient = 1.0 - smoothstep(0.1, 0.8, distFromCenter);
+          
+          // Mezclar colores
+          vec3 finalColor = mix(baseColor, uColorGlow, gradient * 0.3);
+          finalColor = mix(finalColor, uColorAccent, pulse * 0.2);
+          
+          // Efecto glow
+          float glowMask = textSample.a;
+          finalColor *= (1.0 + uGlowIntensity * glowMask * pulse);
+          
+          // Efecto sparkle
+          if (uSparkle > 0.5) {
+            float sparkleNoise = fract(sin(dot(vUv * 50.0, vec2(12.9898,78.233))) * 43758.5453);
+            if (sparkleNoise > 0.95) {
+              finalColor += vec3(1.0) * (uSparkle - 0.5) * 2.0;
             }
           }
           
-          // Ruido digital
-          float noise = random(uv + uTime * 0.1) * uDigitalNoise;
-          color += vec3(noise);
-          
-          // Scanlines
-          float scanline = sin(uv.y * 800.0 + uTime * 20.0) * 0.1 + 0.9;
-          color *= scanline;
-          
-          gl_FragColor = vec4(color, a * uOpacity);
+          gl_FragColor = vec4(finalColor, textSample.a * uOpacity);
         }
       `
     });
   }
 
   private createMesh(): void {
-    this.geometry = new THREE.PlaneGeometry(1, 1);
+    // Tamaño basado en el canvas
+    const width = this.canvas.width / 100; // Escalar para Three.js
+    const height = this.canvas.height / 100;
+    
+    this.geometry = new THREE.PlaneGeometry(width, height);
     this.mesh = new THREE.Mesh(this.geometry, this.material);
   }
 
-  public setInitialPosition(x: number, y: number, z: number = 0): void {
-    this.initialPosition.set(x, y, z);
-    this.currentPosition.copy(this.initialPosition);
-    this.mesh.position.copy(this.currentPosition);
-  }
-
-  public setTargetPosition(x: number, y: number, z: number = 0): void {
-    this.targetPosition.set(x, y, z);
-  }
-
-  public update(deltaTime: number, time: number, audioData: any, config: any): void {
-    this.age += deltaTime;
-    
-    // Controlar visibilidad basada en tiempo
-    if (!this.isVisible && this.age >= this.appearTime) {
+  public update(deltaTime: number, currentTime: number, config: any, audioData: any): void {
+    // Controlar aparición
+    if (this.startTime !== null && currentTime >= this.startTime && !this.isVisible) {
       this.isVisible = true;
     }
     
-    if (this.isVisible) {
-      // Fade in
-      const fadeProgress = Math.min(1.0, (this.age - this.appearTime) / config.animation.fadeInDuration);
-      const targetOpacity = config.opacity * fadeProgress;
-      
-      // Movimiento hacia posición final
-      const moveSpeed = config.animation.repositionSpeed * deltaTime;
-      this.currentPosition.lerp(this.targetPosition, moveSpeed);
-      this.mesh.position.copy(this.currentPosition);
-      
-      // Actualizar uniforms
-      this.material.uniforms.uTime.value = time;
-      this.material.uniforms.uOpacity.value = targetOpacity;
-      
-      // Efectos basados en audio
-      const glitchIntensity = config.effects.enableGlitch ? 
-        config.effects.glitchIntensity * (0.3 + audioData.mid * 0.7) : 0.0;
-      
-      this.material.uniforms.uGlitchIntensity.value = glitchIntensity;
-      this.material.uniforms.uChromaticAberration.value = 
-        config.effects.chromaticAberration * audioData.high;
-      this.material.uniforms.uDigitalNoise.value = audioData.high * 0.2;
-      
-      // Actualizar colores
-      this.material.uniforms.uColorPrimary.value.setStyle(config.colors.primary);
-      this.material.uniforms.uColorGlitch1.value.setStyle(config.colors.glitch1);
-      this.material.uniforms.uColorGlitch2.value.setStyle(config.colors.glitch2);
+    if (this.isVisible && this.startTime !== null) {
+      // Fade in cinematográfico
+      const fadeProgress = Math.min(1.0, (currentTime - this.startTime) / config.animation.fadeInDuration);
+      // Curva de easing suave
+      this.targetAlpha = this.easeOutCubic(fadeProgress);
     }
+
+    // Interpolación suave del alpha
+    this.alpha += (this.targetAlpha - this.alpha) * deltaTime * 4;
+
+    // Efectos basados en audio y config
+    let pulse = 1.0;
+    if (config.effects?.enablePulse) {
+      const pulseSpeed = config.animation?.pulseSpeed ?? 1.5;
+      pulse = 0.7 + 0.3 * Math.sin(currentTime * pulseSpeed + this.pulseOffset);
+    }
+
+    // Efectos de sparkle
+    let sparkle = 0.0;
+    if (config.effects?.enableSparkle && this.alpha > 0.5) {
+      this.sparkleTimer += deltaTime;
+      if (this.sparkleTimer > 1.5 + Math.random() * 2) {
+        this.sparkleTimer = 0;
+      }
+      if (this.sparkleTimer < 0.3) {
+        sparkle = Math.sin(this.sparkleTimer * Math.PI / 0.3);
+      }
+    }
+
+    // Intensidad de glow basada en audio
+    const glowIntensity = config.effects?.enableGlow ? 
+      (config.animation?.glowIntensity ?? 2.5) * (0.5 + audioData.mid * 0.5) : 0.0;
+
+    // Actualizar uniforms
+    this.material.uniforms.uTime.value = currentTime;
+    this.material.uniforms.uOpacity.value = this.alpha * pulse;
+    this.material.uniforms.uGlowIntensity.value = glowIntensity;
+    this.material.uniforms.uSparkle.value = sparkle;
+    
+    // Actualizar colores
+    this.material.uniforms.uColorText.value.setStyle(config.colors.text);
+    this.material.uniforms.uColorGlow.value.setStyle(config.colors.glow);
+    this.material.uniforms.uColorAccent.value.setStyle(config.colors.accent);
+  }
+
+  private easeOutCubic(t: number): number {
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  public setStartTime(time: number): void {
+    this.startTime = time;
+  }
+
+  public resetAnimation(): void {
+    this.alpha = 0;
+    this.targetAlpha = 0;
+    this.startTime = null;
+    this.sparkleTimer = 0;
+    this.isVisible = false;
   }
 
   public getMesh(): THREE.Mesh {
@@ -298,10 +277,11 @@ class GlitchLetter {
   }
 }
 
-class TextGlitchPreset extends BasePreset {
-  private letters: GlitchLetter[] = [];
+class RoboticaCinematicPreset extends BasePreset {
+  private letters: CinematicLetter[] = [];
+  private animationStartTime: number | null = null;
   private currentConfig: any;
-  private shuffledIndices: number[] = [];
+  private textGroup: THREE.Group;
 
   constructor(
     scene: THREE.Scene,
@@ -311,76 +291,115 @@ class TextGlitchPreset extends BasePreset {
   ) {
     super(scene, camera, renderer, config);
     this.currentConfig = { ...config.defaultConfig };
+    this.textGroup = new THREE.Group();
   }
 
   public init(): void {
+    // Fondo transparente
     this.renderer.setClearColor(0x000000, 0);
-    this.createTextLetters();
+    
+    this.createCinematicText();
+    this.scene.add(this.textGroup);
   }
 
-  private createTextLetters(): void {
-    const text = this.currentConfig.text.content.replace(/\s+/g, ' ');
-    const letters = text.split('');
+  private createCinematicText(): void {
+    const text = this.currentConfig.text.content;
+    const fontSize = this.currentConfig.text.fontSize;
+    const fontFamily = this.currentConfig.text.fontFamily;
+    const letterSpacing = this.currentConfig.text.letterSpacing;
+    const scale = this.currentConfig.text.scale;
+
+    // Calcular espaciado total del texto
+    const letterWidth = fontSize * 0.8; // Aproximación del ancho de letra
+    const spacing = letterWidth * letterSpacing;
+    const totalWidth = (text.length - 1) * spacing;
     
-    // Crear indices mezclados para aparición desordenada
-    this.shuffledIndices = Array.from({ length: letters.length }, (_, i) => i);
-    if (this.currentConfig.effects.enableShuffle) {
-      for (let i = this.shuffledIndices.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [this.shuffledIndices[i], this.shuffledIndices[j]] = 
-        [this.shuffledIndices[j], this.shuffledIndices[i]];
-      }
+    // Posición inicial centrada
+    const startX = -totalWidth / 2;
+
+    // Crear cada letra
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      const x = startX + i * spacing;
+      const position = new THREE.Vector3(x * scale, 0, 0);
+      
+      const letter = new CinematicLetter(char, fontSize, fontFamily, position);
+      this.letters.push(letter);
+      this.textGroup.add(letter.getMesh());
     }
 
-    // Crear letras
-    letters.forEach((letter, index) => {
-      if (letter.trim() !== '') {
-        const shuffledIndex = this.shuffledIndices.indexOf(index);
-        const appearTime = shuffledIndex * this.currentConfig.animation.letterDelay;
-        
-        const glitchLetter = new GlitchLetter(
-          letter,
-          this.currentConfig.text.fontSize,
-          this.currentConfig.text.fontFamily,
-          appearTime
-        );
+    // Posicionar el grupo en el centro de la pantalla
+    this.textGroup.position.set(0, 0, 0);
+  }
 
-        // Posición inicial aleatoria (dispersa)
-        const scatterRadius = 200;
-        const initialX = (Math.random() - 0.5) * scatterRadius;
-        const initialY = (Math.random() - 0.5) * scatterRadius;
-        glitchLetter.setInitialPosition(initialX, initialY);
+  private initializeAnimation(): void {
+    if (this.animationStartTime === null) {
+      this.animationStartTime = this.clock.getElapsedTime();
+      
+      // Configurar tiempos de inicio según el orden de animación
+      const animationOrder = this.currentConfig.animation.animationOrder;
+      const letterDelay = this.currentConfig.animation.letterDelay;
 
-        // Posición final (formando el texto)
-        const finalX = (index - letters.length / 2) * 
-                      (this.currentConfig.text.fontSize * this.currentConfig.text.letterSpacing);
-        const finalY = 0;
-        glitchLetter.setTargetPosition(finalX, finalY);
-
-        this.letters.push(glitchLetter);
-        this.scene.add(glitchLetter.getMesh());
-      }
-    });
+      animationOrder.forEach((letterIdx: number, orderIdx: number) => {
+        if (letterIdx < this.letters.length) {
+          const delay = orderIdx * letterDelay;
+          const startTime = this.animationStartTime! + delay;
+          this.letters[letterIdx].setStartTime(startTime);
+        }
+      });
+    }
   }
 
   public update(): void {
     const deltaTime = this.clock.getDelta();
-    const time = this.clock.getElapsedTime();
+    const currentTime = this.clock.getElapsedTime();
+
+    this.initializeAnimation();
 
     // Actualizar todas las letras
     this.letters.forEach(letter => {
-      letter.update(deltaTime, time, this.audioData, this.currentConfig);
+      letter.update(deltaTime, currentTime, this.currentConfig, this.audioData);
+    });
+
+    // Escala global basada en audio (sutil)
+    const audioIntensity = (this.audioData.low + this.audioData.mid + this.audioData.high) / 3;
+    const globalScale = this.currentConfig.text.scale * (1 + audioIntensity * 0.05);
+    this.textGroup.scale.setScalar(globalScale);
+
+    // Aplicar opacidad global
+    this.textGroup.children.forEach(child => {
+      if (child instanceof THREE.Mesh && child.material instanceof THREE.ShaderMaterial) {
+        const currentOpacity = child.material.uniforms.uOpacity.value;
+        child.material.uniforms.uOpacity.value = currentOpacity * this.opacity;
+      }
     });
   }
 
   public updateConfig(newConfig: any): void {
     this.currentConfig = this.deepMerge(this.currentConfig, newConfig);
     
-    // Si cambió el texto, recrear
-    if (newConfig.text && newConfig.text.content) {
-      this.dispose();
-      this.createTextLetters();
+    // Si cambió configuración importante, recrear
+    if (newConfig.text) {
+      this.recreateText();
     }
+  }
+
+  private recreateText(): void {
+    // Limpiar texto existente
+    this.letters.forEach(letter => {
+      this.textGroup.remove(letter.getMesh());
+      letter.dispose();
+    });
+    this.letters = [];
+    this.animationStartTime = null;
+
+    // Recrear texto
+    this.createCinematicText();
+  }
+
+  public resetAnimation(): void {
+    this.animationStartTime = null;
+    this.letters.forEach(letter => letter.resetAnimation());
   }
 
   private deepMerge(target: any, source: any): any {
@@ -397,9 +416,10 @@ class TextGlitchPreset extends BasePreset {
 
   public dispose(): void {
     this.letters.forEach(letter => {
-      this.scene.remove(letter.getMesh());
+      this.textGroup.remove(letter.getMesh());
       letter.dispose();
     });
+    this.scene.remove(this.textGroup);
     this.letters = [];
   }
 }
@@ -411,5 +431,5 @@ export function createPreset(
   config: PresetConfig,
   shaderCode?: string
 ): BasePreset {
-  return new TextGlitchPreset(scene, camera, renderer, config);
+  return new RoboticaCinematicPreset(scene, camera, renderer, config);
 }
