@@ -1,0 +1,192 @@
+{
+  "name": "Text Glitch",
+  "description": "Texto animado con efectos glitch y aparición desordenada de letras",
+  "author": "AudioVisualizer",
+  "version": "1.0.0",
+  "category": "text",
+  "tags": ["text", "glitch", "animated", "cyberpunk", "digital"],
+  "thumbnail": "text_glitch_thumb.png",
+  "defaultConfig": {
+    "opacity": 1.0,
+    "fadeMs": 500,
+    "text": {
+      "content": "R O B O T I C A",
+      "fontSize": 120,
+      "fontFamily": "Arial Black, sans-serif",
+      "letterSpacing": 0.3,
+      "lineHeight": 1.2
+    },
+    "animation": {
+      "letterDelay": 0.8,
+      "shuffleIntensity": 0.7,
+      "glitchFrequency": 2.5,
+      "fadeInDuration": 1.2,
+      "repositionSpeed": 1.5,
+      "digitalDistortion": 0.6
+    },
+    "colors": {
+      "primary": "#00FF88",
+      "secondary": "#FF0088",
+      "accent": "#88FF00",
+      "glitch1": "#FF4444",
+      "glitch2": "#4444FF",
+      "background": "#0A0F14"
+    },
+    "effects": {
+      "enableGlitch": true,
+      "enableShuffle": true,
+      "enableScanlines": true,
+      "enableChromatic": true,
+      "enableNoise": true,
+      "glitchIntensity": 0.8,
+      "chromaticAberration": 0.3,
+      "scanlineSpeed": 2.0,
+      "noiseLevel": 0.15
+    },
+    "layout": {
+      "centerX": 0.5,
+      "centerY": 0.5,
+      "scatterRadius": 200,
+      "finalSpacing": 80,
+      "verticalOffset": 30
+    }
+  },
+  "controls": [
+    {
+      "name": "text.content",
+      "type": "text",
+      "label": "Texto a Mostrar",
+      "default": "R O B O T I C A"
+    },
+    {
+      "name": "text.fontSize",
+      "type": "slider",
+      "label": "Tamaño de Fuente",
+      "min": 40,
+      "max": 200,
+      "step": 10,
+      "default": 120
+    },
+    {
+      "name": "animation.letterDelay",
+      "type": "slider",
+      "label": "Retraso entre Letras",
+      "min": 0.2,
+      "max": 2.0,
+      "step": 0.1,
+      "default": 0.8
+    },
+    {
+      "name": "animation.shuffleIntensity",
+      "type": "slider",
+      "label": "Intensidad de Mezcla",
+      "min": 0.0,
+      "max": 1.0,
+      "step": 0.1,
+      "default": 0.7
+    },
+    {
+      "name": "animation.glitchFrequency",
+      "type": "slider",
+      "label": "Frecuencia de Glitch",
+      "min": 0.5,
+      "max": 5.0,
+      "step": 0.1,
+      "default": 2.5
+    },
+    {
+      "name": "effects.glitchIntensity",
+      "type": "slider",
+      "label": "Intensidad de Glitch",
+      "min": 0.0,
+      "max": 1.0,
+      "step": 0.1,
+      "default": 0.8
+    },
+    {
+      "name": "effects.chromaticAberration",
+      "type": "slider",
+      "label": "Aberración Cromática",
+      "min": 0.0,
+      "max": 1.0,
+      "step": 0.1,
+      "default": 0.3
+    },
+    {
+      "name": "effects.enableGlitch",
+      "type": "checkbox",
+      "label": "Habilitar Glitch",
+      "default": true
+    },
+    {
+      "name": "effects.enableShuffle",
+      "type": "checkbox",
+      "label": "Habilitar Mezcla",
+      "default": true
+    },
+    {
+      "name": "effects.enableScanlines",
+      "type": "checkbox",
+      "label": "Líneas de Escaneo",
+      "default": true
+    },
+    {
+      "name": "effects.enableChromatic",
+      "type": "checkbox",
+      "label": "Aberración Cromática",
+      "default": true
+    },
+    {
+      "name": "colors.primary",
+      "type": "color",
+      "label": "Color Primario",
+      "default": "#00FF88"
+    },
+    {
+      "name": "colors.secondary",
+      "type": "color",
+      "label": "Color Secundario",
+      "default": "#FF0088"
+    },
+    {
+      "name": "colors.accent",
+      "type": "color",
+      "label": "Color de Acento",
+      "default": "#88FF00"
+    },
+    {
+      "name": "colors.glitch1",
+      "type": "color",
+      "label": "Color Glitch 1",
+      "default": "#FF4444"
+    },
+    {
+      "name": "colors.glitch2",
+      "type": "color",
+      "label": "Color Glitch 2",
+      "default": "#4444FF"
+    }
+  ],
+  "audioMapping": {
+    "low": {
+      "description": "Controla la aparición y timing de las letras",
+      "frequency": "20-250 Hz",
+      "effect": "Velocidad de aparición y movimientos base"
+    },
+    "mid": {
+      "description": "Modula los efectos glitch y distorsión",
+      "frequency": "250-4000 Hz",
+      "effect": "Intensidad de glitch y efectos digitales"
+    },
+    "high": {
+      "description": "Controla efectos de alta frecuencia y detalles",
+      "frequency": "4000+ Hz",
+      "effect": "Scanlines, ruido y aberración cromática"
+    }
+  },
+  "performance": {
+    "complexity": "medium",
+    "recommendedFPS": 60,
+    "gpuIntensive": false
+  }
+}
