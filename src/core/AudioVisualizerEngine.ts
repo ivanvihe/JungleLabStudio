@@ -413,7 +413,7 @@ export class AudioVisualizerEngine {
 
     const activePreset = this.presetLoader.getActivePreset(`${layerId}-${layer.preset.id}`);
     if (activePreset && activePreset.updateConfig) {
-      activePreset.updateConfig({ defaultConfig: layer.preset.config.defaultConfig });
+      activePreset.updateConfig(layer.preset.config.defaultConfig);
     }
     this.saveLayerPresetConfig(layer.preset.id, layerId, layer.preset.config.defaultConfig);
   }

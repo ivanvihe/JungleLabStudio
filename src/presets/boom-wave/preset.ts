@@ -3,53 +3,36 @@ import { BasePreset, PresetConfig } from '../../core/PresetLoader';
 
 export const config: PresetConfig = {
   name: 'Boom Wave',
-  description: 'Circular shock waves triggered by sub-bass booms',
+  description: 'Expanding ring pulse',
   author: 'AudioVisualizer',
   version: '1.0.0',
   category: 'one-shot',
-  tags: ['wave', 'bass', 'one-shot'],
+  tags: ['ring', 'pulse', 'one-shot'],
   thumbnail: 'boom_wave_thumb.png',
   note: 58,
   defaultConfig: {
     opacity: 1.0,
-    fadeMs: 150,
+    duration: 1.5,
     color: '#00aaff',
-    maxRadius: 8,
-    waveDuration: 2.0,
-    threshold: 0.7,
-    waveCount: 3,
-    shockwave: {
-      intensity: 1.5,
-      speed: 2.0,
-      decay: 0.8
-    },
-    spawnSpread: 2
+    maxRadius: 5
   },
   controls: [
     { name: 'color', type: 'color', label: 'Color', default: '#00aaff' },
     { name: 'maxRadius', type: 'slider', label: 'Max Radius', min: 1, max: 10, step: 0.5, default: 5 },
-    { name: 'waveDuration', type: 'slider', label: 'Duration', min: 0.5, max: 3, step: 0.1, default: 1.5 },
-    { name: 'threshold', type: 'slider', label: 'Trigger Threshold', min: 0, max: 1, step: 0.01, default: 0.8 },
-    { name: 'spawnSpread', type: 'slider', label: 'Spawn Spread', min: 0, max: 5, step: 0.1, default: 2 },
-    { name: 'waveCount', type: 'slider', label: 'Wave Count', min: 1, max: 8, step: 1, default: 3 }
+    { name: 'duration', type: 'slider', label: 'Duration', min: 0.5, max: 3, step: 0.1, default: 1.5 }
   ],
   audioMapping: {
-    low: { description: 'Triggers waves when bass peaks', frequency: '20-250 Hz', effect: 'Wave spawn' },
-    mid: { description: 'Modulates color intensity', frequency: '250-4000 Hz', effect: 'Color modulation' },
+    low: { description: 'Slight expansion', frequency: '20-250 Hz', effect: 'Radius' },
+    mid: { description: 'Color modulation', frequency: '250-4000 Hz', effect: 'Hue' },
     high: { description: 'Adds subtle brightness', frequency: '4000+ Hz', effect: 'Brightness' }
   },
   performance: { complexity: 'low', recommendedFPS: 60, gpuIntensive: false }
 };
 
-interface Wave {
-  mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
-  start: number;
-}
-
 class BoomWavePreset extends BasePreset {
-  private waves: Wave[] = [];
+  private mesh!: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
+  private start = 0;
   private currentConfig: any;
-  private lastSpawn = 0;
 
   constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, cfg: PresetConfig) {
     super(scene, camera, renderer, cfg);
@@ -58,9 +41,6 @@ class BoomWavePreset extends BasePreset {
   public init(): void {
     this.renderer.setClearColor(0x000000, 0);
     this.currentConfig = JSON.parse(JSON.stringify(this.config.defaultConfig));
-  }
-
-  private spawnWave(): void {
     const geometry = new THREE.PlaneGeometry(1, 1);
     const material = new THREE.ShaderMaterial({
       transparent: true,
@@ -81,68 +61,41 @@ class BoomWavePreset extends BasePreset {
         uniform float uProgress;
         void main(){
           float dist = length(vUv - vec2(0.5));
-          float alpha = smoothstep(uProgress, uProgress + 0.05, dist) * (1.0 - uProgress);
+          float ring = smoothstep(uProgress, uProgress + 0.02, dist);
+          float alpha = (1.0 - uProgress) * (1.0 - ring);
           gl_FragColor = vec4(uColor, alpha);
         }
       `
     });
-    const mesh = new THREE.Mesh(geometry, material);
-    const spread = this.currentConfig.spawnSpread || 0;
-    mesh.position.set((Math.random()-0.5)*spread, (Math.random()-0.5)*spread, 0);
-    this.scene.add(mesh);
-    this.waves.push({ mesh, start: this.clock.getElapsedTime() });
+    this.mesh = new THREE.Mesh(geometry, material);
+    this.scene.add(this.mesh);
+    this.start = this.clock.getElapsedTime();
   }
 
   public update(): void {
     const t = this.clock.getElapsedTime();
-    const delta = this.clock.getDelta();
-    if (this.audioData.low > this.currentConfig.threshold && t - this.lastSpawn > 0.1) {
-      this.spawnWave();
-      this.lastSpawn = t;
+    const progress = (t - this.start) / this.currentConfig.duration;
+    const mat = this.mesh.material as THREE.ShaderMaterial;
+    mat.uniforms.uProgress.value = progress;
+    this.mesh.scale.setScalar(progress * this.currentConfig.maxRadius);
+    mat.uniforms.uColor.value.set(this.currentConfig.color);
+    if (progress > 1) {
+      this.dispose();
     }
-
-    const duration = this.currentConfig.waveDuration;
-    const maxRadius = this.currentConfig.maxRadius;
-
-    this.waves = this.waves.filter(w => {
-      const progress = (t - w.start) / duration;
-      if (progress > 1) {
-        this.scene.remove(w.mesh);
-        w.mesh.geometry.dispose();
-        w.mesh.material.dispose();
-        return false;
-      }
-      w.mesh.scale.setScalar(progress * maxRadius);
-      const mat = w.mesh.material as THREE.ShaderMaterial;
-      mat.uniforms.uProgress.value = progress;
-      mat.uniforms.uColor.value.set(this.currentConfig.color);
-      return true;
-    });
   }
 
   public updateConfig(newConfig: any): void {
-    this.currentConfig = this.deepMerge(this.currentConfig, newConfig);
-  }
-
-  private deepMerge(target: any, source: any): any {
-    const result = { ...target };
-    for (const key in source) {
-      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-        result[key] = this.deepMerge(result[key] || {}, source[key]);
-      } else {
-        result[key] = source[key];
-      }
+    this.currentConfig = { ...this.currentConfig, ...newConfig };
+    const mat = this.mesh?.material as THREE.ShaderMaterial;
+    if (newConfig.color && mat) {
+      mat.uniforms.uColor.value = new THREE.Color(newConfig.color);
     }
-    return result;
   }
 
   public dispose(): void {
-    this.waves.forEach(w => {
-      this.scene.remove(w.mesh);
-      w.mesh.geometry.dispose();
-      w.mesh.material.dispose();
-    });
-    this.waves = [];
+    this.scene.remove(this.mesh);
+    this.mesh.geometry.dispose();
+    this.mesh.material.dispose();
   }
 }
 

@@ -1,38 +1,33 @@
 {
   "name": "Boom Wave",
-  "description": "Circular shock waves triggered by sub-bass booms",
+  "description": "Expanding ring pulse",
   "author": "AudioVisualizer",
   "version": "1.0.0",
   "category": "one-shot",
-  "tags": ["wave", "bass", "one-shot"],
+  "tags": ["ring", "pulse", "one-shot"],
   "thumbnail": "boom_wave_thumb.png",
   "note": 58,
   "defaultConfig": {
     "opacity": 1.0,
-    "fadeMs": 200,
+    "duration": 1.5,
     "color": "#00aaff",
-    "maxRadius": 5,
-    "waveDuration": 1.5,
-    "threshold": 0.8,
-    "spawnSpread": 2
+    "maxRadius": 5
   },
   "controls": [
     {"name": "color", "type": "color", "label": "Color", "default": "#00aaff"},
     {"name": "maxRadius", "type": "slider", "label": "Max Radius", "min": 1, "max": 10, "step": 0.5, "default": 5},
-    {"name": "waveDuration", "type": "slider", "label": "Duration", "min": 0.5, "max": 3, "step": 0.1, "default": 1.5},
-    {"name": "threshold", "type": "slider", "label": "Trigger Threshold", "min": 0, "max": 1, "step": 0.01, "default": 0.8},
-    {"name": "spawnSpread", "type": "slider", "label": "Spawn Spread", "min": 0, "max": 5, "step": 0.1, "default": 2}
+    {"name": "duration", "type": "slider", "label": "Duration", "min": 0.5, "max": 3, "step": 0.1, "default": 1.5}
   ],
   "audioMapping": {
     "low": {
-      "description": "Triggers waves when bass peaks",
+      "description": "Slight expansion",
       "frequency": "20-250 Hz",
-      "effect": "Wave spawn"
+      "effect": "Radius"
     },
     "mid": {
-      "description": "Modulates color intensity",
+      "description": "Color modulation",
       "frequency": "250-4000 Hz",
-      "effect": "Color modulation"
+      "effect": "Hue"
     },
     "high": {
       "description": "Adds subtle brightness",

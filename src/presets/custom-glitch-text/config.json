@@ -10,6 +10,7 @@
   "defaultConfig": {
     "opacity": 1.0,
     "fadeMs": 200,
+    "effect": "jitter",
     "text": {
       "content": "TEXT",
       "fontSize": 120,
@@ -26,6 +27,7 @@
     {"name": "text.fontSize", "type": "slider", "label": "Font Size", "min": 40, "max": 200, "step": 10, "default": 120},
     {"name": "glitch.intensity", "type": "slider", "label": "Glitch Intensity", "min": 0, "max": 0.5, "step": 0.01, "default": 0.05},
     {"name": "glitch.frequency", "type": "slider", "label": "Glitch Frequency", "min": 0, "max": 10, "step": 0.1, "default": 2.0},
+    {"name": "effect", "type": "select", "label": "Effect", "options": ["jitter", "robotica"], "default": "jitter"},
     {"name": "color", "type": "color", "label": "Color", "default": "#ffffff"}
   ],
   "audioMapping": {

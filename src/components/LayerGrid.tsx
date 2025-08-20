@@ -47,18 +47,21 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
 
   const handlePresetClick = (layerId: string, presetId: string) => {
     const cellKey = `${layerId}-${presetId}`;
-    const wasActive = layers.find(l => l.id === layerId)?.activePreset === presetId;
-    setClickedCell(cellKey);
+    const layer = layers.find(l => l.id === layerId);
+    const wasActive = layer?.activePreset === presetId;
+    const preset = presets.find(p => p.id === presetId);
+    const isOneShot = preset?.config.category === 'one-shot';
 
+    setClickedCell(cellKey);
     setTimeout(() => setClickedCell(null), 150);
 
-    setLayers(prev => prev.map(layer =>
-      layer.id === layerId
-        ? { ...layer, activePreset: presetId }
-        : layer
+    setLayers(prev => prev.map(l =>
+      l.id === layerId
+        ? { ...l, activePreset: presetId }
+        : l
     ));
 
-    if (!wasActive) {
+    if (!wasActive || isOneShot) {
       onPresetActivate(layerId, presetId);
     }
     onPresetSelect(layerId, presetId);

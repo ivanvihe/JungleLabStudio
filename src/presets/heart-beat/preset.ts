@@ -2,36 +2,34 @@ import * as THREE from 'three';
 import { BasePreset, PresetConfig } from '../../core/PresetLoader';
 
 export const config: PresetConfig = {
-  name: 'Heart Beat',
-  description: 'Pulse of a grayscale electronic heart',
+  name: 'Aurora Pulse',
+  description: 'Soft abstract burst fading gently',
   author: 'AudioVisualizer',
   version: '1.0.0',
   category: 'one-shot',
-  tags: ['heart', 'pulse', 'one-shot'],
+  tags: ['aurora', 'pulse', 'one-shot'],
   thumbnail: 'heart_beat_thumb.png',
   note: 62,
   defaultConfig: {
     opacity: 1.0,
-    duration: 1.5,
-    color: '#ffffff',
-    scale: 1.0
+    duration: 2.0,
+    color: '#a0e8ff'
   },
   controls: [
-    { name: 'color', type: 'color', label: 'Color', default: '#ffffff' },
-    { name: 'duration', type: 'slider', label: 'Duration', min: 0.5, max: 3, step: 0.1, default: 1.5 },
-    { name: 'scale', type: 'slider', label: 'Scale', min: 0.5, max: 2, step: 0.1, default: 1.0 }
+    { name: 'color', type: 'color', label: 'Color', default: '#a0e8ff' },
+    { name: 'duration', type: 'slider', label: 'Duration', min: 0.5, max: 3, step: 0.1, default: 2.0 }
   ],
   audioMapping: {
-    low: { description: 'Triggers heart beat', frequency: '20-250 Hz', effect: 'Pulse amplitude' },
-    mid: { description: 'Modulates glow', frequency: '250-4000 Hz', effect: 'Glow intensity' },
-    high: { description: 'Adds shimmer', frequency: '4000+ Hz', effect: 'Subtle flicker' }
+    low: { description: 'Slight expansion', frequency: '20-250 Hz', effect: 'Radius' },
+    mid: { description: 'Color drift', frequency: '250-4000 Hz', effect: 'Hue' },
+    high: { description: 'Sparkle', frequency: '4000+ Hz', effect: 'Sparkle' }
   },
   performance: { complexity: 'low', recommendedFPS: 60, gpuIntensive: false }
 };
 
-class HeartBeatPreset extends BasePreset {
-  private mesh!: THREE.Mesh<THREE.ShapeGeometry, THREE.MeshBasicMaterial>;
-  private startTime = 0;
+class AuroraPulsePreset extends BasePreset {
+  private mesh!: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
+  private start = 0;
   private currentConfig: any;
 
   constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, cfg: PresetConfig) {
@@ -41,52 +39,58 @@ class HeartBeatPreset extends BasePreset {
   public init(): void {
     this.renderer.setClearColor(0x000000, 0);
     this.currentConfig = JSON.parse(JSON.stringify(this.config.defaultConfig));
-
-    const heartShape = new THREE.Shape();
-    heartShape.moveTo(0, 0);
-    heartShape.bezierCurveTo(0, 0, -0.5, -0.3, -1, 0);
-    heartShape.bezierCurveTo(-2, 1.5, -1.5, 3, 0, 3.5);
-    heartShape.bezierCurveTo(1.5, 3, 2, 1.5, 1, 0);
-    heartShape.bezierCurveTo(0.5, -0.3, 0, 0, 0, 0);
-
-    const geometry = new THREE.ShapeGeometry(heartShape);
-    const material = new THREE.MeshBasicMaterial({
-      color: new THREE.Color(this.currentConfig.color),
-      transparent: true
+    const geometry = new THREE.PlaneGeometry(2, 2);
+    const material = new THREE.ShaderMaterial({
+      transparent: true,
+      uniforms: {
+        uColor: { value: new THREE.Color(this.currentConfig.color) },
+        uProgress: { value: 0 },
+        uTime: { value: 0 }
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main(){
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+        }
+      `,
+      fragmentShader: `
+        varying vec2 vUv;
+        uniform vec3 uColor;
+        uniform float uProgress;
+        uniform float uTime;
+        void main(){
+          vec2 center = vec2(0.5);
+          float dist = length(vUv - center);
+          float angle = atan(vUv.y-center.y, vUv.x-center.x);
+          float wave = sin(angle*6.0 + uTime*2.0)*0.02;
+          float alpha = smoothstep(0.5+wave, 0.0, dist) * (1.0 - uProgress);
+          vec3 col = mix(uColor, vec3(1.0), dist*0.3);
+          gl_FragColor = vec4(col, alpha);
+        }
+      `
     });
     this.mesh = new THREE.Mesh(geometry, material);
-    this.mesh.rotation.z = Math.PI; // orient heart upright
-    this.mesh.scale.setScalar(this.currentConfig.scale);
     this.scene.add(this.mesh);
-
-    this.startTime = this.clock.getElapsedTime();
+    this.start = this.clock.getElapsedTime();
   }
 
   public update(): void {
-    const t = this.clock.getElapsedTime() - this.startTime;
-    const progress = t / this.currentConfig.duration;
+    const t = this.clock.getElapsedTime();
+    const progress = (t - this.start) / this.currentConfig.duration;
+    const mat = this.mesh.material as THREE.ShaderMaterial;
+    mat.uniforms.uProgress.value = progress;
+    mat.uniforms.uTime.value = t - this.start;
     if (progress > 1) {
       this.dispose();
-      return;
     }
-
-    const beat = Math.abs(Math.sin(progress * Math.PI * 2));
-    const scale = this.currentConfig.scale * (0.8 + beat * 0.4 + this.audioData.low * 0.1);
-    this.mesh.scale.setScalar(scale);
-
-    const material = this.mesh.material as THREE.MeshBasicMaterial;
-    const grey = 1 - this.audioData.mid * 0.3;
-    material.color.setScalar(grey);
-    material.opacity = 1 - progress;
   }
 
   public updateConfig(newConfig: any): void {
     this.currentConfig = { ...this.currentConfig, ...newConfig };
-    if (newConfig.color) {
-      (this.mesh.material as THREE.MeshBasicMaterial).color.set(newConfig.color);
-    }
-    if (newConfig.scale) {
-      this.mesh.scale.setScalar(newConfig.scale);
+    const mat = this.mesh?.material as THREE.ShaderMaterial;
+    if (newConfig.color && mat) {
+      mat.uniforms.uColor.value = new THREE.Color(newConfig.color);
     }
   }
 
@@ -104,5 +108,5 @@ export function createPreset(
   cfg: PresetConfig,
   shaderCode?: string
 ): BasePreset {
-  return new HeartBeatPreset(scene, camera, renderer, cfg);
+  return new AuroraPulsePreset(scene, camera, renderer, cfg);
 }
