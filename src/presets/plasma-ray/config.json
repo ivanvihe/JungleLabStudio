@@ -6,7 +6,7 @@
   "category": "energy",
   "tags": ["plasma", "energy", "electric", "lightning", "rays", "power"],
   "thumbnail": "plasma_ray_thumb.png",
-  "note": 54,
+  "note": 57,
   "defaultConfig": {
     "width": 1920,
     "height": 1080,

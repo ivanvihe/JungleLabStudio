@@ -146,6 +146,9 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
                     '--layer-color-alpha': layer.color + '20'
                   } as React.CSSProperties}
                 >
+                    {preset.config.note !== undefined && (
+                      <div className="preset-note-badge">{preset.config.note}</div>
+                    )}
                   <div className="preset-thumbnail">
                     {getPresetThumbnail(preset)}
                   </div>
@@ -153,9 +156,6 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
                     <div className="preset-name">{preset.config.name}</div>
                     <div className="preset-details">
                       <span className="preset-category">{preset.config.category}</span>
-                      {preset.config.note !== undefined && (
-                        <span className="preset-note">note:{preset.config.note}</span>
-                      )}
                     </div>
                   </div>
                   
