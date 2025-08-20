@@ -84,39 +84,68 @@ export interface LoadedPreset {
   folderPath: string;
 }
 
-export class PresetLoader {
-  private loadedPresets: Map<string, LoadedPreset> = new Map();
-  private activePresets: Map<string, BasePreset> = new Map();
+  export class PresetLoader {
+    private loadedPresets: Map<string, LoadedPreset> = new Map();
+    private activePresets: Map<string, BasePreset> = new Map();
 
-  // Registro manual de presets disponibles
-  private availablePresets = [
-    'neural_network',
-    'abstract-lines',
-    'evolutive-particles',
-    'plasma-ray',
-    'text-glitch'
-  ];
+    // Registro manual de presets disponibles
+    private availablePresets = [
+      'neural_network',
+      'abstract-lines',
+      'evolutive-particles',
+      'plasma-ray',
+      'boom-wave',
+      'custom-glitch-text'
+    ];
 
-  constructor(
-    private camera: THREE.Camera,
-    private renderer: THREE.WebGLRenderer
-  ) {}
+    constructor(
+      private camera: THREE.Camera,
+      private renderer: THREE.WebGLRenderer,
+      private glitchTextPads: number = 1
+    ) {}
+
+    public setGlitchTextPads(count: number): void {
+      this.glitchTextPads = Math.max(1, count);
+    }
 
   public async loadAllPresets(): Promise<LoadedPreset[]> {
     console.log('🔍 Loading presets:', this.availablePresets);
-    
-    const loadPromises = this.availablePresets.map(presetId => this.loadPreset(presetId));
-    const results = await Promise.allSettled(loadPromises);
-    
+
+    this.loadedPresets.clear();
     const loadedPresets: LoadedPreset[] = [];
-    results.forEach((result, index) => {
-      if (result.status === 'fulfilled' && result.value) {
-        loadedPresets.push(result.value);
-        console.log(`✅ Preset loaded: ${result.value.config.name}`);
+
+    for (const presetId of this.availablePresets) {
+      if (presetId === 'custom-glitch-text') {
+        const base = await this.loadPreset(presetId);
+        if (base) {
+          // remove base so only clones are exposed
+          this.loadedPresets.delete(presetId);
+          for (let i = 1; i <= this.glitchTextPads; i++) {
+            const cloneConfig = JSON.parse(JSON.stringify(base.config));
+            cloneConfig.name = `${base.config.name} ${i}`;
+            if (cloneConfig.defaultConfig?.text?.content !== undefined) {
+              cloneConfig.defaultConfig.text.content = `Text ${i}`;
+            }
+            const clone: LoadedPreset = {
+              id: `${presetId}-${i}`,
+              config: cloneConfig,
+              createPreset: base.createPreset,
+              shaderCode: base.shaderCode,
+              folderPath: base.folderPath
+            };
+            this.loadedPresets.set(clone.id, clone);
+            loadedPresets.push(clone);
+            console.log(`✅ Preset loaded: ${clone.config.name}`);
+          }
+        }
       } else {
-        console.error(`❌ Failed to load preset: ${this.availablePresets[index]}`, result.reason);
+        const result = await this.loadPreset(presetId);
+        if (result) {
+          loadedPresets.push(result);
+          console.log(`✅ Preset loaded: ${result.config.name}`);
+        }
       }
-    });
+    }
 
     console.log(`🎨 Loaded ${loadedPresets.length} presets total`);
     return loadedPresets;

@@ -10,16 +10,18 @@ interface GlobalSettingsModalProps {
   onClose: () => void;
   audioDevices: DeviceOption[];
   midiDevices: DeviceOption[];
-  selectedAudioId: string | null;
-  selectedMidiId: string | null;
-  onSelectAudio: (id: string) => void;
-  onSelectMidi: (id: string) => void;
-  audioGain: number;
-  onAudioGainChange: (value: number) => void;
-  monitors: DeviceOption[];
-  selectedMonitors: string[];
-  onToggleMonitor: (id: string) => void;
-}
+    selectedAudioId: string | null;
+    selectedMidiId: string | null;
+    onSelectAudio: (id: string) => void;
+    onSelectMidi: (id: string) => void;
+    audioGain: number;
+    onAudioGainChange: (value: number) => void;
+    monitors: DeviceOption[];
+    selectedMonitors: string[];
+    onToggleMonitor: (id: string) => void;
+    glitchTextPads: number;
+    onGlitchPadChange: (value: number) => void;
+  }
 
 export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   isOpen,
@@ -29,13 +31,15 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   selectedAudioId,
   selectedMidiId,
   onSelectAudio,
-  onSelectMidi,
-  audioGain,
-  onAudioGainChange,
-  monitors,
-  selectedMonitors,
-  onToggleMonitor
-}) => {
+    onSelectMidi,
+    audioGain,
+    onAudioGainChange,
+    monitors,
+    selectedMonitors,
+    onToggleMonitor,
+    glitchTextPads,
+    onGlitchPadChange
+  }) => {
   if (!isOpen) return null;
 
   return (
@@ -83,24 +87,38 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
               ))}
             </select>
           </label>
-        </div>
+          </div>
 
-        <div className="modal-section">
-          <h3>Full Screen Monitors</h3>
-          {monitors.map(mon => (
-            <label key={mon.id} className="monitor-option">
+          <div className="modal-section">
+            <h3>Full Screen Monitors</h3>
+            {monitors.map(mon => (
+              <label key={mon.id} className="monitor-option">
+                <input
+                  type="checkbox"
+                  checked={selectedMonitors.includes(mon.id)}
+                  onChange={() => onToggleMonitor(mon.id)}
+                />
+                {mon.label}
+              </label>
+            ))}
+          </div>
+
+          <div className="modal-section">
+            <h3>Global Visual Settings</h3>
+            <label>
+              Glitch text pads:
               <input
-                type="checkbox"
-                checked={selectedMonitors.includes(mon.id)}
-                onChange={() => onToggleMonitor(mon.id)}
+                type="number"
+                min={1}
+                max={8}
+                value={glitchTextPads}
+                onChange={(e) => onGlitchPadChange(parseInt(e.target.value))}
               />
-              {mon.label}
             </label>
-          ))}
-        </div>
+          </div>
 
-        <button onClick={onClose}>Cerrar</button>
+          <button onClick={onClose}>Cerrar</button>
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
