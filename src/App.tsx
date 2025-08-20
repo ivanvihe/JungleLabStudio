@@ -62,7 +62,10 @@ const App: React.FC = () => {
     const setupAudioListener = async () => {
       try {
         // Intenta importar dinámicamente la API de eventos de Tauri.
-        const { listen } = await import('@tauri-apps/api/event');
+        // El comentario `@vite-ignore` evita que Vite intente resolver el módulo
+        // durante la compilación, permitiendo que la importación falle en tiempo
+        // de ejecución si el paquete no está disponible (por ejemplo, en Electron).
+        const { listen } = await import(/* @vite-ignore */ '@tauri-apps/api/event');
 
         await listen('audio_data', (event) => {
           const data = event.payload as AudioData;
