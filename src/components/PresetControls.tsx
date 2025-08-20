@@ -1,4 +1,6 @@
-import React from 'react';
+// MEJORA 1: PresetControls.tsx con scroll mejorado
+
+import React, { useEffect, useRef } from 'react';
 import { LoadedPreset } from '../core/PresetLoader';
 
 interface PresetControlsProps {
@@ -6,168 +8,256 @@ interface PresetControlsProps {
   onConfigUpdate: (config: any) => void;
 }
 
-export const PresetControls: React.FC<PresetControlsProps> = ({ preset, onConfigUpdate }) => {
+export const PresetControls: React.FC<PresetControlsProps> = ({
+  preset,
+  onConfigUpdate
+}) => {
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Detectar si hay overflow para mostrar indicador
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (contentRef.current) {
+        const hasOverflow = contentRef.current.scrollHeight > contentRef.current.clientHeight;
+        contentRef.current.classList.toggle('has-overflow', hasOverflow);
+      }
+    };
+
+    checkOverflow();
+    window.addEventListener('resize', checkOverflow);
+    return () => window.removeEventListener('resize', checkOverflow);
+  }, [preset]);
+
   const handleControlChange = (controlName: string, value: any, type: string) => {
     let processedValue = value;
-    if (type === 'slider' || type === 'number') {
-      processedValue = parseFloat(value);
-    } else if (type === 'checkbox') {
-      processedValue = value;
+    
+    switch (type) {
+      case 'number':
+      case 'slider':
+        processedValue = parseFloat(value);
+        break;
+      case 'boolean':
+        processedValue = Boolean(value);
+        break;
+      case 'color':
+        // Convertir hex a RGB normalizado
+        const hex = value.replace('#', '');
+        const r = parseInt(hex.substr(0, 2), 16) / 255;
+        const g = parseInt(hex.substr(2, 2), 16) / 255;
+        const b = parseInt(hex.substr(4, 2), 16) / 255;
+        processedValue = [r, g, b];
+        break;
     }
-    const config = createNestedConfig(controlName, processedValue);
-    onConfigUpdate(config);
-  };
 
-  const createNestedConfig = (path: string, value: any): any => {
-    const keys = path.split('.');
-    const config: any = {};
-    let current = config;
-    for (let i = 0; i < keys.length - 1; i++) {
-      current[keys[i]] = {};
-      current = current[keys[i]];
-    }
-    current[keys[keys.length - 1]] = value;
-    return config;
+    onConfigUpdate({
+      [controlName]: processedValue
+    });
   };
 
   const renderControl = (control: any) => {
+    const currentValue = preset.config.defaultConfig?.[control.name] || control.default;
+
     switch (control.type) {
       case 'slider':
         return (
-          <input
-            type="range"
-            min={control.min || 0}
-            max={control.max || 1}
-            step={control.step || 0.01}
-            defaultValue={control.default || 0}
-            onChange={(e) => handleControlChange(control.name, e.target.value, 'slider')}
-            className="control-slider"
-          />
+          <div key={control.name} className="control-group">
+            <label className="control-label">
+              {control.label || control.name}: {currentValue?.toFixed?.(2) || currentValue}
+            </label>
+            <input
+              type="range"
+              min={control.min || 0}
+              max={control.max || 1}
+              step={control.step || 0.01}
+              value={currentValue || control.default || 0}
+              onChange={(e) => handleControlChange(control.name, e.target.value, 'slider')}
+              className="control-slider"
+            />
+            <div className="slider-range">
+              <span className="range-min">{control.min || 0}</span>
+              <span className="range-max">{control.max || 1}</span>
+            </div>
+          </div>
         );
+      
       case 'number':
         return (
-          <input
-            type="number"
-            min={control.min}
-            max={control.max}
-            step={control.step || 1}
-            defaultValue={control.default || 0}
-            onChange={(e) => handleControlChange(control.name, e.target.value, 'number')}
-            className="control-text"
-          />
+          <div key={control.name} className="control-group">
+            <label className="control-label">{control.label || control.name}</label>
+            <input
+              type="number"
+              min={control.min}
+              max={control.max}
+              step={control.step || 1}
+              value={currentValue || control.default || 0}
+              onChange={(e) => handleControlChange(control.name, e.target.value, 'number')}
+              className="control-number"
+            />
+          </div>
         );
+      
       case 'color':
+        const colorHex = Array.isArray(currentValue) 
+          ? `#${Math.round(currentValue[0] * 255).toString(16).padStart(2, '0')}${Math.round(currentValue[1] * 255).toString(16).padStart(2, '0')}${Math.round(currentValue[2] * 255).toString(16).padStart(2, '0')}`
+          : currentValue || control.default || '#ffffff';
+        
         return (
-          <input
-            type="color"
-            defaultValue={control.default || '#ffffff'}
-            onChange={(e) => handleControlChange(control.name, e.target.value, 'color')}
-            className="control-color"
-          />
+          <div key={control.name} className="control-group">
+            <label className="control-label">{control.label || control.name}</label>
+            <div className="color-control-wrapper">
+              <input
+                type="color"
+                value={colorHex}
+                onChange={(e) => handleControlChange(control.name, e.target.value, 'color')}
+                className="control-color"
+              />
+              <span className="color-value">{colorHex.toUpperCase()}</span>
+            </div>
+          </div>
         );
-      case 'checkbox':
+      
+      case 'boolean':
         return (
-          <input
-            type="checkbox"
-            defaultChecked={control.default || false}
-            onChange={(e) => handleControlChange(control.name, e.target.checked, 'checkbox')}
-            className="control-checkbox"
-          />
+          <div key={control.name} className="control-group">
+            <label className="control-label checkbox-label">
+              <input
+                type="checkbox"
+                checked={currentValue || control.default || false}
+                onChange={(e) => handleControlChange(control.name, e.target.checked, 'boolean')}
+                className="control-checkbox"
+              />
+              {control.label || control.name}
+            </label>
+          </div>
         );
+      
       case 'select':
         return (
-          <select
-            defaultValue={control.default || ''}
-            onChange={(e) => handleControlChange(control.name, e.target.value, 'select')}
-            className="control-select"
-          >
-            {control.options?.map((option: string) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
+          <div key={control.name} className="control-group">
+            <label className="control-label">{control.label || control.name}</label>
+            <select
+              value={currentValue || control.default || ''}
+              onChange={(e) => handleControlChange(control.name, e.target.value, 'select')}
+              className="control-select"
+            >
+              {control.options?.map((option: string) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
         );
+      
+      case 'text':
+        return (
+          <div key={control.name} className="control-group">
+            <label className="control-label">{control.label || control.name}</label>
+            <input
+              type="text"
+              value={currentValue?.toString() || control.default?.toString() || ''}
+              onChange={(e) => handleControlChange(control.name, e.target.value, 'text')}
+              className="control-text"
+              placeholder={control.placeholder}
+            />
+          </div>
+        );
+      
       default:
         return (
-          <input
-            type="text"
-            defaultValue={control.default?.toString() || ''}
-            onChange={(e) => handleControlChange(control.name, e.target.value, 'text')}
-            className="control-text"
-          />
+          <div key={control.name} className="control-group">
+            <label className="control-label">{control.label || control.name}</label>
+            <input
+              type="text"
+              value={currentValue?.toString() || control.default?.toString() || ''}
+              onChange={(e) => handleControlChange(control.name, e.target.value, 'text')}
+              className="control-text"
+            />
+          </div>
         );
     }
   };
 
   const basicControls = [
-    { name: 'width', type: 'number', label: 'Width', min: 0, max: 4096, default: preset.config.defaultConfig.width || 1920 },
-    { name: 'height', type: 'number', label: 'Height', min: 0, max: 4096, default: preset.config.defaultConfig.height || 1080 },
-    { name: 'zoom', type: 'slider', label: 'Zoom', min: 0.1, max: 5, step: 0.1, default: preset.config.defaultConfig.zoom || 1 },
+    { name: 'width', type: 'number', label: 'Ancho', min: 100, max: 4096, default: preset.config.defaultConfig?.width || 1920 },
+    { name: 'height', type: 'number', label: 'Alto', min: 100, max: 4096, default: preset.config.defaultConfig?.height || 1080 },
+    { name: 'zoom', type: 'slider', label: 'Zoom', min: 0.1, max: 5, step: 0.1, default: preset.config.defaultConfig?.zoom || 1 },
   ];
 
   const audioControls = [
-    { name: 'audioSensitivity', type: 'slider', label: 'Sensitivity', min: 0, max: 2, step: 0.01, default: preset.config.defaultConfig.audioSensitivity || 1 },
-    { name: 'audioSmoothness', type: 'slider', label: 'Smoothness', min: 0, max: 1, step: 0.01, default: preset.config.defaultConfig.audioSmoothness || 0.5 },
-    { name: 'audioReactivity', type: 'slider', label: 'Reactivity', min: 0, max: 2, step: 0.01, default: preset.config.defaultConfig.audioReactivity || 1 },
+    { name: 'audioSensitivity', type: 'slider', label: 'Sensibilidad', min: 0, max: 2, step: 0.01, default: preset.config.defaultConfig?.audioSensitivity || 1 },
+    { name: 'audioSmoothness', type: 'slider', label: 'Suavizado', min: 0, max: 1, step: 0.01, default: preset.config.defaultConfig?.audioSmoothness || 0.5 },
+    { name: 'audioReactivity', type: 'slider', label: 'Reactividad', min: 0, max: 2, step: 0.01, default: preset.config.defaultConfig?.audioReactivity || 1 },
   ];
 
   return (
-    <div className="preset-controls-container">
-      <div className="preset-header">
-        <h3>{preset.config.name}</h3>
-        <div className="preset-meta-line">Versión: {preset.config.version}</div>
-        <div className="preset-meta-line">Categoría: {preset.config.category}</div>
-        <div className="preset-meta-line">Autor: {preset.config.author}</div>
-        {preset.config.tags && (
-          <>
-            <div className="section-divider" />
+    <>
+      <div className="controls-panel-header">
+        <div className="preset-header">
+          <h3>{preset.config.name}</h3>
+          <div className="preset-meta-line">v{preset.config.version} • {preset.config.category}</div>
+          {preset.config.tags && (
             <div className="preset-tags-line">
-              tags: {preset.config.tags.join(', ')}
+              {preset.config.tags.join(', ')}
             </div>
-            <div className="section-divider" />
-          </>
-        )}
-      </div>
-
-      <div className="section">
-        <h4 className="section-title">BASIC PARAMETERS</h4>
-        <div className="control-group">
-          <label className="control-label">Output area:</label>
-          <div className="output-area-inputs">
-            {renderControl(basicControls[0])}
-            <span>/</span>
-            {renderControl(basicControls[1])}
-          </div>
-        </div>
-        <div className="control-group">
-          <label className="control-label">{basicControls[2].label}</label>
-          {renderControl(basicControls[2])}
+          )}
         </div>
       </div>
-
-      <div className="section">
-        <h4 className="section-title">AUDIO</h4>
-        {audioControls.map(control => (
-          <div key={control.name} className="control-group">
-            <label className="control-label">{control.label}</label>
-            {renderControl(control)}
+      
+      <div className="controls-panel-content" ref={contentRef}>
+        <div className="preset-controls-container">
+          {/* Configuración Básica */}
+          <div className="section">
+            <div className="section-title">📐 Configuración Básica</div>
+            {basicControls.map(control => renderControl(control))}
           </div>
-        ))}
-      </div>
 
-      {preset.config.controls && preset.config.controls.length > 0 && (
-        <div className="section">
           <div className="section-divider" />
-          <h4 className="section-title">PRESET CONTROLS</h4>
-          {preset.config.controls.map(control => (
-            <div key={control.name} className="control-group">
-              <label className="control-label">{control.label}</label>
-              {renderControl(control)}
+
+          {/* Controles de Audio */}
+          <div className="section">
+            <div className="section-title">🎵 Audio</div>
+            {audioControls.map(control => renderControl(control))}
+          </div>
+
+          <div className="section-divider" />
+
+          {/* Controles Específicos del Preset */}
+          {preset.config.controls && preset.config.controls.length > 0 && (
+            <>
+              <div className="section">
+                <div className="section-title">🎨 Controles Específicos</div>
+                {preset.config.controls.map((control: any) => renderControl(control))}
+              </div>
+              
+              <div className="section-divider" />
+            </>
+          )}
+
+          {/* Información del Preset */}
+          <div className="section">
+            <div className="section-title">ℹ️ Información</div>
+            <div className="preset-info">
+              <div className="info-item">
+                <span className="info-label">Autor:</span>
+                <span className="info-value">{preset.config.author || 'Desconocido'}</span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">Descripción:</span>
+                <span className="info-value">{preset.config.description || 'Sin descripción'}</span>
+              </div>
+              {preset.config.performance && (
+                <div className="info-item">
+                  <span className="info-label">Rendimiento:</span>
+                  <span className={`performance-badge ${preset.config.performance}`}>
+                    {preset.config.performance.toUpperCase()}
+                  </span>
+                </div>
+              )}
             </div>
-          ))}
+          </div>
         </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 };
