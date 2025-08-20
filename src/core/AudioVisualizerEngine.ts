@@ -359,11 +359,16 @@ export class AudioVisualizerEngine {
     }
   }
 
-  // Build the path to the config file for a given layer preset using simple
-  // string concatenation. Using `path.join` from Node would fail in the
-  // browser/tauri environment.
+  // Build the path to the config file for a given layer preset. We keep the
+  // configs inside the original preset folder and append the clone index (if
+  // any) to the filename so each pad has its own file. Using Node's `path`
+  // utilities is avoided to stay compatible with the browser/Tauri runtime.
   private getLayerConfigPath(presetId: string, layerId: string): string {
-    return `src/presets/${presetId}/layers/${layerId}.json`;
+    const loaded = this.presetLoader.getLoadedPresets().find(p => p.id === presetId);
+    const folder = loaded?.folderPath ?? `src/presets/${presetId}`;
+    const variantMatch = presetId.match(/-(\d+)$/);
+    const variantSuffix = variantMatch ? `-${variantMatch[1]}` : '';
+    return `${folder}/layers/${layerId}${variantSuffix}.json`;
   }
 
   private loadLayerPresetConfig(presetId: string, layerId: string): any {
