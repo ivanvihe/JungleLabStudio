@@ -1,152 +1,87 @@
 import * as THREE from 'three';
 import { BasePreset, PresetConfig } from '../../core/PresetLoader';
 
-// Config embebido mejorado con controles de animación
 export const config: PresetConfig = {
-  name: "Neural Network",
-  description: "Red neuronal dinámica con crecimiento orgánico, brillos y destellos para shows audiovisuales",
-  author: "AudioVisualizer",
-  version: "2.0.0",
-  category: "abstract",
-  tags: ["neural", "network", "ai", "organic", "growth", "glow", "particles"],
-  thumbnail: "neural_network_thumb.png",
+  name: "Neural Network Genesis",
+  description: "Red neuronal con algoritmos reales, propagación y morfología adaptativa",
+  author: "AudioVisualizer Pro",
+  version: "3.0.0",
+  category: "ai",
+  tags: ["neural", "ai", "network", "propagation", "adaptive", "professional"],
+  thumbnail: "neural_network_genesis_thumb.png",
   defaultConfig: {
     opacity: 1.0,
-    fadeMs: 200,
-    nodeCount: {
-      input: 6,
-      hidden1: 12,
-      hidden2: 8,
-      output: 4
+    fadeMs: 150,
+    topology: {
+      layers: [8, 16, 12, 6, 3],
+      activationFunction: "sigmoid",
+      learningRate: 0.01,
+      momentum: 0.9
+    },
+    visualization: {
+      nodeSize: 0.08,
+      connectionThickness: 1.5,
+      activationIntensity: 2.0,
+      propagationSpeed: 5.0,
+      morphologyRate: 1.2
     },
     colors: {
-      input: "#00FFFF",     // Cyan
-      hidden1: "#FF6B6B",   // Coral
-      hidden2: "#4ECDC4",   // Turquoise
-      output: "#FFE66D",    // Yellow
-      connections: "#64B5F6",
-      particles: "#FFFFFF"
+      input: "#00FFFF",
+      hidden: "#FF6B6B", 
+      output: "#FFE66D",
+      connection: "#64B5F6",
+      activation: "#FF00FF"
     },
-    animation: {
-      growthSpeed: 1.0,
-      pulseIntensity: 2.0,
-      sparkleFrequency: 0.8,
-      connectionFlow: 1.5,
-      networkExpansion: 0.5,
-      glowIntensity: 1.2
-    },
-    effects: {
-      enableGlow: true,
-      enableSparkles: true,
-      enableGrowth: true,
-      enablePulse: true,
-      enableFlow: true
+    performance: {
+      maxConnections: 500,
+      updateFrequency: 60,
+      cullingThreshold: 0.1
     }
   },
   controls: [
     {
-      name: "animation.growthSpeed",
+      name: "topology.learningRate",
       type: "slider",
-      label: "Velocidad de Crecimiento",
+      label: "Tasa de Aprendizaje",
+      min: 0.001,
+      max: 0.1,
+      step: 0.001,
+      default: 0.01
+    },
+    {
+      name: "visualization.propagationSpeed",
+      type: "slider",
+      label: "Velocidad de Propagación",
+      min: 1.0,
+      max: 15.0,
+      step: 0.5,
+      default: 5.0
+    },
+    {
+      name: "visualization.morphologyRate",
+      type: "slider",
+      label: "Velocidad de Morfología",
       min: 0.1,
-      max: 3.0,
-      step: 0.1,
-      default: 1.0
-    },
-    {
-      name: "animation.pulseIntensity",
-      type: "slider",
-      label: "Intensidad de Pulso",
-      min: 0.5,
-      max: 5.0,
-      step: 0.1,
-      default: 2.0
-    },
-    {
-      name: "animation.sparkleFrequency",
-      type: "slider",
-      label: "Frecuencia de Destellos",
-      min: 0.1,
-      max: 2.0,
-      step: 0.1,
-      default: 0.8
-    },
-    {
-      name: "animation.connectionFlow",
-      type: "slider",
-      label: "Flujo de Conexiones",
-      min: 0.2,
-      max: 4.0,
-      step: 0.1,
-      default: 1.5
-    },
-    {
-      name: "animation.glowIntensity",
-      type: "slider",
-      label: "Intensidad de Brillo",
-      min: 0.0,
       max: 3.0,
       step: 0.1,
       default: 1.2
-    },
-    {
-      name: "effects.enableGlow",
-      type: "checkbox",
-      label: "Efectos de Brillo",
-      default: true
-    },
-    {
-      name: "effects.enableSparkles",
-      type: "checkbox",
-      label: "Destellos",
-      default: true
-    },
-    {
-      name: "effects.enableGrowth",
-      type: "checkbox",
-      label: "Crecimiento Dinámico",
-      default: true
-    },
-    {
-      name: "colors.input",
-      type: "color",
-      label: "Color Nodos Entrada",
-      default: "#00FFFF"
-    },
-    {
-      name: "colors.hidden1",
-      type: "color",
-      label: "Color Capa Oculta 1",
-      default: "#FF6B6B"
-    },
-    {
-      name: "colors.hidden2",
-      type: "color",
-      label: "Color Capa Oculta 2",
-      default: "#4ECDC4"
-    },
-    {
-      name: "colors.output",
-      type: "color",
-      label: "Color Nodos Salida",
-      default: "#FFE66D"
     }
   ],
   audioMapping: {
     low: {
-      description: "Controla el crecimiento de la red y nodos de entrada",
+      description: "Controla entrada y activación de capas input",
       frequency: "20-250 Hz",
-      effect: "Activación y expansión de nodos de entrada"
+      effect: "Señales de entrada y activación basal"
     },
     mid: {
-      description: "Controla las capas ocultas y flujo de conexiones",
-      frequency: "250-4000 Hz",
-      effect: "Intensidad de procesamiento neuronal"
+      description: "Modula capas ocultas y propagación",
+      frequency: "250-4000 Hz", 
+      effect: "Procesamiento neuronal y backpropagation"
     },
     high: {
-      description: "Controla destellos, brillos y nodos de salida",
+      description: "Controla capas de salida y morfología",
       frequency: "4000+ Hz",
-      effect: "Efectos visuales y activación de salida"
+      effect: "Salidas especializadas y adaptación estructural"
     }
   },
   performance: {
@@ -156,550 +91,642 @@ export const config: PresetConfig = {
   }
 };
 
-class NeuralNode {
-  position: THREE.Vector3;
-  targetPosition: THREE.Vector3;
-  mesh: THREE.Mesh;
-  glowMesh: THREE.Mesh;
-  originalScale: number;
-  activity: number = 0;
-  targetActivity: number = 0;
-  growthFactor: number = 0;
-  sparkleTimer: number = 0;
-  pulseOffset: number;
+// Funciones de activación neuronales reales
+class ActivationFunctions {
+  static sigmoid(x: number): number {
+    return 1 / (1 + Math.exp(-x));
+  }
+  
+  static sigmoidDerivative(x: number): number {
+    const s = this.sigmoid(x);
+    return s * (1 - s);
+  }
+  
+  static tanh(x: number): number {
+    return Math.tanh(x);
+  }
+  
+  static tanhDerivative(x: number): number {
+    const t = Math.tanh(x);
+    return 1 - t * t;
+  }
+  
+  static relu(x: number): number {
+    return Math.max(0, x);
+  }
+  
+  static reluDerivative(x: number): number {
+    return x > 0 ? 1 : 0;
+  }
+}
 
-  constructor(position: THREE.Vector3, color: THREE.Color, size: number = 0.05) {
-    this.targetPosition = position.clone();
+// Neurona con comportamiento realista
+class Neuron {
+  public activation: number = 0;
+  public rawInput: number = 0;
+  public bias: number = Math.random() * 0.2 - 0.1;
+  public error: number = 0;
+  public position: THREE.Vector3;
+  public targetPosition: THREE.Vector3;
+  
+  private mesh: THREE.Mesh;
+  private glowMesh: THREE.Mesh;
+  private material: THREE.ShaderMaterial;
+  private glowMaterial: THREE.ShaderMaterial;
+  
+  public connections: NeuralConnection[] = [];
+  public morphologyTimer: number = 0;
+  public adaptationRate: number = 0.8 + Math.random() * 0.4;
+  
+  constructor(position: THREE.Vector3, color: THREE.Color, size: number = 0.08) {
     this.position = position.clone();
-    this.originalScale = size;
-    this.pulseOffset = Math.random() * Math.PI * 2;
-
-    // Nodo principal
+    this.targetPosition = position.clone();
+    this.createVisualization(color, size);
+  }
+  
+  private createVisualization(color: THREE.Color, size: number): void {
+    // Geometría principal
     const geometry = new THREE.SphereGeometry(size, 16, 16);
-    const material = new THREE.MeshBasicMaterial({
-      color: color,
+    
+    this.material = new THREE.ShaderMaterial({
       transparent: true,
-      opacity: 0.8
-    });
-    this.mesh = new THREE.Mesh(geometry, material);
-    this.mesh.position.copy(position);
-
-    // Halo de brillo
-    const glowGeometry = new THREE.SphereGeometry(size * 2, 16, 16);
-    const glowMaterial = new THREE.MeshBasicMaterial({
-      color: color,
-      transparent: true,
-      opacity: 0.2,
-      side: THREE.BackSide
-    });
-    this.glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
-    this.glowMesh.position.copy(position);
-    this.glowMesh.scale.setScalar(0);
-  }
-
-  update(
-    deltaTime: number,
-    targetActivity: number,
-    audioIntensity: number,
-    globalOpacity: number,
-    config: any,
-    time: number,
-    zoom: number
-  ) {
-    this.targetActivity = targetActivity * audioIntensity;
-    this.activity += (this.targetActivity - this.activity) * deltaTime * 5;
-
-    // Crecimiento orgánico
-    if (config.effects?.enableGrowth) {
-      this.growthFactor += deltaTime * (config.animation?.growthSpeed ?? 1.0) * audioIntensity;
-      this.growthFactor = Math.min(this.growthFactor, 1);
-    } else {
-      this.growthFactor = 1;
-    }
-
-    // Pulso base
-    const pulseSpeed = config.animation?.pulseIntensity ?? 2.0;
-    const pulse = config.effects?.enablePulse
-      ? 0.8 + 0.4 * Math.sin(time * pulseSpeed + this.pulseOffset + this.activity * 5)
-      : 1.0;
-
-    // Escala con crecimiento, pulso y compensa el zoom global
-    const zoomScale = 1 / (1 + zoom * 0.2);
-    const scale =
-      this.originalScale *
-      this.growthFactor *
-      (1 + this.activity * 0.6) *
-      pulse *
-      zoomScale;
-    this.mesh.scale.setScalar(scale);
-
-    // Destellos aleatorios
-    let sparkle = 1.0;
-    if (config.effects?.enableSparkles) {
-      this.sparkleTimer += deltaTime * (config.animation?.sparkleFrequency ?? 0.8);
-      if (this.sparkleTimer > 1 && Math.random() < 0.02) {
-        this.sparkleTimer = 0;
+      vertexShader: `
+        varying vec3 vPosition;
+        varying vec3 vNormal;
+        uniform float uActivation;
+        uniform float uTime;
+        
+        void main() {
+          vPosition = position;
+          vNormal = normal;
+          
+          vec3 pos = position;
+          
+          // Pulsación basada en activación
+          float pulse = 1.0 + uActivation * sin(uTime * 10.0) * 0.3;
+          pos *= pulse;
+          
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vPosition;
+        varying vec3 vNormal;
+        uniform vec3 uColor;
+        uniform float uActivation;
+        uniform float uOpacity;
+        uniform float uTime;
+        
+        void main() {
+          // Color base
+          vec3 baseColor = uColor;
+          
+          // Intensidad basada en activación
+          float intensity = 0.3 + uActivation * 1.5;
+          
+          // Efectos de superficie neuronal
+          float surface = dot(normalize(vNormal), vec3(0.0, 0.0, 1.0));
+          surface = pow(abs(surface), 0.5);
+          
+          // Actividad eléctrica
+          float electrical = sin(vPosition.x * 20.0 + uTime * 15.0) * 
+                           cos(vPosition.y * 18.0 + uTime * 12.0) * 0.1 + 0.9;
+          
+          vec3 finalColor = baseColor * intensity * surface * electrical;
+          
+          gl_FragColor = vec4(finalColor, intensity * uOpacity);
+        }
+      `,
+      uniforms: {
+        uColor: { value: color },
+        uActivation: { value: 0.0 },
+        uOpacity: { value: 1.0 },
+        uTime: { value: 0.0 }
       }
-      sparkle = this.sparkleTimer < 0.2 ? 1 + Math.sin(this.sparkleTimer * Math.PI * 5) * 2 : 1.0;
+    });
+    
+    this.mesh = new THREE.Mesh(geometry, this.material);
+    this.mesh.position.copy(this.position);
+    
+    // Halo de activación
+    const glowGeometry = new THREE.SphereGeometry(size * 2, 12, 12);
+    this.glowMaterial = new THREE.ShaderMaterial({
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      side: THREE.BackSide,
+      vertexShader: `
+        varying float vIntensity;
+        uniform float uActivation;
+        
+        void main() {
+          vec3 vNormal = normalize(normalMatrix * normal);
+          vec3 vNormel = normalize(normalMatrix * position);
+          vIntensity = pow(0.7 - dot(vNormal, vNormel), 2.0) * uActivation;
+          
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        varying float vIntensity;
+        uniform vec3 uColor;
+        uniform float uOpacity;
+        
+        void main() {
+          vec3 glow = uColor * vIntensity;
+          gl_FragColor = vec4(glow, vIntensity * 0.6 * uOpacity);
+        }
+      `,
+      uniforms: {
+        uColor: { value: color },
+        uActivation: { value: 0.0 },
+        uOpacity: { value: 1.0 }
+      }
+    });
+    
+    this.glowMesh = new THREE.Mesh(glowGeometry, this.glowMaterial);
+    this.glowMesh.position.copy(this.position);
+  }
+  
+  // Procesamiento neuronal real
+  public processInput(inputs: number[], weights: number[]): number {
+    this.rawInput = this.bias;
+    
+    for (let i = 0; i < inputs.length; i++) {
+      this.rawInput += inputs[i] * weights[i];
     }
-
-    // Material principal
-    (this.mesh.material as THREE.MeshBasicMaterial).opacity =
-      (0.6 + this.activity * 0.4) * globalOpacity * sparkle;
-
-    // Halo de brillo
-    if (config.effects?.enableGlow) {
-      const glowIntensity = config.animation?.glowIntensity ?? 1.2;
-      const glowScale = scale * 1.5 * (1 + this.activity * glowIntensity);
-      this.glowMesh.scale.setScalar(glowScale);
-      (this.glowMesh.material as THREE.MeshBasicMaterial).opacity =
-        this.activity * 0.3 * globalOpacity * sparkle;
-    } else {
-      this.glowMesh.scale.setScalar(0);
+    
+    this.activation = ActivationFunctions.sigmoid(this.rawInput);
+    return this.activation;
+  }
+  
+  // Backpropagation
+  public calculateError(target?: number, nextLayerErrors?: number[], nextLayerWeights?: number[][]): void {
+    if (target !== undefined) {
+      // Neurona de salida
+      this.error = (target - this.activation) * ActivationFunctions.sigmoidDerivative(this.rawInput);
+    } else if (nextLayerErrors && nextLayerWeights) {
+      // Neurona oculta
+      let weightedSum = 0;
+      for (let i = 0; i < nextLayerErrors.length; i++) {
+        weightedSum += nextLayerErrors[i] * nextLayerWeights[i][this.connections.length];
+      }
+      this.error = weightedSum * ActivationFunctions.sigmoidDerivative(this.rawInput);
     }
-
-    // Movimiento orgánico sutil
-    const offset = new THREE.Vector3(
-      Math.sin(time * 0.5 + this.pulseOffset) * 0.02,
-      Math.cos(time * 0.7 + this.pulseOffset) * 0.02,
-      Math.sin(time * 0.3 + this.pulseOffset) * 0.01
+  }
+  
+  // Morfología adaptativa
+  public updateMorphology(deltaTime: number, audioIntensity: number, config: any): void {
+    this.morphologyTimer += deltaTime * config.visualization.morphologyRate;
+    
+    // Adaptación posicional basada en activación
+    const adaptationForce = new THREE.Vector3(
+      Math.sin(this.morphologyTimer + this.activation * 5) * 0.01,
+      Math.cos(this.morphologyTimer * 1.3 + this.activation * 3) * 0.01,
+      Math.sin(this.morphologyTimer * 0.7) * 0.005
     );
-
-    this.mesh.position.copy(this.targetPosition).add(offset.multiplyScalar(this.activity));
-    this.glowMesh.position.copy(this.mesh.position);
+    
+    adaptationForce.multiplyScalar(this.activation * audioIntensity * this.adaptationRate);
+    this.targetPosition.add(adaptationForce);
+    
+    // Constraint bounds
+    this.targetPosition.x = Math.max(-4, Math.min(4, this.targetPosition.x));
+    this.targetPosition.y = Math.max(-2, Math.min(2, this.targetPosition.y));
+    this.targetPosition.z = Math.max(-1, Math.min(1, this.targetPosition.z));
+    
+    // Suavizado posicional
+    this.position.lerp(this.targetPosition, deltaTime * 2);
+    this.mesh.position.copy(this.position);
+    this.glowMesh.position.copy(this.position);
+  }
+  
+  public update(deltaTime: number, time: number, globalOpacity: number): void {
+    // Actualizar uniforms
+    this.material.uniforms.uActivation.value = this.activation;
+    this.material.uniforms.uOpacity.value = globalOpacity;
+    this.material.uniforms.uTime.value = time;
+    
+    this.glowMaterial.uniforms.uActivation.value = this.activation;
+    this.glowMaterial.uniforms.uOpacity.value = globalOpacity;
+    
+    // Rotación sutil
+    this.mesh.rotation.x += deltaTime * this.activation * 0.5;
+    this.mesh.rotation.y += deltaTime * this.activation * 0.3;
+  }
+  
+  public getMeshes(): THREE.Mesh[] {
+    return [this.mesh, this.glowMesh];
+  }
+  
+  public dispose(): void {
+    this.mesh.geometry.dispose();
+    this.material.dispose();
+    this.glowMesh.geometry.dispose();
+    this.glowMaterial.dispose();
   }
 }
 
+// Conexión sináptica con propagación real
 class NeuralConnection {
-  line: THREE.Line;
-  material: THREE.LineBasicMaterial;
-  startNode: NeuralNode;
-  endNode: NeuralNode;
-  strength: number = 0;
-  targetStrength: number = 0;
-  flowOffset: number;
-  growthProgress: number = 0;
-  pulseTrail: number[] = [];
-
-  constructor(startNode: NeuralNode, endNode: NeuralNode, color: THREE.Color) {
-    this.startNode = startNode;
-    this.endNode = endNode;
-    this.flowOffset = Math.random() * Math.PI * 2;
-
-    // Crear línea con múltiples puntos para efectos de flujo
-    const points = this.createCurvedPath(startNode.position, endNode.position);
+  public weight: number;
+  public deltaWeight: number = 0;
+  public signalStrength: number = 0;
+  public propagationProgress: number = 0;
+  
+  private line: THREE.Line;
+  private material: THREE.ShaderMaterial;
+  private signalMesh: THREE.Mesh;
+  private signalMaterial: THREE.ShaderMaterial;
+  
+  constructor(
+    public fromNeuron: Neuron,
+    public toNeuron: Neuron,
+    color: THREE.Color
+  ) {
+    this.weight = (Math.random() - 0.5) * 2;
+    this.createVisualization(color);
+  }
+  
+  private createVisualization(color: THREE.Color): void {
+    // Línea de conexión
+    const points = [this.fromNeuron.position, this.toNeuron.position];
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
-
-    this.material = new THREE.LineBasicMaterial({
-      color: color,
+    
+    this.material = new THREE.ShaderMaterial({
       transparent: true,
-      opacity: 0.3,
-      linewidth: 2
+      vertexShader: `
+        varying vec2 vUv;
+        uniform float uSignalProgress;
+        uniform float uWeight;
+        
+        void main() {
+          vUv = uv;
+          
+          vec3 pos = position;
+          
+          // Grosor basado en peso
+          float thickness = abs(uWeight) * 0.01;
+          pos += normal * thickness;
+          
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+        }
+      `,
+      fragmentShader: `
+        varying vec2 vUv;
+        uniform vec3 uColor;
+        uniform float uSignalProgress;
+        uniform float uWeight;
+        uniform float uOpacity;
+        uniform float uTime;
+        
+        void main() {
+          // Color base de la conexión
+          vec3 baseColor = uColor;
+          
+          // Intensidad basada en peso
+          float intensity = abs(uWeight) * 0.5 + 0.2;
+          
+          // Señal propagándose
+          float signal = exp(-abs(vUv.x - uSignalProgress) * 10.0) * 2.0;
+          
+          // Pulso eléctrico
+          float pulse = sin(uTime * 8.0 + vUv.x * 20.0) * 0.2 + 0.8;
+          
+          vec3 finalColor = baseColor * (intensity + signal) * pulse;
+          float alpha = (intensity + signal * 0.5) * uOpacity;
+          
+          gl_FragColor = vec4(finalColor, alpha);
+        }
+      `,
+      uniforms: {
+        uColor: { value: color },
+        uSignalProgress: { value: 0.0 },
+        uWeight: { value: this.weight },
+        uOpacity: { value: 1.0 },
+        uTime: { value: 0.0 }
+      }
     });
-
+    
     this.line = new THREE.Line(geometry, this.material);
-
-    // Inicializar trail de pulsos
-    this.pulseTrail = new Array(10).fill(0);
-  }
-
-  private createCurvedPath(start: THREE.Vector3, end: THREE.Vector3): THREE.Vector3[] {
-    const points: THREE.Vector3[] = [];
-    const segments = 20;
-
-    // Crear curva ligeramente ondulada
-    for (let i = 0; i <= segments; i++) {
-      const t = i / segments;
-      const point = new THREE.Vector3().lerpVectors(start, end, t);
-
-      // Añadir ondulación sutil
-      const bend = Math.sin(t * Math.PI) * 0.1;
-      point.y += bend * (Math.random() - 0.5) * 0.2;
-      point.z += bend * (Math.random() - 0.5) * 0.1;
-
-      points.push(point);
-    }
-
-    return points;
-  }
-
-  update(deltaTime: number, audioIntensity: number, globalOpacity: number, config: any, time: number) {
-    this.targetStrength = audioIntensity * (0.3 + 0.7 * Math.sin(time * 0.5 + this.flowOffset));
-    this.strength += (this.targetStrength - this.strength) * deltaTime * 3;
-
-    // Crecimiento de conexión
-    if (config.effects?.enableGrowth) {
-      this.growthProgress += deltaTime * (config.animation?.growthSpeed ?? 1.0) * 0.5;
-      this.growthProgress = Math.min(this.growthProgress, 1);
-    } else {
-      this.growthProgress = 1;
-    }
-
-    // Flujo de datos
-    let flowIntensity = 1.0;
-    if (config.effects?.enableFlow) {
-      const flowSpeed = config.animation?.connectionFlow ?? 1.5;
-      const flow = Math.sin(time * flowSpeed + this.flowOffset) * 0.5 + 0.5;
-      flowIntensity = 0.4 + 0.6 * flow;
-
-      // Actualizar trail de pulsos
-      for (let i = this.pulseTrail.length - 1; i > 0; i--) {
-        this.pulseTrail[i] = this.pulseTrail[i - 1];
-      }
-      this.pulseTrail[0] = flow > 0.8 ? 1.0 : 0.0;
-    }
-
-    // Opacidad final
-    const finalOpacity = this.strength * this.growthProgress * flowIntensity * globalOpacity;
-    this.material.opacity = Math.max(0.1, finalOpacity);
-
-    // Color pulsante
-    const pulseColor = new THREE.Color().copy(this.material.color);
-    pulseColor.multiplyScalar(1 + this.strength * 0.5);
-    this.material.color.copy(pulseColor);
-  }
-}
-
-class ParticleSystem {
-  particles: THREE.Points;
-  positions: Float32Array;
-  colors: Float32Array;
-  sizes: Float32Array;
-  velocities: Float32Array;
-  lifetimes: Float32Array;
-
-  constructor(count: number = 100) {
-    const geometry = new THREE.BufferGeometry();
-
-    this.positions = new Float32Array(count * 3);
-    this.colors = new Float32Array(count * 3);
-    this.sizes = new Float32Array(count);
-    this.velocities = new Float32Array(count * 3);
-    this.lifetimes = new Float32Array(count);
-
-    // Inicializar partículas
-    for (let i = 0; i < count; i++) {
-      this.resetParticle(i);
-    }
-
-    geometry.setAttribute('position', new THREE.BufferAttribute(this.positions, 3));
-    geometry.setAttribute('color', new THREE.BufferAttribute(this.colors, 3));
-    geometry.setAttribute('size', new THREE.BufferAttribute(this.sizes, 1));
-
-    const material = new THREE.PointsMaterial({
-      size: 0.05,
+    
+    // Señal viajera
+    const signalGeometry = new THREE.SphereGeometry(0.02, 8, 8);
+    this.signalMaterial = new THREE.ShaderMaterial({
       transparent: true,
-      opacity: 0.8,
-      vertexColors: true,
-      blending: THREE.AdditiveBlending
-    });
-
-    this.particles = new THREE.Points(geometry, material);
-  }
-
-  private resetParticle(index: number) {
-    const i3 = index * 3;
-
-    // Posición aleatoria
-    this.positions[i3] = (Math.random() - 0.5) * 6;
-    this.positions[i3 + 1] = (Math.random() - 0.5) * 4;
-    this.positions[i3 + 2] = (Math.random() - 0.5) * 2;
-
-    // Velocidad aleatoria
-    this.velocities[i3] = (Math.random() - 0.5) * 0.02;
-    this.velocities[i3 + 1] = (Math.random() - 0.5) * 0.02;
-    this.velocities[i3 + 2] = (Math.random() - 0.5) * 0.01;
-
-    // Color aleatorio
-    const hue = Math.random();
-    const color = new THREE.Color().setHSL(hue, 0.8, 0.6);
-    this.colors[i3] = color.r;
-    this.colors[i3 + 1] = color.g;
-    this.colors[i3 + 2] = color.b;
-
-    // Tamaño y vida
-    this.sizes[index] = Math.random() * 0.05 + 0.01;
-    this.lifetimes[index] = Math.random() * 5 + 2;
-  }
-
-  update(deltaTime: number, audioIntensity: number) {
-    for (let i = 0; i < this.lifetimes.length; i++) {
-      const i3 = i * 3;
-
-      // Actualizar posición
-      this.positions[i3] += this.velocities[i3] * audioIntensity;
-      this.positions[i3 + 1] += this.velocities[i3 + 1] * audioIntensity;
-      this.positions[i3 + 2] += this.velocities[i3 + 2] * audioIntensity;
-
-      // Actualizar vida
-      this.lifetimes[i] -= deltaTime;
-
-      if (this.lifetimes[i] <= 0) {
-        this.resetParticle(i);
+      blending: THREE.AdditiveBlending,
+      vertexShader: `
+        uniform float uIntensity;
+        
+        void main() {
+          vec3 pos = position * (1.0 + uIntensity);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 uColor;
+        uniform float uIntensity;
+        uniform float uOpacity;
+        
+        void main() {
+          vec3 color = uColor * uIntensity;
+          gl_FragColor = vec4(color, uIntensity * uOpacity);
+        }
+      `,
+      uniforms: {
+        uColor: { value: color },
+        uIntensity: { value: 0.0 },
+        uOpacity: { value: 1.0 }
       }
+    });
+    
+    this.signalMesh = new THREE.Mesh(signalGeometry, this.signalMaterial);
+  }
+  
+  // Propagación de señal sináptica
+  public propagateSignal(inputSignal: number, propagationSpeed: number, deltaTime: number): void {
+    this.signalStrength = inputSignal * Math.abs(this.weight);
+    this.propagationProgress += deltaTime * propagationSpeed;
+    
+    if (this.propagationProgress > 1.0) {
+      this.propagationProgress = 0.0;
     }
-
-    // Actualizar atributos
-    this.particles.geometry.attributes.position.needsUpdate = true;
-    this.particles.geometry.attributes.color.needsUpdate = true;
+  }
+  
+  // Actualización de peso (aprendizaje)
+  public updateWeight(learningRate: number, momentum: number): void {
+    this.deltaWeight = momentum * this.deltaWeight + 
+                     learningRate * this.toNeuron.error * this.fromNeuron.activation;
+    this.weight += this.deltaWeight;
+    
+    // Constraint de peso
+    this.weight = Math.max(-2, Math.min(2, this.weight));
+  }
+  
+  public update(deltaTime: number, time: number, globalOpacity: number): void {
+    // Actualizar posiciones de conexión
+    const points = [this.fromNeuron.position, this.toNeuron.position];
+    this.line.geometry.setFromPoints(points);
+    this.line.geometry.attributes.position.needsUpdate = true;
+    
+    // Actualizar uniforms
+    this.material.uniforms.uSignalProgress.value = this.propagationProgress;
+    this.material.uniforms.uWeight.value = this.weight;
+    this.material.uniforms.uOpacity.value = globalOpacity;
+    this.material.uniforms.uTime.value = time;
+    
+    // Posición de señal viajera
+    const signalPosition = new THREE.Vector3().lerpVectors(
+      this.fromNeuron.position,
+      this.toNeuron.position,
+      this.propagationProgress
+    );
+    this.signalMesh.position.copy(signalPosition);
+    
+    this.signalMaterial.uniforms.uIntensity.value = this.signalStrength;
+    this.signalMaterial.uniforms.uOpacity.value = globalOpacity;
+  }
+  
+  public getMeshes(): THREE.Object3D[] {
+    return [this.line, this.signalMesh];
+  }
+  
+  public dispose(): void {
+    this.line.geometry.dispose();
+    this.material.dispose();
+    this.signalMesh.geometry.dispose();
+    this.signalMaterial.dispose();
   }
 }
 
-class NeuralNetworkPreset extends BasePreset {
-  private nodes: {
-    input: NeuralNode[];
-    hidden1: NeuralNode[];
-    hidden2: NeuralNode[];
-    output: NeuralNode[];
-  };
-
-  private connections: {
-    inputToHidden1: NeuralConnection[];
-    hidden1ToHidden2: NeuralConnection[];
-    hidden2ToOutput: NeuralConnection[];
-  };
-
-  private particleSystem: ParticleSystem;
-  private gridHelper!: THREE.GridHelper;
+// Red neuronal completa
+class NeuralNetworkGenesis extends BasePreset {
+  private layers: Neuron[][] = [];
+  private connections: NeuralConnection[] = [];
+  private networkData: number[][] = [];
   private currentConfig: any;
-  private zoomLevel: number = 0;
-  private initialCameraZ: number;
-
+  private learningPhase: number = 0;
+  private frameCount: number = 0;
+  
   constructor(
     scene: THREE.Scene,
     camera: THREE.Camera,
     renderer: THREE.WebGLRenderer,
-    config: PresetConfig,
-    private shaderCode?: string
+    config: PresetConfig
   ) {
     super(scene, camera, renderer, config);
-
-    this.nodes = {
-      input: [],
-      hidden1: [],
-      hidden2: [],
-      output: []
-    };
-
-    this.connections = {
-      inputToHidden1: [],
-      hidden1ToHidden2: [],
-      hidden2ToOutput: []
-    };
-
     this.currentConfig = { ...config.defaultConfig };
-    this.particleSystem = new ParticleSystem(150);
-    this.initialCameraZ = this.camera.position.z;
   }
-
+  
   public init(): void {
-    this.createNodes();
+    // Fondo completamente transparente
+    this.renderer.setClearColor(0x000000, 0);
+    
+    this.createNetworkTopology();
     this.createConnections();
-    this.addParticleSystem();
-    this.addGridBackground();
+    this.addToScene();
   }
-
-  private createNodes(): void {
-    const nodeConfig = this.currentConfig.nodeCount;
-    const colors = this.currentConfig.colors;
-
-    // Input layer - disposición más orgánica
-    for (let i = 0; i < nodeConfig.input; i++) {
-      const angle = (i / nodeConfig.input) * Math.PI * 2;
-      const radius = 0.3;
-      const x = -2.5 + Math.cos(angle) * radius;
-      const y = Math.sin(angle) * radius;
-      const z = (Math.random() - 0.5) * 0.2;
-
-      const node = new NeuralNode(
-        new THREE.Vector3(x, y, z),
-        new THREE.Color(colors.input),
-        0.06
-      );
-      this.nodes.input.push(node);
-      this.scene.add(node.mesh);
-      this.scene.add(node.glowMesh);
-    }
-
-    // Hidden layer 1 - formación más densa
-    for (let i = 0; i < nodeConfig.hidden1; i++) {
-      const rows = Math.ceil(Math.sqrt(nodeConfig.hidden1));
-      const row = Math.floor(i / rows);
-      const col = i % rows;
-      const x = -0.8;
-      const y = (row - (rows - 1) / 2) * 0.4 + (Math.random() - 0.5) * 0.1;
-      const z = (col - (rows - 1) / 2) * 0.3 + (Math.random() - 0.5) * 0.1;
-
-      const node = new NeuralNode(
-        new THREE.Vector3(x, y, z),
-        new THREE.Color(colors.hidden1),
-        0.05
-      );
-      this.nodes.hidden1.push(node);
-      this.scene.add(node.mesh);
-      this.scene.add(node.glowMesh);
-    }
-
-    // Hidden layer 2
-    for (let i = 0; i < nodeConfig.hidden2; i++) {
-      const y = (i - (nodeConfig.hidden2 - 1) / 2) * 0.35 + (Math.random() - 0.5) * 0.1;
-      const z = (Math.random() - 0.5) * 0.3;
-
-      const node = new NeuralNode(
-        new THREE.Vector3(0.8, y, z),
-        new THREE.Color(colors.hidden2),
-        0.055
-      );
-      this.nodes.hidden2.push(node);
-      this.scene.add(node.mesh);
-      this.scene.add(node.glowMesh);
-    }
-
-    // Output layer - formación en estrella
-    for (let i = 0; i < nodeConfig.output; i++) {
-      const angle = (i / nodeConfig.output) * Math.PI * 2;
-      const radius = 0.25;
-      const x = 2.5 + Math.cos(angle) * radius;
-      const y = Math.sin(angle) * radius;
-      const z = (Math.random() - 0.5) * 0.15;
-
-      const node = new NeuralNode(
-        new THREE.Vector3(x, y, z),
-        new THREE.Color(colors.output),
-        0.07
-      );
-      this.nodes.output.push(node);
-      this.scene.add(node.mesh);
-      this.scene.add(node.glowMesh);
+  
+  private createNetworkTopology(): void {
+    const topology = this.currentConfig.topology.layers;
+    const colors = [
+      new THREE.Color(this.currentConfig.colors.input),
+      new THREE.Color(this.currentConfig.colors.hidden),
+      new THREE.Color(this.currentConfig.colors.hidden),
+      new THREE.Color(this.currentConfig.colors.hidden),
+      new THREE.Color(this.currentConfig.colors.output)
+    ];
+    
+    for (let layerIdx = 0; layerIdx < topology.length; layerIdx++) {
+      const layer: Neuron[] = [];
+      const nodeCount = topology[layerIdx];
+      const color = colors[Math.min(layerIdx, colors.length - 1)];
+      
+      // Distribución espacial orgánica
+      for (let nodeIdx = 0; nodeIdx < nodeCount; nodeIdx++) {
+        let position: THREE.Vector3;
+        
+        if (nodeCount === 1) {
+          position = new THREE.Vector3(
+            (layerIdx - topology.length / 2) * 1.5,
+            0,
+            0
+          );
+        } else {
+          const angle = (nodeIdx / nodeCount) * Math.PI * 2;
+          const radius = Math.sqrt(nodeCount) * 0.2;
+          
+          position = new THREE.Vector3(
+            (layerIdx - topology.length / 2) * 1.5,
+            Math.sin(angle) * radius,
+            Math.cos(angle) * radius * 0.5
+          );
+        }
+        
+        const neuron = new Neuron(position, color, this.currentConfig.visualization.nodeSize);
+        layer.push(neuron);
+      }
+      
+      this.layers.push(layer);
     }
   }
-
+  
   private createConnections(): void {
-    const colors = this.currentConfig.colors;
-
-    // Input to Hidden1
-    this.nodes.input.forEach(inputNode => {
-      this.nodes.hidden1.forEach(hidden1Node => {
-        const connection = new NeuralConnection(
-          inputNode,
-          hidden1Node,
-          new THREE.Color(colors.connections)
-        );
-        this.connections.inputToHidden1.push(connection);
-        this.scene.add(connection.line);
-      });
-    });
-
-    // Hidden1 to Hidden2
-    this.nodes.hidden1.forEach(hidden1Node => {
-      this.nodes.hidden2.forEach(hidden2Node => {
-        const connection = new NeuralConnection(
-          hidden1Node,
-          hidden2Node,
-          new THREE.Color(colors.connections)
-        );
-        this.connections.hidden1ToHidden2.push(connection);
-        this.scene.add(connection.line);
-      });
-    });
-
-    // Hidden2 to Output
-    this.nodes.hidden2.forEach(hidden2Node => {
-      this.nodes.output.forEach(outputNode => {
-        const connection = new NeuralConnection(
-          hidden2Node,
-          outputNode,
-          new THREE.Color(colors.connections)
-        );
-        this.connections.hidden2ToOutput.push(connection);
-        this.scene.add(connection.line);
-      });
-    });
+    const connectionColor = new THREE.Color(this.currentConfig.colors.connection);
+    
+    for (let layerIdx = 0; layerIdx < this.layers.length - 1; layerIdx++) {
+      const currentLayer = this.layers[layerIdx];
+      const nextLayer = this.layers[layerIdx + 1];
+      
+      for (const fromNeuron of currentLayer) {
+        for (const toNeuron of nextLayer) {
+          const connection = new NeuralConnection(fromNeuron, toNeuron, connectionColor);
+          this.connections.push(connection);
+          fromNeuron.connections.push(connection);
+        }
+      }
+    }
   }
-
-  private addParticleSystem(): void {
-    this.scene.add(this.particleSystem.particles);
+  
+  private addToScene(): void {
+    // Añadir neuronas
+    this.layers.flat().forEach(neuron => {
+      neuron.getMeshes().forEach(mesh => this.scene.add(mesh));
+    });
+    
+    // Añadir conexiones (limitado para performance)
+    const connectionLimit = Math.min(this.connections.length, this.currentConfig.performance.maxConnections);
+    for (let i = 0; i < connectionLimit; i++) {
+      this.connections[i].getMeshes().forEach(mesh => this.scene.add(mesh));
+    }
   }
-
-  private addGridBackground(): void {
-    this.gridHelper = new THREE.GridHelper(8, 16, 0x333333, 0x333333) as THREE.GridHelper;
-    this.gridHelper.rotateX(Math.PI / 2);
-    (this.gridHelper.material as THREE.Material & { opacity: number; transparent: boolean }).opacity = 0.05;
-    (this.gridHelper.material as THREE.Material & { opacity: number; transparent: boolean }).transparent = true;
-    this.scene.add(this.gridHelper);
+  
+  // Forward propagation
+  private forwardPropagate(inputs: number[]): number[] {
+    // Capa de entrada
+    for (let i = 0; i < this.layers[0].length && i < inputs.length; i++) {
+      this.layers[0][i].activation = inputs[i];
+    }
+    
+    // Capas ocultas y salida
+    for (let layerIdx = 1; layerIdx < this.layers.length; layerIdx++) {
+      const currentLayer = this.layers[layerIdx];
+      const prevLayer = this.layers[layerIdx - 1];
+      
+      for (const neuron of currentLayer) {
+        const inputs = prevLayer.map(n => n.activation);
+        const weights = neuron.connections.map(c => c.weight);
+        neuron.processInput(inputs, weights);
+      }
+    }
+    
+    return this.layers[this.layers.length - 1].map(n => n.activation);
   }
-
+  
+  // Generar patrón de entrada desde audio
+  private generateAudioInputPattern(): number[] {
+    const pattern: number[] = [];
+    const inputSize = this.layers[0].length;
+    
+    // Mapear frecuencias de audio a entradas
+    for (let i = 0; i < inputSize; i++) {
+      const freq = i / inputSize;
+      let value = 0;
+      
+      if (freq < 0.3) {
+        value = this.audioData.low;
+      } else if (freq < 0.7) {
+        value = this.audioData.mid;
+      } else {
+        value = this.audioData.high;
+      }
+      
+      // Añadir ruido y variación temporal
+      value += Math.sin(this.clock.getElapsedTime() * 2 + i) * 0.1;
+      pattern.push(Math.max(0, Math.min(1, value)));
+    }
+    
+    return pattern;
+  }
+  
   public update(): void {
     const deltaTime = this.clock.getDelta();
     const time = this.clock.getElapsedTime();
-
-    // Intensidad de audio promedio
-    const overallAudio = (this.audioData.low + this.audioData.mid + this.audioData.high) / 3;
-
-    // Zoom progresivo alejándose de la red (zoom out continuo)
-    this.zoomLevel += deltaTime * (this.currentConfig.animation?.networkExpansion ?? 0.5);
-    this.camera.position.z = this.initialCameraZ + this.zoomLevel;
-
-    // Ajustar el plano lejano para evitar recortes
-    if (this.camera.position.z + 100 > this.camera.far) {
-      this.camera.far = this.camera.position.z + 100;
-      this.camera.updateProjectionMatrix();
-    }
-
-    // Update input nodes
-    this.nodes.input.forEach((node, index) => {
-      const baseActivity = 0.3 + 0.7 * Math.sin(time * 1.5 + index * 0.5);
-      node.update(deltaTime, baseActivity, this.audioData.low * 2, this.opacity, this.currentConfig, time, this.zoomLevel);
+    this.frameCount++;
+    
+    // Generar entrada desde audio
+    const audioInput = this.generateAudioInputPattern();
+    
+    // Forward propagation
+    const output = this.forwardPropagate(audioInput);
+    
+    // Simular aprendizaje (target dinámico basado en audio)
+    this.learningPhase += deltaTime * 0.5;
+    const target = output.map((_, i) => 
+      0.5 + 0.5 * Math.sin(this.learningPhase + i * Math.PI / 2)
+    );
+    
+    // Propagación de señales
+    const audioIntensity = (this.audioData.low + this.audioData.mid + this.audioData.high) / 3;
+    this.connections.forEach(connection => {
+      connection.propagateSignal(
+        connection.fromNeuron.activation,
+        this.currentConfig.visualization.propagationSpeed * (0.5 + audioIntensity),
+        deltaTime
+      );
     });
-
-    // Update hidden1 nodes
-    this.nodes.hidden1.forEach((node, index) => {
-      const baseActivity = 0.2 + 0.8 * Math.sin(time * 1.2 + index * 0.3);
-      node.update(deltaTime, baseActivity, this.audioData.mid * 1.5, this.opacity, this.currentConfig, time, this.zoomLevel);
+    
+    // Actualizar neuronas
+    this.layers.flat().forEach(neuron => {
+      neuron.updateMorphology(deltaTime, audioIntensity, this.currentConfig);
+      neuron.update(deltaTime, time, this.opacity);
     });
-
-    // Update hidden2 nodes
-    this.nodes.hidden2.forEach((node, index) => {
-      const baseActivity = 0.25 + 0.75 * Math.sin(time * 1.8 + index * 0.4);
-      node.update(deltaTime, baseActivity, this.audioData.mid * 1.8, this.opacity, this.currentConfig, time, this.zoomLevel);
-    });
-
-    // Update output nodes
-    this.nodes.output.forEach((node, index) => {
-      const baseActivity = 0.4 + 0.6 * Math.sin(time * 2.2 + index * 0.6);
-      node.update(deltaTime, baseActivity, this.audioData.high * 2.5, this.opacity, this.currentConfig, time, this.zoomLevel);
-    });
-
-    // Update connections
-    this.connections.inputToHidden1.forEach(connection => {
-      connection.update(deltaTime, this.audioData.low * 1.5, this.opacity, this.currentConfig, time);
-    });
-
-    this.connections.hidden1ToHidden2.forEach(connection => {
-      connection.update(deltaTime, this.audioData.mid * 1.8, this.opacity, this.currentConfig, time);
-    });
-
-    this.connections.hidden2ToOutput.forEach(connection => {
-      connection.update(deltaTime, this.audioData.high * 2.0, this.opacity, this.currentConfig, time);
-    });
-
-    // Update particle system
-    this.particleSystem.update(deltaTime, overallAudio * 2);
-
-    // Update grid
-    if (this.gridHelper) {
-      (this.gridHelper.material as THREE.Material & { opacity: number }).opacity = (0.05 + overallAudio * 0.1) * this.opacity;
+    
+    // Actualizar conexiones (optimizado)
+    const updateStep = Math.max(1, Math.floor(this.connections.length / 60));
+    for (let i = this.frameCount % updateStep; i < this.connections.length; i += updateStep) {
+      this.connections[i].update(deltaTime, time, this.opacity);
     }
   }
-
+  
   public updateConfig(newConfig: any): void {
     this.currentConfig = this.deepMerge(this.currentConfig, newConfig);
-
+    
+    // Actualizar colores
     if (newConfig.colors) {
-      this.updateColors(newConfig.colors);
+      this.updateColors();
     }
   }
-
+  
+  private updateColors(): void {
+    const colors = this.currentConfig.colors;
+    
+    // Actualizar colores de neuronas por capa
+    this.layers.forEach((layer, layerIdx) => {
+      let color: THREE.Color;
+      
+      if (layerIdx === 0) {
+        color = new THREE.Color(colors.input);
+      } else if (layerIdx === this.layers.length - 1) {
+        color = new THREE.Color(colors.output);
+      } else {
+        color = new THREE.Color(colors.hidden);
+      }
+      
+      layer.forEach(neuron => {
+        neuron.getMeshes().forEach(mesh => {
+          mesh.material.uniforms.uColor.value = color;
+        });
+      });
+    });
+    
+    // Actualizar colores de conexiones
+    const connectionColor = new THREE.Color(colors.connection);
+    this.connections.forEach(connection => {
+      connection.getMeshes().forEach(mesh => {
+        mesh.material.uniforms.uColor.value = connectionColor;
+      });
+    });
+  }
+  
   private deepMerge(target: any, source: any): any {
     const result = { ...target };
     for (const key in source) {
@@ -711,98 +738,25 @@ class NeuralNetworkPreset extends BasePreset {
     }
     return result;
   }
-
-  private updateColors(colors: any): void {
-    // Update node colors
-    if (colors.input) {
-      this.nodes.input.forEach(node => {
-        const color = new THREE.Color(colors.input);
-        (node.mesh.material as THREE.MeshBasicMaterial).color.copy(color);
-        (node.glowMesh.material as THREE.MeshBasicMaterial).color.copy(color);
-      });
-    }
-
-    if (colors.hidden1) {
-      this.nodes.hidden1.forEach(node => {
-        const color = new THREE.Color(colors.hidden1);
-        (node.mesh.material as THREE.MeshBasicMaterial).color.copy(color);
-        (node.glowMesh.material as THREE.MeshBasicMaterial).color.copy(color);
-      });
-    }
-
-    if (colors.hidden2) {
-      this.nodes.hidden2.forEach(node => {
-        const color = new THREE.Color(colors.hidden2);
-        (node.mesh.material as THREE.MeshBasicMaterial).color.copy(color);
-        (node.glowMesh.material as THREE.MeshBasicMaterial).color.copy(color);
-      });
-    }
-
-    if (colors.output) {
-      this.nodes.output.forEach(node => {
-        const color = new THREE.Color(colors.output);
-        (node.mesh.material as THREE.MeshBasicMaterial).color.copy(color);
-        (node.glowMesh.material as THREE.MeshBasicMaterial).color.copy(color);
-      });
-    }
-
-    if (colors.connections) {
-      [
-        ...this.connections.inputToHidden1,
-        ...this.connections.hidden1ToHidden2,
-        ...this.connections.hidden2ToOutput,
-      ].forEach(connection => {
-        connection.material.color.set(colors.connections);
-      });
-    }
-  }
-
+  
   public dispose(): void {
-    // Remove nodes and glow effects
-    [
-      ...this.nodes.input,
-      ...this.nodes.hidden1,
-      ...this.nodes.hidden2,
-      ...this.nodes.output
-    ].forEach(node => {
-      this.scene.remove(node.mesh);
-      this.scene.remove(node.glowMesh);
-
-      node.mesh.geometry.dispose();
-      (node.mesh.material as THREE.Material).dispose();
-
-      node.glowMesh.geometry.dispose();
-      (node.glowMesh.material as THREE.Material).dispose();
+    // Limpiar neuronas
+    this.layers.flat().forEach(neuron => {
+      neuron.getMeshes().forEach(mesh => this.scene.remove(mesh));
+      neuron.dispose();
     });
-
-    // Remove connections
-    [
-      ...this.connections.inputToHidden1,
-      ...this.connections.hidden1ToHidden2,
-      ...this.connections.hidden2ToOutput
-    ].forEach(connection => {
-      this.scene.remove(connection.line);
-      connection.line.geometry.dispose();
-      connection.material.dispose();
+    
+    // Limpiar conexiones
+    this.connections.forEach(connection => {
+      connection.getMeshes().forEach(mesh => this.scene.remove(mesh));
+      connection.dispose();
     });
-
-    // Remove particles
-    if (this.particleSystem?.particles) {
-      this.scene.remove(this.particleSystem.particles);
-      this.particleSystem.particles.geometry.dispose();
-      (this.particleSystem.particles.material as THREE.Material).dispose();
-    }
-
-    // Remove grid
-    if (this.gridHelper) {
-      this.scene.remove(this.gridHelper);
-      this.gridHelper.geometry.dispose();
-      (this.gridHelper.material as THREE.Material).dispose();
-    }
+    
+    this.layers = [];
+    this.connections = [];
   }
 }
 
-// Exportar la función factory requerida
 export function createPreset(
   scene: THREE.Scene,
   camera: THREE.Camera,
@@ -810,5 +764,5 @@ export function createPreset(
   config: PresetConfig,
   shaderCode?: string
 ): BasePreset {
-  return new NeuralNetworkPreset(scene, camera, renderer, config, shaderCode);
+  return new NeuralNetworkGenesis(scene, camera, renderer, config);
 }

@@ -7,7 +7,8 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "typeRoots": ["./node_modules/@types", "./types"]
   },
-  "include": ["src", "visuals"]
+  "include": ["src", "visuals", "types"]
 }

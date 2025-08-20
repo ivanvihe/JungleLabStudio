@@ -57,28 +57,70 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // Configurar listener de audio
+  // Configurar listener de audio - VERSIÓN MEJORADA
   useEffect(() => {
     const setupAudioListener = async () => {
       try {
-        // Intenta importar dinámicamente la API de eventos de Tauri.
-        // El comentario `@vite-ignore` evita que Vite intente resolver el módulo
-        // durante la compilación, permitiendo que la importación falle en tiempo
-        // de ejecución si el paquete no está disponible (por ejemplo, en Electron).
-        const { listen } = await import(/* @vite-ignore */ '@tauri-apps/api/event');
+        // Detectar si estamos en un entorno Tauri
+        if (typeof window !== 'undefined' && (window as any).__TAURI__) {
+          console.log('🎵 Tauri environment detected, setting up audio listener...');
+          
+          // Importación dinámica solo en entorno Tauri
+          const tauriApi = await import('@tauri-apps/api/event');
+          
+          await tauriApi.listen('audio_data', (event) => {
+            const data = event.payload as AudioData;
+            setAudioData(data);
 
-        await listen('audio_data', (event) => {
-          const data = event.payload as AudioData;
-          setAudioData(data);
-
-          if (engineRef.current) {
-            engineRef.current.updateAudioData(data);
-          }
-        });
+            if (engineRef.current) {
+              engineRef.current.updateAudioData(data);
+            }
+          });
+          
+          console.log('✅ Tauri audio listener setup complete');
+        } else {
+          console.log('⚠️ Not in Tauri environment, audio listener disabled');
+          
+          // Opcional: Configurar datos de audio simulados para desarrollo
+          const simulateAudioData = () => {
+            const time = Date.now() * 0.001;
+            const simulatedData: AudioData = {
+              low: (Math.sin(time * 0.5) + 1) * 0.5,
+              mid: (Math.sin(time * 1.2) + 1) * 0.5,
+              high: (Math.sin(time * 2.0) + 1) * 0.5,
+              fft: Array.from({ length: 256 }, (_, i) => 
+                (Math.sin(time + i * 0.1) + 1) * 0.5
+              )
+            };
+            
+            setAudioData(simulatedData);
+            
+            if (engineRef.current) {
+              engineRef.current.updateAudioData(simulatedData);
+            }
+          };
+          
+          // Simular datos de audio cada 16ms (~60fps)
+          const interval = setInterval(simulateAudioData, 16);
+          
+          return () => clearInterval(interval);
+        }
       } catch (error) {
-        // Si la API no está disponible (por ejemplo, en entorno Electron puro),
-        // simplemente registra un aviso en consola sin interrumpir la ejecución.
-        console.warn('Audio listener unavailable:', error);
+        console.warn('⚠️ Audio listener setup failed:', error);
+        
+        // Fallback: datos de audio estáticos
+        const fallbackData: AudioData = {
+          low: 0.3,
+          mid: 0.5,
+          high: 0.2,
+          fft: Array.from({ length: 256 }, () => Math.random() * 0.5)
+        };
+        
+        setAudioData(fallbackData);
+        
+        if (engineRef.current) {
+          engineRef.current.updateAudioData(fallbackData);
+        }
       }
     };
 
