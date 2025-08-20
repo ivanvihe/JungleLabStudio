@@ -12,11 +12,17 @@ export const config: PresetConfig = {
   note: 58,
   defaultConfig: {
     opacity: 1.0,
-    fadeMs: 200,
+    fadeMs: 150,
     color: '#00aaff',
-    maxRadius: 5,
-    waveDuration: 1.5,
-    threshold: 0.8,
+    maxRadius: 8,
+    waveDuration: 2.0,
+    threshold: 0.7,
+    waveCount: 3,
+    shockwave: {
+      intensity: 1.5,
+      speed: 2.0,
+      decay: 0.8
+    },
     spawnSpread: 2
   },
   controls: [
@@ -24,7 +30,8 @@ export const config: PresetConfig = {
     { name: 'maxRadius', type: 'slider', label: 'Max Radius', min: 1, max: 10, step: 0.5, default: 5 },
     { name: 'waveDuration', type: 'slider', label: 'Duration', min: 0.5, max: 3, step: 0.1, default: 1.5 },
     { name: 'threshold', type: 'slider', label: 'Trigger Threshold', min: 0, max: 1, step: 0.01, default: 0.8 },
-    { name: 'spawnSpread', type: 'slider', label: 'Spawn Spread', min: 0, max: 5, step: 0.1, default: 2 }
+    { name: 'spawnSpread', type: 'slider', label: 'Spawn Spread', min: 0, max: 5, step: 0.1, default: 2 },
+    { name: 'waveCount', type: 'slider', label: 'Wave Count', min: 1, max: 8, step: 1, default: 3 }
   ],
   audioMapping: {
     low: { description: 'Triggers waves when bass peaks', frequency: '20-250 Hz', effect: 'Wave spawn' },

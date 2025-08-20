@@ -1,6 +1,6 @@
 // MEJORA 1: PresetControls.tsx con scroll mejorado
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { LoadedPreset } from '../core/PresetLoader';
 import './PresetControls.css';  // ✅ AÑADIR ESTE IMPORT
 
@@ -14,6 +14,7 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
   onConfigUpdate
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(true);
 
   // Detectar si hay overflow para mostrar indicador
   useEffect(() => {
@@ -192,73 +193,112 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
   ];
 
   return (
-    <>
-      <div className="controls-panel-header">
-        <div className="preset-header">
-          <h3>{preset.config.name}</h3>
-          <div className="preset-meta-line">v{preset.config.version} • {preset.config.category}</div>
-          {preset.config.tags && (
-            <div className="preset-tags-line">
-              {preset.config.tags.join(', ')}
-            </div>
-          )}
-        </div>
-      </div>
-      
-      <div className="controls-panel-content" ref={contentRef}>
-        <div className="preset-controls-container">
-          {/* Configuración Básica */}
-          <div className="section">
-            <div className="section-title">📐 Configuración Básica</div>
-            {basicControls.map(control => renderControl(control))}
-          </div>
+    <div className={`controls-panel ${isVisible ? 'visible' : 'collapsed'}`}>
+      <button
+        className="toggle-sidebar"
+        onClick={() => setIsVisible(!isVisible)}
+        title={isVisible ? 'Ocultar controles' : 'Mostrar controles'}
+      >
+        {isVisible ? '✕' : '⚙️'}
+      </button>
 
-          <div className="section-divider" />
-
-          {/* Controles de Audio */}
-          <div className="section">
-            <div className="section-title">🎵 Audio</div>
-            {audioControls.map(control => renderControl(control))}
-          </div>
-
-          <div className="section-divider" />
-
-          {/* Controles Específicos del Preset */}
-          {preset.config.controls && preset.config.controls.length > 0 && (
-            <>
-              <div className="section">
-                <div className="section-title">🎨 Controles Específicos</div>
-                {preset.config.controls.map((control: any) => renderControl(control))}
-              </div>
-              
-              <div className="section-divider" />
-            </>
-          )}
-
-          {/* Información del Preset */}
-          <div className="section">
-            <div className="section-title">ℹ️ Información</div>
-            <div className="preset-info">
-              <div className="info-item">
-                <span className="info-label">Autor:</span>
-                <span className="info-value">{preset.config.author || 'Desconocido'}</span>
-              </div>
-              <div className="info-item">
-                <span className="info-label">Descripción:</span>
-                <span className="info-value">{preset.config.description || 'Sin descripción'}</span>
-              </div>
-              {preset.config.performance && (
-                <div className="info-item">
-                  <span className="info-label">Rendimiento:</span>
-                  <span className={`performance-badge ${preset.config.performance}`}>
-                    {String(preset.config.performance).toUpperCase()}
-                  </span>
+      {isVisible && (
+        <>
+          <div className="controls-panel-header">
+            <div className="preset-header">
+              <h3>{preset.config.name}</h3>
+              <div className="preset-meta-line">v{preset.config.version} • {preset.config.category}</div>
+              {preset.config.tags && (
+                <div className="preset-tags-line">
+                  {preset.config.tags.join(', ')}
                 </div>
               )}
+              <p className="preset-description">{preset.config.description}</p>
+              <div className="preset-meta">
+                <span className="preset-meta-line">📁 {preset.config.category} | 🏷️ {preset.config.tags?.join(', ')}</span>
+                <span className="preset-meta-line">👤 {preset.config.author} | 📦 v{preset.config.version}</span>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-    </>
+
+          <div className="controls-panel-content" ref={contentRef}>
+            <div className="preset-controls-container">
+              {/* Configuración Básica */}
+              <div className="section">
+                <div className="section-title">📐 Configuración Básica</div>
+                {basicControls.map(control => renderControl(control))}
+              </div>
+
+              <div className="section-divider" />
+
+              {/* Controles de Audio */}
+              <div className="section">
+                <div className="section-title">🎵 Audio</div>
+                {audioControls.map(control => renderControl(control))}
+              </div>
+
+              <div className="section-divider" />
+
+              {/* Controles Específicos del Preset */}
+              {preset.config.controls && preset.config.controls.length > 0 && (
+                <>
+                  <div className="section">
+                    <div className="section-title">🎨 Controles Específicos</div>
+                    {preset.config.controls.map((control: any) => renderControl(control))}
+                  </div>
+
+                  <div className="section-divider" />
+                </>
+              )}
+
+              {/* Mapeo de Audio */}
+              {preset.config.audioMapping && (
+                <>
+                  <div className="section">
+                    <div className="section-title">🎤 Mapeo de Audio</div>
+                    <div className="audio-mapping">
+                      {Object.entries(preset.config.audioMapping).map(([freq, mapping]: [string, any]) => (
+                        <div key={freq} className="mapping-item">
+                          <div className="mapping-freq">{freq.toUpperCase()}</div>
+                          <div className="mapping-desc">{mapping.description}</div>
+                          <div className="mapping-effect">{mapping.effect}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="section-divider" />
+                </>
+              )}
+
+              {/* Información del Preset */}
+              <div className="section">
+                <div className="section-title">ℹ️ Información</div>
+                <div className="preset-info">
+                  <div className="info-item">
+                    <span className="info-label">MIDI Note:</span>
+                    <span className="info-value">{preset.config.note || 'No asignada'}</span>
+                  </div>
+                  {preset.config.performance && (
+                    <div className="info-item">
+                      <span className="info-label">Rendimiento:</span>
+                      <span className={`performance-badge ${preset.config.performance.complexity || 'medium'}`}>
+                        {String(preset.config.performance.complexity || 'medium').toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                  {preset.config.performance?.gpuIntensive && (
+                    <div className="info-item">
+                      <span className="info-label">GPU:</span>
+                      <span className="info-value">Intensivo</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
   );
 };

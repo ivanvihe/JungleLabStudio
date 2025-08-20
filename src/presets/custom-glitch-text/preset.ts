@@ -16,7 +16,8 @@ export const config: PresetConfig = {
     text: {
       content: 'TEXT',
       fontSize: 120,
-      fontFamily: 'Arial Black, sans-serif'
+      fontFamily: 'Arial Black, sans-serif',
+      letterSpacing: 0.2
     },
     glitch: {
       intensity: 0.05,
