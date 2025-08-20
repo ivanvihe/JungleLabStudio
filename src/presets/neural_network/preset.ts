@@ -123,18 +123,10 @@ class ActivationFunctions {
 // Controla el movimiento de cámara simulando un viaje interestelar a través de la red
 class InterstellarNavigator {
   private originalPosition: THREE.Vector3 = new THREE.Vector3();
-  private startX: number;
-  private endX: number;
   private speed = 1.5;
 
-  constructor(
-    private camera: THREE.Camera,
-    networkWidth: number,
-    private onLoop?: () => void
-  ) {
+  constructor(private camera: THREE.Camera) {
     this.originalPosition.copy(camera.position);
-    this.startX = -networkWidth / 2;
-    this.endX = networkWidth / 2;
     // Start the camera inside the network to immediately navigate through nodes
     this.camera.position.set(0, 0, 0);
     this.camera.lookAt(1, 0, 0);
@@ -143,11 +135,6 @@ class InterstellarNavigator {
   update(delta: number, intensity: number): void {
     this.camera.position.x += delta * this.speed * (0.5 + intensity);
     this.camera.lookAt(this.camera.position.x + 1, 0, 0);
-
-    if (this.camera.position.x > this.endX) {
-      this.camera.position.x = this.startX;
-      this.onLoop?.();
-    }
   }
 
   dispose(): void {
@@ -542,6 +529,8 @@ class NeuralNetworkGenesis extends BasePreset {
   private learningPhase: number = 0;
   private frameCount: number = 0;
   private navigator: InterstellarNavigator;
+  private networkWidth: number;
+  private offsetX: number = 0;
   private frustum: THREE.Frustum = new THREE.Frustum();
   private viewProjectionMatrix: THREE.Matrix4 = new THREE.Matrix4();
   
@@ -554,12 +543,8 @@ class NeuralNetworkGenesis extends BasePreset {
     super(scene, camera, renderer, config);
     this.currentConfig = { ...config.defaultConfig };
     const spacing = 2.0;
-    const networkWidth = this.currentConfig.topology.layers.length * spacing;
-    this.navigator = new InterstellarNavigator(
-      this.camera,
-      networkWidth,
-      () => this.regenerateNetwork()
-    );
+    this.networkWidth = (this.currentConfig.topology.layers.length - 1) * spacing;
+    this.navigator = new InterstellarNavigator(this.camera);
   }
   
   public init(): void {
@@ -593,18 +578,16 @@ class NeuralNetworkGenesis extends BasePreset {
       for (let nodeIdx = 0; nodeIdx < nodeCount; nodeIdx++) {
         let position: THREE.Vector3;
 
+        const baseX = (layerIdx - (topology.length - 1) / 2) * spacing + this.offsetX;
+
         if (nodeCount === 1) {
-          position = new THREE.Vector3(
-            (layerIdx - topology.length / 2) * spacing,
-            0,
-            0
-          );
+          position = new THREE.Vector3(baseX, 0, 0);
         } else {
           const angle = (nodeIdx / nodeCount) * Math.PI * 2;
           const radius = Math.sqrt(nodeCount) * radiusMul;
 
           position = new THREE.Vector3(
-            (layerIdx - topology.length / 2) * spacing,
+            baseX,
             Math.sin(angle) * radius,
             Math.cos(angle) * radius * 0.5
           );
@@ -659,6 +642,7 @@ class NeuralNetworkGenesis extends BasePreset {
     const topology = this.currentConfig.topology.layers;
     const spacing = 2.0;
     const radiusMul = 0.4;
+    this.offsetX += this.networkWidth;
 
     for (let layerIdx = 0; layerIdx < topology.length; layerIdx++) {
       const layer = this.layers[layerIdx];
@@ -668,17 +652,15 @@ class NeuralNetworkGenesis extends BasePreset {
         const neuron = layer[nodeIdx];
         let position: THREE.Vector3;
 
+        const baseX = (layerIdx - (topology.length - 1) / 2) * spacing + this.offsetX;
+
         if (nodeCount === 1) {
-          position = new THREE.Vector3(
-            (layerIdx - topology.length / 2) * spacing,
-            0,
-            0
-          );
+          position = new THREE.Vector3(baseX, 0, 0);
         } else {
           const angle = (nodeIdx / nodeCount) * Math.PI * 2;
           const radius = Math.sqrt(nodeCount) * radiusMul;
           position = new THREE.Vector3(
-            (layerIdx - topology.length / 2) * spacing,
+            baseX,
             Math.sin(angle) * radius,
             Math.cos(angle) * radius * 0.5
           );
@@ -776,6 +758,9 @@ class NeuralNetworkGenesis extends BasePreset {
     // Propagación de señales
     const audioIntensity = (this.audioData.low + this.audioData.mid + this.audioData.high) / 3;
     this.navigator.update(deltaTime, audioIntensity);
+    if (this.camera.position.x > this.offsetX + this.networkWidth / 2) {
+      this.regenerateNetwork();
+    }
     this.connections.forEach(connection => {
       connection.propagateSignal(
         connection.fromNeuron.activation,
