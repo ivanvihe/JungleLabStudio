@@ -16,13 +16,15 @@ export const config: PresetConfig = {
     color: '#00aaff',
     maxRadius: 5,
     waveDuration: 1.5,
-    threshold: 0.8
+    threshold: 0.8,
+    spawnSpread: 2
   },
   controls: [
     { name: 'color', type: 'color', label: 'Color', default: '#00aaff' },
     { name: 'maxRadius', type: 'slider', label: 'Max Radius', min: 1, max: 10, step: 0.5, default: 5 },
     { name: 'waveDuration', type: 'slider', label: 'Duration', min: 0.5, max: 3, step: 0.1, default: 1.5 },
-    { name: 'threshold', type: 'slider', label: 'Trigger Threshold', min: 0, max: 1, step: 0.01, default: 0.8 }
+    { name: 'threshold', type: 'slider', label: 'Trigger Threshold', min: 0, max: 1, step: 0.01, default: 0.8 },
+    { name: 'spawnSpread', type: 'slider', label: 'Spawn Spread', min: 0, max: 5, step: 0.1, default: 2 }
   ],
   audioMapping: {
     low: { description: 'Triggers waves when bass peaks', frequency: '20-250 Hz', effect: 'Wave spawn' },
@@ -47,6 +49,7 @@ class BoomWavePreset extends BasePreset {
   }
 
   public init(): void {
+    this.renderer.setClearColor(0x000000, 0);
     this.currentConfig = JSON.parse(JSON.stringify(this.config.defaultConfig));
   }
 
@@ -77,7 +80,8 @@ class BoomWavePreset extends BasePreset {
       `
     });
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set((Math.random()-0.5)*2, (Math.random()-0.5)*2, 0);
+    const spread = this.currentConfig.spawnSpread || 0;
+    mesh.position.set((Math.random()-0.5)*spread, (Math.random()-0.5)*spread, 0);
     this.scene.add(mesh);
     this.waves.push({ mesh, start: this.clock.getElapsedTime() });
   }
