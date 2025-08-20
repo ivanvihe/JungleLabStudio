@@ -344,9 +344,10 @@ class EvolutiveParticle {
     }
     
     if (this.trailPositions.length > 1) {
-      this.trailMesh.geometry.setFromPoints(this.trailPositions);
-      this.trailMesh.geometry.attributes.position.needsUpdate = true;
-      
+      const newGeometry = new THREE.BufferGeometry().setFromPoints(this.trailPositions);
+      this.trailMesh.geometry.dispose();
+      this.trailMesh.geometry = newGeometry;
+
       const trailMaterial = this.trailMesh.material as THREE.LineBasicMaterial;
       trailMaterial.opacity = this.energyLevel * 0.3;
       trailMaterial.color.copy(this.getStateColor());
