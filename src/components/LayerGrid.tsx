@@ -18,6 +18,7 @@ interface LayerGridProps {
   onLayerConfigChange: (layerId: string, config: Partial<LayerConfig>) => void;
   onPresetSelect: (layerId: string, presetId: string) => void;
   clearAllSignal: number;
+  externalTrigger?: { layerId: string; presetId: string } | null;
 }
 
 export const LayerGrid: React.FC<LayerGridProps> = ({
@@ -26,7 +27,8 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
   onLayerClear,
   onLayerConfigChange,
   onPresetSelect,
-  clearAllSignal
+  clearAllSignal,
+  externalTrigger
 }) => {
   const [layers, setLayers] = useState<LayerConfig[]>([
     { id: 'A', name: 'Layer A', color: '#FF6B6B', midiChannel: 14, fadeTime: 200, opacity: 100, activePreset: null },
@@ -84,6 +86,13 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
       onLayerConfigChange(layerId, { [field]: value });
     }
   };
+
+  useEffect(() => {
+    if (externalTrigger) {
+      handlePresetClick(externalTrigger.layerId, externalTrigger.presetId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalTrigger]);
 
   const getPresetThumbnail = (preset: LoadedPreset): string => {
     // Generar thumbnail basado en categoría/tipo

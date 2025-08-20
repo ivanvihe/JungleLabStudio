@@ -30,6 +30,7 @@ export class AudioVisualizerEngine {
   // Map layer id -> LayerState
   private layers: Map<string, LayerState> = new Map();
   private layerOrder: string[] = ['C', 'B', 'A']; // C=fondo, A=frente
+  private currentBpm: number = 120;
 
   constructor(private canvas: HTMLCanvasElement, options: { glitchTextPads?: number } = {}) {
     this.camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
@@ -377,6 +378,19 @@ export class AudioVisualizerEngine {
   public clearRenderer(): void {
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.clear(true, true, true);
+  }
+
+  public updateBpm(bpm: number): void {
+    this.currentBpm = bpm;
+    this.layers.forEach(layer => {
+      layer.preset?.setBpm(bpm);
+    });
+  }
+
+  public triggerBeat(): void {
+    this.layers.forEach(layer => {
+      layer.preset?.onBeat();
+    });
   }
 
   public dispose(): void {

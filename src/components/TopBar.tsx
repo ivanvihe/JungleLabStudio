@@ -5,6 +5,7 @@ interface TopBarProps {
   midiDeviceName: string | null;
   midiDeviceCount: number;
   bpm: number | null;
+  beatActive: boolean;
   audioDeviceName: string | null;
   audioDeviceCount: number;
   audioGain: number;
@@ -20,6 +21,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   midiDeviceName,
   midiDeviceCount,
   bpm,
+  beatActive,
   audioDeviceName,
   audioDeviceCount,
   audioGain,
@@ -42,6 +44,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
       <div className="bpm-section">
         <span>BPM: {bpm ? bpm.toFixed(1) : '--'}</span>
+        <div className={`metronome ${beatActive ? 'active' : ''}`}></div>
       </div>
 
       <div className="separator" />

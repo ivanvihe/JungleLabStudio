@@ -24,6 +24,7 @@ const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<AudioVisualizerEngine | null>(null);
   const clockTimesRef = useRef<number[]>([]);
+  const clockCountRef = useRef(0);
   
   const [isInitialized, setIsInitialized] = useState(false);
   const [availablePresets, setAvailablePresets] = useState<LoadedPreset[]>([]);
@@ -40,6 +41,8 @@ const App: React.FC = () => {
   const [midiDeviceId, setMidiDeviceId] = useState<string | null>(null);
   const [midiActive, setMidiActive] = useState(false);
   const [bpm, setBpm] = useState<number | null>(null);
+  const [beatActive, setBeatActive] = useState(false);
+  const [midiTrigger, setMidiTrigger] = useState<{layerId: string; presetId: string} | null>(null);
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [audioDeviceId, setAudioDeviceId] = useState<string | null>(null);
   const [audioGain, setAudioGain] = useState(1);
@@ -218,18 +221,44 @@ const App: React.FC = () => {
     const handleMIDIMessage = (event: any) => {
       setMidiActive(true);
       setTimeout(() => setMidiActive(false), 100);
-      
-      const [statusByte] = event.data;
-      if (statusByte === 0xf8) { // MIDI Clock
+      const [statusByte, note, vel] = event.data;
+
+      // MIDI Clock handling
+      if (statusByte === 0xf8) {
         const now = performance.now();
         const times = clockTimesRef.current;
         times.push(now);
         if (times.length > 24) times.shift();
-        
+
+        clockCountRef.current++;
+        if (clockCountRef.current % 24 === 0) {
+          setBeatActive(true);
+          setTimeout(() => setBeatActive(false), 100);
+          if (engineRef.current) {
+            engineRef.current.triggerBeat();
+          }
+        }
+
         if (times.length >= 2) {
           const diff = (times[times.length - 1] - times[0]) / (times.length - 1);
           const bpmVal = 60000 / (diff * 24);
           setBpm(bpmVal);
+          if (engineRef.current) {
+            engineRef.current.updateBpm(bpmVal);
+          }
+        }
+        return;
+      }
+
+      // Note on messages
+      const command = statusByte & 0xf0;
+      const channel = (statusByte & 0x0f) + 1;
+      if (command === 0x90 && vel > 0) {
+        const channelToLayer: Record<number, string> = { 14: 'A', 15: 'B', 16: 'C' };
+        const layerId = channelToLayer[channel];
+        const preset = availablePresets.find(p => p.config.note === note);
+        if (layerId && preset) {
+          setMidiTrigger({ layerId, presetId: preset.id });
         }
       }
     };
@@ -519,6 +548,7 @@ const App: React.FC = () => {
         midiDeviceName={midiDeviceName}
         midiDeviceCount={midiDevices.length}
         bpm={bpm}
+        beatActive={beatActive}
         audioDeviceName={audioDeviceName}
         audioDeviceCount={audioDevices.length}
         audioGain={audioGain}
@@ -533,6 +563,7 @@ const App: React.FC = () => {
       <div className="layer-grid-container">
         <LayerGrid
           presets={availablePresets}
+          externalTrigger={midiTrigger}
           onPresetActivate={(layerId, presetId) => {
             // MEJORA 3: Asegurar independencia entre layers
             if (engineRef.current) {
