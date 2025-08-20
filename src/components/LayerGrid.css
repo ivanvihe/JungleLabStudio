@@ -102,7 +102,7 @@
 
 /* CORRECCIÓN 1: Preset Grid - altura correcta */
 .preset-grid {
-  height: 98px; /* Ajustado para caber en el contenedor de 100px */
+  height: 96px; /* Más espacio para contenido interno */
   display: flex;
   gap: 1px;
   padding: 1px;
@@ -134,9 +134,9 @@
 /* CORRECCIÓN 2: Preset Cell - tamaño correcto */
 .preset-cell {
   position: relative;
-  width: 98px;
-  height: 98px;
-  min-width: 98px;
+  width: 96px;
+  height: 96px;
+  min-width: 96px;
   background: linear-gradient(135deg, #1E1E1E, #181818);
   border: 1px solid #333;
   border-radius: 4px; /* Añadir bordes redondeados sutiles */
@@ -148,7 +148,7 @@
   justify-content: space-between; /* Distribuir contenido */
   overflow: hidden;
   user-select: none;
-  padding: 4px; /* Añadir padding interno */
+  padding: 2px; /* Padding más pequeño */
 }
 
 .preset-cell:hover {
@@ -172,34 +172,35 @@
 /* CORRECCIÓN 3: Thumbnail mejorado */
 .preset-thumbnail {
   width: 100%;
-  height: 70px; /* Reducir altura para hacer espacio al texto */
+  height: 60px; /* Más espacio para texto abajo */
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 36px; /* Reducir tamaño del emoji */
+  font-size: 32px; /* Tamaño del emoji ajustado */
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
-  margin-bottom: 2px;
 }
 
 /* CORRECCIÓN 4: Info del preset más visible */
 .preset-info {
   width: 100%;
-  height: 20px; /* Aumentar altura */
+  height: 32px; /* Más altura para textos */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  background: rgba(0, 0, 0, 0.3); /* Fondo semi-transparente */
+  background: rgba(0, 0, 0, 0.5); /* Fondo más oscuro */
   border-radius: 2px;
-  padding: 2px;
+  padding: 1px 2px;
+  gap: 1px;
 }
 
 .preset-name {
-  font-size: 8px;
+  font-size: 10px; /* Más grande */
   font-weight: 600;
   color: #FFF;
-  line-height: 10px;
+  line-height: 11px;
+  height: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -207,13 +208,21 @@
 }
 
 .preset-details {
-  font-size: 6px;
+  font-size: 7px; /* Más grande */
   color: #888;
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   line-height: 8px;
-  margin-top: 1px;
+  height: 8px;
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+}
+
+.preset-category {
+  color: #aaa;
 }
 
 .preset-note {

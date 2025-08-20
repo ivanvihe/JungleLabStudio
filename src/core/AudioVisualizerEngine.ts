@@ -147,7 +147,8 @@ export class AudioVisualizerEngine {
       generateMipmaps: false,
       stencilBuffer: false,
       depthBuffer: true,
-      alpha: true // IMPORTANTE: Habilitar canal alpha
+      alpha: true, // IMPORTANTE: Habilitar canal alpha
+      premultiplyAlpha: false // Evitar pre-multiplicación de alpha
     });
 
     const layerState: LayerState = {
@@ -223,6 +224,10 @@ export class AudioVisualizerEngine {
     this.layers.forEach((layer, layerId) => {
       if (!layer.isActive || !layer.preset || !layer.renderTarget) return;
 
+      // CORRECCIÓN: Asegurar clear correcto antes de renderizar layer
+      this.renderer.setClearColor(0x000000, 0); // Transparente
+      this.renderer.setRenderTarget(layer.renderTarget);
+      this.renderer.clear(true, true, false); // Clear color y depth, no stencil
       // Renderizar layer a su render target
       this.renderer.setRenderTarget(layer.renderTarget);
       this.renderer.clear();

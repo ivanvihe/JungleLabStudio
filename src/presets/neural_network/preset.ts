@@ -133,10 +133,12 @@ export class InfiniteNeuralNetwork extends BasePreset {
   }
 
   init(): void {
-    // Crear scene background transparente
+    // CRÍTICO: Asegurar scene transparente
     this.scene.background = null;
-
-    // Configurar posición inicial de nodos
+    this.scene.overrideMaterial = null;
+    
+    // NO modificar la cámara global aquí - usar posición relativa
+    const initialCameraX = this.camera.position.x;
     this.camera.position.set(0, 0, 0);
     this.camera.lookAt(1, 0, 0);
 
@@ -175,12 +177,12 @@ export class InfiniteNeuralNetwork extends BasePreset {
     this.nextSpawnX = x;
   }
 
-  // CORRECCIÓN 1: Asegurar que el material sea transparente y use blending correcto
+  // CORRECCIÓN: Métodos para crear materiales con configuración correcta
   private createNodeMaterial(): THREE.MeshBasicMaterial {
     return new THREE.MeshBasicMaterial({
       color: new THREE.Color(this.currentConfig.colors.node),
       transparent: true,
-      opacity: 0.8, // No completamente opaco
+      opacity: 0.9, // Casi opaco pero con algo de transparencia
       blending: THREE.NormalBlending, // Cambiar de AdditiveBlending a NormalBlending
       depthWrite: false, // Importante para transparencia
       depthTest: true
@@ -191,7 +193,7 @@ export class InfiniteNeuralNetwork extends BasePreset {
     return new THREE.LineBasicMaterial({
       color: new THREE.Color(this.currentConfig.colors.connection),
       transparent: true,
-      opacity: 0.6,
+      opacity: 0.7,
       blending: THREE.NormalBlending, // Cambiar de AdditiveBlending
       linewidth: 1
     });
@@ -234,6 +236,10 @@ export class InfiniteNeuralNetwork extends BasePreset {
 
   updateConfig(newConfig: any): void {
     this.currentConfig = this.deepMerge(this.currentConfig, newConfig);
+    
+    // Recrear materiales con nueva configuración
+    const nodeMaterial = this.createNodeMaterial();
+    const connMaterial = this.createConnectionMaterial();
     const nodeColor = new THREE.Color(this.currentConfig.colors.node);
     const connColor = new THREE.Color(this.currentConfig.colors.connection);
     this.nodes.forEach(n => n.setColor(nodeColor));
