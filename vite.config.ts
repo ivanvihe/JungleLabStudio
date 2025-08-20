@@ -12,15 +12,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: './index.html',
-      },
-      // Externalizar los módulos de Tauri para que no falle el build
-      external: ['@tauri-apps/api/event', '@tauri-apps/api/window'],
-      output: {
-        // Configurar cómo manejar los módulos externos
-        globals: {
-          '@tauri-apps/api/event': 'TauriEvent',
-          '@tauri-apps/api/window': 'TauriWindow'
-        }
       }
     }
   },
