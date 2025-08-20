@@ -1,6 +1,7 @@
 // MEJORA 4: GlobalSettingsModal.tsx completamente rediseñado
 
 import React, { useState, useEffect } from 'react';
+import './GlobalSettingsModal.css';  // ✅ AÑADIR ESTE IMPORT
 
 interface DeviceOption {
   id: string;

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { LoadedPreset } from '../core/PresetLoader';
+import './PresetControls.css';  // ✅ AÑADIR ESTE IMPORT
 
 interface PresetControlsProps {
   preset: LoadedPreset;
@@ -250,7 +251,7 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
                 <div className="info-item">
                   <span className="info-label">Rendimiento:</span>
                   <span className={`performance-badge ${preset.config.performance}`}>
-                    {preset.config.performance.toUpperCase()}
+                    {String(preset.config.performance).toUpperCase()}
                   </span>
                 </div>
               )}
