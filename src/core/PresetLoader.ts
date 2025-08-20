@@ -244,7 +244,12 @@ export interface LoadedPreset {
     }
   }
 
-  public activatePreset(presetId: string, scene: THREE.Scene, instanceId: string): BasePreset | null {
+  public activatePreset(
+    presetId: string,
+    scene: THREE.Scene,
+    instanceId: string,
+    configOverride?: PresetConfig
+  ): BasePreset | null {
     const loadedPreset = this.loadedPresets.get(presetId);
     if (!loadedPreset) {
       console.error(`Preset ${presetId} not found`);
@@ -258,14 +263,14 @@ export interface LoadedPreset {
         scene,
         this.camera,
         this.renderer,
-        loadedPreset.config,
+        configOverride ?? loadedPreset.config,
         loadedPreset.shaderCode
       );
 
       presetInstance.init();
       this.activePresets.set(instanceId, presetInstance);
 
-      console.log(`🎨 Activated preset: ${loadedPreset.config.name}`);
+      console.log(`🎨 Activated preset: ${(configOverride ?? loadedPreset.config).name}`);
       return presetInstance;
     } catch (error) {
       console.error(`Failed to activate preset ${presetId}:`, error);

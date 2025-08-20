@@ -2,6 +2,9 @@
 
 import * as THREE from 'three';
 import { PresetLoader, LoadedPreset, AudioData } from './PresetLoader';
+import fs from 'fs';
+import path from 'path';
+import { setNestedValue } from '../utils/objectPath';
 
 interface LayerState {
   preset: LoadedPreset | null;
@@ -279,8 +282,20 @@ export class AudioVisualizerEngine {
         layer.scene.clear();
       }
 
-      // Activar nuevo preset
-      const presetInstance = this.presetLoader.activatePreset(presetId, layer.scene, `${layerId}-${presetId}`);
+      // Cargar configuración guardada específica para el layer
+      const savedConfig = this.loadLayerPresetConfig(presetId, layerId);
+      const loadedPresetConfig = {
+        ...loadedPreset.config,
+        defaultConfig: { ...loadedPreset.config.defaultConfig, ...savedConfig }
+      };
+
+      // Activar nuevo preset con config específica del layer
+      const presetInstance = this.presetLoader.activatePreset(
+        presetId,
+        layer.scene,
+        `${layerId}-${presetId}`,
+        loadedPresetConfig
+      );
       if (!presetInstance) {
         console.error(`No se pudo activar preset ${presetId}`);
         return false;
@@ -293,8 +308,8 @@ export class AudioVisualizerEngine {
         return false;
       }
 
-      // Asignar preset al layer
-      layer.preset = loadedPreset;
+      // Asignar preset clonado con config al layer
+      layer.preset = { ...loadedPreset, config: loadedPresetConfig };
       layer.isActive = true;
 
       console.log(`✅ Layer ${layerId} activado con preset ${presetId}`);
@@ -332,15 +347,50 @@ export class AudioVisualizerEngine {
     }
   }
 
-  public updateLayerPresetConfig(layerId: string, config: any): void {
+  private getLayerConfigPath(presetId: string, layerId: string): string {
+    return path.join('src', 'presets', presetId, 'layers', `${layerId}.json`);
+  }
+
+  private loadLayerPresetConfig(presetId: string, layerId: string): any {
+    try {
+      const cfgPath = this.getLayerConfigPath(presetId, layerId);
+      if (fs.existsSync(cfgPath)) {
+        return JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+      }
+    } catch (err) {
+      console.warn(`Could not load config for ${presetId} layer ${layerId}:`, err);
+    }
+    return {};
+  }
+
+  private saveLayerPresetConfig(presetId: string, layerId: string, cfg: any): void {
+    try {
+      const cfgPath = this.getLayerConfigPath(presetId, layerId);
+      fs.mkdirSync(path.dirname(cfgPath), { recursive: true });
+      fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2));
+    } catch (err) {
+      console.warn(`Could not save config for ${presetId} layer ${layerId}:`, err);
+    }
+  }
+
+  public getLayerPresetConfig(layerId: string, presetId: string): any {
+    const saved = this.loadLayerPresetConfig(presetId, layerId);
+    if (Object.keys(saved).length > 0) return saved;
+    const loaded = this.presetLoader.getLoadedPresets().find(p => p.id === presetId);
+    return loaded ? JSON.parse(JSON.stringify(loaded.config.defaultConfig)) : {};
+  }
+
+  public updateLayerPresetConfig(layerId: string, pathKey: string, value: any): void {
     const layer = this.layers.get(layerId);
     if (!layer || !layer.preset) return;
 
-    // Obtener la instancia activa del preset
+    setNestedValue(layer.preset.config.defaultConfig, pathKey, value);
+
     const activePreset = this.presetLoader.getActivePreset(`${layerId}-${layer.preset.id}`);
     if (activePreset && activePreset.updateConfig) {
-      activePreset.updateConfig(config);
+      activePreset.updateConfig({ defaultConfig: layer.preset.config.defaultConfig });
     }
+    this.saveLayerPresetConfig(layer.preset.id, layerId, layer.preset.config.defaultConfig);
   }
 
   public setGlobalOpacity(opacity: number): void {
