@@ -688,6 +688,10 @@ class NeuralNetworkGenesis extends BasePreset {
       conn.propagationProgress = 0;
       conn.signalStrength = 0;
     });
+
+    // Asegurarse de que neuronas y conexiones se rendericen inmediatamente
+    this.layers.flat().forEach(neuron => neuron.update(0, 0, this.opacity));
+    this.connections.forEach(conn => conn.update(0, 0, this.opacity));
   }
   
   // Forward propagation
