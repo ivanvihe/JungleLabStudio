@@ -3,6 +3,8 @@ import { AudioVisualizerEngine } from './core/AudioVisualizerEngine';
 import { LayerGrid } from './components/LayerGrid';
 import { StatusBar } from './components/StatusBar';
 import { PresetControls } from './components/PresetControls';
+import { TopBar } from './components/TopBar';
+import { GlobalSettingsModal } from './components/GlobalSettingsModal';
 import { LoadedPreset, AudioData } from './core/PresetLoader';
 import './App.css';
 import './components/LayerGrid.css';
@@ -10,6 +12,7 @@ import './components/LayerGrid.css';
 const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<AudioVisualizerEngine | null>(null);
+  const clockTimesRef = useRef<number[]>([]);
   
   const [isInitialized, setIsInitialized] = useState(false);
   const [availablePresets, setAvailablePresets] = useState<LoadedPreset[]>([]);
@@ -20,6 +23,27 @@ const App: React.FC = () => {
   const [selectedPreset, setSelectedPreset] = useState<LoadedPreset | null>(null);
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
   const [isControlsOpen, setIsControlsOpen] = useState(true);
+
+  // Top bar & settings state
+  const [midiDevices, setMidiDevices] = useState<any[]>([]);
+  const [midiDeviceId, setMidiDeviceId] = useState<string | null>(null);
+  const [midiActive, setMidiActive] = useState(false);
+  const [bpm, setBpm] = useState<number | null>(null);
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
+  const [audioDeviceId, setAudioDeviceId] = useState<string | null>(null);
+  const [audioGain, setAudioGain] = useState(1);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [monitors] = useState<{ id: string; label: string }[]>([
+    { id: 'primary', label: 'Primary Monitor' }
+  ]);
+  const [selectedMonitors, setSelectedMonitors] = useState<string[]>(['primary']);
+
+  const scaleAudio = (d: AudioData): AudioData => ({
+    low: d.low * audioGain,
+    mid: d.mid * audioGain,
+    high: d.high * audioGain,
+    fft: d.fft.map(v => v * audioGain)
+  });
 
   // Inicializar el engine
   useEffect(() => {
@@ -61,6 +85,54 @@ const App: React.FC = () => {
     };
   }, []);
 
+  // Enumerar dispositivos de audio
+  useEffect(() => {
+    if (navigator?.mediaDevices?.enumerateDevices) {
+      navigator.mediaDevices.enumerateDevices()
+        .then(devs => {
+          setAudioDevices(devs.filter(d => d.kind === 'audioinput'));
+        })
+        .catch(err => console.warn('Audio devices error', err));
+    }
+  }, []);
+
+  // Configurar MIDI
+  useEffect(() => {
+    const handleMIDIMessage = (event: any) => {
+      setMidiActive(true);
+      setTimeout(() => setMidiActive(false), 100);
+
+      const [statusByte] = event.data;
+      if (statusByte === 0xf8) { // MIDI Clock
+        const now = performance.now();
+        const times = clockTimesRef.current;
+        times.push(now);
+        if (times.length > 24) times.shift();
+        if (times.length >= 2) {
+          const diff = (times[times.length - 1] - times[0]) / (times.length - 1);
+          const bpmVal = 60000 / (diff * 24);
+          setBpm(bpmVal);
+        }
+      }
+    };
+
+    if ((navigator as any).requestMIDIAccess) {
+      (navigator as any).requestMIDIAccess()
+        .then((access: any) => {
+          const inputs = Array.from(access.inputs.values());
+          setMidiDevices(inputs);
+          inputs.forEach((input: any) => {
+            input.onmidimessage = handleMIDIMessage;
+          });
+          access.onstatechange = () => {
+            const ins = Array.from(access.inputs.values());
+            setMidiDevices(ins);
+          };
+        })
+        .catch((err: any) => console.warn('MIDI access error', err));
+    }
+  }, []);
+
   // Configurar listener de audio - VERSIÓN MEJORADA
   useEffect(() => {
     const setupAudioListener = async () => {
@@ -74,10 +146,11 @@ const App: React.FC = () => {
           
           await tauriApi.listen('audio_data', (event) => {
             const data = event.payload as AudioData;
-            setAudioData(data);
+            const scaled = scaleAudio(data);
+            setAudioData(scaled);
 
             if (engineRef.current) {
-              engineRef.current.updateAudioData(data);
+              engineRef.current.updateAudioData(scaled);
             }
           });
           
@@ -97,10 +170,11 @@ const App: React.FC = () => {
               )
             };
             
-            setAudioData(simulatedData);
-            
+            const scaled = scaleAudio(simulatedData);
+            setAudioData(scaled);
+
             if (engineRef.current) {
-              engineRef.current.updateAudioData(simulatedData);
+              engineRef.current.updateAudioData(scaled);
             }
           };
           
@@ -120,10 +194,11 @@ const App: React.FC = () => {
           fft: Array.from({ length: 256 }, () => Math.random() * 0.5)
         };
         
-        setAudioData(fallbackData);
-        
+        const scaled = scaleAudio(fallbackData);
+        setAudioData(scaled);
+
         if (engineRef.current) {
-          engineRef.current.updateAudioData(fallbackData);
+          engineRef.current.updateAudioData(scaled);
         }
       }
     };
@@ -131,7 +206,7 @@ const App: React.FC = () => {
     if (isInitialized) {
       setupAudioListener();
     }
-  }, [isInitialized]);
+  }, [isInitialized, audioGain]);
 
   // Monitor FPS
   useEffect(() => {
@@ -218,8 +293,44 @@ const App: React.FC = () => {
     return activePresets.join(', ');
   };
 
+  const midiDeviceName = midiDeviceId ? midiDevices.find((d: any) => d.id === midiDeviceId)?.name || null : null;
+  const audioDeviceName = audioDeviceId ? audioDevices.find(d => d.deviceId === audioDeviceId)?.label || null : null;
+  const audioLevel = Math.min((audioData.low + audioData.mid + audioData.high) / 3, 1);
+
+  const handleAudioGainChange = (value: number) => setAudioGain(value);
+  const handleFullScreen = () => {
+    const elem: any = document.documentElement;
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen();
+    }
+  };
+  const handleClearAll = () => {
+    if (!engineRef.current) return;
+    Object.keys(activeLayers).forEach(layerId => engineRef.current?.deactivateLayerPreset(layerId));
+    setActiveLayers({});
+    setStatus('Capas limpiadas');
+  };
+  const handleToggleMonitor = (id: string) => {
+    setSelectedMonitors(prev => prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]);
+  };
+
   return (
     <div className="app">
+      <TopBar
+        midiActive={midiActive}
+        midiDeviceName={midiDeviceName}
+        midiDeviceCount={midiDevices.length}
+        bpm={bpm}
+        audioDeviceName={audioDeviceName}
+        audioDeviceCount={audioDevices.length}
+        audioGain={audioGain}
+        onAudioGainChange={handleAudioGainChange}
+        audioLevel={audioLevel}
+        onFullScreen={handleFullScreen}
+        onClearAll={handleClearAll}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+      />
+
       {/* Grid de capas */}
       <div className="layer-grid-container">
         <LayerGrid
@@ -258,6 +369,22 @@ const App: React.FC = () => {
         fps={fps}
         currentPreset={getCurrentPresetName()}
         audioData={audioData}
+      />
+
+      <GlobalSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        audioDevices={audioDevices.map(d => ({ id: d.deviceId, label: d.label || d.deviceId }))}
+        midiDevices={midiDevices.map((d: any) => ({ id: d.id, label: d.name || d.id }))}
+        selectedAudioId={audioDeviceId}
+        selectedMidiId={midiDeviceId}
+        onSelectAudio={setAudioDeviceId}
+        onSelectMidi={setMidiDeviceId}
+        audioGain={audioGain}
+        onAudioGainChange={handleAudioGainChange}
+        monitors={monitors}
+        selectedMonitors={selectedMonitors}
+        onToggleMonitor={handleToggleMonitor}
       />
     </div>
   );
