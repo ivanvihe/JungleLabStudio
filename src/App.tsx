@@ -8,6 +8,7 @@ import { PresetControls } from './components/PresetControls';
 import { TopBar } from './components/TopBar';
 import { GlobalSettingsModal } from './components/GlobalSettingsModal';
 import { LoadedPreset, AudioData } from './core/PresetLoader';
+import { setNestedValue } from './utils/objectPath';
 import './App.css';
 import './components/LayerGrid.css';
 
@@ -35,6 +36,7 @@ const App: React.FC = () => {
   const [selectedPreset, setSelectedPreset] = useState<LoadedPreset | null>(null);
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
   const [isControlsOpen, setIsControlsOpen] = useState(true);
+  const [layerPresetConfigs, setLayerPresetConfigs] = useState<Record<string, Record<string, any>>>({});
 
   // Top bar & settings state
   const [midiDevices, setMidiDevices] = useState<any[]>([]);
@@ -564,15 +566,18 @@ const App: React.FC = () => {
         <LayerGrid
           presets={availablePresets}
           externalTrigger={midiTrigger}
-          onPresetActivate={(layerId, presetId) => {
-            // MEJORA 3: Asegurar independencia entre layers
+          onPresetActivate={async (layerId, presetId) => {
             if (engineRef.current) {
-              engineRef.current.activateLayerPreset(layerId, presetId);
+              await engineRef.current.activateLayerPreset(layerId, presetId);
               setActiveLayers(prev => ({ ...prev, [layerId]: presetId }));
-              
-              // Encontrar y seleccionar el preset para mostrar controles
+
               const preset = availablePresets.find(p => p.id === presetId);
               if (preset) {
+                const cfg = engineRef.current.getLayerPresetConfig(layerId, presetId);
+                setLayerPresetConfigs(prev => ({
+                  ...prev,
+                  [layerId]: { ...(prev[layerId] || {}), [presetId]: cfg }
+                }));
                 setSelectedPreset(preset);
                 setSelectedLayer(layerId);
               }
@@ -586,8 +591,12 @@ const App: React.FC = () => {
                 delete newLayers[layerId];
                 return newLayers;
               });
+              setLayerPresetConfigs(prev => {
+                const cfg = { ...prev };
+                delete cfg[layerId];
+                return cfg;
+              });
 
-              // Limpiar selección si se limpia el layer seleccionado
               if (selectedLayer === layerId) {
                 setSelectedPreset(null);
                 setSelectedLayer(null);
@@ -603,6 +612,13 @@ const App: React.FC = () => {
             if (presetId) {
               const preset = availablePresets.find(p => p.id === presetId);
               if (preset) {
+                const cfg = engineRef.current?.getLayerPresetConfig(layerId, presetId);
+                if (cfg) {
+                  setLayerPresetConfigs(prev => ({
+                    ...prev,
+                    [layerId]: { ...(prev[layerId] || {}), [presetId]: cfg }
+                  }));
+                }
                 setSelectedPreset(preset);
                 setSelectedLayer(layerId);
               }
@@ -630,9 +646,17 @@ const App: React.FC = () => {
           {isControlsOpen && selectedPreset && (
             <PresetControls
               preset={selectedPreset}
-              onConfigUpdate={(config) => {
-                if (engineRef.current && selectedLayer) {
-                  engineRef.current.updateLayerPresetConfig(selectedLayer, config);
+              config={layerPresetConfigs[selectedLayer!]?.[selectedPreset.id]}
+              onConfigUpdate={(path, value) => {
+                if (engineRef.current && selectedLayer && selectedPreset) {
+                  engineRef.current.updateLayerPresetConfig(selectedLayer, path, value);
+                  setLayerPresetConfigs(prev => {
+                    const layerMap = { ...(prev[selectedLayer] || {}) };
+                    const cfg = { ...(layerMap[selectedPreset.id] || {}) };
+                    setNestedValue(cfg, path, value);
+                    layerMap[selectedPreset.id] = cfg;
+                    return { ...prev, [selectedLayer]: layerMap };
+                  });
                 }
               }}
             />

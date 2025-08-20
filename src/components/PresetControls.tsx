@@ -3,14 +3,17 @@
 import React, { useEffect, useRef } from 'react';
 import { LoadedPreset } from '../core/PresetLoader';
 import './PresetControls.css';  // ✅ AÑADIR ESTE IMPORT
+import { getNestedValue } from '../utils/objectPath';
 
 interface PresetControlsProps {
   preset: LoadedPreset;
-  onConfigUpdate: (config: any) => void;
+  config: any;
+  onConfigUpdate: (path: string, value: any) => void;
 }
 
 export const PresetControls: React.FC<PresetControlsProps> = ({
   preset,
+  config,
   onConfigUpdate
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
@@ -31,7 +34,7 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
 
   const handleControlChange = (controlName: string, value: any, type: string) => {
     let processedValue = value;
-    
+
     switch (type) {
       case 'number':
       case 'slider':
@@ -50,13 +53,11 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
         break;
     }
 
-    onConfigUpdate({
-      [controlName]: processedValue
-    });
+    onConfigUpdate(controlName, processedValue);
   };
 
   const renderControl = (control: any) => {
-    const currentValue = preset.config.defaultConfig?.[control.name] || control.default;
+    const currentValue = getNestedValue(config, control.name) ?? control.default;
 
     switch (control.type) {
       case 'slider':
@@ -180,15 +181,15 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
   };
 
   const basicControls = [
-    { name: 'width', type: 'number', label: 'Ancho', min: 100, max: 4096, default: preset.config.defaultConfig?.width || 1920 },
-    { name: 'height', type: 'number', label: 'Alto', min: 100, max: 4096, default: preset.config.defaultConfig?.height || 1080 },
-    { name: 'zoom', type: 'slider', label: 'Zoom', min: 0.1, max: 5, step: 0.1, default: preset.config.defaultConfig?.zoom || 1 },
+    { name: 'width', type: 'number', label: 'Ancho', min: 100, max: 4096, default: getNestedValue(config, 'width') ?? preset.config.defaultConfig?.width ?? 1920 },
+    { name: 'height', type: 'number', label: 'Alto', min: 100, max: 4096, default: getNestedValue(config, 'height') ?? preset.config.defaultConfig?.height ?? 1080 },
+    { name: 'zoom', type: 'slider', label: 'Zoom', min: 0.1, max: 5, step: 0.1, default: getNestedValue(config, 'zoom') ?? preset.config.defaultConfig?.zoom ?? 1 },
   ];
 
   const audioControls = [
-    { name: 'audioSensitivity', type: 'slider', label: 'Sensibilidad', min: 0, max: 2, step: 0.01, default: preset.config.defaultConfig?.audioSensitivity || 1 },
-    { name: 'audioSmoothness', type: 'slider', label: 'Suavizado', min: 0, max: 1, step: 0.01, default: preset.config.defaultConfig?.audioSmoothness || 0.5 },
-    { name: 'audioReactivity', type: 'slider', label: 'Reactividad', min: 0, max: 2, step: 0.01, default: preset.config.defaultConfig?.audioReactivity || 1 },
+    { name: 'audioSensitivity', type: 'slider', label: 'Sensibilidad', min: 0, max: 2, step: 0.01, default: getNestedValue(config, 'audioSensitivity') ?? preset.config.defaultConfig?.audioSensitivity ?? 1 },
+    { name: 'audioSmoothness', type: 'slider', label: 'Suavizado', min: 0, max: 1, step: 0.01, default: getNestedValue(config, 'audioSmoothness') ?? preset.config.defaultConfig?.audioSmoothness ?? 0.5 },
+    { name: 'audioReactivity', type: 'slider', label: 'Reactividad', min: 0, max: 2, step: 0.01, default: getNestedValue(config, 'audioReactivity') ?? preset.config.defaultConfig?.audioReactivity ?? 1 },
   ];
 
   return (
