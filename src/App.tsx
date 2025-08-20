@@ -63,6 +63,8 @@ const App: React.FC = () => {
   const [isFullscreenMode, setIsFullscreenMode] = useState(
     () => new URLSearchParams(window.location.search).get('fullscreen') === 'true'
   );
+  const [hideUiHotkey, setHideUiHotkey] = useState(() => localStorage.getItem('hideUiHotkey') || 'F10');
+  const [isUiHidden, setIsUiHidden] = useState(false);
 
   // Persist selected devices across sessions
   useEffect(() => {
@@ -489,6 +491,18 @@ const App: React.FC = () => {
     localStorage.setItem('activeLayers', JSON.stringify(activeLayers));
   }, [activeLayers]);
 
+  // Toggle UI visibility with configurable hotkey
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key.toUpperCase() === hideUiHotkey.toUpperCase()) {
+        e.preventDefault();
+        setIsUiHidden(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [hideUiHotkey]);
+
   // Handlers
   const handleFullScreen = async () => {
     if ((window as any).__TAURI__) {
@@ -588,12 +602,8 @@ const App: React.FC = () => {
   const audioDeviceName = audioDeviceId ? audioDevices.find(d => d.deviceId === audioDeviceId)?.label || null : null;
   const audioLevel = Math.min((audioData.low + audioData.mid + audioData.high) / 3, 1);
 
-  return isFullscreenMode ? (
-    <div className="app fullscreen-mode">
-      <canvas ref={canvasRef} className="main-canvas" />
-    </div>
-  ) : (
-    <div className="app">
+  return (
+    <div className={`app ${isUiHidden ? 'ui-hidden' : ''}`}>
       <TopBar
         midiActive={midiActive}
         midiDeviceName={midiDeviceName}
@@ -777,6 +787,11 @@ const App: React.FC = () => {
             const presets = await engineRef.current.updateGlitchPadCount(value);
             setAvailablePresets(presets);
           }
+        }}
+        hideUiHotkey={hideUiHotkey}
+        onHideUiHotkeyChange={(key) => {
+          setHideUiHotkey(key);
+          localStorage.setItem('hideUiHotkey', key);
         }}
       />
     </div>

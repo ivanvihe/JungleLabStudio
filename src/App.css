@@ -21,12 +21,19 @@ body {
   grid-template-rows: 40px 300px 1fr;
 }
 
-.app.fullscreen-mode {
+.app.ui-hidden {
   display: flex;
   grid-template-rows: none;
 }
 
-.app.fullscreen-mode .main-canvas {
+.app.ui-hidden .top-bar,
+.app.ui-hidden .layer-grid-container,
+.app.ui-hidden .controls-panel,
+.app.ui-hidden .status-bar {
+  display: none;
+}
+
+.app.ui-hidden .main-canvas {
   border: none;
 }
 
