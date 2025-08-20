@@ -1,0 +1,31 @@
+{
+  "name": "Heart Beat",
+  "description": "Pulse of a grayscale electronic heart",
+  "author": "AudioVisualizer",
+  "version": "1.0.0",
+  "category": "one-shot",
+  "tags": ["heart", "pulse", "one-shot"],
+  "thumbnail": "heart_beat_thumb.png",
+  "note": 62,
+  "defaultConfig": {
+    "opacity": 1.0,
+    "duration": 1.5,
+    "color": "#ffffff",
+    "scale": 1.0
+  },
+  "controls": [
+    {"name": "color", "type": "color", "label": "Color", "default": "#ffffff"},
+    {"name": "duration", "type": "slider", "label": "Duration", "min": 0.5, "max": 3, "step": 0.1, "default": 1.5},
+    {"name": "scale", "type": "slider", "label": "Scale", "min": 0.5, "max": 2, "step": 0.1, "default": 1.0}
+  ],
+  "audioMapping": {
+    "low": {"description": "Triggers heart beat", "frequency": "20-250 Hz", "effect": "Pulse amplitude"},
+    "mid": {"description": "Modulates glow", "frequency": "250-4000 Hz", "effect": "Glow intensity"},
+    "high": {"description": "Adds shimmer", "frequency": "4000+ Hz", "effect": "Subtle flicker"}
+  },
+  "performance": {
+    "complexity": "low",
+    "recommendedFPS": 60,
+    "gpuIntensive": false
+  }
+}
