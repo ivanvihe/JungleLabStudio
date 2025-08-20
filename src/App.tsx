@@ -574,7 +574,7 @@ const App: React.FC = () => {
             className="toggle-sidebar"
             onClick={() => setIsControlsOpen(!isControlsOpen)}
           >
-            {isControlsOpen ? '>' : '<'}
+            {isControlsOpen ? '✕' : '⚙️'}
           </button>
           {isControlsOpen && selectedPreset && (
             <PresetControls
