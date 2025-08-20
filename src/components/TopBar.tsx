@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface TopBarProps {
   midiActive: boolean;
@@ -31,6 +31,14 @@ export const TopBar: React.FC<TopBarProps> = ({
   onClearAll,
   onOpenSettings
 }) => {
+  const [activeLed, setActiveLed] = useState(0);
+
+  useEffect(() => {
+    if (beatActive) {
+      setActiveLed(prev => (prev === 0 ? 1 : 0));
+    }
+  }, [beatActive]);
+
   return (
     <div className="top-bar">
       <div className="midi-section">
@@ -44,7 +52,10 @@ export const TopBar: React.FC<TopBarProps> = ({
 
       <div className="bpm-section">
         <span>BPM: {bpm ? bpm.toFixed(1) : '--'}</span>
-        <div className={`metronome ${beatActive ? 'active' : ''}`}></div>
+        <div className="metronome">
+          <div className={`metronome-led ${activeLed === 0 ? 'active' : ''}`}></div>
+          <div className={`metronome-led ${activeLed === 1 ? 'active' : ''}`}></div>
+        </div>
       </div>
 
       <div className="separator" />

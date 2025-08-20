@@ -24,8 +24,8 @@ interface MonitorInfo {
 const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<AudioVisualizerEngine | null>(null);
-  const clockTimesRef = useRef<number[]>([]);
-  const clockCountRef = useRef(0);
+  const tickCountRef = useRef(0);
+  const lastBeatRef = useRef<number | null>(null);
   
   const [isInitialized, setIsInitialized] = useState(false);
   const [availablePresets, setAvailablePresets] = useState<LoadedPreset[]>([]);
@@ -228,25 +228,24 @@ const App: React.FC = () => {
       // MIDI Clock handling
       if (statusByte === 0xf8) {
         const now = performance.now();
-        const times = clockTimesRef.current;
-        times.push(now);
-        if (times.length > 24) times.shift();
+        tickCountRef.current++;
 
-        clockCountRef.current++;
-        if (clockCountRef.current % 24 === 0) {
+        if (tickCountRef.current >= 24) {
+          const lastBeat = lastBeatRef.current;
+          if (lastBeat !== null) {
+            const diff = now - lastBeat;
+            const bpmVal = 60000 / diff;
+            setBpm(bpmVal);
+            if (engineRef.current) {
+              engineRef.current.updateBpm(bpmVal);
+            }
+          }
+          lastBeatRef.current = now;
+          tickCountRef.current = 0;
           setBeatActive(true);
           setTimeout(() => setBeatActive(false), 100);
           if (engineRef.current) {
             engineRef.current.triggerBeat();
-          }
-        }
-
-        if (times.length >= 2) {
-          const diff = (times[times.length - 1] - times[0]) / (times.length - 1);
-          const bpmVal = 60000 / (diff * 24);
-          setBpm(bpmVal);
-          if (engineRef.current) {
-            engineRef.current.updateBpm(bpmVal);
           }
         }
         return;
