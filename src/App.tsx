@@ -1,4 +1,4 @@
-// MEJORA 2: App.tsx con detección de monitores mejorada
+// App.tsx - Corregido y completo con todas las mejoras
 
 import React, { useEffect, useRef, useState } from 'react';
 import { AudioVisualizerEngine } from './core/AudioVisualizerEngine';
@@ -76,7 +76,6 @@ const App: React.FC = () => {
     const loadMonitors = async () => {
       if ((window as any).__TAURI__) {
         try {
-          // Load Tauri window API dynamically
           const { availableMonitors, currentMonitor } = await import(
             /* @vite-ignore */ '@tauri-apps/api/window'
           );
@@ -122,7 +121,6 @@ const App: React.FC = () => {
     };
 
     const loadFallbackMonitors = async () => {
-      // Fallback para navegadores web - usar Screen API si está disponible
       const fallbackMonitors: MonitorInfo[] = [];
       
       if ('getScreenDetails' in window) {
@@ -144,7 +142,6 @@ const App: React.FC = () => {
         }
       }
       
-      // Si no se detectaron monitores, usar fallback básico
       if (fallbackMonitors.length === 0) {
         const fallback: MonitorInfo = {
           id: 'primary',
@@ -164,15 +161,260 @@ const App: React.FC = () => {
     loadMonitors();
   }, []);
 
-  // ... resto del código existente ...
+  // Inicializar el engine
+  useEffect(() => {
+    const initEngine = async () => {
+      if (!canvasRef.current) {
+        console.error('❌ Canvas ref is null');
+        return;
+      }
+      
+      console.log('🔧 Canvas found, initializing engine...');
+      try {
+        setStatus('Cargando presets...');
+        const engine = new AudioVisualizerEngine(canvasRef.current, { glitchTextPads });
+        await engine.initialize();
+        engineRef.current = engine;
+        
+        const presets = engine.getAvailablePresets();
+        setAvailablePresets(presets);
+        setIsInitialized(true);
+        setStatus('Listo');
+        console.log(`✅ Engine initialized with ${presets.length} presets`);
+      } catch (error) {
+        console.error('❌ Failed to initialize engine:', error);
+        setStatus('Error al inicializar');
+      }
+    };
 
+    console.log('🚀 Starting app initialization...');
+    initEngine();
+
+    return () => {
+      if (engineRef.current) {
+        engineRef.current.dispose();
+      }
+    };
+  }, [glitchTextPads]);
+
+  // Enumerar dispositivos de audio
+  useEffect(() => {
+    if (navigator?.mediaDevices?.enumerateDevices) {
+      navigator.mediaDevices.enumerateDevices()
+        .then(devs => {
+          const inputs = devs.filter(d => d.kind === 'audioinput');
+          setAudioDevices(inputs);
+          if (audioDeviceId && !inputs.some(d => d.deviceId === audioDeviceId)) {
+            setAudioDeviceId(null);
+          }
+        })
+        .catch(err => console.warn('Audio devices error', err));
+    }
+  }, [audioDeviceId]);
+
+  // Configurar MIDI
+  useEffect(() => {
+    const handleMIDIMessage = (event: any) => {
+      setMidiActive(true);
+      setTimeout(() => setMidiActive(false), 100);
+      
+      const [statusByte] = event.data;
+      if (statusByte === 0xf8) { // MIDI Clock
+        const now = performance.now();
+        const times = clockTimesRef.current;
+        times.push(now);
+        if (times.length > 24) times.shift();
+        
+        if (times.length >= 2) {
+          const diff = (times[times.length - 1] - times[0]) / (times.length - 1);
+          const bpmVal = 60000 / (diff * 24);
+          setBpm(bpmVal);
+        }
+      }
+    };
+
+    if ((navigator as any).requestMIDIAccess) {
+      (navigator as any).requestMIDIAccess()
+        .then((access: any) => {
+          const inputs = Array.from(access.inputs.values());
+          setMidiDevices(inputs);
+          
+          inputs.forEach((input: any) => {
+            if (!midiDeviceId || input.id === midiDeviceId) {
+              input.onmidimessage = handleMIDIMessage;
+            } else {
+              input.onmidimessage = null;
+            }
+          });
+
+          access.onstatechange = () => {
+            const ins = Array.from(access.inputs.values());
+            setMidiDevices(ins);
+          };
+        })
+        .catch((err: any) => console.warn('MIDI access error', err));
+    }
+  }, [midiDeviceId]);
+
+  // Configurar listener de audio
+  useEffect(() => {
+    let teardown: (() => void) | undefined;
+
+    const scaleAudio = (d: AudioData): AudioData => ({
+      low: d.low * audioGain,
+      mid: d.mid * audioGain,
+      high: d.high * audioGain,
+      fft: d.fft.map(v => v * audioGain)
+    });
+
+    const setupAudioListener = async () => {
+      try {
+        if (typeof window !== 'undefined' && (window as any).__TAURI__) {
+          console.log('🎵 Tauri environment detected, setting up audio listener...');
+          
+          const tauriApi = await import('@tauri-apps/api/event');
+          const unlisten = await tauriApi.listen('audio_data', (event) => {
+            const data = event.payload as AudioData;
+            const scaled = scaleAudio(data);
+            setAudioData(scaled);
+            if (engineRef.current) {
+              engineRef.current.updateAudioData(scaled);
+            }
+          });
+
+          console.log('✅ Tauri audio listener setup complete');
+          teardown = () => { unlisten(); };
+        } else {
+          console.log('🎙️ Using Web Audio API for input');
+          const constraints: MediaStreamConstraints = {
+            audio: audioDeviceId ? { deviceId: { exact: audioDeviceId } } : true
+          };
+          
+          const stream = await navigator.mediaDevices.getUserMedia(constraints);
+          const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+          const audioCtx = new AudioContextClass();
+          const source = audioCtx.createMediaStreamSource(stream);
+          const analyser = audioCtx.createAnalyser();
+          
+          analyser.fftSize = 512;
+          source.connect(analyser);
+          
+          const bufferLength = analyser.frequencyBinCount;
+          const dataArray = new Uint8Array(bufferLength);
+          let rafId = 0;
+
+          const update = () => {
+            analyser.getByteFrequencyData(dataArray);
+            const third = Math.floor(bufferLength / 3);
+            
+            const avg = (arr: Uint8Array) => arr.reduce((sum, v) => sum + v, 0) / arr.length / 255;
+            const low = avg(dataArray.slice(0, third));
+            const mid = avg(dataArray.slice(third, third * 2));
+            const high = avg(dataArray.slice(third * 2));
+            const fft = Array.from(dataArray, v => v / 255);
+
+            const scaled = scaleAudio({ low, mid, high, fft });
+            setAudioData(scaled);
+            if (engineRef.current) {
+              engineRef.current.updateAudioData(scaled);
+            }
+
+            rafId = requestAnimationFrame(update);
+          };
+
+          rafId = requestAnimationFrame(update);
+          teardown = () => {
+            cancelAnimationFrame(rafId);
+            audioCtx.close();
+            stream.getTracks().forEach(t => t.stop());
+          };
+        }
+      } catch (error) {
+        console.warn('⚠️ Audio listener setup failed:', error);
+        
+        // Fallback: datos de audio estáticos
+        const fallbackData: AudioData = {
+          low: 0.3,
+          mid: 0.5,
+          high: 0.2,
+          fft: Array.from({ length: 256 }, () => Math.random() * 0.5)
+        };
+
+        const scaled = scaleAudio(fallbackData);
+        setAudioData(scaled);
+        if (engineRef.current) {
+          engineRef.current.updateAudioData(scaled);
+        }
+      }
+    };
+
+    if (isInitialized) {
+      setupAudioListener();
+    }
+
+    return () => {
+      if (teardown) teardown();
+    };
+  }, [isInitialized, audioGain, audioDeviceId]);
+
+  // Activar capas almacenadas en modo fullscreen
+  useEffect(() => {
+    if (isFullscreenMode && isInitialized && engineRef.current) {
+      const stored = localStorage.getItem('activeLayers');
+      if (stored) {
+        const layers = JSON.parse(stored) as Record<string, string>;
+        Object.entries(layers).forEach(([layerId, presetId]) => {
+          engineRef.current!.activateLayerPreset(layerId, presetId);
+        });
+      }
+    }
+  }, [isFullscreenMode, isInitialized]);
+
+  // Cerrar ventana fullscreen con ESC o F11
+  useEffect(() => {
+    if (isFullscreenMode) {
+      const handler = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' || e.key === 'F11') {
+          window.close();
+        }
+      };
+      window.addEventListener('keydown', handler);
+      return () => window.removeEventListener('keydown', handler);
+    }
+  }, [isFullscreenMode]);
+
+  // Monitor FPS
+  useEffect(() => {
+    let frameCount = 0;
+    let lastTime = Date.now();
+    
+    const updateFPS = () => {
+      frameCount++;
+      const currentTime = Date.now();
+      if (currentTime - lastTime >= 1000) {
+        setFps(frameCount);
+        frameCount = 0;
+        lastTime = currentTime;
+      }
+      requestAnimationFrame(updateFPS);
+    };
+
+    if (isInitialized) {
+      updateFPS();
+    }
+  }, [isInitialized]);
+
+  // Persistir capas activas para modo fullscreen
+  useEffect(() => {
+    localStorage.setItem('activeLayers', JSON.stringify(activeLayers));
+  }, [activeLayers]);
+
+  // Handlers
   const handleFullScreen = async () => {
     if ((window as any).__TAURI__) {
-      // Guardar estado de capas activas
       localStorage.setItem('activeLayers', JSON.stringify(activeLayers));
       
       try {
-        // Dynamically load the WebviewWindow constructor
         const { WebviewWindow } = await import(
           /* @vite-ignore */ '@tauri-apps/api/window'
         );
@@ -186,7 +428,6 @@ const App: React.FC = () => {
         
         console.log(`🎯 Abriendo fullscreen en ${selectedMonitorsList.length} monitores`);
         
-        // Crear ventana para cada monitor seleccionado
         selectedMonitorsList.forEach((monitor, index) => {
           const label = `fullscreen-${monitor.id}-${Date.now()}-${index}`;
           
@@ -220,7 +461,6 @@ const App: React.FC = () => {
         setStatus('Error: No se pudo activar fullscreen');
       }
     } else {
-      // Fallback para navegador web
       const elem: any = document.documentElement;
       if (elem.requestFullscreen) {
         await elem.requestFullscreen();
@@ -253,8 +493,6 @@ const App: React.FC = () => {
       return newSelection;
     });
   };
-
-  // ... resto del código existente ...
 
   const getCurrentPresetName = (): string => {
     if (!selectedPreset) return 'Ninguno';

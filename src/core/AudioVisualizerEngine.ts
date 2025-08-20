@@ -218,12 +218,12 @@ export class AudioVisualizerEngine {
       this.renderer.setRenderTarget(layer.renderTarget);
       this.renderer.clear();
       
-      // Actualizar preset del layer
-      this.presetLoader.updatePreset(layer.preset.id);
-      
-      // Renderizar scene del layer con fondo transparente
+      // La scene ya contiene el preset activo, solo renderizar
       this.renderer.render(layer.scene, this.camera);
     });
+
+    // Actualizar todos los presets activos
+    this.presetLoader.updateActivePresets();
 
     // Volver al canvas principal
     this.renderer.setRenderTarget(null);
@@ -255,33 +255,27 @@ export class AudioVisualizerEngine {
     try {
       // Desactivar preset anterior del layer si existe
       if (layer.preset) {
-        this.presetLoader.deactivatePreset(layer.preset.id);
+        this.presetLoader.deactivatePreset(`${layerId}-${layer.preset.id}`);
         layer.scene.clear();
       }
 
       // Activar nuevo preset
-      const preset = this.presetLoader.activatePreset(presetId);
-      if (!preset) {
+      const presetInstance = this.presetLoader.activatePreset(presetId, layer.scene, `${layerId}-${presetId}`);
+      if (!presetInstance) {
         console.error(`No se pudo activar preset ${presetId}`);
         return false;
       }
 
-      // Configurar preset con fondo transparente
-      if (preset.mesh && preset.mesh.material) {
-        const material = preset.mesh.material as THREE.ShaderMaterial;
-        if (material.uniforms && material.uniforms.backgroundColor) {
-          material.uniforms.backgroundColor.value = new THREE.Vector4(0, 0, 0, 0); // Transparente
-        }
+      // Encontrar el preset loaded para guardarlo
+      const loadedPreset = this.presetLoader.getLoadedPresets().find(p => p.id === presetId);
+      if (!loadedPreset) {
+        console.error(`Loaded preset ${presetId} no encontrado`);
+        return false;
       }
 
       // Asignar preset al layer
-      layer.preset = preset;
+      layer.preset = loadedPreset;
       layer.isActive = true;
-      
-      // Agregar mesh del preset a la scene del layer
-      if (preset.mesh) {
-        layer.scene.add(preset.mesh);
-      }
 
       console.log(`✅ Layer ${layerId} activado con preset ${presetId}`);
       return true;
@@ -296,7 +290,7 @@ export class AudioVisualizerEngine {
     if (!layer) return;
 
     if (layer.preset) {
-      this.presetLoader.deactivatePreset(layer.preset.id);
+      this.presetLoader.deactivatePreset(`${layerId}-${layer.preset.id}`);
       layer.scene.clear();
       layer.preset = null;
     }
@@ -322,15 +316,18 @@ export class AudioVisualizerEngine {
     const layer = this.layers.get(layerId);
     if (!layer || !layer.preset) return;
 
-    // Actualizar configuración del preset específico del layer
-    this.presetLoader.updatePresetConfig(layer.preset.id, config);
+    // Obtener la instancia activa del preset
+    const activePreset = this.presetLoader.getActivePreset(`${layerId}-${layer.preset.id}`);
+    if (activePreset && activePreset.updateConfig) {
+      activePreset.updateConfig(config);
+    }
   }
 
   public setGlobalOpacity(opacity: number): void {
     this.compositingMaterial.uniforms.globalOpacity.value = opacity;
   }
 
-  public getAvailablePresets(): LoadedPreset[] {
+ailablePresets(): LoadedPreset[] {
     return this.presetLoader.getAllPresets();
   }
 
@@ -361,7 +358,7 @@ export class AudioVisualizerEngine {
     // Limpiar layers
     this.layers.forEach((layer, layerId) => {
       if (layer.preset) {
-        this.presetLoader.deactivatePreset(layer.preset.id);
+        this.presetLoader.deactivatePreset(`${layerId}-${layer.preset.id}`);
       }
       if (layer.renderTarget) {
         layer.renderTarget.dispose();
