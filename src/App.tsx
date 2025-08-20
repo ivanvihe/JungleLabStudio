@@ -19,6 +19,7 @@ const App: React.FC = () => {
   const [activeLayers, setActiveLayers] = useState<Record<string, string>>({});
   const [selectedPreset, setSelectedPreset] = useState<LoadedPreset | null>(null);
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
+  const [isControlsOpen, setIsControlsOpen] = useState(true);
 
   // Inicializar el engine
   useEffect(() => {
@@ -232,11 +233,23 @@ const App: React.FC = () => {
       {/* Sección inferior con visuales y controles */}
       <div className="bottom-section">
         <canvas ref={canvasRef} className="main-canvas" />
-        {selectedPreset && (
-          <div className="controls-panel">
-            <PresetControls preset={selectedPreset} onConfigUpdate={handlePresetConfigUpdate} />
-          </div>
-        )}
+        <div className={`controls-panel ${isControlsOpen ? '' : 'collapsed'}`}>
+          <button
+            className="toggle-sidebar"
+            onClick={() => setIsControlsOpen(!isControlsOpen)}
+          >
+            {isControlsOpen ? '>' : '<'}
+          </button>
+          {isControlsOpen && selectedPreset && (
+            <PresetControls
+              preset={selectedPreset}
+              onConfigUpdate={handlePresetConfigUpdate}
+            />
+          )}
+          {isControlsOpen && !selectedPreset && (
+            <div className="no-preset-selected">Selecciona un preset</div>
+          )}
+        </div>
       </div>
 
       {/* Barra de estado */}
