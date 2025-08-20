@@ -44,6 +44,11 @@
   font-weight: 600;
 }
 
+.midi-channel-label {
+  font-size: 10px;
+  color: #bbb;
+}
+
 .sidebar-controls {
   display: flex;
   flex-direction: column;

@@ -212,6 +212,20 @@
   transition: all 0.2s ease;
 }
 
+.layer-channel-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.layer-channel-settings h5 {
+  margin: 0;
+  font-size: 14px;
+  color: #ccc;
+  font-weight: 500;
+}
+
 .setting-select:focus,
 .setting-slider:focus,
 .setting-number:focus {

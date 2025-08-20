@@ -28,6 +28,12 @@ interface GlobalSettingsModalProps {
   onSelectMidi: (id: string) => void;
   audioGain: number;
   onAudioGainChange: (value: number) => void;
+  midiClockDelay: number;
+  onMidiClockDelayChange: (value: number) => void;
+  midiClockType: string;
+  onMidiClockTypeChange: (value: string) => void;
+  layerChannels: Record<string, number>;
+  onLayerChannelChange: (layerId: string, channel: number) => void;
   monitors: MonitorInfo[];
   selectedMonitors: string[];
   onToggleMonitor: (id: string) => void;
@@ -46,6 +52,12 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   onSelectMidi,
   audioGain,
   onAudioGainChange,
+  midiClockDelay,
+  onMidiClockDelayChange,
+  midiClockType,
+  onMidiClockTypeChange,
+  layerChannels,
+  onLayerChannelChange,
   monitors,
   selectedMonitors,
   onToggleMonitor,
@@ -294,6 +306,44 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                     ))}
                   </select>
                 </label>
+                <label className="setting-label">
+                  <span>Tipo de Clock</span>
+                  <select
+                    value={midiClockType}
+                    onChange={(e) => onMidiClockTypeChange(e.target.value)}
+                    className="setting-select"
+                  >
+                    <option value="midi">MIDI</option>
+                    <option value="off">Off</option>
+                  </select>
+                </label>
+                <label className="setting-label">
+                  <span>Delay Clock (ms)</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={1000}
+                    value={midiClockDelay}
+                    onChange={(e) => onMidiClockDelayChange(parseInt(e.target.value) || 0)}
+                    className="setting-number"
+                  />
+                </label>
+                <div className="layer-channel-settings">
+                  <h5>Canal MIDI por Layer</h5>
+                  {['A','B','C'].map(id => (
+                    <label key={id} className="setting-label">
+                      <span>Layer {id}</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={16}
+                        value={layerChannels[id]}
+                        onChange={(e) => onLayerChannelChange(id, parseInt(e.target.value) || 1)}
+                        className="setting-number"
+                      />
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
           )}

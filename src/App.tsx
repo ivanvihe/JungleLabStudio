@@ -26,6 +26,7 @@ const App: React.FC = () => {
   const engineRef = useRef<AudioVisualizerEngine | null>(null);
   const tickCountRef = useRef(0);
   const lastBeatRef = useRef<number | null>(null);
+  const bpmSamplesRef = useRef<number[]>([]);
   
   const [isInitialized, setIsInitialized] = useState(false);
   const [availablePresets, setAvailablePresets] = useState<LoadedPreset[]>([]);
@@ -48,6 +49,12 @@ const App: React.FC = () => {
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [audioDeviceId, setAudioDeviceId] = useState<string | null>(null);
   const [audioGain, setAudioGain] = useState(1);
+  const [midiClockDelay, setMidiClockDelay] = useState(() => parseInt(localStorage.getItem('midiClockDelay') || '0'));
+  const [midiClockType, setMidiClockType] = useState(() => localStorage.getItem('midiClockType') || 'midi');
+  const [layerChannels, setLayerChannels] = useState<Record<string, number>>(() => {
+    const saved = localStorage.getItem('layerMidiChannels');
+    return saved ? JSON.parse(saved) : { A: 14, B: 15, C: 16 };
+  });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [monitors, setMonitors] = useState<MonitorInfo[]>([]);
   const [selectedMonitors, setSelectedMonitors] = useState<string[]>([]);
@@ -225,8 +232,19 @@ const App: React.FC = () => {
       setTimeout(() => setMidiActive(false), 100);
       const [statusByte, note, vel] = event.data;
 
+      // MIDI Start/Stop/Continue handling
+      if (statusByte === 0xfa || statusByte === 0xfb || statusByte === 0xfc) {
+        tickCountRef.current = 0;
+        lastBeatRef.current = null;
+        bpmSamplesRef.current = [];
+        if (statusByte === 0xfc) {
+          setBpm(null);
+        }
+        return;
+      }
+
       // MIDI Clock handling
-      if (statusByte === 0xf8) {
+      if (statusByte === 0xf8 && midiClockType === 'midi') {
         const now = performance.now();
         tickCountRef.current++;
 
@@ -235,17 +253,31 @@ const App: React.FC = () => {
           if (lastBeat !== null) {
             const diff = now - lastBeat;
             const bpmVal = 60000 / diff;
-            setBpm(bpmVal);
-            if (engineRef.current) {
-              engineRef.current.updateBpm(bpmVal);
+            if (isFinite(bpmVal)) {
+              bpmSamplesRef.current.push(bpmVal);
+              if (bpmSamplesRef.current.length > 8) bpmSamplesRef.current.shift();
+              const avg = bpmSamplesRef.current.reduce((a, b) => a + b, 0) / bpmSamplesRef.current.length;
+              setBpm(avg);
+              if (engineRef.current) {
+                engineRef.current.updateBpm(avg);
+              }
             }
           }
           lastBeatRef.current = now;
           tickCountRef.current = 0;
-          setBeatActive(true);
-          setTimeout(() => setBeatActive(false), 100);
-          if (engineRef.current) {
-            engineRef.current.triggerBeat();
+
+          const trigger = () => {
+            setBeatActive(true);
+            setTimeout(() => setBeatActive(false), 100);
+            if (engineRef.current) {
+              engineRef.current.triggerBeat();
+            }
+          };
+
+          if (midiClockDelay > 0) {
+            setTimeout(trigger, midiClockDelay);
+          } else {
+            trigger();
           }
         }
         return;
@@ -255,7 +287,9 @@ const App: React.FC = () => {
       const command = statusByte & 0xf0;
       const channel = (statusByte & 0x0f) + 1;
       if (command === 0x90 && vel > 0) {
-        const channelToLayer: Record<number, string> = { 14: 'A', 15: 'B', 16: 'C' };
+        const channelToLayer = Object.fromEntries(
+          Object.entries(layerChannels).map(([layerId, ch]) => [ch, layerId])
+        ) as Record<number, string>;
         const layerId = channelToLayer[channel];
         const preset = availablePresets.find(p => p.config.note === note);
         if (layerId && preset) {
@@ -269,7 +303,7 @@ const App: React.FC = () => {
         .then((access: any) => {
           const inputs = Array.from(access.inputs.values());
           setMidiDevices(inputs);
-          
+
           inputs.forEach((input: any) => {
             if (!midiDeviceId || input.id === midiDeviceId) {
               input.onmidimessage = handleMIDIMessage;
@@ -285,7 +319,7 @@ const App: React.FC = () => {
         })
         .catch((err: any) => console.warn('MIDI access error', err));
     }
-  }, [midiDeviceId]);
+  }, [midiDeviceId, midiClockType, midiClockDelay, layerChannels, availablePresets]);
 
   // Configurar listener de audio
   useEffect(() => {
@@ -629,6 +663,7 @@ const App: React.FC = () => {
             }
           }}
           clearAllSignal={clearSignal}
+          layerChannels={layerChannels}
         />
       </div>
 
@@ -699,6 +734,22 @@ const App: React.FC = () => {
         }}
         audioGain={audioGain}
         onAudioGainChange={setAudioGain}
+        midiClockDelay={midiClockDelay}
+        onMidiClockDelayChange={(v) => {
+          setMidiClockDelay(v);
+          localStorage.setItem('midiClockDelay', v.toString());
+        }}
+        midiClockType={midiClockType}
+        onMidiClockTypeChange={(t) => {
+          setMidiClockType(t);
+          localStorage.setItem('midiClockType', t);
+        }}
+        layerChannels={layerChannels}
+        onLayerChannelChange={(layerId, channel) => {
+          const updated = { ...layerChannels, [layerId]: channel };
+          setLayerChannels(updated);
+          localStorage.setItem('layerMidiChannels', JSON.stringify(updated));
+        }}
         monitors={monitors}
         selectedMonitors={selectedMonitors}
         onToggleMonitor={handleToggleMonitor}
