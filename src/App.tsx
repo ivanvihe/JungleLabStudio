@@ -38,6 +38,36 @@ const App: React.FC = () => {
   ]);
   const [selectedMonitors, setSelectedMonitors] = useState<string[]>(['primary']);
 
+  // Persist selected devices across sessions
+  useEffect(() => {
+    const savedAudio = localStorage.getItem('selectedAudioDevice');
+    const savedMidi = localStorage.getItem('selectedMidiDevice');
+    if (savedAudio) {
+      setAudioDeviceId(savedAudio);
+    }
+    if (savedMidi) {
+      setMidiDeviceId(savedMidi);
+    }
+  }, []);
+
+  const handleSelectAudio = (id: string) => {
+    setAudioDeviceId(id || null);
+    if (id) {
+      localStorage.setItem('selectedAudioDevice', id);
+    } else {
+      localStorage.removeItem('selectedAudioDevice');
+    }
+  };
+
+  const handleSelectMidi = (id: string) => {
+    setMidiDeviceId(id || null);
+    if (id) {
+      localStorage.setItem('selectedMidiDevice', id);
+    } else {
+      localStorage.removeItem('selectedMidiDevice');
+    }
+  };
+
   const scaleAudio = (d: AudioData): AudioData => ({
     low: d.low * audioGain,
     mid: d.mid * audioGain,
@@ -90,11 +120,15 @@ const App: React.FC = () => {
     if (navigator?.mediaDevices?.enumerateDevices) {
       navigator.mediaDevices.enumerateDevices()
         .then(devs => {
-          setAudioDevices(devs.filter(d => d.kind === 'audioinput'));
+          const inputs = devs.filter(d => d.kind === 'audioinput');
+          setAudioDevices(inputs);
+          if (audioDeviceId && !inputs.some(d => d.deviceId === audioDeviceId)) {
+            setAudioDeviceId(null);
+          }
         })
         .catch(err => console.warn('Audio devices error', err));
     }
-  }, []);
+  }, [audioDeviceId]);
 
   // Configurar MIDI
   useEffect(() => {
@@ -122,7 +156,11 @@ const App: React.FC = () => {
           const inputs = Array.from(access.inputs.values());
           setMidiDevices(inputs);
           inputs.forEach((input: any) => {
-            input.onmidimessage = handleMIDIMessage;
+            if (!midiDeviceId || input.id === midiDeviceId) {
+              input.onmidimessage = handleMIDIMessage;
+            } else {
+              input.onmidimessage = null;
+            }
           });
           access.onstatechange = () => {
             const ins = Array.from(access.inputs.values());
@@ -131,10 +169,11 @@ const App: React.FC = () => {
         })
         .catch((err: any) => console.warn('MIDI access error', err));
     }
-  }, []);
+  }, [midiDeviceId]);
 
   // Configurar listener de audio - VERSIÓN MEJORADA
   useEffect(() => {
+    let teardown: (() => void) | undefined;
     const setupAudioListener = async () => {
       try {
         // Detectar si estamos en un entorno Tauri
@@ -144,7 +183,7 @@ const App: React.FC = () => {
           // Importación dinámica solo en entorno Tauri
           const tauriApi = await import('@tauri-apps/api/event');
           
-          await tauriApi.listen('audio_data', (event) => {
+          const unlisten = await tauriApi.listen('audio_data', (event) => {
             const data = event.payload as AudioData;
             const scaled = scaleAudio(data);
             setAudioData(scaled);
@@ -155,33 +194,48 @@ const App: React.FC = () => {
           });
           
           console.log('✅ Tauri audio listener setup complete');
+          teardown = () => { unlisten(); };
         } else {
-          console.log('⚠️ Not in Tauri environment, audio listener disabled');
-          
-          // Opcional: Configurar datos de audio simulados para desarrollo
-          const simulateAudioData = () => {
-            const time = Date.now() * 0.001;
-            const simulatedData: AudioData = {
-              low: (Math.sin(time * 0.5) + 1) * 0.5,
-              mid: (Math.sin(time * 1.2) + 1) * 0.5,
-              high: (Math.sin(time * 2.0) + 1) * 0.5,
-              fft: Array.from({ length: 256 }, (_, i) => 
-                (Math.sin(time + i * 0.1) + 1) * 0.5
-              )
-            };
-            
-            const scaled = scaleAudio(simulatedData);
-            setAudioData(scaled);
+          console.log('🎙️ Using Web Audio API for input');
 
+          const constraints: MediaStreamConstraints = {
+            audio: audioDeviceId ? { deviceId: { exact: audioDeviceId } } : true
+          };
+          const stream = await navigator.mediaDevices.getUserMedia(constraints);
+          const AudioContextClass =
+            (window as any).AudioContext || (window as any).webkitAudioContext;
+          const audioCtx = new AudioContextClass();
+          const source = audioCtx.createMediaStreamSource(stream);
+          const analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 512;
+          source.connect(analyser);
+          const bufferLength = analyser.frequencyBinCount;
+          const dataArray = new Uint8Array(bufferLength);
+
+          let rafId = 0;
+          const update = () => {
+            analyser.getByteFrequencyData(dataArray);
+            const third = Math.floor(bufferLength / 3);
+            const avg = (arr: Uint8Array) =>
+              arr.reduce((sum, v) => sum + v, 0) / arr.length / 255;
+            const low = avg(dataArray.slice(0, third));
+            const mid = avg(dataArray.slice(third, third * 2));
+            const high = avg(dataArray.slice(third * 2));
+            const fft = Array.from(dataArray, v => v / 255);
+            const scaled = scaleAudio({ low, mid, high, fft });
+            setAudioData(scaled);
             if (engineRef.current) {
               engineRef.current.updateAudioData(scaled);
             }
+            rafId = requestAnimationFrame(update);
           };
-          
-          // Simular datos de audio cada 16ms (~60fps)
-          const interval = setInterval(simulateAudioData, 16);
-          
-          return () => clearInterval(interval);
+          rafId = requestAnimationFrame(update);
+
+          teardown = () => {
+            cancelAnimationFrame(rafId);
+            audioCtx.close();
+            stream.getTracks().forEach(t => t.stop());
+          };
         }
       } catch (error) {
         console.warn('⚠️ Audio listener setup failed:', error);
@@ -206,7 +260,10 @@ const App: React.FC = () => {
     if (isInitialized) {
       setupAudioListener();
     }
-  }, [isInitialized, audioGain]);
+    return () => {
+      if (teardown) teardown();
+    };
+  }, [isInitialized, audioGain, audioDeviceId]);
 
   // Monitor FPS
   useEffect(() => {
@@ -378,8 +435,8 @@ const App: React.FC = () => {
         midiDevices={midiDevices.map((d: any) => ({ id: d.id, label: d.name || d.id }))}
         selectedAudioId={audioDeviceId}
         selectedMidiId={midiDeviceId}
-        onSelectAudio={setAudioDeviceId}
-        onSelectMidi={setMidiDeviceId}
+        onSelectAudio={handleSelectAudio}
+        onSelectMidi={handleSelectMidi}
         audioGain={audioGain}
         onAudioGainChange={handleAudioGainChange}
         monitors={monitors}
