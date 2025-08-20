@@ -16,13 +16,15 @@ interface LayerGridProps {
   onPresetActivate: (layerId: string, presetId: string) => void;
   onLayerClear: (layerId: string) => void;
   onLayerConfigChange: (layerId: string, config: Partial<LayerConfig>) => void;
+  onPresetSelect: (layerId: string, presetId: string) => void;
 }
 
 export const LayerGrid: React.FC<LayerGridProps> = ({
   presets,
   onPresetActivate,
   onLayerClear,
-  onLayerConfigChange
+  onLayerConfigChange,
+  onPresetSelect
 }) => {
   const [layers, setLayers] = useState<LayerConfig[]>([
     { id: 'A', name: 'Layer A', color: '#FF6B6B', midiChannel: 14, fadeTime: 200, opacity: 100, activePreset: null },
@@ -34,19 +36,21 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
 
   const handlePresetClick = (layerId: string, presetId: string) => {
     const cellKey = `${layerId}-${presetId}`;
+    const wasActive = layers.find(l => l.id === layerId)?.activePreset === presetId;
     setClickedCell(cellKey);
-    
-    // Animación de click
+
     setTimeout(() => setClickedCell(null), 150);
-    
-    // Actualizar capa activa
-    setLayers(prev => prev.map(layer => 
-      layer.id === layerId 
+
+    setLayers(prev => prev.map(layer =>
+      layer.id === layerId
         ? { ...layer, activePreset: presetId }
         : layer
     ));
-    
-    onPresetActivate(layerId, presetId);
+
+    if (!wasActive) {
+      onPresetActivate(layerId, presetId);
+    }
+    onPresetSelect(layerId, presetId);
   };
 
   const handleLayerClear = (layerId: string) => {
@@ -56,6 +60,9 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
         : layer
     ));
     onLayerClear(layerId);
+
+    // Limpiar selección de controles
+    onPresetSelect(layerId, '');
   };
 
   const handleLayerConfigChange = (layerId: string, field: keyof LayerConfig, value: any) => {
@@ -76,8 +83,10 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
     const thumbnails: Record<string, string> = {
       'neural_network': '🧠',
       'abstract-lines': '📈',
+      'abstract-lines-pro': '📊',
       'abstract-shapes': '🔷',
       'evolutive-particles': '✨',
+      'boom-wave': '💥',
       'plasma-ray': '⚡',
       'shot-text': '📝',
       'text-glitch': '🔤'

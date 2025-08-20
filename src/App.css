@@ -54,25 +54,45 @@ body {
 
 /* MEJORAS PARA CONTROLS PANEL CON SCROLL */
 .controls-panel {
-  width: 320px;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: fixed;
+  top: 10px;
+  right: 0;
+  width: 380px;
+  height: calc(100vh - 40px);
+  margin: 20px;
   border-radius: 12px;
-  padding: 0;
-  overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  transition: width 0.3s ease;
-  position: relative;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.85);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 1000;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  opacity: 1;
 }
 
 .controls-panel.collapsed {
-  width: 40px;
-  padding: 0;
-  overflow: hidden;
+  width: 60px;
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.controls-panel.visible {
+  transform: translateX(0);
+}
+
+.controls-panel.collapsed .controls-panel-content,
+.controls-panel.collapsed .controls-panel-header {
+  display: none;
+}
+
+.controls-panel.collapsed .toggle-sidebar {
+  position: relative;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .controls-panel-header {
@@ -159,19 +179,27 @@ body {
 
 .toggle-sidebar {
   position: absolute;
-  top: 10px;
-  left: -20px;
-  width: 20px;
-  height: 40px;
+  top: 15px;
+  right: 15px;
+  width: 30px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
   background: rgba(0, 0, 0, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-right: none;
-  border-radius: 8px 0 0 8px;
   color: #fff;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  z-index: 1001;
+}
+
+.toggle-sidebar:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
 }
 
 .no-preset-selected {
@@ -606,4 +634,106 @@ body {
   display: flex;
   align-items: center;
   gap: 5px;
+}
+/* Audio Mapping Styles */
+.audio-mapping {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mapping-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 10px;
+  border-left: 3px solid #64B5F6;
+}
+
+.mapping-freq {
+  font-weight: 600;
+  color: #64B5F6;
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.mapping-desc {
+  font-size: 12px;
+  color: #ccc;
+  margin-bottom: 2px;
+}
+
+.mapping-effect {
+  font-size: 11px;
+  color: #888;
+  font-style: italic;
+}
+
+/* Preset Meta Information */
+.preset-description {
+  color: #aaa;
+  font-size: 13px;
+  margin: 8px 0;
+  line-height: 1.4;
+}
+
+.preset-meta {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.preset-meta-line {
+  display: block;
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+/* Enhanced Control Styles */
+.control-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.control-select:focus {
+  outline: none;
+  border-color: #64B5F6;
+  box-shadow: 0 0 0 2px rgba(100, 181, 246, 0.2);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.control-select option {
+  background: #333;
+  color: #fff;
+  padding: 8px;
+}
+
+.control-text {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.control-text:focus {
+  outline: none;
+  border-color: #64B5F6;
+  box-shadow: 0 0 0 2px rgba(100, 181, 246, 0.2);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.control-text::placeholder {
+  color: #888;
+  font-style: italic;
 }

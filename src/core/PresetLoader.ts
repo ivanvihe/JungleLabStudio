@@ -92,6 +92,7 @@ export interface LoadedPreset {
     // Carga dinámica de presets desde el sistema de archivos
     private presetModules = import.meta.glob('../presets/*/preset.ts');
     private shaderModules = import.meta.glob('../presets/*/shader.wgsl', { as: 'raw' });
+    private nextMidiNote: number = 36; // C2 como nota base
 
     constructor(
       private camera: THREE.Camera,
@@ -120,11 +121,15 @@ export interface LoadedPreset {
       }
     }
     let nextNote = maxNote + 1;
+    this.nextMidiNote = nextNote;
 
     for (const [path, loader] of moduleEntries) {
       const presetId = path.split('/')[2];
       const mod: any = await loader();
-      const cfg: PresetConfig = mod.config;
+      let cfg: PresetConfig = mod.config;
+
+      // Auto-configurar preset si es necesario
+      cfg = this.autoConfigurePreset(cfg, presetId);
       if (typeof cfg.note !== 'number') {
         cfg.note = nextNote++;
         await this.persistNote(presetId, cfg.note);
@@ -138,6 +143,8 @@ export interface LoadedPreset {
         const shaderModule: any = await (shaderLoader as any)();
         shaderCode = shaderModule.default;
       }
+
+      this.updateMidiNoteTracking(cfg.note);
 
       if (presetId === 'custom-glitch-text') {
         // base config para clonación
@@ -176,6 +183,42 @@ export interface LoadedPreset {
 
     console.log(`🎨 Loaded ${loadedPresets.length} presets total`);
     return loadedPresets;
+  }
+
+  /**
+   * Auto-configura presets nuevos que no tienen configuración completa
+   */
+  private autoConfigurePreset(config: PresetConfig, presetId: string): PresetConfig {
+    const autoConfig = { ...config };
+
+    if (!autoConfig.note) {
+      autoConfig.note = this.getNextAvailableMidiNote();
+      console.log(`🎵 Auto-assigned MIDI note ${autoConfig.note} to preset ${presetId}`);
+    }
+
+    if (!autoConfig.controls) {
+      autoConfig.controls = [];
+    }
+
+    return autoConfig;
+  }
+
+  /**
+   * Obtiene la siguiente nota MIDI disponible
+   */
+  private getNextAvailableMidiNote(): number {
+    const note = this.nextMidiNote;
+    this.nextMidiNote++;
+    return note;
+  }
+
+  /**
+   * Actualiza el tracking de notas MIDI
+   */
+  private updateMidiNoteTracking(note: number | undefined): void {
+    if (note && note >= this.nextMidiNote) {
+      this.nextMidiNote = note + 1;
+    }
   }
 
   private async persistNote(presetId: string, note: number): Promise<void> {
@@ -254,4 +297,11 @@ export interface LoadedPreset {
     this.activePresets.clear();
     this.loadedPresets.clear();
   }
+}
+// Tipos para controles de configuración
+export interface ControlConfig {
+  name: string;
+  type: 'slider' | 'color' | 'checkbox' | 'text' | 'select';
+  label: string;
+  [key: string]: any;
 }
