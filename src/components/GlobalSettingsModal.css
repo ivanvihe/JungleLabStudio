@@ -220,6 +220,12 @@
   box-shadow: 0 0 0 2px rgba(100, 181, 246, 0.2);
 }
 
+/* Ensure dropdown options are visible on dark theme */
+.setting-select option {
+  background: #333;
+  color: #fff;
+}
+
 .setting-slider {
   padding: 0;
   height: 8px;

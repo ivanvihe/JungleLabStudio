@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LoadedPreset } from '../core/PresetLoader';
 
 interface LayerConfig {
@@ -17,6 +17,7 @@ interface LayerGridProps {
   onLayerClear: (layerId: string) => void;
   onLayerConfigChange: (layerId: string, config: Partial<LayerConfig>) => void;
   onPresetSelect: (layerId: string, presetId: string) => void;
+  clearAllSignal: number;
 }
 
 export const LayerGrid: React.FC<LayerGridProps> = ({
@@ -24,13 +25,19 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
   onPresetActivate,
   onLayerClear,
   onLayerConfigChange,
-  onPresetSelect
+  onPresetSelect,
+  clearAllSignal
 }) => {
   const [layers, setLayers] = useState<LayerConfig[]>([
     { id: 'A', name: 'Layer A', color: '#FF6B6B', midiChannel: 14, fadeTime: 200, opacity: 100, activePreset: null },
     { id: 'B', name: 'Layer B', color: '#4ECDC4', midiChannel: 15, fadeTime: 200, opacity: 100, activePreset: null },
     { id: 'C', name: 'Layer C', color: '#45B7D1', midiChannel: 16, fadeTime: 200, opacity: 100, activePreset: null },
   ]);
+
+  useEffect(() => {
+    setLayers(prev => prev.map(layer => ({ ...layer, activePreset: null })));
+    setClickedCell(null);
+  }, [clearAllSignal]);
 
   const [clickedCell, setClickedCell] = useState<string | null>(null);
 
