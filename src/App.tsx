@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AudioVisualizerEngine } from './core/AudioVisualizerEngine';
 import { LayerGrid } from './components/LayerGrid';
 import { StatusBar } from './components/StatusBar';
+import { PresetControls } from './components/PresetControls';
 import { LoadedPreset, AudioData } from './core/PresetLoader';
 import './App.css';
 import './components/LayerGrid.css';
@@ -16,6 +17,8 @@ const App: React.FC = () => {
   const [fps, setFps] = useState(60);
   const [status, setStatus] = useState('Inicializando...');
   const [activeLayers, setActiveLayers] = useState<Record<string, string>>({});
+  const [selectedPreset, setSelectedPreset] = useState<LoadedPreset | null>(null);
+  const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
 
   // Inicializar el engine
   useEffect(() => {
@@ -162,6 +165,8 @@ const App: React.FC = () => {
     if (success) {
       setActiveLayers(prev => ({ ...prev, [layerId]: presetId }));
       setStatus(`Layer ${layerId}: ${availablePresets.find(p => p.id === presetId)?.config.name}`);
+      setSelectedPreset(availablePresets.find(p => p.id === presetId) || null);
+      setSelectedLayer(layerId);
     }
   };
 
@@ -194,6 +199,11 @@ const App: React.FC = () => {
     engineRef.current.updateLayerConfig(layerId, config);
   };
 
+  const handlePresetConfigUpdate = (config: any) => {
+    if (!engineRef.current || !selectedLayer) return;
+    engineRef.current.updateLayerConfig(selectedLayer, config);
+  };
+
   const getCurrentPresetName = (): string => {
     const activeLayerIds = Object.keys(activeLayers);
     if (activeLayerIds.length === 0) return 'Ninguno';
@@ -209,13 +219,7 @@ const App: React.FC = () => {
 
   return (
     <div className="app">
-      {/* Canvas principal para renderizado */}
-      <canvas 
-        ref={canvasRef}
-        className="main-canvas"
-      />
-      
-      {/* Grid de capas estilo Resolume */}
+      {/* Grid de capas */}
       <div className="layer-grid-container">
         <LayerGrid
           presets={availablePresets}
@@ -224,7 +228,17 @@ const App: React.FC = () => {
           onLayerConfigChange={handleLayerConfigChange}
         />
       </div>
-      
+
+      {/* Sección inferior con visuales y controles */}
+      <div className="bottom-section">
+        <canvas ref={canvasRef} className="main-canvas" />
+        {selectedPreset && (
+          <div className="controls-panel">
+            <PresetControls preset={selectedPreset} onConfigUpdate={handlePresetConfigUpdate} />
+          </div>
+        )}
+      </div>
+
       {/* Barra de estado */}
       <StatusBar
         status={status}

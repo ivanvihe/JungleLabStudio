@@ -12,9 +12,9 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
 }) => {
   const handleControlChange = (controlName: string, value: any, type: string) => {
     let processedValue = value;
-    
+
     // Procesar valor según el tipo
-    if (type === 'slider') {
+    if (type === 'slider' || type === 'number') {
       processedValue = parseFloat(value);
     } else if (type === 'checkbox') {
       processedValue = value;
@@ -51,6 +51,19 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
             defaultValue={control.default || 0}
             onChange={(e) => handleControlChange(control.name, e.target.value, 'slider')}
             className="control-slider"
+          />
+        );
+
+      case 'number':
+        return (
+          <input
+            type="number"
+            min={control.min}
+            max={control.max}
+            step={control.step || 1}
+            defaultValue={control.default || 0}
+            onChange={(e) => handleControlChange(control.name, e.target.value, 'number')}
+            className="control-text"
           />
         );
         
@@ -101,6 +114,69 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
     }
   };
 
+  const baseControls = [
+    {
+      name: 'width',
+      type: 'number',
+      label: 'Width',
+      min: 0,
+      max: 4096,
+      default: preset.config.defaultConfig.width || 1920
+    },
+    {
+      name: 'height',
+      type: 'number',
+      label: 'Height',
+      min: 0,
+      max: 4096,
+      default: preset.config.defaultConfig.height || 1080
+    },
+    {
+      name: 'zoom',
+      type: 'slider',
+      label: 'Zoom',
+      min: 0.1,
+      max: 5,
+      step: 0.1,
+      default: preset.config.defaultConfig.zoom || 1
+    },
+    {
+      name: 'audioSensitivity',
+      type: 'slider',
+      label: 'Audio Sensitivity',
+      min: 0,
+      max: 2,
+      step: 0.01,
+      default: preset.config.defaultConfig.audioSensitivity || 1
+    },
+    {
+      name: 'audioSmoothness',
+      type: 'slider',
+      label: 'Audio Smoothness',
+      min: 0,
+      max: 1,
+      step: 0.01,
+      default: preset.config.defaultConfig.audioSmoothness || 0.5
+    },
+    {
+      name: 'audioReactivity',
+      type: 'slider',
+      label: 'Audio Reactivity',
+      min: 0,
+      max: 2,
+      step: 0.01,
+      default: preset.config.defaultConfig.audioReactivity || 1
+    },
+    {
+      name: 'paletteColor',
+      type: 'color',
+      label: 'Palette Color',
+      default: preset.config.defaultConfig.paletteColor || '#ffffff'
+    }
+  ];
+
+  const combinedControls = [...baseControls, ...preset.config.controls];
+
   return (
     <div className="preset-controls-container">
       <div className="preset-info">
@@ -125,7 +201,7 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
 
       <div className="controls-list">
         <h4>Controles</h4>
-        {preset.config.controls.map((control) => (
+        {combinedControls.map((control) => (
           <div key={control.name} className="control-group">
             <label className="control-label">
               {control.label}:

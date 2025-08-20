@@ -8,6 +8,7 @@ export interface PresetConfig {
   category: string;
   tags: string[];
   thumbnail?: string;
+  note?: number;
   defaultConfig: any;
   controls: Array<{
     name: string;
