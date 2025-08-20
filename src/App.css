@@ -574,15 +574,23 @@ body {
 }
 
 .metronome {
+  display: flex;
+  gap: 4px;
+}
+
+.metronome-led {
   width: 10px;
   height: 10px;
   border-radius: 50%;
   background: #555;
-  transition: background 0.05s;
+  opacity: 0.3;
+  transition: opacity 0.3s, background 0.3s;
 }
 
-.metronome.active {
+.metronome-led.active {
   background: #f00;
+  opacity: 1;
+  box-shadow: 0 0 6px #f00;
 }
 
 .separator {
