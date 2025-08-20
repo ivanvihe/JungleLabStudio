@@ -8,7 +8,7 @@ export class AudioVisualizerEngine {
   private presetLoader: PresetLoader;
   private animationId: number | null = null;
   private isRunning = false;
-  private currentPresetId: string | null = null;
+  private layerPresets: Map<string, string> = new Map();
 
   constructor(private canvas: HTMLCanvasElement) {
     this.scene = new THREE.Scene();
@@ -88,24 +88,25 @@ export class AudioVisualizerEngine {
     return this.presetLoader.getLoadedPresets();
   }
 
-  public activatePreset(presetId: string): boolean {
-    // Desactivar preset anterior si existe
-    if (this.currentPresetId) {
-      this.presetLoader.deactivatePreset(this.currentPresetId);
+  public activatePreset(layerId: string, presetId: string): boolean {
+    const previousPreset = this.layerPresets.get(layerId);
+    if (previousPreset) {
+      this.presetLoader.deactivatePreset(previousPreset);
     }
 
     const preset = this.presetLoader.activatePreset(presetId);
     if (preset) {
-      this.currentPresetId = presetId;
+      this.layerPresets.set(layerId, presetId);
       return true;
     }
     return false;
   }
 
-  public deactivateCurrentPreset(): void {
-    if (this.currentPresetId) {
-      this.presetLoader.deactivatePreset(this.currentPresetId);
-      this.currentPresetId = null;
+  public deactivateLayerPreset(layerId: string): void {
+    const presetId = this.layerPresets.get(layerId);
+    if (presetId) {
+      this.presetLoader.deactivatePreset(presetId);
+      this.layerPresets.delete(layerId);
     }
   }
 
@@ -113,20 +114,24 @@ export class AudioVisualizerEngine {
     this.presetLoader.updateAudioData(audioData);
   }
 
-  public setOpacity(opacity: number): void {
-    const activePresets = this.presetLoader.getActivePresets();
-    activePresets.forEach(preset => preset.setOpacity(opacity));
+  public setLayerOpacity(layerId: string, opacity: number): void {
+    const presetId = this.layerPresets.get(layerId);
+    if (!presetId) return;
+    const preset = this.presetLoader.getActivePreset(presetId);
+    preset?.setOpacity(opacity);
   }
 
-  public updatePresetConfig(config: any): void {
-    const activePresets = this.presetLoader.getActivePresets();
-    activePresets.forEach(preset => preset.updateConfig(config));
+  public updateLayerConfig(layerId: string, config: any): void {
+    const presetId = this.layerPresets.get(layerId);
+    if (!presetId) return;
+    const preset = this.presetLoader.getActivePreset(presetId);
+    preset?.updateConfig(config);
   }
 
   public async reloadPresets(): Promise<void> {
     // Limpiar presets actuales
     this.presetLoader.dispose();
-    this.currentPresetId = null;
+    this.layerPresets.clear();
 
     // Recargar
     await this.presetLoader.loadAllPresets();
