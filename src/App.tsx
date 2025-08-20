@@ -36,7 +36,11 @@ const App: React.FC = () => {
   const [activeLayers, setActiveLayers] = useState<Record<string, string>>({});
   const [selectedPreset, setSelectedPreset] = useState<LoadedPreset | null>(null);
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
-  const [isControlsOpen, setIsControlsOpen] = useState(true);
+  const [isControlsOpen, setIsControlsOpen] = useState(() => {
+    const stored = localStorage.getItem('sidebarCollapsed');
+    if (stored === null) return false;
+    return stored !== 'true';
+  });
   const [layerPresetConfigs, setLayerPresetConfigs] = useState<Record<string, Record<string, any>>>({});
 
   // Top bar & settings state
@@ -65,6 +69,8 @@ const App: React.FC = () => {
   );
   const [hideUiHotkey, setHideUiHotkey] = useState(() => localStorage.getItem('hideUiHotkey') || 'F10');
   const [isUiHidden, setIsUiHidden] = useState(false);
+  const [startMaximized, setStartMaximized] = useState(() => localStorage.getItem('startMaximized') !== 'false');
+  const [startMonitor, setStartMonitor] = useState<string | null>(() => localStorage.getItem('startMonitor'));
 
   // Persist selected devices across sessions
   useEffect(() => {
@@ -88,93 +94,54 @@ const App: React.FC = () => {
     localStorage.setItem('selectedMonitors', JSON.stringify(selectedMonitors));
   }, [selectedMonitors]);
 
-  // Enumerar monitores disponibles con detección mejorada
+  useEffect(() => {
+    localStorage.setItem('startMaximized', startMaximized.toString());
+  }, [startMaximized]);
+
+  useEffect(() => {
+    if (startMonitor) {
+      localStorage.setItem('startMonitor', startMonitor);
+    } else {
+      localStorage.removeItem('startMonitor');
+    }
+  }, [startMonitor]);
+
+  useEffect(() => {
+    (window as any).electronAPI?.applySettings({
+      maximize: startMaximized,
+      monitorId: startMonitor ? parseInt(startMonitor, 10) : undefined
+    });
+  }, [startMaximized, startMonitor]);
+
+
+  // Enumerar monitores disponibles usando Electron
   useEffect(() => {
     const loadMonitors = async () => {
-      if ((window as any).__TAURI__) {
+      if ((window as any).electronAPI?.getDisplays) {
         try {
-          const { availableMonitors, currentMonitor } = await import(
-            /* @vite-ignore */ '@tauri-apps/api/window'
-          );
-          
-          const [mons, current] = await Promise.all([
-            availableMonitors(),
-            currentMonitor()
-          ]);
-          
-          const mapped: MonitorInfo[] = mons.map((m, idx) => ({
-            id: m.name || `monitor-${idx}`,
-            label: `${m.name || `Monitor ${idx + 1}`} (${m.size.width}x${m.size.height})`,
-            position: { x: m.position.x, y: m.position.y },
-            size: { width: m.size.width, height: m.size.height },
-            isPrimary: current ? (m.name === current.name) : idx === 0,
-            scaleFactor: m.scaleFactor || 1
+          const displays = await (window as any).electronAPI.getDisplays();
+          const mapped: MonitorInfo[] = displays.map((d: any) => ({
+            id: d.id.toString(),
+            label: `${d.label} (${d.bounds.width}x${d.bounds.height})`,
+            position: { x: d.bounds.x, y: d.bounds.y },
+            size: { width: d.bounds.width, height: d.bounds.height },
+            isPrimary: d.primary,
+            scaleFactor: d.scaleFactor || 1
           }));
-          
-          // Ordenar: primario primero, luego por posición X
           mapped.sort((a, b) => {
             if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
             return a.position.x - b.position.x;
           });
-          
           setMonitors(mapped);
-          
-          // Auto-seleccionar monitor primario si no hay selección previa
-          if (selectedMonitors.length === 0) {
-            const primaryMonitor = mapped.find(m => m.isPrimary);
-            if (primaryMonitor) {
-              setSelectedMonitors([primaryMonitor.id]);
-            }
+          if (selectedMonitors.length === 0 && mapped.length > 0) {
+            const primary = mapped.find(m => m.isPrimary) || mapped[0];
+            setSelectedMonitors([primary.id]);
           }
-          
-          console.log(`🖥️ Detectados ${mapped.length} monitores:`, mapped);
-        } catch (err) {
-          console.warn('Monitor enumeration failed:', err);
-          await loadFallbackMonitors();
-        }
-      } else {
-        await loadFallbackMonitors();
-      }
-    };
-
-    const loadFallbackMonitors = async () => {
-      const fallbackMonitors: MonitorInfo[] = [];
-      
-      if ('getScreenDetails' in window) {
-        try {
-          // @ts-ignore - Screen API experimental
-          const screenDetails = await window.getScreenDetails();
-          screenDetails.screens.forEach((screen: any, idx: number) => {
-            fallbackMonitors.push({
-              id: `screen-${idx}`,
-              label: `Monitor ${idx + 1} (${screen.width}x${screen.height})`,
-              position: { x: screen.left, y: screen.top },
-              size: { width: screen.width, height: screen.height },
-              isPrimary: screen.isPrimary || idx === 0,
-              scaleFactor: screen.devicePixelRatio || 1
-            });
-          });
         } catch (e) {
-          console.warn('Screen API failed:', e);
+          console.warn('Error loading monitors:', e);
         }
       }
-      
-      if (fallbackMonitors.length === 0) {
-        const fallback: MonitorInfo = {
-          id: 'primary',
-          label: `Monitor Principal (${window.screen.width}x${window.screen.height})`,
-          position: { x: 0, y: 0 },
-          size: { width: window.screen.width, height: window.screen.height },
-          isPrimary: true,
-          scaleFactor: window.devicePixelRatio || 1
-        };
-        fallbackMonitors.push(fallback);
-      }
-      
-      setMonitors(fallbackMonitors);
-      setSelectedMonitors([fallbackMonitors[0].id]);
     };
-
     loadMonitors();
   }, []);
 
@@ -699,7 +666,13 @@ const App: React.FC = () => {
         <div className={`controls-panel ${isControlsOpen ? '' : 'collapsed'}`}>
           <button
             className="toggle-sidebar"
-            onClick={() => setIsControlsOpen(!isControlsOpen)}
+            onClick={() =>
+              setIsControlsOpen(prev => {
+                const next = !prev;
+                localStorage.setItem('sidebarCollapsed', (!next).toString());
+                return next;
+              })
+            }
           >
             {isControlsOpen ? '✕' : '⚙️'}
           </button>
@@ -779,6 +752,8 @@ const App: React.FC = () => {
         monitors={monitors}
         selectedMonitors={selectedMonitors}
         onToggleMonitor={handleToggleMonitor}
+        startMonitor={startMonitor}
+        onStartMonitorChange={setStartMonitor}
         glitchTextPads={glitchTextPads}
         onGlitchPadChange={async (value: number) => {
           setGlitchTextPads(value);
@@ -787,6 +762,13 @@ const App: React.FC = () => {
             const presets = await engineRef.current.updateGlitchPadCount(value);
             setAvailablePresets(presets);
           }
+        }}
+        startMaximized={startMaximized}
+        onStartMaximizedChange={setStartMaximized}
+        sidebarCollapsed={!isControlsOpen}
+        onSidebarCollapsedChange={(value) => {
+          localStorage.setItem('sidebarCollapsed', value.toString());
+          setIsControlsOpen(!value);
         }}
         hideUiHotkey={hideUiHotkey}
         onHideUiHotkeyChange={(key) => {
