@@ -77,9 +77,8 @@ class Node {
   public mesh: THREE.Mesh;
   public position: THREE.Vector3;
 
-  constructor(position: THREE.Vector3, color: THREE.Color, size: number) {
+  constructor(position: THREE.Vector3, material: THREE.MeshBasicMaterial, size: number) {
     const geometry = new THREE.SphereGeometry(size, 8, 8);
-    const material = new THREE.MeshBasicMaterial({ color });
     this.mesh = new THREE.Mesh(geometry, material);
     this.position = this.mesh.position;
     this.position.copy(position);
@@ -102,9 +101,8 @@ class Node {
 
 class Connection {
   public line: THREE.Line;
-  constructor(public a: Node, public b: Node, color: THREE.Color) {
+  constructor(public a: Node, public b: Node, material: THREE.LineBasicMaterial) {
     const geometry = new THREE.BufferGeometry().setFromPoints([a.position, b.position]);
-    const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.7 });
     this.line = new THREE.Line(geometry, material);
   }
 
@@ -135,8 +133,14 @@ export class InfiniteNeuralNetwork extends BasePreset {
   }
 
   init(): void {
+    // Crear scene background transparente
+    this.scene.background = null;
+
+    // Configurar posición inicial de nodos
     this.camera.position.set(0, 0, 0);
     this.camera.lookAt(1, 0, 0);
+
+    // Generar nodos iniciales
     while (this.nextSpawnX < this.camera.position.x + 50) {
       this.spawnNode();
     }
@@ -144,33 +148,53 @@ export class InfiniteNeuralNetwork extends BasePreset {
 
   private spawnNode(): void {
     const size = this.currentConfig.nodeSize;
-    const nodeColor = new THREE.Color(this.currentConfig.colors.node);
-    const connColor = new THREE.Color(this.currentConfig.colors.connection);
 
     const x = this.nextSpawnX + Math.random() * 2 + 1;
     const y = (Math.random() - 0.5) * 4;
     const z = (Math.random() - 0.5) * 4;
-    const node = new Node(new THREE.Vector3(x, y, z), nodeColor, size);
+    const node = new Node(new THREE.Vector3(x, y, z), this.createNodeMaterial(), size);
     this.scene.add(node.mesh);
     this.nodes.push(node);
 
     // Connect to previous nodes to ensure continuity
     if (this.nodes.length > 1) {
       const prev = this.nodes[this.nodes.length - 2];
-      const connection = new Connection(prev, node, connColor);
+      const connection = new Connection(prev, node, this.createConnectionMaterial());
       this.scene.add(connection.line);
       this.connections.push(connection);
 
       if (this.nodes.length > 2) {
         const randomIndex = Math.max(0, this.nodes.length - 3 - Math.floor(Math.random() * 10));
         const randomNode = this.nodes[randomIndex];
-        const extraConn = new Connection(randomNode, node, connColor);
+        const extraConn = new Connection(randomNode, node, this.createConnectionMaterial());
         this.scene.add(extraConn.line);
         this.connections.push(extraConn);
       }
     }
 
     this.nextSpawnX = x;
+  }
+
+  // CORRECCIÓN 1: Asegurar que el material sea transparente y use blending correcto
+  private createNodeMaterial(): THREE.MeshBasicMaterial {
+    return new THREE.MeshBasicMaterial({
+      color: new THREE.Color(this.currentConfig.colors.node),
+      transparent: true,
+      opacity: 0.8, // No completamente opaco
+      blending: THREE.NormalBlending, // Cambiar de AdditiveBlending a NormalBlending
+      depthWrite: false, // Importante para transparencia
+      depthTest: true
+    });
+  }
+
+  private createConnectionMaterial(): THREE.LineBasicMaterial {
+    return new THREE.LineBasicMaterial({
+      color: new THREE.Color(this.currentConfig.colors.connection),
+      transparent: true,
+      opacity: 0.6,
+      blending: THREE.NormalBlending, // Cambiar de AdditiveBlending
+      linewidth: 1
+    });
   }
 
   private removeNode(node: Node): void {

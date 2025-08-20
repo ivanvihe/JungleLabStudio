@@ -100,9 +100,9 @@
 }
 
 
-/* Preset Grid - 100px de altura */
+/* CORRECCIÓN 1: Preset Grid - altura correcta */
 .preset-grid {
-  height: 100px;
+  height: 98px; /* Ajustado para caber en el contenedor de 100px */
   display: flex;
   gap: 1px;
   padding: 1px;
@@ -131,23 +131,24 @@
   background: #555;
 }
 
-/* Preset Cell - 100x100 */
+/* CORRECCIÓN 2: Preset Cell - tamaño correcto */
 .preset-cell {
   position: relative;
-  width: 100px;
-  height: 100px;
-  min-width: 100px;
+  width: 98px;
+  height: 98px;
+  min-width: 98px;
   background: linear-gradient(135deg, #1E1E1E, #181818);
   border: 1px solid #333;
-  border-radius: 0;
+  border-radius: 4px; /* Añadir bordes redondeados sutiles */
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between; /* Distribuir contenido */
   overflow: hidden;
   user-select: none;
+  padding: 4px; /* Añadir padding interno */
 }
 
 .preset-cell:hover {
@@ -168,45 +169,51 @@
   background: var(--layer-color);
 }
 
+/* CORRECCIÓN 3: Thumbnail mejorado */
 .preset-thumbnail {
   width: 100%;
-  height: 85px;
+  height: 70px; /* Reducir altura para hacer espacio al texto */
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 48px;
+  font-size: 36px; /* Reducir tamaño del emoji */
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+  margin-bottom: 2px;
 }
 
+/* CORRECCIÓN 4: Info del preset más visible */
 .preset-info {
   width: 100%;
-  height: 15px;
+  height: 20px; /* Aumentar altura */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
+  background: rgba(0, 0, 0, 0.3); /* Fondo semi-transparente */
+  border-radius: 2px;
+  padding: 2px;
 }
 
 .preset-name {
-  height: 10px;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 600;
   color: #FFF;
   line-height: 10px;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
 }
+
 .preset-details {
-  height: 5px;
-  font-size: 7px;
+  font-size: 6px;
   color: #888;
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  line-height: 5px;
-  display: flex;
-  gap: 4px;
-  justify-content: center;
+  line-height: 8px;
+  margin-top: 1px;
 }
 
 .preset-note {
