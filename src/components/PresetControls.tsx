@@ -64,14 +64,14 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
         return (
           <div key={control.name} className="control-group">
             <label className="control-label">
-              {control.label || control.name}: {currentValue?.toFixed?.(2) || currentValue}
+              {control.label || control.name}: {currentValue?.toFixed?.(2) ?? currentValue}
             </label>
             <input
               type="range"
               min={control.min || 0}
               max={control.max || 1}
               step={control.step || 0.01}
-              value={currentValue || control.default || 0}
+              value={currentValue ?? control.default ?? 0}
               onChange={(e) => handleControlChange(control.name, e.target.value, 'slider')}
               className="control-slider"
             />
@@ -91,7 +91,7 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
               min={control.min}
               max={control.max}
               step={control.step || 1}
-              value={currentValue || control.default || 0}
+              value={currentValue ?? control.default ?? 0}
               onChange={(e) => handleControlChange(control.name, e.target.value, 'number')}
               className="control-number"
             />
@@ -101,7 +101,7 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
       case 'color':
         const colorHex = Array.isArray(currentValue) 
           ? `#${Math.round(currentValue[0] * 255).toString(16).padStart(2, '0')}${Math.round(currentValue[1] * 255).toString(16).padStart(2, '0')}${Math.round(currentValue[2] * 255).toString(16).padStart(2, '0')}`
-          : currentValue || control.default || '#ffffff';
+          : currentValue ?? control.default ?? '#ffffff';
         
         return (
           <div key={control.name} className="control-group">
@@ -124,7 +124,7 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
             <label className="control-label checkbox-label">
               <input
                 type="checkbox"
-                checked={currentValue || control.default || false}
+                checked={currentValue ?? control.default ?? false}
                 onChange={(e) => handleControlChange(control.name, e.target.checked, 'boolean')}
                 className="control-checkbox"
               />
@@ -138,7 +138,7 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
           <div key={control.name} className="control-group">
             <label className="control-label">{control.label || control.name}</label>
             <select
-              value={currentValue || control.default || ''}
+              value={currentValue ?? control.default ?? ''}
               onChange={(e) => handleControlChange(control.name, e.target.value, 'select')}
               className="control-select"
             >
@@ -157,7 +157,7 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
             <label className="control-label">{control.label || control.name}</label>
             <input
               type="text"
-              value={currentValue?.toString() || control.default?.toString() || ''}
+              value={currentValue?.toString() ?? control.default?.toString() ?? ''}
               onChange={(e) => handleControlChange(control.name, e.target.value, 'text')}
               className="control-text"
               placeholder={control.placeholder}
@@ -171,7 +171,7 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
             <label className="control-label">{control.label || control.name}</label>
             <input
               type="text"
-              value={currentValue?.toString() || control.default?.toString() || ''}
+              value={currentValue?.toString() ?? control.default?.toString() ?? ''}
               onChange={(e) => handleControlChange(control.name, e.target.value, 'text')}
               className="control-text"
             />
