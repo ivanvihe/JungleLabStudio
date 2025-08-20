@@ -10,6 +10,7 @@ export const config: PresetConfig = {
   category: "text",
   tags: ["text", "intro", "robotica", "cinematic", "glow", "animation"],
   thumbnail: "robotica_intro_thumb.png",
+  note: 60,
   defaultConfig: {
     opacity: 1.0,
     fadeMs: 200,

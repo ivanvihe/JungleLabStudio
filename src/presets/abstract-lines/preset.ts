@@ -9,6 +9,7 @@ export const config: PresetConfig = {
   category: "abstract",
   tags: ["abstract", "lines", "procedural", "performance", "generative"],
   thumbnail: "abstract_lines_pro_thumb.png",
+  note: 55,
   defaultConfig: {
     opacity: 1.0,
     fadeMs: 200,

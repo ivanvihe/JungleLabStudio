@@ -9,6 +9,7 @@ export const config: PresetConfig = {
   category: 'text',
   tags: ['text', 'glitch', 'one-shot'],
   thumbnail: 'custom_glitch_text_thumb.png',
+  note: 59,
   defaultConfig: {
     opacity: 1.0,
     fadeMs: 200,
