@@ -3,7 +3,7 @@ import { BasePreset, PresetConfig } from '../../core/PresetLoader';
 
 export const config: PresetConfig = {
   name: "Neural Network Genesis",
-  description: "Red neuronal con algoritmos reales, propagación y morfología adaptativa",
+  description: "Viaje interestelar a través de una red neuronal con algoritmos reales, propagación y morfología adaptativa",
   author: "AudioVisualizer Pro",
   version: "3.0.0",
   category: "ai",
@@ -117,6 +117,34 @@ class ActivationFunctions {
   
   static reluDerivative(x: number): number {
     return x > 0 ? 1 : 0;
+  }
+}
+
+// Controla el movimiento de cámara simulando un viaje interestelar a través de la red
+class InterstellarNavigator {
+  private originalPosition: THREE.Vector3 = new THREE.Vector3();
+  private startX = -20;
+  private endX = 20;
+  private speed = 5;
+
+  constructor(private camera: THREE.Camera) {
+    this.originalPosition.copy(camera.position);
+    this.camera.position.set(this.startX, 0, 0);
+    this.camera.lookAt(0, 0, 0);
+  }
+
+  update(delta: number, intensity: number): void {
+    this.camera.position.x += delta * this.speed * (0.5 + intensity * 2.0);
+    this.camera.lookAt(this.camera.position.x + 1, 0, 0);
+
+    if (this.camera.position.x > this.endX) {
+      this.camera.position.x = this.startX;
+    }
+  }
+
+  dispose(): void {
+    this.camera.position.copy(this.originalPosition);
+    this.camera.lookAt(0, 0, 0);
   }
 }
 
@@ -505,6 +533,7 @@ class NeuralNetworkGenesis extends BasePreset {
   private currentConfig: any;
   private learningPhase: number = 0;
   private frameCount: number = 0;
+  private navigator: InterstellarNavigator;
   
   constructor(
     scene: THREE.Scene,
@@ -514,6 +543,7 @@ class NeuralNetworkGenesis extends BasePreset {
   ) {
     super(scene, camera, renderer, config);
     this.currentConfig = { ...config.defaultConfig };
+    this.navigator = new InterstellarNavigator(this.camera);
   }
   
   public init(): void {
@@ -666,6 +696,7 @@ class NeuralNetworkGenesis extends BasePreset {
     
     // Propagación de señales
     const audioIntensity = (this.audioData.low + this.audioData.mid + this.audioData.high) / 3;
+    this.navigator.update(deltaTime, audioIntensity);
     this.connections.forEach(connection => {
       connection.propagateSignal(
         connection.fromNeuron.activation,
@@ -751,7 +782,8 @@ class NeuralNetworkGenesis extends BasePreset {
       connection.getMeshes().forEach(mesh => this.scene.remove(mesh));
       connection.dispose();
     });
-    
+
+    this.navigator.dispose();
     this.layers = [];
     this.connections = [];
   }
