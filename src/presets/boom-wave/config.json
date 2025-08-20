@@ -1,0 +1,45 @@
+{
+  "name": "Boom Wave",
+  "description": "Circular shock waves triggered by sub-bass booms",
+  "author": "AudioVisualizer",
+  "version": "1.0.0",
+  "category": "one-shot",
+  "tags": ["wave", "bass", "one-shot"],
+  "thumbnail": "boom_wave_thumb.png",
+  "defaultConfig": {
+    "opacity": 1.0,
+    "fadeMs": 200,
+    "color": "#00aaff",
+    "maxRadius": 5,
+    "waveDuration": 1.5,
+    "threshold": 0.8
+  },
+  "controls": [
+    {"name": "color", "type": "color", "label": "Color", "default": "#00aaff"},
+    {"name": "maxRadius", "type": "slider", "label": "Max Radius", "min": 1, "max": 10, "step": 0.5, "default": 5},
+    {"name": "waveDuration", "type": "slider", "label": "Duration", "min": 0.5, "max": 3, "step": 0.1, "default": 1.5},
+    {"name": "threshold", "type": "slider", "label": "Trigger Threshold", "min": 0, "max": 1, "step": 0.01, "default": 0.8}
+  ],
+  "audioMapping": {
+    "low": {
+      "description": "Triggers waves when bass peaks",
+      "frequency": "20-250 Hz",
+      "effect": "Wave spawn"
+    },
+    "mid": {
+      "description": "Modulates color intensity",
+      "frequency": "250-4000 Hz",
+      "effect": "Color modulation"
+    },
+    "high": {
+      "description": "Adds subtle brightness",
+      "frequency": "4000+ Hz",
+      "effect": "Brightness"
+    }
+  },
+  "performance": {
+    "complexity": "low",
+    "recommendedFPS": 60,
+    "gpuIntensive": false
+  }
+}

@@ -43,6 +43,7 @@ const App: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [monitors, setMonitors] = useState<MonitorInfo[]>([]);
   const [selectedMonitors, setSelectedMonitors] = useState<string[]>([]);
+  const [glitchTextPads, setGlitchTextPads] = useState<number>(() => parseInt(localStorage.getItem('glitchTextPads') || '1'));
   const isFullscreenMode = new URLSearchParams(window.location.search).get('fullscreen') === 'true';
 
   // Persist selected devices across sessions
@@ -151,17 +152,17 @@ const App: React.FC = () => {
 
       try {
         setStatus('Cargando presets...');
-        
-        const engine = new AudioVisualizerEngine(canvasRef.current);
+
+        const engine = new AudioVisualizerEngine(canvasRef.current, { glitchTextPads });
         await engine.initialize();
-        
+
         engineRef.current = engine;
-        
+
         const presets = engine.getAvailablePresets();
         setAvailablePresets(presets);
         setIsInitialized(true);
         setStatus('Listo');
-        
+
         console.log(`✅ Engine initialized with ${presets.length} presets`);
       } catch (error) {
         console.error('❌ Failed to initialize engine:', error);
@@ -467,6 +468,15 @@ const App: React.FC = () => {
     setSelectedMonitors(prev => prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]);
   };
 
+  const handleGlitchPadCountChange = async (value: number) => {
+    setGlitchTextPads(value);
+    localStorage.setItem('glitchTextPads', value.toString());
+    if (engineRef.current) {
+      const presets = await engineRef.current.updateGlitchPadCount(value);
+      setAvailablePresets(presets);
+    }
+  };
+
   return isFullscreenMode ? (
     <div className="app fullscreen-mode">
       <canvas ref={canvasRef} className="main-canvas" />
@@ -542,6 +552,8 @@ const App: React.FC = () => {
         monitors={monitors}
         selectedMonitors={selectedMonitors}
         onToggleMonitor={handleToggleMonitor}
+        glitchTextPads={glitchTextPads}
+        onGlitchPadChange={handleGlitchPadCountChange}
       />
     </div>
   );

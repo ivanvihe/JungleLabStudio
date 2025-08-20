@@ -14,7 +14,7 @@ export class AudioVisualizerEngine {
   private layerScenes: Map<string, THREE.Scene> = new Map();
   private layerOrder: string[] = ['C', 'B', 'A'];
 
-  constructor(private canvas: HTMLCanvasElement) {
+  constructor(private canvas: HTMLCanvasElement, options: { glitchTextPads?: number } = {}) {
     this.camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
     this.renderer = new THREE.WebGLRenderer({
       canvas: this.canvas,
@@ -33,7 +33,7 @@ export class AudioVisualizerEngine {
       this.layerScenes.set(id, scene);
     });
 
-    this.presetLoader = new PresetLoader(this.camera, this.renderer);
+      this.presetLoader = new PresetLoader(this.camera, this.renderer, options.glitchTextPads ?? 1);
     this.setupScene();
     this.setupEventListeners();
   }
@@ -178,6 +178,12 @@ export class AudioVisualizerEngine {
     this.presetLoader.dispose();
     this.layerPresets.clear();
     await this.presetLoader.loadAllPresets();
+  }
+
+  public async updateGlitchPadCount(count: number): Promise<LoadedPreset[]> {
+    this.presetLoader.setGlitchTextPads(count);
+    await this.reloadPresets();
+    return this.presetLoader.getLoadedPresets();
   }
 
   public dispose(): void {

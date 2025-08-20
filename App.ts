@@ -11,7 +11,7 @@ export class AudioVisualizerApp {
 
   constructor(container: HTMLElement) {
     this.initThreeJS(container);
-    this.presetLoader = new PresetLoader(this.scene, this.camera, this.renderer);
+      this.presetLoader = new PresetLoader(this.camera, this.renderer);
     this.init();
   }
 
