@@ -48,6 +48,7 @@ export abstract class BasePreset {
   protected audioData: AudioData = { low: 0, mid: 0, high: 0, fft: [] };
   protected clock: THREE.Clock = new THREE.Clock();
   protected opacity: number = 1.0;
+  protected bpm: number = 120;
 
   constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, config: PresetConfig) {
     this.scene = scene;
@@ -66,6 +67,15 @@ export abstract class BasePreset {
 
   public setOpacity(opacity: number): void {
     this.opacity = opacity;
+  }
+
+  public setBpm(bpm: number): void {
+    this.bpm = bpm;
+  }
+
+  // Hook for beat events from MIDI clock
+  public onBeat(): void {
+    // default no-op, can be overridden by presets
   }
 
   public getConfig(): PresetConfig {

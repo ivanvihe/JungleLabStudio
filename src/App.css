@@ -567,6 +567,24 @@ body {
   background: #0f0;
 }
 
+.bpm-section {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.metronome {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #555;
+  transition: background 0.05s;
+}
+
+.metronome.active {
+  background: #f00;
+}
+
 .separator {
   width: 1px;
   height: 20px;
