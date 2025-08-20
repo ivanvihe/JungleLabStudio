@@ -91,27 +91,34 @@ export class AudioVisualizerEngine {
         uniform float opacityA;
         uniform float globalOpacity;
         varying vec2 vUv;
-        
+
         void main() {
-          vec4 colorC = texture2D(layerC, vUv) * opacityC;
-          vec4 colorB = texture2D(layerB, vUv) * opacityB;
-          vec4 colorA = texture2D(layerA, vUv) * opacityA;
-          
-          // Mezcla aditiva con alpha blending correcto
+          vec4 colorC = texture2D(layerC, vUv);
+          vec4 colorB = texture2D(layerB, vUv);
+          vec4 colorA = texture2D(layerA, vUv);
+
+          // Aplicar opacidades individuales
+          colorC.a *= opacityC;
+          colorB.a *= opacityB;
+          colorA.a *= opacityA;
+
+          // Blending correcto: de atrás hacia adelante (C -> B -> A)
           vec4 result = vec4(0.0, 0.0, 0.0, 0.0);
-          
-          // Layer C (fondo) - blend normal
+
+          // Layer C (fondo)
           result = mix(result, colorC, colorC.a);
-          
-          // Layer B (medio) - blend normal con alpha
-          result = mix(result, colorB, colorB.a);
-          
-          // Layer A (frente) - blend normal con alpha
-          result = mix(result, colorA, colorA.a);
-          
+
+          // Layer B (medio) - blend sobre el resultado anterior
+          result.rgb = mix(result.rgb, colorB.rgb, colorB.a);
+          result.a = max(result.a, colorB.a);
+
+          // Layer A (frente) - blend sobre el resultado anterior  
+          result.rgb = mix(result.rgb, colorA.rgb, colorA.a);
+          result.a = max(result.a, colorA.a);
+
           // Aplicar opacidad global
           result.a *= globalOpacity;
-          
+
           gl_FragColor = result;
         }
       `,
@@ -128,9 +135,10 @@ export class AudioVisualizerEngine {
 
   private createLayer(id: string): void {
     const scene = new THREE.Scene();
-    scene.background = null; // Fondo transparente SIEMPRE
-    
-    // Crear render target para cada layer
+    scene.background = null; // CRÍTICO: Fondo transparente
+    scene.overrideMaterial = null; // No override material
+
+    // Crear render target con canal alpha
     const renderTarget = new THREE.WebGLRenderTarget(1920, 1080, {
       format: THREE.RGBAFormat,
       type: THREE.UnsignedByteType,
@@ -138,7 +146,8 @@ export class AudioVisualizerEngine {
       magFilter: THREE.LinearFilter,
       generateMipmaps: false,
       stencilBuffer: false,
-      depthBuffer: true
+      depthBuffer: true,
+      alpha: true // IMPORTANTE: Habilitar canal alpha
     });
 
     const layerState: LayerState = {
@@ -230,18 +239,23 @@ export class AudioVisualizerEngine {
   }
 
   private compositeAndRender(): void {
+    // Limpiar con alpha = 0 (transparente)
+    this.renderer.setClearColor(0x000000, 0);
+    this.renderer.clear();
+
     // Actualizar texturas y opacidades en el shader
     this.layers.forEach((layer, layerId) => {
       const uniformName = `layer${layerId}`;
       const opacityUniform = `opacity${layerId}`;
-      
+
       if (layer.renderTarget && this.compositingMaterial.uniforms[uniformName]) {
         this.compositingMaterial.uniforms[uniformName].value = layer.renderTarget.texture;
-        this.compositingMaterial.uniforms[opacityUniform].value = layer.isActive ? layer.opacity : 0.0;
+        this.compositingMaterial.uniforms[opacityUniform].value = layer.isActive ? 
+          layer.opacity : 0.0;
       }
     });
 
-    // Renderizar composición final
+    // Renderizar composición final con blending correcto
     this.renderer.render(this.compositingScene, this.compositingCamera);
   }
 
