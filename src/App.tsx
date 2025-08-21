@@ -27,6 +27,7 @@ const App: React.FC = () => {
   const tickCountRef = useRef(0);
   const lastBeatRef = useRef<number | null>(null);
   const bpmSamplesRef = useRef<number[]>([]);
+  const broadcastRef = useRef<BroadcastChannel | null>(null);
   
   const [isInitialized, setIsInitialized] = useState(false);
   const [availablePresets, setAvailablePresets] = useState<LoadedPreset[]>([]);
@@ -79,6 +80,12 @@ const App: React.FC = () => {
   const [startMaximized, setStartMaximized] = useState(() => localStorage.getItem('startMaximized') !== 'false');
   const [startMonitor, setStartMonitor] = useState<string | null>(() => localStorage.getItem('startMonitor'));
 
+  useEffect(() => {
+    const channel = new BroadcastChannel('av-sync');
+    broadcastRef.current = channel;
+    return () => channel.close();
+  }, []);
+
   // Persist selected devices across sessions
   useEffect(() => {
     const savedAudio = localStorage.getItem('selectedAudioDevice');
@@ -124,6 +131,7 @@ const App: React.FC = () => {
   useEffect(() => {
     try {
       localStorage.setItem('layerPresetConfigs', JSON.stringify(layerPresetConfigs));
+      broadcastRef.current?.postMessage({ type: 'layerPresetConfigs', data: layerPresetConfigs });
     } catch (e) {
       console.warn('Failed to persist layer preset configs:', e);
     }
@@ -472,6 +480,7 @@ const App: React.FC = () => {
   // Persistir capas activas para modo fullscreen
   useEffect(() => {
     localStorage.setItem('activeLayers', JSON.stringify(activeLayers));
+    broadcastRef.current?.postMessage({ type: 'activeLayers', data: activeLayers });
   }, [activeLayers]);
 
   // Toggle UI visibility with configurable hotkey
@@ -601,6 +610,50 @@ const App: React.FC = () => {
     });
   };
 
+  useEffect(() => {
+    if (!isFullscreenMode) return;
+    const channel = broadcastRef.current;
+    if (!channel) return;
+
+    const handler = (event: MessageEvent) => {
+      const msg = event.data;
+      if (!engineRef.current) return;
+      switch (msg.type) {
+        case 'activeLayers': {
+          const newActive = msg.data as Record<string, string>;
+          Object.keys(activeLayers).forEach(layerId => {
+            if (!newActive[layerId]) {
+              engineRef.current!.deactivateLayerPreset(layerId);
+            }
+          });
+          Object.entries(newActive).forEach(([layerId, presetId]) => {
+            engineRef.current!.activateLayerPreset(layerId, presetId);
+            const cfg = layerPresetConfigs[layerId]?.[presetId];
+            if (cfg) applyPresetConfig(engineRef.current!, layerId, cfg);
+          });
+          setActiveLayers(newActive);
+          break;
+        }
+        case 'layerConfig': {
+          engineRef.current.updateLayerConfig(msg.layerId, msg.config);
+          break;
+        }
+        case 'layerPresetConfigs': {
+          const cfgs = msg.data as Record<string, Record<string, any>>;
+          setLayerPresetConfigs(cfgs);
+          Object.entries(activeLayers).forEach(([layerId, presetId]) => {
+            const cfg = cfgs[layerId]?.[presetId];
+            if (cfg) applyPresetConfig(engineRef.current!, layerId, cfg);
+          });
+          break;
+        }
+      }
+    };
+
+    channel.addEventListener('message', handler);
+    return () => channel.removeEventListener('message', handler);
+  }, [isFullscreenMode, activeLayers, layerPresetConfigs]);
+
   const handleToggleMonitor = (id: string) => {
     setSelectedMonitors(prev => {
       const newSelection = prev.includes(id) 
@@ -689,6 +742,7 @@ const App: React.FC = () => {
             if (engineRef.current) {
               engineRef.current.updateLayerConfig(layerId, config);
             }
+            broadcastRef.current?.postMessage({ type: 'layerConfig', layerId, config });
           }}
           onPresetSelect={(layerId, presetId) => {
             if (presetId) {
