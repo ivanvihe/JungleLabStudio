@@ -13,22 +13,12 @@ body {
   overflow: hidden;
 }
 
+
 .app {
   position: relative;
   width: 100vw;
   height: 100vh;
-  display: grid;
-  grid-template-rows: 40px 300px 1fr;
-}
-
-.app.ui-hidden {
-  display: flex;
-  flex-direction: column;
-  grid-template-rows: none;
-}
-
-.app.ui-hidden .bottom-section {
-  flex: 1;
+  overflow: hidden;
 }
 
 .app.ui-hidden .top-bar,
@@ -38,30 +28,34 @@ body {
   display: none;
 }
 
-.app.ui-hidden .main-canvas {
-  border: none;
-}
-
 .layer-grid-container {
   overflow: hidden;
   background: #0A0A0A;
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  position: absolute;
+  top: 40px;
+  left: 0;
+  width: 100%;
+  height: 300px;
+  z-index: 5;
 }
 
 .bottom-section {
-  display: flex;
+  position: relative;
   width: 100%;
   height: 100%;
 }
 
 .main-canvas {
-  flex: 1;
-  background: #000;
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  border-top: 1px solid #333;
+  background: #000;
+  z-index: 0;
 }
 
 /* MEJORAS PARA CONTROLS PANEL CON SCROLL */
@@ -557,7 +551,11 @@ body {
 
 /* Top Bar */
 .top-bar {
-  grid-row: 1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 40px;
   display: flex;
   align-items: center;
   gap: 10px;
