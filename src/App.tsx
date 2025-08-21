@@ -41,7 +41,14 @@ const App: React.FC = () => {
     if (stored === null) return false;
     return stored !== 'true';
   });
-  const [layerPresetConfigs, setLayerPresetConfigs] = useState<Record<string, Record<string, any>>>({});
+  const [layerPresetConfigs, setLayerPresetConfigs] = useState<Record<string, Record<string, any>>>(() => {
+    try {
+      const stored = localStorage.getItem('layerPresetConfigs');
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
 
   // Top bar & settings state
   const [midiDevices, setMidiDevices] = useState<any[]>([]);
@@ -112,6 +119,15 @@ const App: React.FC = () => {
       monitorId: startMonitor ? parseInt(startMonitor, 10) : undefined
     });
   }, [startMaximized, startMonitor]);
+
+  // Persist preset configs per layer/visual automatically
+  useEffect(() => {
+    try {
+      localStorage.setItem('layerPresetConfigs', JSON.stringify(layerPresetConfigs));
+    } catch (e) {
+      console.warn('Failed to persist layer preset configs:', e);
+    }
+  }, [layerPresetConfigs]);
 
 
   // Enumerar monitores disponibles usando Electron
@@ -638,21 +654,22 @@ const App: React.FC = () => {
             if (presetId) {
               const preset = availablePresets.find(p => p.id === presetId);
               if (preset) {
-                const cfg = engineRef.current?.getLayerPresetConfig(layerId, presetId);
-                if (cfg) {
-                  setLayerPresetConfigs(prev => ({
-                    ...prev,
-                    [layerId]: { ...(prev[layerId] || {}), [presetId]: cfg }
-                  }));
+                const existing = layerPresetConfigs[layerId]?.[presetId];
+                if (!existing) {
+                  const cfg = engineRef.current?.getLayerPresetConfig(layerId, presetId);
+                  if (cfg) {
+                    setLayerPresetConfigs(prev => ({
+                      ...prev,
+                      [layerId]: { ...(prev[layerId] || {}), [presetId]: cfg }
+                    }));
+                  }
                 }
                 setSelectedPreset(preset);
                 setSelectedLayer(layerId);
               }
-            } else {
-              if (selectedLayer === layerId) {
-                setSelectedPreset(null);
-                setSelectedLayer(null);
-              }
+            } else if (selectedLayer === layerId) {
+              setSelectedPreset(null);
+              setSelectedLayer(null);
             }
           }}
           clearAllSignal={clearSignal}
