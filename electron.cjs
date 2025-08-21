@@ -9,6 +9,19 @@ const startUrl = process.env.NODE_ENV === 'development'
   ? 'http://localhost:3000'  // Cambiado de 5173 a 3000 (puerto de Vite por defecto)
   : path.join(__dirname, 'dist', 'index.html');
 
+function closeFullscreenWindows() {
+  fullscreenWindows.forEach(win => {
+    if (!win.isDestroyed()) {
+      win.close();
+    }
+  });
+  fullscreenWindows = [];
+  if (mirrorInterval) {
+    clearInterval(mirrorInterval);
+    mirrorInterval = null;
+  }
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -48,13 +61,13 @@ function createWindow() {
   // Si el usuario sale del modo fullscreen manualmente, cerrar las ventanas
   // secundarias y notificar al renderer para que actualice su estado
   mainWindow.on('leave-full-screen', () => {
-    fullscreenWindows.forEach(win => win.close());
-    fullscreenWindows = [];
-    if (mirrorInterval) {
-      clearInterval(mirrorInterval);
-      mirrorInterval = null;
-    }
+    closeFullscreenWindows();
     mainWindow.webContents.send('main-leave-fullscreen');
+  });
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+    closeFullscreenWindows();
   });
 }
 
@@ -88,12 +101,7 @@ ipcMain.handle('get-displays', () => {
 ipcMain.handle('toggle-fullscreen', (event, ids = []) => {
   // Si ya hay ventanas de fullscreen abiertas, cerrar y restaurar principal
   if (fullscreenWindows.length) {
-    fullscreenWindows.forEach(win => win.close());
-    fullscreenWindows = [];
-    if (mirrorInterval) {
-      clearInterval(mirrorInterval);
-      mirrorInterval = null;
-    }
+    closeFullscreenWindows();
     if (mainWindow) {
       mainWindow.setFullScreen(false);
       mainWindow.show();
