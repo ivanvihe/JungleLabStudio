@@ -221,6 +221,9 @@ const App: React.FC = () => {
     const handler = () => {
       setIsFullscreenMode(false);
       engineRef.current?.setMultiMonitorMode(false);
+      // Asegurar que el estado de multi-monitor se restablezca cuando se
+      // abandona el modo fullscreen desde la ventana principal
+      localStorage.setItem('multiMonitorMode', 'false');
     };
     api.onMainLeaveFullscreen(handler);
     return () => {
@@ -242,7 +245,13 @@ const App: React.FC = () => {
         const engine = new AudioVisualizerEngine(canvasRef.current, { glitchTextPads });
         await engine.initialize();
         engineRef.current = engine;
-        
+
+        // Restaurar el modo multi-monitor tras una recarga en fullscreen.
+        // Esto permite que las ventanas clon reciban frames correctamente
+        // después de que la ventana principal se vuelva a cargar.
+        const multiMonitor = localStorage.getItem('multiMonitorMode') === 'true';
+        engine.setMultiMonitorMode(multiMonitor);
+
         const presets = engine.getAvailablePresets();
         setAvailablePresets(presets);
         setIsInitialized(true);
@@ -568,8 +577,11 @@ const App: React.FC = () => {
       // Activar o desactivar modo multi-monitor según corresponda
       if (isFullscreenMode) {
         engineRef.current?.setMultiMonitorMode(false);
+        localStorage.setItem('multiMonitorMode', 'false');
       } else {
-        engineRef.current?.setMultiMonitorMode(ids.length > 1);
+        const multi = ids.length > 1;
+        engineRef.current?.setMultiMonitorMode(multi);
+        localStorage.setItem('multiMonitorMode', multi ? 'true' : 'false');
       }
       try {
         await (window as any).electronAPI.toggleFullscreen(ids);
@@ -606,8 +618,11 @@ const App: React.FC = () => {
         // Activar o desactivar modo multi-monitor según corresponda
         if (isFullscreenMode) {
           engineRef.current?.setMultiMonitorMode(false);
+          localStorage.setItem('multiMonitorMode', 'false');
         } else {
-          engineRef.current?.setMultiMonitorMode(activeMonitors.length > 1);
+          const multi = activeMonitors.length > 1;
+          engineRef.current?.setMultiMonitorMode(multi);
+          localStorage.setItem('multiMonitorMode', multi ? 'true' : 'false');
         }
 
         console.log(`🎯 Abriendo fullscreen en ${activeMonitors.length} monitores`);
