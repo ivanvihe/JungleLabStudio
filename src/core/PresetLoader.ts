@@ -21,11 +21,7 @@ export interface PresetConfig {
     default: any;
     options?: string[];
   }>;
-  audioMapping: {
-    low: { description: string; frequency: string; effect: string; };
-    mid: { description: string; frequency: string; effect: string; };
-    high: { description: string; frequency: string; effect: string; };
-  };
+  audioMapping: Record<string, { description: string; frequency: string; effect: string }>;
   performance: {
     complexity: 'low' | 'medium' | 'high';
     recommendedFPS: number;
