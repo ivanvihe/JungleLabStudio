@@ -1,4 +1,8 @@
-import * as THREE from 'three';
+// Limpiar escena
+    this.scene.remove(this.group);
+    if (this.gridFloor) this.scene.remove(this.gridFloor);
+    if (this.gridBack) this.scene.remove(this.gridBack);
+    if (this.frequencyLabels) this.scene.remove(this.frequencyLabels);import * as THREE from 'three';
 import { BasePreset, PresetConfig } from '../../core/PresetLoader';
 
 export const config: PresetConfig = {
@@ -14,23 +18,23 @@ export const config: PresetConfig = {
     radius: 8,
     butterflyCount: 60,
     colors: {
-      band1: '#4A90E2',  // 40-200Hz - Azul suave
-      band2: '#7ED321',  // 200-400Hz - Verde natural
-      band3: '#F5A623',  // 400-600Hz - Amarillo cálido
-      band4: '#D0021B',  // 600-1000Hz - Rojo vibrante
-      band5: '#9013FE',  // 1000-10000Hz - Púrpura
-      band6: '#50E3C2'   // 10000-22000Hz - Turquesa
+      band1: '#00FFFF',  // 40-200Hz - Cian eléctrico
+      band2: '#00FF00',  // 200-400Hz - Verde neón
+      band3: '#FFFF00',  // 400-600Hz - Amarillo brillante
+      band4: '#FF0080',  // 600-1000Hz - Magenta vibrante
+      band5: '#8000FF',  // 1000-10000Hz - Púrpura eléctrico
+      band6: '#FF4000'   // 10000-22000Hz - Naranja ardiente
     }
   },
   controls: [
     { name: 'radius', type: 'slider', label: 'Camera Radius', min: 5, max: 15, step: 0.5, default: 8 },
     { name: 'butterflyCount', type: 'slider', label: 'Max Butterflies', min: 20, max: 120, step: 5, default: 60 },
-    { name: 'colors.band1', type: 'color', label: '40-200Hz Color', default: '#4A90E2' },
-    { name: 'colors.band2', type: 'color', label: '200-400Hz Color', default: '#7ED321' },
-    { name: 'colors.band3', type: 'color', label: '400-600Hz Color', default: '#F5A623' },
-    { name: 'colors.band4', type: 'color', label: '600-1000Hz Color', default: '#D0021B' },
-    { name: 'colors.band5', type: 'color', label: '1-10kHz Color', default: '#9013FE' },
-    { name: 'colors.band6', type: 'color', label: '10-22kHz Color', default: '#50E3C2' }
+    { name: 'colors.band1', type: 'color', label: '40-200Hz Color', default: '#00FFFF' },
+    { name: 'colors.band2', type: 'color', label: '200-400Hz Color', default: '#00FF00' },
+    { name: 'colors.band3', type: 'color', label: '400-600Hz Color', default: '#FFFF00' },
+    { name: 'colors.band4', type: 'color', label: '600-1000Hz Color', default: '#FF0080' },
+    { name: 'colors.band5', type: 'color', label: '1-10kHz Color', default: '#8000FF' },
+    { name: 'colors.band6', type: 'color', label: '10-22kHz Color', default: '#FF4000' }
   ],
   audioMapping: {
     band1: { description: 'Sub-bass frequencies', frequency: '40-200 Hz', effect: 'Butterfly density and movement in zone 1' },
@@ -141,20 +145,26 @@ class AnalysisSpectrum extends BasePreset {
   }
 
   private createFrequencyGrid(): void {
-    // Grid base que muestra frecuencias (Hz)
-    this.gridFloor = new THREE.GridHelper(12, 24, 0x666666, 0x333333);
-    this.gridFloor.material.opacity = 0.6;
+    // Grid base más brillante y vibrante
+    this.gridFloor = new THREE.GridHelper(12, 24, 0x00FFAA, 0x006644);
+    this.gridFloor.material.opacity = 0.8;
     this.gridFloor.material.transparent = true;
+    // Efecto de glow en el grid
+    this.gridFloor.material.emissive = new THREE.Color(0x002244);
+    this.gridFloor.material.emissiveIntensity = 0.3;
     this.scene.add(this.gridFloor);
   }
 
   private createDbGrid(): void {
-    // Grid trasero que muestra dB levels
-    this.gridBack = new THREE.GridHelper(8, 16, 0x555555, 0x222222);
+    // Grid trasero más brillante para dB levels
+    this.gridBack = new THREE.GridHelper(8, 16, 0xFF4400, 0x884400);
     this.gridBack.rotation.x = Math.PI / 2;
     this.gridBack.position.set(0, 2, -6);
-    this.gridBack.material.opacity = 0.4;
+    this.gridBack.material.opacity = 0.7;
     this.gridBack.material.transparent = true;
+    // Efecto de glow
+    this.gridBack.material.emissive = new THREE.Color(0x441100);
+    this.gridBack.material.emissiveIntensity = 0.2;
     this.scene.add(this.gridBack);
   }
 
@@ -167,20 +177,28 @@ class AnalysisSpectrum extends BasePreset {
     
     // Frecuencias a mostrar en el grid base
     const frequencies = ['40Hz', '200Hz', '400Hz', '600Hz', '1kHz', '10kHz', '22kHz'];
+    const colors = ['#00FFFF', '#00FF88', '#88FF00', '#FFFF00', '#FF8800', '#FF4400', '#FF0088'];
     const positions = [-3.6, -2.4, -1.2, 0, 1.2, 2.4, 3.6];
     
     frequencies.forEach((freq, i) => {
       context.clearRect(0, 0, 128, 32);
-      context.fillStyle = '#ffffff';
-      context.font = '16px Arial';
+      // Fondo con glow
+      context.shadowColor = colors[i];
+      context.shadowBlur = 10;
+      context.fillStyle = colors[i];
+      context.font = 'bold 16px Arial';
       context.textAlign = 'center';
       context.fillText(freq, 64, 20);
       
       const texture = new THREE.CanvasTexture(canvas);
-      const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+      const material = new THREE.SpriteMaterial({ 
+        map: texture, 
+        transparent: true,
+        opacity: 0.9
+      });
       const sprite = new THREE.Sprite(material);
-      sprite.position.set(positions[i], 0.1, 3);
-      sprite.scale.set(0.8, 0.2, 1);
+      sprite.position.set(positions[i], 0.15, 3);
+      sprite.scale.set(1.0, 0.25, 1);
       
       this.frequencyLabels.add(sprite);
     });
@@ -201,16 +219,23 @@ class AnalysisSpectrum extends BasePreset {
     
     dbLevels.forEach((db, i) => {
       context.clearRect(0, 0, 64, 32);
-      context.fillStyle = '#aaaaaa';
-      context.font = '14px Arial';
+      // Glow effect para labels
+      context.shadowColor = '#FF6600';
+      context.shadowBlur = 8;
+      context.fillStyle = '#FFAA44';
+      context.font = 'bold 14px Arial';
       context.textAlign = 'center';
       context.fillText(db, 32, 20);
       
       const texture = new THREE.CanvasTexture(canvas);
-      const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+      const material = new THREE.SpriteMaterial({ 
+        map: texture, 
+        transparent: true,
+        opacity: 0.9
+      });
       const sprite = new THREE.Sprite(material);
       sprite.position.set(-4.5, yPositions[i], -5.8);
-      sprite.scale.set(0.6, 0.15, 1);
+      sprite.scale.set(0.8, 0.2, 1);
       
       this.dbLabels.add(sprite);
     });
@@ -222,12 +247,14 @@ class AnalysisSpectrum extends BasePreset {
     const group = new THREE.Group();
     const color = new THREE.Color(colorHex);
     
-    // Alas redondas
+    // Alas brillantes y vibrantes con efecto emisivo
     const wingMaterial = new THREE.MeshLambertMaterial({ 
       color: color,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.8
+      opacity: 0.9,
+      emissive: color.clone().multiplyScalar(0.3), // Glow interno
+      emissiveIntensity: 0.4
     });
     
     const leftWing = new THREE.Mesh(this.wingGeometry, wingMaterial.clone());
@@ -236,8 +263,12 @@ class AnalysisSpectrum extends BasePreset {
     leftWing.position.set(-0.06, 0, 0);
     rightWing.position.set(0.06, 0, 0);
     
-    // Cuerpo
-    const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
+    // Cuerpo brillante
+    const bodyMaterial = new THREE.MeshLambertMaterial({ 
+      color: 0xffffff,
+      emissive: color.clone().multiplyScalar(0.2),
+      emissiveIntensity: 0.3
+    });
     const body = new THREE.Mesh(this.bodyGeometry, bodyMaterial);
     body.rotation.z = Math.PI / 2;
     
@@ -249,8 +280,8 @@ class AnalysisSpectrum extends BasePreset {
     const radius = 0.3 + Math.random() * 0.5;
     const speed = 0.4 + Math.random() * 0.6;
     const offset = Math.random() * Math.PI * 2;
-    const scale = 0.6 + Math.random() * 0.4; // Mariposas pequeñas
-    const baseY = 0.5 + Math.random() * 1.5; // Altura base de vuelo
+    const scale = 0.6 + Math.random() * 0.4;
+    const baseY = 0.5 + Math.random() * 1.5;
     
     group.scale.setScalar(scale);
     group.position.set(
@@ -286,9 +317,11 @@ class AnalysisSpectrum extends BasePreset {
       const petal = new THREE.Mesh(
         this.petalGeometry,
         new THREE.MeshLambertMaterial({
-          color: color.clone().multiplyScalar(0.8 + Math.random() * 0.4),
+          color: color.clone().multiplyScalar(1.2), // Más brillante
           transparent: true,
-          opacity: 0.7
+          opacity: 0.8,
+          emissive: color.clone().multiplyScalar(0.4), // Glow en pétalos
+          emissiveIntensity: 0.5
         })
       );
       
@@ -489,10 +522,17 @@ class AnalysisSpectrum extends BasePreset {
           // Rotación corporal
           butterfly.group.rotation.y = Math.sin(flightTime * 0.5) * 0.15;
           
-          // Brillo reactivo al audio
-          const brightness = 0.8 + range.smoothedLevel * 0.3;
-          butterfly.wings.left.material.opacity = Math.min(1.0, brightness);
-          butterfly.wings.right.material.opacity = Math.min(1.0, brightness);
+          // Brillo reactivo al audio - MÁS INTENSO
+          const baseBrightness = 0.9 + range.smoothedLevel * 0.6;
+          const glowIntensity = 0.4 + range.audioLevel * 0.8;
+          
+          butterfly.wings.left.material.opacity = Math.min(1.0, baseBrightness);
+          butterfly.wings.right.material.opacity = Math.min(1.0, baseBrightness);
+          
+          // Efecto de glow dinámico
+          butterfly.wings.left.material.emissiveIntensity = glowIntensity;
+          butterfly.wings.right.material.emissiveIntensity = glowIntensity;
+          butterfly.body.material.emissiveIntensity = glowIntensity * 0.5;
         }
       });
     });
@@ -526,6 +566,12 @@ class AnalysisSpectrum extends BasePreset {
     });
   }
 
+  dispose(): void {
+    // Limpiar escena
+    this.scene.remove(this.group);
+    if (this.gridFloor) this.scene.remove(this.gridFloor);
+    if (this.gridBack) this.scene.remove(this.gridBack);
+    if (this.frequencyLabels) this.scene.remove(this.frequencyLabels);
   dispose(): void {
     // Limpiar escena
     this.scene.remove(this.group);
