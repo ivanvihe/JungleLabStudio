@@ -1,6 +1,13 @@
 import * as THREE from 'three';
 import { BasePreset, PresetConfig } from '../../core/PresetLoader';
 
+// Paleta de colores solicitada para el preset Analysis
+const COLOR_PALETTE = [
+  '#5e2577', '#702d76', '#8a3a75', '#a44875', '#ba5374', '#d36075',
+  '#e86c73', '#ed7c75', '#f18c73', '#f59d70', '#f9af71', '#fdbe74',
+  '#ffcd8f', '#ffdfb6'
+];
+
 export const config: PresetConfig = {
   name: 'ANALYSIS',
   description: '3D audio spectrum analyzer with smooth pastel particle transitions and frequency/dB grid.',
@@ -14,23 +21,23 @@ export const config: PresetConfig = {
     radius: 8,
     particleCount: 60,
     colors: {
-      band1: '#A8A8A8',
-      band2: '#B58E7E',
-      band3: '#D97E7E',
-      band4: '#8B6F6F',
-      band5: '#C49A9A',
-      band6: '#E68A7A'
+      band1: COLOR_PALETTE[0],
+      band2: COLOR_PALETTE[3],
+      band3: COLOR_PALETTE[5],
+      band4: COLOR_PALETTE[7],
+      band5: COLOR_PALETTE[9],
+      band6: COLOR_PALETTE[13]
     }
   },
   controls: [
     { name: 'radius', type: 'slider', label: 'Camera Radius', min: 5, max: 15, step: 0.5, default: 8 },
     { name: 'particleCount', type: 'slider', label: 'Max Particles', min: 20, max: 120, step: 5, default: 60 },
-    { name: 'colors.band1', type: 'color', label: '40-200Hz Color', default: '#A8A8A8' },
-    { name: 'colors.band2', type: 'color', label: '200-400Hz Color', default: '#B58E7E' },
-    { name: 'colors.band3', type: 'color', label: '400-600Hz Color', default: '#D97E7E' },
-    { name: 'colors.band4', type: 'color', label: '600-1000Hz Color', default: '#8B6F6F' },
-    { name: 'colors.band5', type: 'color', label: '1-10kHz Color', default: '#C49A9A' },
-    { name: 'colors.band6', type: 'color', label: '10-22kHz Color', default: '#E68A7A' }
+    { name: 'colors.band1', type: 'color', label: '40-200Hz Color', default: COLOR_PALETTE[0] },
+    { name: 'colors.band2', type: 'color', label: '200-400Hz Color', default: COLOR_PALETTE[3] },
+    { name: 'colors.band3', type: 'color', label: '400-600Hz Color', default: COLOR_PALETTE[5] },
+    { name: 'colors.band4', type: 'color', label: '600-1000Hz Color', default: COLOR_PALETTE[7] },
+    { name: 'colors.band5', type: 'color', label: '1-10kHz Color', default: COLOR_PALETTE[9] },
+    { name: 'colors.band6', type: 'color', label: '10-22kHz Color', default: COLOR_PALETTE[13] }
   ],
   audioMapping: {
     band1: { description: 'Sub-bass frequencies', frequency: '40-200 Hz', effect: 'Particle density and movement in zone 1' },
@@ -92,6 +99,9 @@ class AnalysisSpectrum extends BasePreset {
   }
 
   init(): void {
+    // Reiniciar el reloj para evitar valores desfasados
+    this.clock.start();
+
     this.group = new THREE.Group();
     this.scene.add(this.group);
 
@@ -156,7 +166,15 @@ class AnalysisSpectrum extends BasePreset {
     canvas.height = 32;
 
     const frequencies = ['40Hz', '200Hz', '400Hz', '600Hz', '1kHz', '10kHz', '22kHz'];
-    const colors = ['#A8A8A8', '#B58E7E', '#D97E7E', '#8B6F6F', '#C49A9A', '#E68A7A', '#B5A5A5'];
+    const colors = [
+      COLOR_PALETTE[0],
+      COLOR_PALETTE[2],
+      COLOR_PALETTE[4],
+      COLOR_PALETTE[6],
+      COLOR_PALETTE[9],
+      COLOR_PALETTE[11],
+      COLOR_PALETTE[13]
+    ];
     const positions = [-3.6, -2.4, -1.2, 0, 1.2, 2.4, 3.6];
 
     frequencies.forEach((freq, i) => {
@@ -261,7 +279,7 @@ class AnalysisSpectrum extends BasePreset {
     range.targetCount = target;
 
     if (range.currentCount < target) {
-      const spawnRate = 5.0;
+      const spawnRate = 10.0;
       if (Math.random() < spawnRate * deltaTime) {
         const newParticle = this.createParticle(range.color, range.centerX);
         range.particles.push(newParticle);
@@ -344,7 +362,7 @@ class AnalysisSpectrum extends BasePreset {
       range.smoothedLevel = range.smoothedLevel * this.smoothingFactor + rawAmp * (1 - this.smoothingFactor);
 
       const sensitivity = 1.2;
-      const minParticles = 1;
+      const minParticles = 5;
       const maxPerBand = Math.floor(this.currentConfig.particleCount / 6);
       const target = Math.max(minParticles,
         Math.min(maxPerBand, Math.floor(range.smoothedLevel * sensitivity * maxPerBand))

@@ -99,6 +99,7 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   const [vsync, setVsync] = useState(() => localStorage.getItem('vsync') !== 'false');
   const [antialias, setAntialias] = useState(() => localStorage.getItem('antialias') !== 'false');
   const [pixelRatio, setPixelRatio] = useState(() => parseFloat(localStorage.getItem('pixelRatio') || '1'));
+  const [visualScale, setVisualScale] = useState(() => parseFloat(localStorage.getItem('visualScale') || '1'));
   const [preferredGPU, setPreferredGPU] = useState(() => localStorage.getItem('preferredGPU') || 'high-performance');
   const [bufferSize, setBufferSize] = useState(() => parseInt(localStorage.getItem('audioBufferSize') || '2048'));
   const [fftSize, setFFTSize] = useState(() => parseInt(localStorage.getItem('fftSize') || '2048'));
@@ -122,6 +123,12 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   useEffect(() => {
     localStorage.setItem('pixelRatio', pixelRatio.toString());
   }, [pixelRatio]);
+
+  useEffect(() => {
+    localStorage.setItem('visualScale', visualScale.toString());
+    // Forzar re cálculo del tamaño del canvas
+    window.dispatchEvent(new Event('resize'));
+  }, [visualScale]);
 
   useEffect(() => {
     localStorage.setItem('preferredGPU', preferredGPU);
@@ -152,7 +159,7 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
     const keysToKeep = [
       'selectedAudioDevice', 'selectedMidiDevice', 'monitorRoles',
       'glitchTextPads', 'targetFPS', 'vsync', 'antialias', 'pixelRatio',
-      'preferredGPU', 'audioBufferSize', 'fftSize', 'audioSmoothing',
+      'visualScale', 'preferredGPU', 'audioBufferSize', 'fftSize', 'audioSmoothing',
       'autoCleanCache', 'memoryLimit'
     ];
     
@@ -441,6 +448,22 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                   />
                 </label>
                 <small className="setting-hint">Menor = mejor rendimiento, Mayor = mejor calidad</small>
+              </div>
+
+              <div className="setting-group">
+                <label className="setting-label">
+                  <span>Escala de Pantalla: {(visualScale * 100).toFixed(0)}%</span>
+                  <input
+                    type="range"
+                    min={0.5}
+                    max={1}
+                    step={0.05}
+                    value={visualScale}
+                    onChange={(e) => setVisualScale(parseFloat(e.target.value))}
+                    className="setting-slider"
+                  />
+                </label>
+                <small className="setting-hint">Ajusta cuánto de la pantalla ocupa el lienzo</small>
               </div>
 
               <div className="setting-group">
