@@ -43,6 +43,14 @@ function createWindow() {
   mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
     console.log(`Console [${level}]:`, message);
   });
+
+  // Si el usuario sale del modo fullscreen manualmente, cerrar las ventanas
+  // secundarias y notificar al renderer para que actualice su estado
+  mainWindow.on('leave-full-screen', () => {
+    fullscreenWindows.forEach(win => win.close());
+    fullscreenWindows = [];
+    mainWindow.webContents.send('main-leave-fullscreen');
+  });
 }
 
 ipcMain.on('apply-settings', (event, settings) => {
