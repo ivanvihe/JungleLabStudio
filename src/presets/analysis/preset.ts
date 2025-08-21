@@ -1,8 +1,4 @@
-// Limpiar escena
-    this.scene.remove(this.group);
-    if (this.gridFloor) this.scene.remove(this.gridFloor);
-    if (this.gridBack) this.scene.remove(this.gridBack);
-    if (this.frequencyLabels) this.scene.remove(this.frequencyLabels);import * as THREE from 'three';
+import * as THREE from 'three';
 import { BasePreset, PresetConfig } from '../../core/PresetLoader';
 
 export const config: PresetConfig = {
@@ -55,11 +51,11 @@ interface Butterfly {
   radius: number;
   offset: number;
   scale: number;
-  life: number; // 0 = recién nacida, 1 = adulta, -1 = muriendo
+  life: number;
   deathTimer: number;
   birthTimer: number;
   petals?: THREE.Group;
-  baseY: number; // Altura base para el vuelo
+  baseY: number;
 }
 
 interface ButterflyRange {
@@ -68,8 +64,8 @@ interface ButterflyRange {
   centerX: number;
   targetCount: number;
   currentCount: number;
-  audioLevel: number; // Nivel actual de audio para esta banda
-  smoothedLevel: number; // Nivel suavizado
+  audioLevel: number;
+  smoothedLevel: number;
 }
 
 type BandName = 'band1' | 'band2' | 'band3' | 'band4' | 'band5' | 'band6';
@@ -87,12 +83,10 @@ class AnalysisSpectrum extends BasePreset {
   private initialCameraPosition = this.camera.position.clone();
   private initialCameraQuaternion = this.camera.quaternion.clone();
   
-  // Pool de geometrías reutilizables
   private wingGeometry!: THREE.CircleGeometry;
   private bodyGeometry!: THREE.CapsuleGeometry;
   private petalGeometry!: THREE.PlaneGeometry;
   
-  // Variables para suavizado de audio
   private smoothingFactor = 0.85;
   private lastTime = 0;
 
@@ -105,7 +99,6 @@ class AnalysisSpectrum extends BasePreset {
     this.group = new THREE.Group();
     this.scene.add(this.group);
 
-    // Crear geometrías reutilizables
     this.wingGeometry = new THREE.CircleGeometry(0.08, 8);
     this.bodyGeometry = new THREE.CapsuleGeometry(0.008, 0.06, 4, 8);
     this.petalGeometry = new THREE.PlaneGeometry(0.02, 0.03);
@@ -115,16 +108,20 @@ class AnalysisSpectrum extends BasePreset {
     this.createFrequencyLabels();
     this.createDbLabels();
 
-    // Luces mejoradas
-    this.ambient = new THREE.AmbientLight(0xffffff, 0.4);
-    this.pointLight = new THREE.PointLight(0xffeaa7, 0.8);
-    this.pointLight.position.set(3, 6, 4);
+    this.ambient = new THREE.AmbientLight(0x111111, 0.2);
+    this.pointLight = new THREE.PointLight(0xffffff, 1.5);
+    this.pointLight.position.set(0, 8, 2);
+    this.pointLight.castShadow = true;
+    
+    const colorLight = new THREE.PointLight(0x4444ff, 0.8);
+    colorLight.position.set(-4, 4, -2);
+    
     this.scene.add(this.ambient);
     this.scene.add(this.pointLight);
+    this.scene.add(colorLight);
 
-    // Inicializar grupos de mariposas
     const colors = this.currentConfig.colors;
-    const bandCenters = [-3.0, -1.8, -0.6, 0.6, 1.8, 3.0]; // Distribución uniforme por el espectro
+    const bandCenters = [-3.0, -1.8, -0.6, 0.6, 1.8, 3.0];
     
     this.butterflyGroups = {
       band1: { butterflies: [], color: colors.band1, centerX: bandCenters[0], targetCount: 0, currentCount: 0, audioLevel: 0, smoothedLevel: 0 },
@@ -135,7 +132,6 @@ class AnalysisSpectrum extends BasePreset {
       band6: { butterflies: [], color: colors.band6, centerX: bandCenters[5], targetCount: 0, currentCount: 0, audioLevel: 0, smoothedLevel: 0 }
     };
 
-    // Crear mariposas iniciales mínimas
     Object.values(this.butterflyGroups).forEach(range => {
       for (let i = 0; i < 2; i++) {
         range.butterflies.push(this.createButterfly(range.color, range.centerX));
@@ -145,24 +141,20 @@ class AnalysisSpectrum extends BasePreset {
   }
 
   private createFrequencyGrid(): void {
-    // Grid base más brillante y vibrante
     this.gridFloor = new THREE.GridHelper(12, 24, 0x00FFAA, 0x006644);
     this.gridFloor.material.opacity = 0.8;
     this.gridFloor.material.transparent = true;
-    // Efecto de glow en el grid
     this.gridFloor.material.emissive = new THREE.Color(0x002244);
     this.gridFloor.material.emissiveIntensity = 0.3;
     this.scene.add(this.gridFloor);
   }
 
   private createDbGrid(): void {
-    // Grid trasero más brillante para dB levels
     this.gridBack = new THREE.GridHelper(8, 16, 0xFF4400, 0x884400);
     this.gridBack.rotation.x = Math.PI / 2;
     this.gridBack.position.set(0, 2, -6);
     this.gridBack.material.opacity = 0.7;
     this.gridBack.material.transparent = true;
-    // Efecto de glow
     this.gridBack.material.emissive = new THREE.Color(0x441100);
     this.gridBack.material.emissiveIntensity = 0.2;
     this.scene.add(this.gridBack);
@@ -175,14 +167,12 @@ class AnalysisSpectrum extends BasePreset {
     canvas.width = 128;
     canvas.height = 32;
     
-    // Frecuencias a mostrar en el grid base
     const frequencies = ['40Hz', '200Hz', '400Hz', '600Hz', '1kHz', '10kHz', '22kHz'];
     const colors = ['#00FFFF', '#00FF88', '#88FF00', '#FFFF00', '#FF8800', '#FF4400', '#FF0088'];
     const positions = [-3.6, -2.4, -1.2, 0, 1.2, 2.4, 3.6];
     
     frequencies.forEach((freq, i) => {
       context.clearRect(0, 0, 128, 32);
-      // Fondo con glow
       context.shadowColor = colors[i];
       context.shadowBlur = 10;
       context.fillStyle = colors[i];
@@ -213,13 +203,11 @@ class AnalysisSpectrum extends BasePreset {
     canvas.width = 64;
     canvas.height = 32;
     
-    // Niveles de dB a mostrar en el grid trasero
     const dbLevels = ['-60dB', '-40dB', '-20dB', '0dB'];
     const yPositions = [0.5, 1.5, 2.5, 3.5];
     
     dbLevels.forEach((db, i) => {
       context.clearRect(0, 0, 64, 32);
-      // Glow effect para labels
       context.shadowColor = '#FF6600';
       context.shadowBlur = 8;
       context.fillStyle = '#FFAA44';
@@ -247,13 +235,12 @@ class AnalysisSpectrum extends BasePreset {
     const group = new THREE.Group();
     const color = new THREE.Color(colorHex);
     
-    // Alas brillantes y vibrantes con efecto emisivo
     const wingMaterial = new THREE.MeshLambertMaterial({ 
       color: color,
       side: THREE.DoubleSide,
       transparent: true,
       opacity: 0.9,
-      emissive: color.clone().multiplyScalar(0.3), // Glow interno
+      emissive: color.clone().multiplyScalar(0.3),
       emissiveIntensity: 0.4
     });
     
@@ -263,7 +250,6 @@ class AnalysisSpectrum extends BasePreset {
     leftWing.position.set(-0.06, 0, 0);
     rightWing.position.set(0.06, 0, 0);
     
-    // Cuerpo brillante
     const bodyMaterial = new THREE.MeshLambertMaterial({ 
       color: 0xffffff,
       emissive: color.clone().multiplyScalar(0.2),
@@ -276,7 +262,6 @@ class AnalysisSpectrum extends BasePreset {
     group.add(rightWing);
     group.add(body);
     
-    // Propiedades de vuelo
     const radius = 0.3 + Math.random() * 0.5;
     const speed = 0.4 + Math.random() * 0.6;
     const offset = Math.random() * Math.PI * 2;
@@ -317,10 +302,10 @@ class AnalysisSpectrum extends BasePreset {
       const petal = new THREE.Mesh(
         this.petalGeometry,
         new THREE.MeshLambertMaterial({
-          color: color.clone().multiplyScalar(1.2), // Más brillante
+          color: color.clone().multiplyScalar(1.2),
           transparent: true,
           opacity: 0.8,
-          emissive: color.clone().multiplyScalar(0.4), // Glow en pétalos
+          emissive: color.clone().multiplyScalar(0.4),
           emissiveIntensity: 0.5
         })
       );
@@ -358,7 +343,7 @@ class AnalysisSpectrum extends BasePreset {
             const userData = petal.userData;
             
             petal.position.add(userData.velocity.clone().multiplyScalar(deltaTime));
-            userData.velocity.y -= 0.3 * deltaTime; // Gravedad suave
+            userData.velocity.y -= 0.3 * deltaTime;
             userData.velocity.multiplyScalar(0.98);
             
             petal.rotation.z += userData.angularVelocity * deltaTime;
@@ -383,28 +368,25 @@ class AnalysisSpectrum extends BasePreset {
   private adjustButterflies(range: ButterflyRange, target: number, deltaTime: number): void {
     range.targetCount = target;
     
-    // Crear nuevas mariposas con control de tasa
     if (range.currentCount < target) {
-      const spawnRate = 3.0; // Más responsivo al audio
+      const spawnRate = 3.0;
       if (Math.random() < spawnRate * deltaTime) {
         const newButterfly = this.createButterfly(range.color, range.centerX);
-        newButterfly.birthTimer = 0.8; // Nacimiento más rápido
+        newButterfly.birthTimer = 0.8;
         range.butterflies.push(newButterfly);
         range.currentCount++;
       }
     }
     
-    // Marcar para muerte cuando hay exceso
     if (range.currentCount > target) {
       range.butterflies.forEach(butterfly => {
         if (butterfly.life > 0.5 && butterfly.deathTimer === 0 && Math.random() < 0.5 * deltaTime) {
-          butterfly.deathTimer = 1.2; // Muerte más lenta y visible
+          butterfly.deathTimer = 1.2;
           butterfly.life = -1;
         }
       });
     }
     
-    // Procesar ciclo de vida
     for (let i = range.butterflies.length - 1; i >= 0; i--) {
       const butterfly = range.butterflies[i];
       
@@ -422,7 +404,7 @@ class AnalysisSpectrum extends BasePreset {
         butterfly.deathTimer -= deltaTime;
         const deathProgress = 1.0 - butterfly.deathTimer;
         
-        butterfly.speed *= (1.0 - deltaTime * 0.3); // Ralentizar gradualmente
+        butterfly.speed *= (1.0 - deltaTime * 0.3);
         
         const scale = butterfly.scale * (1.0 - deathProgress * 0.3);
         butterfly.group.scale.setScalar(scale);
@@ -452,16 +434,15 @@ class AnalysisSpectrum extends BasePreset {
     const deltaTime = this.clock.getDelta();
     const fft = this.audioData.fft;
     
-    // Análisis de frecuencias mejorado
     const sampleRate = 44100;
     const nyquist = sampleRate / 2;
     const ranges: [number, number][] = [
-      [40, 200],     // Band 1: Sub-bass
-      [200, 400],    // Band 2: Bass
-      [400, 600],    // Band 3: Low-mid
-      [600, 1000],   // Band 4: Mid
-      [1000, 10000], // Band 5: High-mid
-      [10000, 22000] // Band 6: Treble
+      [40, 200],
+      [200, 400],
+      [400, 600],
+      [600, 1000],
+      [1000, 10000],
+      [10000, 22000]
     ];
     
     const amps = ranges.map(([low, high]) => {
@@ -471,7 +452,7 @@ class AnalysisSpectrum extends BasePreset {
       let count = 0;
       
       for (let i = start; i < end && i < fft.length; i++) {
-        sum += fft[i] * fft[i]; // Energía
+        sum += fft[i] * fft[i];
         count++;
       }
       
@@ -484,11 +465,9 @@ class AnalysisSpectrum extends BasePreset {
       const range = this.butterflyGroups[key];
       const rawAmp = Math.max(amps[i], 0);
       
-      // Suavizado del audio para evitar cambios bruscos
       range.audioLevel = rawAmp;
       range.smoothedLevel = range.smoothedLevel * this.smoothingFactor + rawAmp * (1 - this.smoothingFactor);
       
-      // Mapeo mejorado: más sensible a cambios de audio
       const sensitivity = 1.2;
       const minButterflies = 1;
       const maxPerBand = Math.floor(this.currentConfig.butterflyCount / 6);
@@ -498,12 +477,10 @@ class AnalysisSpectrum extends BasePreset {
       
       this.adjustButterflies(range, target, deltaTime);
       
-      // Animar mariposas vivas con reactividad al audio
       range.butterflies.forEach(butterfly => {
         if (butterfly.life > 0 && butterfly.deathTimer === 0) {
           const flightTime = time * butterfly.speed + butterfly.offset;
           
-          // Posición base más reactividad al audio
           const audioInfluence = range.smoothedLevel * 1.5;
           const x = range.centerX + Math.cos(flightTime) * (butterfly.radius + audioInfluence * 0.2);
           const z = Math.sin(flightTime) * (butterfly.radius + audioInfluence * 0.2);
@@ -511,7 +488,6 @@ class AnalysisSpectrum extends BasePreset {
           
           butterfly.group.position.set(x, y, z);
           
-          // Aleteo reactivo al audio
           const baseBeat = Math.sin(time * 6 + butterfly.offset) * 0.3;
           const audioBeat = range.audioLevel * 0.4;
           const finalBeat = baseBeat + audioBeat;
@@ -519,17 +495,14 @@ class AnalysisSpectrum extends BasePreset {
           butterfly.wings.left.rotation.z = finalBeat;
           butterfly.wings.right.rotation.z = -finalBeat;
           
-          // Rotación corporal
           butterfly.group.rotation.y = Math.sin(flightTime * 0.5) * 0.15;
           
-          // Brillo reactivo al audio - MÁS INTENSO
           const baseBrightness = 0.9 + range.smoothedLevel * 0.6;
           const glowIntensity = 0.4 + range.audioLevel * 0.8;
           
           butterfly.wings.left.material.opacity = Math.min(1.0, baseBrightness);
           butterfly.wings.right.material.opacity = Math.min(1.0, baseBrightness);
           
-          // Efecto de glow dinámico
           butterfly.wings.left.material.emissiveIntensity = glowIntensity;
           butterfly.wings.right.material.emissiveIntensity = glowIntensity;
           butterfly.body.material.emissiveIntensity = glowIntensity * 0.5;
@@ -537,10 +510,8 @@ class AnalysisSpectrum extends BasePreset {
       });
     });
 
-    // Actualizar pétalos
     this.updatePetals(deltaTime);
 
-    // Movimiento de cámara suave
     const radius = this.currentConfig.radius;
     const cameraSpeed = 0.12;
     this.camera.position.x = Math.cos(time * cameraSpeed) * radius;
@@ -552,7 +523,6 @@ class AnalysisSpectrum extends BasePreset {
   updateConfig(newConfig: any): void {
     this.currentConfig = { ...this.currentConfig, ...newConfig };
     
-    // Actualizar colores
     Object.entries(this.butterflyGroups).forEach(([key, range]) => {
       const newColor = this.currentConfig.colors[key as BandName];
       if (newColor && newColor !== range.color) {
@@ -567,13 +537,6 @@ class AnalysisSpectrum extends BasePreset {
   }
 
   dispose(): void {
-    // Limpiar escena
-    this.scene.remove(this.group);
-    if (this.gridFloor) this.scene.remove(this.gridFloor);
-    if (this.gridBack) this.scene.remove(this.gridBack);
-    if (this.frequencyLabels) this.scene.remove(this.frequencyLabels);
-  dispose(): void {
-    // Limpiar escena
     this.scene.remove(this.group);
     if (this.gridFloor) this.scene.remove(this.gridFloor);
     if (this.gridBack) this.scene.remove(this.gridBack);
@@ -582,17 +545,14 @@ class AnalysisSpectrum extends BasePreset {
     if (this.ambient) this.scene.remove(this.ambient);
     if (this.pointLight) this.scene.remove(this.pointLight);
 
-    // Restaurar cámara
     this.camera.position.copy(this.initialCameraPosition);
     this.camera.quaternion.copy(this.initialCameraQuaternion);
 
-    // Limpiar recursos
     this.group.clear();
     this.wingGeometry?.dispose();
     this.bodyGeometry?.dispose();
     this.petalGeometry?.dispose();
 
-    // Resetear grupos
     Object.keys(this.butterflyGroups).forEach(key => {
       this.butterflyGroups[key as BandName] = {
         butterflies: [],
