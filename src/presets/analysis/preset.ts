@@ -3,7 +3,7 @@ import { BasePreset, PresetConfig } from '../../core/PresetLoader';
 
 export const config: PresetConfig = {
   name: 'ANALYSIS',
-  description: '3D audio spectrum analyzer with smooth butterfly transitions and nature-inspired visuals.',
+  description: '3D audio spectrum analyzer with smooth butterfly transitions and frequency/dB grid.',
   author: 'AudioVisualizer',
   version: '2.0.0',
   category: 'analysis',
@@ -12,33 +12,33 @@ export const config: PresetConfig = {
   note: 48,
   defaultConfig: {
     radius: 8,
-    butterflyCount: 50,
+    butterflyCount: 60,
     colors: {
-      band1: '#4A90E2',  // Azul suave
-      band2: '#7ED321',  // Verde natural
-      band3: '#F5A623',  // Amarillo cálido
-      band4: '#D0021B',  // Rojo vibrante
-      band5: '#9013FE',  // Púrpura
-      band6: '#50E3C2'   // Turquesa
+      band1: '#4A90E2',  // 40-200Hz - Azul suave
+      band2: '#7ED321',  // 200-400Hz - Verde natural
+      band3: '#F5A623',  // 400-600Hz - Amarillo cálido
+      band4: '#D0021B',  // 600-1000Hz - Rojo vibrante
+      band5: '#9013FE',  // 1000-10000Hz - Púrpura
+      band6: '#50E3C2'   // 10000-22000Hz - Turquesa
     }
   },
   controls: [
     { name: 'radius', type: 'slider', label: 'Camera Radius', min: 5, max: 15, step: 0.5, default: 8 },
-    { name: 'butterflyCount', type: 'slider', label: 'Max Butterflies', min: 10, max: 100, step: 1, default: 50 },
-    { name: 'colors.band1', type: 'color', label: 'Low Bass Color', default: '#4A90E2' },
-    { name: 'colors.band2', type: 'color', label: 'High Bass Color', default: '#7ED321' },
-    { name: 'colors.band3', type: 'color', label: 'Low Mid Color', default: '#F5A623' },
-    { name: 'colors.band4', type: 'color', label: 'Mid Color', default: '#D0021B' },
-    { name: 'colors.band5', type: 'color', label: 'High Mid Color', default: '#9013FE' },
-    { name: 'colors.band6', type: 'color', label: 'Treble Color', default: '#50E3C2' }
+    { name: 'butterflyCount', type: 'slider', label: 'Max Butterflies', min: 20, max: 120, step: 5, default: 60 },
+    { name: 'colors.band1', type: 'color', label: '40-200Hz Color', default: '#4A90E2' },
+    { name: 'colors.band2', type: 'color', label: '200-400Hz Color', default: '#7ED321' },
+    { name: 'colors.band3', type: 'color', label: '400-600Hz Color', default: '#F5A623' },
+    { name: 'colors.band4', type: 'color', label: '600-1000Hz Color', default: '#D0021B' },
+    { name: 'colors.band5', type: 'color', label: '1-10kHz Color', default: '#9013FE' },
+    { name: 'colors.band6', type: 'color', label: '10-22kHz Color', default: '#50E3C2' }
   ],
   audioMapping: {
-    band1: { description: 'Sub-bass frequencies', frequency: '40-200 Hz', effect: 'Butterfly swarm density' },
-    band2: { description: 'Bass frequencies', frequency: '200-400 Hz', effect: 'Wing movement intensity' },
-    band3: { description: 'Low mid frequencies', frequency: '400-600 Hz', effect: 'Flight speed variation' },
-    band4: { description: 'Mid frequencies', frequency: '600-1000 Hz', effect: 'Color saturation' },
-    band5: { description: 'High mid frequencies', frequency: '1000-10000 Hz', effect: 'Emergence pattern' },
-    band6: { description: 'High frequencies', frequency: '10000-22000 Hz', effect: 'Sparkle effects' }
+    band1: { description: 'Sub-bass frequencies', frequency: '40-200 Hz', effect: 'Butterfly density and movement in zone 1' },
+    band2: { description: 'Bass frequencies', frequency: '200-400 Hz', effect: 'Butterfly density and movement in zone 2' },
+    band3: { description: 'Low mid frequencies', frequency: '400-600 Hz', effect: 'Butterfly density and movement in zone 3' },
+    band4: { description: 'Mid frequencies', frequency: '600-1000 Hz', effect: 'Butterfly density and movement in zone 4' },
+    band5: { description: 'High mid frequencies', frequency: '1000-10000 Hz', effect: 'Butterfly density and movement in zone 5' },
+    band6: { description: 'High frequencies', frequency: '10000-22000 Hz', effect: 'Butterfly density and movement in zone 6' }
   },
   performance: { complexity: 'medium', recommendedFPS: 60, gpuIntensive: false }
 };
@@ -54,7 +54,8 @@ interface Butterfly {
   life: number; // 0 = recién nacida, 1 = adulta, -1 = muriendo
   deathTimer: number;
   birthTimer: number;
-  petals?: THREE.Group; // Para efecto de muerte
+  petals?: THREE.Group;
+  baseY: number; // Altura base para el vuelo
 }
 
 interface ButterflyRange {
@@ -63,6 +64,8 @@ interface ButterflyRange {
   centerX: number;
   targetCount: number;
   currentCount: number;
+  audioLevel: number; // Nivel actual de audio para esta banda
+  smoothedLevel: number; // Nivel suavizado
 }
 
 type BandName = 'band1' | 'band2' | 'band3' | 'band4' | 'band5' | 'band6';
@@ -72,16 +75,22 @@ class AnalysisSpectrum extends BasePreset {
   private butterflyGroups!: Record<BandName, ButterflyRange>;
   private gridFloor?: THREE.GridHelper;
   private gridBack?: THREE.GridHelper;
+  private frequencyLabels?: THREE.Group;
+  private dbLabels?: THREE.Group;
   private ambient?: THREE.AmbientLight;
   private pointLight?: THREE.PointLight;
   private currentConfig: any;
   private initialCameraPosition = this.camera.position.clone();
   private initialCameraQuaternion = this.camera.quaternion.clone();
   
-  // Pool de geometrías reutilizables para optimización
+  // Pool de geometrías reutilizables
   private wingGeometry!: THREE.CircleGeometry;
   private bodyGeometry!: THREE.CapsuleGeometry;
   private petalGeometry!: THREE.PlaneGeometry;
+  
+  // Variables para suavizado de audio
+  private smoothingFactor = 0.85;
+  private lastTime = 0;
 
   constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, cfg: PresetConfig) {
     super(scene, camera, renderer, cfg);
@@ -93,56 +102,127 @@ class AnalysisSpectrum extends BasePreset {
     this.scene.add(this.group);
 
     // Crear geometrías reutilizables
-    this.wingGeometry = new THREE.CircleGeometry(0.08, 8); // Más redondas
+    this.wingGeometry = new THREE.CircleGeometry(0.08, 8);
     this.bodyGeometry = new THREE.CapsuleGeometry(0.008, 0.06, 4, 8);
     this.petalGeometry = new THREE.PlaneGeometry(0.02, 0.03);
 
-    // Grid helpers con aspecto más natural
-    this.gridFloor = new THREE.GridHelper(12, 12, 0x444444, 0x222222);
-    this.gridFloor.material.opacity = 0.3;
-    this.gridFloor.material.transparent = true;
-    this.scene.add(this.gridFloor);
+    this.createFrequencyGrid();
+    this.createDbGrid();
+    this.createFrequencyLabels();
+    this.createDbLabels();
 
-    this.gridBack = new THREE.GridHelper(12, 12, 0x444444, 0x222222);
-    this.gridBack.rotation.x = Math.PI / 2;
-    this.gridBack.position.z = -6;
-    this.gridBack.material.opacity = 0.2;
-    this.gridBack.material.transparent = true;
-    this.scene.add(this.gridBack);
-
-    // Luces más cálidas y naturales
+    // Luces mejoradas
     this.ambient = new THREE.AmbientLight(0xffffff, 0.4);
     this.pointLight = new THREE.PointLight(0xffeaa7, 0.8);
     this.pointLight.position.set(3, 6, 4);
-    this.pointLight.castShadow = true;
     this.scene.add(this.ambient);
     this.scene.add(this.pointLight);
 
-    // Inicializar grupos de mariposas por bandas de frecuencia
+    // Inicializar grupos de mariposas
     const colors = this.currentConfig.colors;
+    const bandCenters = [-3.0, -1.8, -0.6, 0.6, 1.8, 3.0]; // Distribución uniforme por el espectro
+    
     this.butterflyGroups = {
-      band1: { butterflies: [], color: colors.band1, centerX: -3.0, targetCount: 0, currentCount: 0 },
-      band2: { butterflies: [], color: colors.band2, centerX: -1.8, targetCount: 0, currentCount: 0 },
-      band3: { butterflies: [], color: colors.band3, centerX: -0.6, targetCount: 0, currentCount: 0 },
-      band4: { butterflies: [], color: colors.band4, centerX: 0.6, targetCount: 0, currentCount: 0 },
-      band5: { butterflies: [], color: colors.band5, centerX: 1.8, targetCount: 0, currentCount: 0 },
-      band6: { butterflies: [], color: colors.band6, centerX: 3.0, targetCount: 0, currentCount: 0 }
+      band1: { butterflies: [], color: colors.band1, centerX: bandCenters[0], targetCount: 0, currentCount: 0, audioLevel: 0, smoothedLevel: 0 },
+      band2: { butterflies: [], color: colors.band2, centerX: bandCenters[1], targetCount: 0, currentCount: 0, audioLevel: 0, smoothedLevel: 0 },
+      band3: { butterflies: [], color: colors.band3, centerX: bandCenters[2], targetCount: 0, currentCount: 0, audioLevel: 0, smoothedLevel: 0 },
+      band4: { butterflies: [], color: colors.band4, centerX: bandCenters[3], targetCount: 0, currentCount: 0, audioLevel: 0, smoothedLevel: 0 },
+      band5: { butterflies: [], color: colors.band5, centerX: bandCenters[4], targetCount: 0, currentCount: 0, audioLevel: 0, smoothedLevel: 0 },
+      band6: { butterflies: [], color: colors.band6, centerX: bandCenters[5], targetCount: 0, currentCount: 0, audioLevel: 0, smoothedLevel: 0 }
     };
 
-    // Crear mariposas iniciales
+    // Crear mariposas iniciales mínimas
     Object.values(this.butterflyGroups).forEach(range => {
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 2; i++) {
         range.butterflies.push(this.createButterfly(range.color, range.centerX));
         range.currentCount++;
       }
     });
   }
 
+  private createFrequencyGrid(): void {
+    // Grid base que muestra frecuencias (Hz)
+    this.gridFloor = new THREE.GridHelper(12, 24, 0x666666, 0x333333);
+    this.gridFloor.material.opacity = 0.6;
+    this.gridFloor.material.transparent = true;
+    this.scene.add(this.gridFloor);
+  }
+
+  private createDbGrid(): void {
+    // Grid trasero que muestra dB levels
+    this.gridBack = new THREE.GridHelper(8, 16, 0x555555, 0x222222);
+    this.gridBack.rotation.x = Math.PI / 2;
+    this.gridBack.position.set(0, 2, -6);
+    this.gridBack.material.opacity = 0.4;
+    this.gridBack.material.transparent = true;
+    this.scene.add(this.gridBack);
+  }
+
+  private createFrequencyLabels(): void {
+    this.frequencyLabels = new THREE.Group();
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d')!;
+    canvas.width = 128;
+    canvas.height = 32;
+    
+    // Frecuencias a mostrar en el grid base
+    const frequencies = ['40Hz', '200Hz', '400Hz', '600Hz', '1kHz', '10kHz', '22kHz'];
+    const positions = [-3.6, -2.4, -1.2, 0, 1.2, 2.4, 3.6];
+    
+    frequencies.forEach((freq, i) => {
+      context.clearRect(0, 0, 128, 32);
+      context.fillStyle = '#ffffff';
+      context.font = '16px Arial';
+      context.textAlign = 'center';
+      context.fillText(freq, 64, 20);
+      
+      const texture = new THREE.CanvasTexture(canvas);
+      const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+      const sprite = new THREE.Sprite(material);
+      sprite.position.set(positions[i], 0.1, 3);
+      sprite.scale.set(0.8, 0.2, 1);
+      
+      this.frequencyLabels.add(sprite);
+    });
+    
+    this.scene.add(this.frequencyLabels);
+  }
+
+  private createDbLabels(): void {
+    this.dbLabels = new THREE.Group();
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d')!;
+    canvas.width = 64;
+    canvas.height = 32;
+    
+    // Niveles de dB a mostrar en el grid trasero
+    const dbLevels = ['-60dB', '-40dB', '-20dB', '0dB'];
+    const yPositions = [0.5, 1.5, 2.5, 3.5];
+    
+    dbLevels.forEach((db, i) => {
+      context.clearRect(0, 0, 64, 32);
+      context.fillStyle = '#aaaaaa';
+      context.font = '14px Arial';
+      context.textAlign = 'center';
+      context.fillText(db, 32, 20);
+      
+      const texture = new THREE.CanvasTexture(canvas);
+      const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+      const sprite = new THREE.Sprite(material);
+      sprite.position.set(-4.5, yPositions[i], -5.8);
+      sprite.scale.set(0.6, 0.15, 1);
+      
+      this.dbLabels.add(sprite);
+    });
+    
+    this.scene.add(this.dbLabels);
+  }
+
   private createButterfly(colorHex: string, centerX: number): Butterfly {
     const group = new THREE.Group();
     const color = new THREE.Color(colorHex);
     
-    // Alas más redondas y naturales
+    // Alas redondas
     const wingMaterial = new THREE.MeshLambertMaterial({ 
       color: color,
       side: THREE.DoubleSide,
@@ -156,7 +236,7 @@ class AnalysisSpectrum extends BasePreset {
     leftWing.position.set(-0.06, 0, 0);
     rightWing.position.set(0.06, 0, 0);
     
-    // Cuerpo de la mariposa
+    // Cuerpo
     const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
     const body = new THREE.Mesh(this.bodyGeometry, bodyMaterial);
     body.rotation.z = Math.PI / 2;
@@ -165,16 +245,17 @@ class AnalysisSpectrum extends BasePreset {
     group.add(rightWing);
     group.add(body);
     
-    // Propiedades de vuelo más naturales
-    const radius = 0.4 + Math.random() * 0.8;
-    const speed = 0.3 + Math.random() * 0.4;
+    // Propiedades de vuelo
+    const radius = 0.3 + Math.random() * 0.5;
+    const speed = 0.4 + Math.random() * 0.6;
     const offset = Math.random() * Math.PI * 2;
-    const scale = 0.7 + Math.random() * 0.6; // Mariposas más pequeñas
+    const scale = 0.6 + Math.random() * 0.4; // Mariposas pequeñas
+    const baseY = 0.5 + Math.random() * 1.5; // Altura base de vuelo
     
     group.scale.setScalar(scale);
     group.position.set(
       centerX + Math.cos(offset) * radius, 
-      0.5 + Math.random() * 2.5, 
+      baseY, 
       Math.sin(offset) * radius
     );
     
@@ -190,7 +271,8 @@ class AnalysisSpectrum extends BasePreset {
       scale,
       life: 0,
       deathTimer: 0,
-      birthTimer: 0
+      birthTimer: 0,
+      baseY
     };
   }
 
@@ -198,7 +280,6 @@ class AnalysisSpectrum extends BasePreset {
     const petalsGroup = new THREE.Group();
     const color = new THREE.Color((butterfly.wings.left.material as THREE.MeshLambertMaterial).color);
     
-    // Crear 6-8 pétalos que se dispersan
     const petalCount = 6 + Math.floor(Math.random() * 3);
     
     for (let i = 0; i < petalCount; i++) {
@@ -221,11 +302,11 @@ class AnalysisSpectrum extends BasePreset {
       petal.rotation.z = Math.random() * Math.PI * 2;
       petal.userData = {
         velocity: new THREE.Vector3(
-          Math.cos(angle) * (0.3 + Math.random() * 0.2),
-          Math.random() * 0.2 - 0.1,
-          Math.sin(angle) * (0.3 + Math.random() * 0.2)
+          Math.cos(angle) * (0.2 + Math.random() * 0.15),
+          Math.random() * 0.1,
+          Math.sin(angle) * (0.2 + Math.random() * 0.15)
         ),
-        angularVelocity: (Math.random() - 0.5) * 0.2
+        angularVelocity: (Math.random() - 0.5) * 0.15
       };
       
       petalsGroup.add(petal);
@@ -243,23 +324,20 @@ class AnalysisSpectrum extends BasePreset {
           butterfly.petals.children.forEach((petal: THREE.Mesh) => {
             const userData = petal.userData;
             
-            // Aplicar física simple
             petal.position.add(userData.velocity.clone().multiplyScalar(deltaTime));
-            userData.velocity.y -= 0.5 * deltaTime; // Gravedad
-            userData.velocity.multiplyScalar(0.98); // Fricción
+            userData.velocity.y -= 0.3 * deltaTime; // Gravedad suave
+            userData.velocity.multiplyScalar(0.98);
             
             petal.rotation.z += userData.angularVelocity * deltaTime;
             
-            // Fade out
             const material = petal.material as THREE.MeshLambertMaterial;
-            material.opacity -= deltaTime * 2;
+            material.opacity -= deltaTime * 1.5;
             
             if (material.opacity <= 0) {
               butterfly.petals!.remove(petal);
             }
           });
           
-          // Remover grupo de pétalos vacío
           if (butterfly.petals.children.length === 0) {
             this.group.remove(butterfly.petals);
             butterfly.petals = undefined;
@@ -272,65 +350,58 @@ class AnalysisSpectrum extends BasePreset {
   private adjustButterflies(range: ButterflyRange, target: number, deltaTime: number): void {
     range.targetCount = target;
     
-    // Crear nuevas mariposas gradualmente
+    // Crear nuevas mariposas con control de tasa
     if (range.currentCount < target) {
-      const spawnRate = 2.0; // Mariposas por segundo
+      const spawnRate = 3.0; // Más responsivo al audio
       if (Math.random() < spawnRate * deltaTime) {
         const newButterfly = this.createButterfly(range.color, range.centerX);
-        newButterfly.birthTimer = 1.0; // Tiempo de nacimiento
+        newButterfly.birthTimer = 0.8; // Nacimiento más rápido
         range.butterflies.push(newButterfly);
         range.currentCount++;
       }
     }
     
-    // Marcar mariposas para muerte gradual
+    // Marcar para muerte cuando hay exceso
     if (range.currentCount > target) {
       range.butterflies.forEach(butterfly => {
-        if (butterfly.life > 0.8 && butterfly.deathTimer === 0 && Math.random() < 0.3 * deltaTime) {
-          butterfly.deathTimer = 1.0; // Iniciar proceso de muerte
+        if (butterfly.life > 0.5 && butterfly.deathTimer === 0 && Math.random() < 0.5 * deltaTime) {
+          butterfly.deathTimer = 1.2; // Muerte más lenta y visible
           butterfly.life = -1;
         }
       });
     }
     
-    // Procesar ciclo de vida de las mariposas
+    // Procesar ciclo de vida
     for (let i = range.butterflies.length - 1; i >= 0; i--) {
       const butterfly = range.butterflies[i];
       
       if (butterfly.birthTimer > 0) {
-        // Proceso de nacimiento
-        butterfly.birthTimer -= deltaTime * 2;
+        butterfly.birthTimer -= deltaTime * 1.5;
         const birthProgress = 1.0 - butterfly.birthTimer;
         butterfly.group.scale.setScalar(butterfly.scale * birthProgress);
-        butterfly.life = Math.min(1.0, birthProgress * 2);
+        butterfly.life = Math.min(1.0, birthProgress * 1.5);
         
-        // Efecto de aparición suave
-        const opacity = Math.min(1.0, birthProgress * 1.5);
+        const opacity = Math.min(1.0, birthProgress * 2);
         butterfly.wings.left.material.opacity = opacity * 0.8;
         butterfly.wings.right.material.opacity = opacity * 0.8;
         
       } else if (butterfly.deathTimer > 0) {
-        // Proceso de muerte
         butterfly.deathTimer -= deltaTime;
         const deathProgress = 1.0 - butterfly.deathTimer;
         
-        // Ralentizar movimiento
-        butterfly.speed *= (1.0 - deltaTime * 0.5);
+        butterfly.speed *= (1.0 - deltaTime * 0.3); // Ralentizar gradualmente
         
-        // Reducir tamaño y opacidad gradualmente
-        const scale = butterfly.scale * (1.0 - deathProgress * 0.5);
+        const scale = butterfly.scale * (1.0 - deathProgress * 0.3);
         butterfly.group.scale.setScalar(scale);
         
         const opacity = (1.0 - deathProgress) * 0.8;
         butterfly.wings.left.material.opacity = opacity;
         butterfly.wings.right.material.opacity = opacity;
         
-        // Crear pétalos cuando está casi muriendo
-        if (deathProgress > 0.7 && !butterfly.petals) {
+        if (deathProgress > 0.6 && !butterfly.petals) {
           this.createDeathPetals(butterfly);
         }
         
-        // Remover cuando está completamente muerta
         if (butterfly.deathTimer <= 0) {
           this.group.remove(butterfly.group);
           range.butterflies.splice(i, 1);
@@ -338,8 +409,7 @@ class AnalysisSpectrum extends BasePreset {
         }
         
       } else {
-        // Vida normal - crecimiento gradual hasta la madurez
-        butterfly.life = Math.min(1.0, butterfly.life + deltaTime * 0.5);
+        butterfly.life = Math.min(1.0, butterfly.life + deltaTime * 0.8);
       }
     }
   }
@@ -349,88 +419,108 @@ class AnalysisSpectrum extends BasePreset {
     const deltaTime = this.clock.getDelta();
     const fft = this.audioData.fft;
     
-    // Mejorar el análisis de frecuencias
+    // Análisis de frecuencias mejorado
     const sampleRate = 44100;
     const nyquist = sampleRate / 2;
     const ranges: [number, number][] = [
-      [40, 200],    // Sub-bass
-      [200, 400],   // Bass
-      [400, 600],   // Low-mid
-      [600, 1000],  // Mid
-      [1000, 10000],// High-mid  
-      [10000, 22000]// Treble
+      [40, 200],     // Band 1: Sub-bass
+      [200, 400],    // Band 2: Bass
+      [400, 600],    // Band 3: Low-mid
+      [600, 1000],   // Band 4: Mid
+      [1000, 10000], // Band 5: High-mid
+      [10000, 22000] // Band 6: Treble
     ];
     
     const amps = ranges.map(([low, high]) => {
       const start = Math.floor((low / nyquist) * fft.length);
       const end = Math.floor((high / nyquist) * fft.length);
       let sum = 0;
+      let count = 0;
+      
       for (let i = start; i < end && i < fft.length; i++) {
-        sum += fft[i] * fft[i]; // Usar energía (cuadrado) para mejor respuesta
+        sum += fft[i] * fft[i]; // Energía
+        count++;
       }
-      return Math.sqrt(sum / Math.max(end - start, 1));
+      
+      return count > 0 ? Math.sqrt(sum / count) : 0;
     });
 
     const keys: BandName[] = ['band1', 'band2', 'band3', 'band4', 'band5', 'band6'];
 
     keys.forEach((key, i) => {
       const range = this.butterflyGroups[key];
-      const amp = Math.max(amps[i], 0);
+      const rawAmp = Math.max(amps[i], 0);
       
-      // Mejor mapeo de amplitud a cantidad de mariposas
-      const sensitivity = 0.8;
-      const target = Math.max(1, Math.floor((amp * sensitivity) * this.currentConfig.butterflyCount * 0.15));
+      // Suavizado del audio para evitar cambios bruscos
+      range.audioLevel = rawAmp;
+      range.smoothedLevel = range.smoothedLevel * this.smoothingFactor + rawAmp * (1 - this.smoothingFactor);
+      
+      // Mapeo mejorado: más sensible a cambios de audio
+      const sensitivity = 1.2;
+      const minButterflies = 1;
+      const maxPerBand = Math.floor(this.currentConfig.butterflyCount / 6);
+      const target = Math.max(minButterflies, 
+        Math.min(maxPerBand, Math.floor(range.smoothedLevel * sensitivity * maxPerBand))
+      );
       
       this.adjustButterflies(range, target, deltaTime);
       
-      // Animar mariposas vivas
+      // Animar mariposas vivas con reactividad al audio
       range.butterflies.forEach(butterfly => {
         if (butterfly.life > 0 && butterfly.deathTimer === 0) {
-          // Movimiento de vuelo más natural
           const flightTime = time * butterfly.speed + butterfly.offset;
-          const x = range.centerX + Math.cos(flightTime) * butterfly.radius;
-          const z = Math.sin(flightTime) * butterfly.radius;
-          const y = butterfly.group.position.y + Math.sin(flightTime * 2) * 0.1 * deltaTime;
+          
+          // Posición base más reactividad al audio
+          const audioInfluence = range.smoothedLevel * 1.5;
+          const x = range.centerX + Math.cos(flightTime) * (butterfly.radius + audioInfluence * 0.2);
+          const z = Math.sin(flightTime) * (butterfly.radius + audioInfluence * 0.2);
+          const y = butterfly.baseY + Math.sin(flightTime * 2) * 0.1 + audioInfluence * 0.5;
           
           butterfly.group.position.set(x, y, z);
           
-          // Aleteo más realista basado en audio
-          const wingBeat = Math.sin(time * 8 + butterfly.offset) * 0.4;
-          const audioInfluence = amp * 0.3;
-          const finalWingBeat = wingBeat + audioInfluence;
+          // Aleteo reactivo al audio
+          const baseBeat = Math.sin(time * 6 + butterfly.offset) * 0.3;
+          const audioBeat = range.audioLevel * 0.4;
+          const finalBeat = baseBeat + audioBeat;
           
-          butterfly.wings.left.rotation.z = finalWingBeat;
-          butterfly.wings.right.rotation.z = -finalWingBeat;
+          butterfly.wings.left.rotation.z = finalBeat;
+          butterfly.wings.right.rotation.z = -finalBeat;
           
-          // Rotación corporal sutil
-          butterfly.group.rotation.y = Math.sin(flightTime * 0.5) * 0.2;
+          // Rotación corporal
+          butterfly.group.rotation.y = Math.sin(flightTime * 0.5) * 0.15;
+          
+          // Brillo reactivo al audio
+          const brightness = 0.8 + range.smoothedLevel * 0.3;
+          butterfly.wings.left.material.opacity = Math.min(1.0, brightness);
+          butterfly.wings.right.material.opacity = Math.min(1.0, brightness);
         }
       });
     });
 
-    // Actualizar pétalos en caída
+    // Actualizar pétalos
     this.updatePetals(deltaTime);
 
-    // Movimiento de cámara más fluido
+    // Movimiento de cámara suave
     const radius = this.currentConfig.radius;
-    const cameraSpeed = 0.15;
+    const cameraSpeed = 0.12;
     this.camera.position.x = Math.cos(time * cameraSpeed) * radius;
     this.camera.position.z = Math.sin(time * cameraSpeed) * radius;
-    this.camera.position.y = radius * 0.4 + 2.5 + Math.sin(time * 0.3) * 0.5;
+    this.camera.position.y = radius * 0.4 + 2.5 + Math.sin(time * 0.25) * 0.3;
     this.camera.lookAt(0, 1.5, 0);
   }
 
   updateConfig(newConfig: any): void {
     this.currentConfig = { ...this.currentConfig, ...newConfig };
     
-    // Actualizar colores de mariposas existentes
+    // Actualizar colores
     Object.entries(this.butterflyGroups).forEach(([key, range]) => {
       const newColor = this.currentConfig.colors[key as BandName];
       if (newColor && newColor !== range.color) {
         range.color = newColor;
         range.butterflies.forEach(butterfly => {
-          butterfly.wings.left.material.color.setHex(newColor.replace('#', '0x'));
-          butterfly.wings.right.material.color.setHex(newColor.replace('#', '0x'));
+          const color = new THREE.Color(newColor);
+          butterfly.wings.left.material.color.copy(color);
+          butterfly.wings.right.material.color.copy(color);
         });
       }
     });
@@ -441,6 +531,8 @@ class AnalysisSpectrum extends BasePreset {
     this.scene.remove(this.group);
     if (this.gridFloor) this.scene.remove(this.gridFloor);
     if (this.gridBack) this.scene.remove(this.gridBack);
+    if (this.frequencyLabels) this.scene.remove(this.frequencyLabels);
+    if (this.dbLabels) this.scene.remove(this.dbLabels);
     if (this.ambient) this.scene.remove(this.ambient);
     if (this.pointLight) this.scene.remove(this.pointLight);
 
@@ -455,14 +547,17 @@ class AnalysisSpectrum extends BasePreset {
     this.petalGeometry?.dispose();
 
     // Resetear grupos
-    this.butterflyGroups = {
-      band1: { butterflies: [], color: '', centerX: -3.0, targetCount: 0, currentCount: 0 },
-      band2: { butterflies: [], color: '', centerX: -1.8, targetCount: 0, currentCount: 0 },
-      band3: { butterflies: [], color: '', centerX: -0.6, targetCount: 0, currentCount: 0 },
-      band4: { butterflies: [], color: '', centerX: 0.6, targetCount: 0, currentCount: 0 },
-      band5: { butterflies: [], color: '', centerX: 1.8, targetCount: 0, currentCount: 0 },
-      band6: { butterflies: [], color: '', centerX: 3.0, targetCount: 0, currentCount: 0 }
-    };
+    Object.keys(this.butterflyGroups).forEach(key => {
+      this.butterflyGroups[key as BandName] = {
+        butterflies: [],
+        color: '',
+        centerX: 0,
+        targetCount: 0,
+        currentCount: 0,
+        audioLevel: 0,
+        smoothedLevel: 0
+      };
+    });
   }
 }
 
