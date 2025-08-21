@@ -4,6 +4,7 @@ const path = require('path');
 let mainWindow;
 // Ventanas usadas para monitores secundarios en fullscreen
 let fullscreenWindows = [];
+let mirrorInterval = null;
 const startUrl = process.env.NODE_ENV === 'development'
   ? 'http://localhost:3000'  // Cambiado de 5173 a 3000 (puerto de Vite por defecto)
   : path.join(__dirname, 'dist', 'index.html');
@@ -49,6 +50,10 @@ function createWindow() {
   mainWindow.on('leave-full-screen', () => {
     fullscreenWindows.forEach(win => win.close());
     fullscreenWindows = [];
+    if (mirrorInterval) {
+      clearInterval(mirrorInterval);
+      mirrorInterval = null;
+    }
     mainWindow.webContents.send('main-leave-fullscreen');
   });
 }
@@ -85,14 +90,13 @@ ipcMain.handle('toggle-fullscreen', (event, ids = []) => {
   if (fullscreenWindows.length) {
     fullscreenWindows.forEach(win => win.close());
     fullscreenWindows = [];
+    if (mirrorInterval) {
+      clearInterval(mirrorInterval);
+      mirrorInterval = null;
+    }
     if (mainWindow) {
       mainWindow.setFullScreen(false);
       mainWindow.show();
-      if (startUrl.startsWith('http')) {
-        mainWindow.loadURL(startUrl);
-      } else {
-        mainWindow.loadFile(startUrl);
-      }
     }
     return;
   }
@@ -104,12 +108,7 @@ ipcMain.handle('toggle-fullscreen', (event, ids = []) => {
     if (!display) return;
 
     if (index === 0 && mainWindow) {
-      // Usar la ventana principal para el primer monitor
-      if (startUrl.startsWith('http')) {
-        mainWindow.loadURL(`${startUrl}?fullscreen=true`);
-      } else {
-        mainWindow.loadFile(startUrl, { query: { fullscreen: 'true' } });
-      }
+      // Usar la ventana principal para el primer monitor sin recargar
       mainWindow.setBounds(display.bounds);
       mainWindow.setFullScreen(true);
       mainWindow.show();
@@ -137,19 +136,27 @@ ipcMain.handle('toggle-fullscreen', (event, ids = []) => {
         if (fullscreenWindows.length === 0 && mainWindow) {
           mainWindow.setFullScreen(false);
           mainWindow.show();
+          if (mirrorInterval) {
+            clearInterval(mirrorInterval);
+            mirrorInterval = null;
+          }
         }
       });
 
       fullscreenWindows.push(win);
     }
   });
-});
 
-// Nuevo IPC para recibir frames de la ventana principal
-ipcMain.on('broadcast-frame', (event, frameData) => {
-  fullscreenWindows.forEach(win => {
-    win.webContents.send('receive-frame', frameData);
-  });
+  if (fullscreenWindows.length && !mirrorInterval && mainWindow) {
+    mirrorInterval = setInterval(() => {
+      mainWindow.webContents.capturePage().then(image => {
+        const buffer = image.toJPEG(70);
+        fullscreenWindows.forEach(win => {
+          win.webContents.send('receive-frame', buffer);
+        });
+      }).catch(err => console.error('capturePage error:', err));
+    }, 33);
+  }
 });
 
 app.whenReady().then(() => {

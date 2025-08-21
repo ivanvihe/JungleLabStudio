@@ -27,7 +27,6 @@ export class AudioVisualizerEngine {
   private animationId: number | null = null;
   private isRunning = false;
   private multiMonitorMode = false;
-  private lastFrameSent = 0;
 
   // Compositing scene para mezclar layers
   private compositingScene: THREE.Scene;
@@ -283,21 +282,6 @@ export class AudioVisualizerEngine {
 
     // Renderizar composición final con blending correcto
     this.renderer.render(this.compositingScene, this.compositingCamera);
-
-    // Si estamos en modo multi-monitor, enviar frames a las ventanas clon
-    if (this.multiMonitorMode && typeof window !== 'undefined') {
-      const api = (window as any).electronAPI;
-      const now = performance.now();
-      // Throttle a ~30 FPS (33ms)
-      if (api?.broadcastFrame && now - this.lastFrameSent > 33) {
-        this.lastFrameSent = now;
-        this.canvas.toBlob(async (blob) => {
-          if (!blob) return;
-          const buffer = await blob.arrayBuffer();
-          api.broadcastFrame(Buffer.from(buffer));
-        }, 'image/jpeg', 0.7);
-      }
-    }
   }
 
   public setMultiMonitorMode(active: boolean): void {
