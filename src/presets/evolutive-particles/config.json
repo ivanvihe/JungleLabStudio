@@ -18,6 +18,7 @@
     "opacity": 1.0,
     "fadeMs": 250,
     "particleCount": {
+      "initial": 200,
       "base": 800,
       "evolved": 1200,
       "maximum": 2000
@@ -61,6 +62,15 @@
     }
   },
   "controls": [
+    {
+      "name": "particleCount.initial",
+      "type": "slider",
+      "label": "Partículas Iniciales",
+      "min": 0,
+      "max": 1000,
+      "step": 50,
+      "default": 200
+    },
     {
       "name": "evolution.lifespanBase",
       "type": "slider",

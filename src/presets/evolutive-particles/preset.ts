@@ -15,6 +15,7 @@ export const config: PresetConfig = {
     opacity: 1.0,
     fadeMs: 250,
     particleCount: {
+      initial: 200,
       base: 800,
       evolved: 1200,
       maximum: 2000
@@ -58,6 +59,15 @@ export const config: PresetConfig = {
     }
   },
   controls: [
+    {
+      name: "particleCount.initial",
+      type: "slider",
+      label: "Partículas Iniciales",
+      min: 0,
+      max: 1000,
+      step: 50,
+      default: 200
+    },
     {
       name: "evolution.lifespanBase",
       type: "slider",
@@ -462,6 +472,7 @@ class EvolutiveParticlesPreset extends BasePreset {
   private particles: EvolutiveParticle[] = [];
   private connectionSystem: ParticleConnectionSystem;
   private spawnTimer: number = 0;
+  private currentSpawnRate: number = 0.5;
   private emergenceTimer: number = 0;
   private currentConfig: any;
   private attractors: THREE.Vector3[] = [];
@@ -496,8 +507,8 @@ class EvolutiveParticlesPreset extends BasePreset {
   }
   
   private createInitialParticles(): void {
-    const count = this.currentConfig.particleCount.base;
-    
+    const count = this.currentConfig.particleCount.initial ?? this.currentConfig.particleCount.base;
+
     for (let i = 0; i < count; i++) {
       this.spawnParticle();
     }
@@ -525,12 +536,23 @@ class EvolutiveParticlesPreset extends BasePreset {
     // Actualizar atractores dinámicos
     this.updateAttractors(time);
     
-    // Spawn dinámico basado en audio
+    // Spawn dinámico basado en audio con suavizado
+    const targetCount = Math.floor(
+      THREE.MathUtils.lerp(
+        this.currentConfig.particleCount.base,
+        this.currentConfig.particleCount.evolved,
+        this.audioData.low
+      )
+    );
+    const maxCount = this.currentConfig.particleCount.maximum;
+    const limitedTarget = Math.min(targetCount, maxCount);
+
+    const targetSpawnRate = 0.5 + this.audioData.low * 2;
+    this.currentSpawnRate = THREE.MathUtils.lerp(this.currentSpawnRate, targetSpawnRate, 0.1);
+
     this.spawnTimer += deltaTime;
-    const spawnRate = 0.5 + this.audioData.low * 2;
-    
-    if (this.spawnTimer > 1 / spawnRate && this.particles.length < this.currentConfig.particleCount.maximum) {
-      this.spawnTimer = 0;
+    while (this.spawnTimer > 1 / this.currentSpawnRate && this.particles.length < limitedTarget) {
+      this.spawnTimer -= 1 / this.currentSpawnRate;
       this.spawnParticle();
     }
     
