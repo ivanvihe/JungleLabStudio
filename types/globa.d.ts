@@ -4,6 +4,7 @@ interface Window {
   electronAPI?: {
     applySettings: (settings: { maximize?: boolean; monitorId?: number }) => void;
     getDisplays: () => Promise<{ id: number; label: string; bounds: { x: number; y: number; width: number; height: number }; scaleFactor: number; primary: boolean; }[]>;
+    toggleFullscreen: (ids: number[]) => Promise<void>;
   };
 }
 
