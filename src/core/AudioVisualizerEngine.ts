@@ -48,7 +48,11 @@ export class AudioVisualizerEngine {
       antialias: true,
       alpha: true,
       powerPreference: 'high-performance',
-      preserveDrawingBuffer: false // Mejor rendimiento
+      // Necesario para capturar frames y replicar la vista en monitores secundarios
+      // cuando el modo multi-monitor está activo. Puede tener un ligero impacto en
+      // el rendimiento, pero garantiza que el contenido del canvas esté disponible
+      // para toBlob()/toDataURL.
+      preserveDrawingBuffer: true
     });
     
     // Configuración optimizada del renderer

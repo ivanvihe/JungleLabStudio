@@ -36,6 +36,8 @@ interface GlobalSettingsModalProps {
   onLayerChannelChange: (layerId: string, channel: number) => void;
   monitors: MonitorInfo[];
   selectedMonitors: string[];
+  fullscreenMainMonitor: string | null;
+  onFullscreenMainMonitorChange: (id: string | null) => void;
   onToggleMonitor: (id: string) => void;
   startMonitor: string | null;
   onStartMonitorChange: (id: string | null) => void;
@@ -74,6 +76,8 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   onLayerChannelChange,
   monitors,
   selectedMonitors,
+  fullscreenMainMonitor,
+  onFullscreenMainMonitorChange,
   onToggleMonitor,
   startMonitor,
   onStartMonitorChange,
@@ -511,6 +515,28 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
               <div className="monitors-summary">
                 <strong>Monitores seleccionados: {selectedMonitors.length}</strong>
                 <p>Se abrirá una ventana fullscreen en cada monitor seleccionado</p>
+              </div>
+
+              <div className="setting-group">
+                <label className="setting-label">
+                  <span>Monitor principal en fullscreen</span>
+                  <select
+                    value={fullscreenMainMonitor || ''}
+                    onChange={(e) => onFullscreenMainMonitorChange(e.target.value || null)}
+                    className="setting-select"
+                  >
+                    <option value="">Primero de la lista</option>
+                    {selectedMonitors.map(id => {
+                      const m = monitors.find(mon => mon.id === id);
+                      return (
+                        <option key={id} value={id}>
+                          {m?.label || id}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </label>
+                <small className="setting-hint">La ventana principal permanecerá en este monitor</small>
               </div>
             </div>
           )}

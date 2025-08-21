@@ -82,6 +82,9 @@ const App: React.FC = () => {
   const [fullscreenByDefault, setFullscreenByDefault] = useState(() => localStorage.getItem('fullscreenByDefault') !== 'false');
   const [startMaximized, setStartMaximized] = useState(() => localStorage.getItem('startMaximized') !== 'false');
   const [startMonitor, setStartMonitor] = useState<string | null>(() => localStorage.getItem('startMonitor'));
+  const [fullscreenMainMonitor, setFullscreenMainMonitor] = useState<string | null>(
+    () => localStorage.getItem('fullscreenMainMonitor')
+  );
 
   useEffect(() => {
     const channel = new BroadcastChannel('av-sync');
@@ -142,6 +145,14 @@ const App: React.FC = () => {
   }, [startMonitor]);
 
   useEffect(() => {
+    if (fullscreenMainMonitor) {
+      localStorage.setItem('fullscreenMainMonitor', fullscreenMainMonitor);
+    } else {
+      localStorage.removeItem('fullscreenMainMonitor');
+    }
+  }, [fullscreenMainMonitor]);
+
+  useEffect(() => {
     (window as any).electronAPI?.applySettings({
       maximize: startMaximized,
       monitorId: startMonitor ? parseInt(startMonitor, 10) : undefined
@@ -197,6 +208,19 @@ const App: React.FC = () => {
     };
     document.addEventListener('fullscreenchange', handler);
     return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
+
+  useEffect(() => {
+    const api = (window as any).electronAPI;
+    if (!api?.onMainLeaveFullscreen) return;
+    const handler = () => {
+      setIsFullscreenMode(false);
+      engineRef.current?.setMultiMonitorMode(false);
+    };
+    api.onMainLeaveFullscreen(handler);
+    return () => {
+      api.removeMainLeaveFullscreenListener?.();
+    };
   }, []);
 
   // Inicializar el engine
@@ -524,7 +548,12 @@ const App: React.FC = () => {
   const handleFullScreen = useCallback(async () => {
     if ((window as any).electronAPI) {
       localStorage.setItem('activeLayers', JSON.stringify(activeLayers));
-      const ids = selectedMonitors.map(id => parseInt(id, 10)).filter(Boolean);
+      let ids = selectedMonitors.map(id => parseInt(id, 10)).filter(Boolean);
+      if (fullscreenMainMonitor) {
+        const mainId = parseInt(fullscreenMainMonitor, 10);
+        ids = ids.filter(id => id !== mainId);
+        ids.unshift(mainId);
+      }
       if (ids.length === 0) {
         setStatus('Error: No hay monitores seleccionados');
         return;
@@ -551,7 +580,14 @@ const App: React.FC = () => {
           /* @vite-ignore */ '@tauri-apps/api/window'
         );
 
-        const selectedMonitorsList = monitors.filter(m => selectedMonitors.includes(m.id));
+        let selectedMonitorsList = monitors.filter(m => selectedMonitors.includes(m.id));
+        if (fullscreenMainMonitor) {
+          const idx = selectedMonitorsList.findIndex(m => m.id === fullscreenMainMonitor);
+          if (idx > 0) {
+            const [main] = selectedMonitorsList.splice(idx, 1);
+            selectedMonitorsList.unshift(main);
+          }
+        }
 
         if (selectedMonitorsList.length === 0) {
           setStatus('Error: No hay monitores seleccionados');
@@ -609,7 +645,7 @@ const App: React.FC = () => {
         setStatus('Error: Fullscreen no disponible');
       }
     }
-  }, [activeLayers, selectedMonitors, monitors]);
+  }, [activeLayers, selectedMonitors, monitors, fullscreenMainMonitor]);
 
   useEffect(() => {
     if (isFullscreenMode) return;
@@ -700,16 +736,20 @@ const App: React.FC = () => {
 
   const handleToggleMonitor = (id: string) => {
     setSelectedMonitors(prev => {
-      const newSelection = prev.includes(id) 
-        ? prev.filter(m => m !== id) 
+      const newSelection = prev.includes(id)
+        ? prev.filter(m => m !== id)
         : [...prev, id];
-      
+
       // Asegurar que al menos un monitor esté seleccionado
       if (newSelection.length === 0) {
         const primaryMonitor = monitors.find(m => m.isPrimary);
         return primaryMonitor ? [primaryMonitor.id] : [monitors[0]?.id].filter(Boolean);
       }
-      
+
+      if (fullscreenMainMonitor && !newSelection.includes(fullscreenMainMonitor)) {
+        setFullscreenMainMonitor(null);
+      }
+
       return newSelection;
     });
   };
@@ -906,6 +946,8 @@ const App: React.FC = () => {
         }}
         monitors={monitors}
         selectedMonitors={selectedMonitors}
+        fullscreenMainMonitor={fullscreenMainMonitor}
+        onFullscreenMainMonitorChange={setFullscreenMainMonitor}
         onToggleMonitor={handleToggleMonitor}
         startMonitor={startMonitor}
         onStartMonitorChange={setStartMonitor}
