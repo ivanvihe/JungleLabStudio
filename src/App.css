@@ -23,7 +23,12 @@ body {
 
 .app.ui-hidden {
   display: flex;
+  flex-direction: column;
   grid-template-rows: none;
+}
+
+.app.ui-hidden .bottom-section {
+  flex: 1;
 }
 
 .app.ui-hidden .top-bar,
