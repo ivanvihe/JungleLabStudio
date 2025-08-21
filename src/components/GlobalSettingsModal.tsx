@@ -35,10 +35,8 @@ interface GlobalSettingsModalProps {
   layerChannels: Record<string, number>;
   onLayerChannelChange: (layerId: string, channel: number) => void;
   monitors: MonitorInfo[];
-  selectedMonitors: string[];
-  fullscreenMainMonitor: string | null;
-  onFullscreenMainMonitorChange: (id: string | null) => void;
-  onToggleMonitor: (id: string) => void;
+  monitorRoles: Record<string, 'main' | 'secondary' | 'none'>;
+  onMonitorRoleChange: (id: string, role: 'main' | 'secondary' | 'none') => void;
   startMonitor: string | null;
   onStartMonitorChange: (id: string | null) => void;
   glitchTextPads: number;
@@ -75,10 +73,8 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   layerChannels,
   onLayerChannelChange,
   monitors,
-  selectedMonitors,
-  fullscreenMainMonitor,
-  onFullscreenMainMonitorChange,
-  onToggleMonitor,
+  monitorRoles,
+  onMonitorRoleChange,
   startMonitor,
   onStartMonitorChange,
   glitchTextPads,
@@ -154,7 +150,7 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   const handleClearCache = () => {
     // Limpiar localStorage y sessionStorage
     const keysToKeep = [
-      'selectedAudioDevice', 'selectedMidiDevice', 'selectedMonitors', 
+      'selectedAudioDevice', 'selectedMidiDevice', 'monitorRoles',
       'glitchTextPads', 'targetFPS', 'vsync', 'antialias', 'pixelRatio',
       'preferredGPU', 'audioBufferSize', 'fftSize', 'audioSmoothing',
       'autoCleanCache', 'memoryLimit'
@@ -491,52 +487,34 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="monitor-info">
                       <h4>{monitor.label}</h4>
                       <div className="monitor-details">
                         <span>Posición: {monitor.position.x}, {monitor.position.y}</span>
                         <span>Escala: {monitor.scaleFactor}x</span>
                       </div>
-                      
-                      <label className="monitor-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={selectedMonitors.includes(monitor.id)}
-                          onChange={() => onToggleMonitor(monitor.id)}
-                        />
-                        <span>Usar en Fullscreen</span>
-                      </label>
+
+                      <div className="monitor-role">
+                        <span>Rol:</span>
+                        <select
+                          value={monitorRoles[monitor.id] || 'none'}
+                          onChange={(e) => onMonitorRoleChange(monitor.id, e.target.value as any)}
+                          className="setting-select"
+                        >
+                          <option value="none">No usar</option>
+                          <option value="main">Principal</option>
+                          <option value="secondary">Secundario</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
 
               <div className="monitors-summary">
-                <strong>Monitores seleccionados: {selectedMonitors.length}</strong>
-                <p>Se abrirá una ventana fullscreen en cada monitor seleccionado</p>
-              </div>
-
-              <div className="setting-group">
-                <label className="setting-label">
-                  <span>Monitor principal en fullscreen</span>
-                  <select
-                    value={fullscreenMainMonitor || ''}
-                    onChange={(e) => onFullscreenMainMonitorChange(e.target.value || null)}
-                    className="setting-select"
-                  >
-                    <option value="">Primero de la lista</option>
-                    {selectedMonitors.map(id => {
-                      const m = monitors.find(mon => mon.id === id);
-                      return (
-                        <option key={id} value={id}>
-                          {m?.label || id}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </label>
-                <small className="setting-hint">La ventana principal permanecerá en este monitor</small>
+                <strong>Monitores en uso: {Object.values(monitorRoles).filter(r => r !== 'none').length}</strong>
+                <p>Configura un monitor principal y opcionalmente secundarios.</p>
               </div>
             </div>
           )}
