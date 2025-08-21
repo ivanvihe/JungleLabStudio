@@ -69,7 +69,13 @@ const App: React.FC = () => {
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [monitors, setMonitors] = useState<MonitorInfo[]>([]);
-  const [selectedMonitors, setSelectedMonitors] = useState<string[]>([]);
+  const [monitorRoles, setMonitorRoles] = useState<Record<string, 'main' | 'secondary' | 'none'>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('monitorRoles') || '{}');
+    } catch {
+      return {} as Record<string, 'main' | 'secondary' | 'none'>;
+    }
+  });
   const [glitchTextPads, setGlitchTextPads] = useState<number>(() => parseInt(localStorage.getItem('glitchTextPads') || '1'));
   const [clearSignal, setClearSignal] = useState(0);
   const [isFullscreenMode, setIsFullscreenMode] = useState(
@@ -82,9 +88,6 @@ const App: React.FC = () => {
   const [fullscreenByDefault, setFullscreenByDefault] = useState(() => localStorage.getItem('fullscreenByDefault') !== 'false');
   const [startMaximized, setStartMaximized] = useState(() => localStorage.getItem('startMaximized') !== 'false');
   const [startMonitor, setStartMonitor] = useState<string | null>(() => localStorage.getItem('startMonitor'));
-  const [fullscreenMainMonitor, setFullscreenMainMonitor] = useState<string | null>(
-    () => localStorage.getItem('fullscreenMainMonitor')
-  );
 
   useEffect(() => {
     const channel = new BroadcastChannel('av-sync');
@@ -96,23 +99,23 @@ const App: React.FC = () => {
   useEffect(() => {
     const savedAudio = localStorage.getItem('selectedAudioDevice');
     const savedMidi = localStorage.getItem('selectedMidiDevice');
-    const savedMonitors = localStorage.getItem('selectedMonitors');
+    const savedMonitorRoles = localStorage.getItem('monitorRoles');
     
     if (savedAudio) setAudioDeviceId(savedAudio);
     if (savedMidi) setMidiDeviceId(savedMidi);
-    if (savedMonitors) {
+    if (savedMonitorRoles) {
       try {
-        setSelectedMonitors(JSON.parse(savedMonitors));
+        setMonitorRoles(JSON.parse(savedMonitorRoles));
       } catch (e) {
-        console.warn('Error parsing saved monitors:', e);
+        console.warn('Error parsing saved monitor roles:', e);
       }
     }
   }, []);
 
-  // Persist selected monitors
+  // Persist monitor roles
   useEffect(() => {
-    localStorage.setItem('selectedMonitors', JSON.stringify(selectedMonitors));
-  }, [selectedMonitors]);
+    localStorage.setItem('monitorRoles', JSON.stringify(monitorRoles));
+  }, [monitorRoles]);
 
   useEffect(() => {
     localStorage.setItem('startMaximized', startMaximized.toString());
@@ -144,13 +147,6 @@ const App: React.FC = () => {
     }
   }, [startMonitor]);
 
-  useEffect(() => {
-    if (fullscreenMainMonitor) {
-      localStorage.setItem('fullscreenMainMonitor', fullscreenMainMonitor);
-    } else {
-      localStorage.removeItem('fullscreenMainMonitor');
-    }
-  }, [fullscreenMainMonitor]);
 
   useEffect(() => {
     (window as any).electronAPI?.applySettings({
@@ -189,10 +185,19 @@ const App: React.FC = () => {
             return a.position.x - b.position.x;
           });
           setMonitors(mapped);
-          if (selectedMonitors.length === 0 && mapped.length > 0) {
-            const primary = mapped.find(m => m.isPrimary) || mapped[0];
-            setSelectedMonitors([primary.id]);
-          }
+          setMonitorRoles(prev => {
+            const roles: Record<string, 'main' | 'secondary' | 'none'> = {};
+            mapped.forEach(m => {
+              roles[m.id] = prev[m.id] || 'none';
+            });
+            if (!Object.values(roles).some(r => r === 'main')) {
+              const primary = mapped.find(m => m.isPrimary) || mapped[0];
+              if (primary) roles[primary.id] = 'main';
+            }
+            const newMain = Object.entries(roles).find(([, r]) => r === 'main')?.[0];
+            if (newMain) setStartMonitor(newMain);
+            return roles;
+          });
         } catch (e) {
           console.warn('Error loading monitors:', e);
         }
@@ -548,12 +553,14 @@ const App: React.FC = () => {
   const handleFullScreen = useCallback(async () => {
     if ((window as any).electronAPI) {
       localStorage.setItem('activeLayers', JSON.stringify(activeLayers));
-      let ids = selectedMonitors.map(id => parseInt(id, 10)).filter(Boolean);
-      if (fullscreenMainMonitor) {
-        const mainId = parseInt(fullscreenMainMonitor, 10);
-        ids = ids.filter(id => id !== mainId);
-        ids.unshift(mainId);
-      }
+      const mainId = Object.entries(monitorRoles).find(([, role]) => role === 'main')?.[0];
+      const secondaryIds = Object.entries(monitorRoles)
+        .filter(([, role]) => role === 'secondary')
+        .map(([id]) => id);
+      const ids = [
+        ...(mainId ? [parseInt(mainId, 10)] : []),
+        ...secondaryIds.map(id => parseInt(id, 10))
+      ].filter(Boolean);
       if (ids.length === 0) {
         setStatus('Error: No hay monitores seleccionados');
         return;
@@ -580,16 +587,19 @@ const App: React.FC = () => {
           /* @vite-ignore */ '@tauri-apps/api/window'
         );
 
-        let selectedMonitorsList = monitors.filter(m => selectedMonitors.includes(m.id));
-        if (fullscreenMainMonitor) {
-          const idx = selectedMonitorsList.findIndex(m => m.id === fullscreenMainMonitor);
+        let activeMonitors = monitors.filter(
+          m => monitorRoles[m.id] === 'main' || monitorRoles[m.id] === 'secondary'
+        );
+        const mainId = Object.entries(monitorRoles).find(([, role]) => role === 'main')?.[0];
+        if (mainId) {
+          const idx = activeMonitors.findIndex(m => m.id === mainId);
           if (idx > 0) {
-            const [main] = selectedMonitorsList.splice(idx, 1);
-            selectedMonitorsList.unshift(main);
+            const [main] = activeMonitors.splice(idx, 1);
+            activeMonitors.unshift(main);
           }
         }
 
-        if (selectedMonitorsList.length === 0) {
+        if (activeMonitors.length === 0) {
           setStatus('Error: No hay monitores seleccionados');
           return;
         }
@@ -597,12 +607,12 @@ const App: React.FC = () => {
         if (isFullscreenMode) {
           engineRef.current?.setMultiMonitorMode(false);
         } else {
-          engineRef.current?.setMultiMonitorMode(selectedMonitorsList.length > 1);
+          engineRef.current?.setMultiMonitorMode(activeMonitors.length > 1);
         }
 
-        console.log(`🎯 Abriendo fullscreen en ${selectedMonitorsList.length} monitores`);
+        console.log(`🎯 Abriendo fullscreen en ${activeMonitors.length} monitores`);
 
-        selectedMonitorsList.forEach((monitor, index) => {
+        activeMonitors.forEach((monitor, index) => {
           const label = `fullscreen-${monitor.id}-${Date.now()}-${index}`;
 
           const windowOptions = {
@@ -629,7 +639,7 @@ const App: React.FC = () => {
           }
         });
 
-        setStatus(`Fullscreen activo en ${selectedMonitorsList.length} monitor(es)`);
+        setStatus(`Fullscreen activo en ${activeMonitors.length} monitor(es)`);
         setIsFullscreenMode(!isFullscreenMode);
       } catch (err) {
         console.error('Error en fullscreen:', err);
@@ -645,7 +655,7 @@ const App: React.FC = () => {
         setStatus('Error: Fullscreen no disponible');
       }
     }
-  }, [activeLayers, selectedMonitors, monitors, fullscreenMainMonitor]);
+  }, [activeLayers, monitorRoles, monitors]);
 
   useEffect(() => {
     if (isFullscreenMode) return;
@@ -734,23 +744,27 @@ const App: React.FC = () => {
     return () => channel.removeEventListener('message', handler);
   }, [isFullscreenMode, activeLayers, layerPresetConfigs]);
 
-  const handleToggleMonitor = (id: string) => {
-    setSelectedMonitors(prev => {
-      const newSelection = prev.includes(id)
-        ? prev.filter(m => m !== id)
-        : [...prev, id];
-
-      // Asegurar que al menos un monitor esté seleccionado
-      if (newSelection.length === 0) {
-        const primaryMonitor = monitors.find(m => m.isPrimary);
-        return primaryMonitor ? [primaryMonitor.id] : [monitors[0]?.id].filter(Boolean);
+  const handleMonitorRoleChange = (id: string, role: 'main' | 'secondary' | 'none') => {
+    setMonitorRoles(prev => {
+      const updated = { ...prev, [id]: role } as Record<string, 'main' | 'secondary' | 'none'>;
+      if (role === 'main') {
+        Object.keys(updated).forEach(otherId => {
+          if (otherId !== id && updated[otherId] === 'main') {
+            updated[otherId] = 'secondary';
+          }
+        });
       }
-
-      if (fullscreenMainMonitor && !newSelection.includes(fullscreenMainMonitor)) {
-        setFullscreenMainMonitor(null);
+      if (!Object.values(updated).some(r => r === 'main')) {
+        const primaryMonitor = monitors.find(m => m.isPrimary) || monitors[0];
+        if (primaryMonitor) {
+          updated[primaryMonitor.id] = 'main';
+        }
       }
-
-      return newSelection;
+      const newMain = Object.entries(updated).find(([, r]) => r === 'main')?.[0];
+      if (newMain) {
+        setStartMonitor(newMain);
+      }
+      return updated;
     });
   };
 
@@ -945,10 +959,8 @@ const App: React.FC = () => {
           localStorage.setItem('layerMidiChannels', JSON.stringify(updated));
         }}
         monitors={monitors}
-        selectedMonitors={selectedMonitors}
-        fullscreenMainMonitor={fullscreenMainMonitor}
-        onFullscreenMainMonitorChange={setFullscreenMainMonitor}
-        onToggleMonitor={handleToggleMonitor}
+        monitorRoles={monitorRoles}
+        onMonitorRoleChange={handleMonitorRoleChange}
         startMonitor={startMonitor}
         onStartMonitorChange={setStartMonitor}
         glitchTextPads={glitchTextPads}
