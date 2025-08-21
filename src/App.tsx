@@ -27,6 +27,7 @@ const App: React.FC = () => {
   const tickCountRef = useRef(0);
   const lastBeatRef = useRef<number | null>(null);
   const bpmSamplesRef = useRef<number[]>([]);
+  const midiTriggerChannelRef = useRef<BroadcastChannel | null>(null);
   
   const [isInitialized, setIsInitialized] = useState(false);
   const [availablePresets, setAvailablePresets] = useState<LoadedPreset[]>([]);
@@ -78,6 +79,27 @@ const App: React.FC = () => {
   const [isUiHidden, setIsUiHidden] = useState(false);
   const [startMaximized, setStartMaximized] = useState(() => localStorage.getItem('startMaximized') !== 'false');
   const [startMonitor, setStartMonitor] = useState<string | null>(() => localStorage.getItem('startMonitor'));
+
+  useEffect(() => {
+    midiTriggerChannelRef.current = new BroadcastChannel('midi-trigger');
+    return () => midiTriggerChannelRef.current?.close();
+  }, []);
+
+  useEffect(() => {
+    if (!isFullscreenMode && midiTrigger) {
+      midiTriggerChannelRef.current?.postMessage(midiTrigger);
+    }
+  }, [midiTrigger, isFullscreenMode]);
+
+  useEffect(() => {
+    if (isFullscreenMode && midiTriggerChannelRef.current) {
+      const channel = midiTriggerChannelRef.current;
+      channel.onmessage = (ev) => setMidiTrigger(ev.data);
+      return () => {
+        channel.onmessage = null;
+      };
+    }
+  }, [isFullscreenMode]);
 
   // Persist selected devices across sessions
   useEffect(() => {
@@ -294,7 +316,7 @@ const App: React.FC = () => {
       }
     };
 
-    if ((navigator as any).requestMIDIAccess) {
+    if (!isFullscreenMode && (navigator as any).requestMIDIAccess) {
       (navigator as any).requestMIDIAccess()
         .then((access: any) => {
           const inputs = Array.from(access.inputs.values());
@@ -315,7 +337,7 @@ const App: React.FC = () => {
         })
         .catch((err: any) => console.warn('MIDI access error', err));
     }
-  }, [midiDeviceId, midiClockType, midiClockDelay, layerChannels, availablePresets]);
+  }, [midiDeviceId, midiClockType, midiClockDelay, layerChannels, availablePresets, isFullscreenMode]);
 
   // Configurar listener de audio
   useEffect(() => {
