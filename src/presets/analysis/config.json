@@ -1,10 +1,10 @@
 {
   "name": "ANALYSIS",
-  "description": "3D audio spectrum with pastel particles per band and rotating camera.",
+  "description": "3D audio spectrum with pastel particles, starfield and pulsating rings.",
   "author": "AudioVisualizer",
-  "version": "1.0.0",
+  "version": "2.2.0",
   "category": "analysis",
-  "tags": ["spectrum", "analysis", "particles", "grid"],
+  "tags": ["spectrum", "analysis", "particles", "grid", "rings"],
   "thumbnail": "analysis_thumb.png",
   "note": 48,
   "defaultConfig": {

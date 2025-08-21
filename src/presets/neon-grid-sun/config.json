@@ -1,0 +1,20 @@
+{
+  "name": "Neon Grid Sun",
+  "description": "Retro 80s grid with glowing sun",
+  "author": "AudioVisualizer",
+  "version": "1.0.0",
+  "category": "background",
+  "tags": ["retro", "80s", "grid", "sun"],
+  "thumbnail": "neon_grid_sun_thumb.png",
+  "note": 71,
+  "defaultConfig": {
+    "gridColor": "#00ffff",
+    "sunColor": "#ff0080"
+  },
+  "controls": [
+    { "name": "gridColor", "type": "color", "label": "Grid Color", "default": "#00ffff" },
+    { "name": "sunColor", "type": "color", "label": "Sun Color", "default": "#ff0080" }
+  ],
+  "audioMapping": {},
+  "performance": { "complexity": "low", "recommendedFPS": 60, "gpuIntensive": false }
+}

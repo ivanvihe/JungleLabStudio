@@ -5,7 +5,7 @@ export const config: PresetConfig = {
   name: 'Custom Glitch Text',
   description: 'Text with configurable glitch effect',
   author: 'AudioVisualizer',
-  version: '1.0.0',
+  version: '1.1.0',
   category: 'text',
   tags: ['text', 'glitch', 'one-shot'],
   thumbnail: 'custom_glitch_text_thumb.png',
@@ -24,6 +24,10 @@ export const config: PresetConfig = {
       intensity: 0.05,
       frequency: 2.0
     },
+    effects: {
+      glowIntensity: 1.2,
+      pulseSpeed: 2.0
+    },
     color: '#ffffff'
   },
   controls: [
@@ -31,6 +35,8 @@ export const config: PresetConfig = {
     { name: 'text.fontSize', type: 'slider', label: 'Font Size', min: 40, max: 200, step: 10, default: 120 },
     { name: 'glitch.intensity', type: 'slider', label: 'Glitch Intensity', min: 0, max: 0.5, step: 0.01, default: 0.05 },
     { name: 'glitch.frequency', type: 'slider', label: 'Glitch Frequency', min: 0, max: 10, step: 0.1, default: 2.0 },
+    { name: 'effects.glowIntensity', type: 'slider', label: 'Glow', min: 0, max: 3, step: 0.1, default: 1.2 },
+    { name: 'effects.pulseSpeed', type: 'slider', label: 'Pulse Speed', min: 0.5, max: 5, step: 0.1, default: 2.0 },
     { name: 'effect', type: 'select', label: 'Effect', options: ['jitter', 'robotica'], default: 'jitter' },
     { name: 'color', type: 'color', label: 'Color', default: '#ffffff' }
   ],
@@ -44,9 +50,12 @@ export const config: PresetConfig = {
 
 class CinematicLetter {
   public mesh: THREE.Mesh;
+  public glow: THREE.Mesh;
   private texture: THREE.Texture;
   private material: THREE.ShaderMaterial;
+  private glowMaterial: THREE.MeshBasicMaterial;
   private startOffset: number;
+  private pulseOffset: number;
 
   constructor(char: string, fontSize: number, fontFamily: string, position: THREE.Vector3, color: string, index: number) {
     const canvas = document.createElement('canvas');
@@ -90,19 +99,29 @@ class CinematicLetter {
     const geometry = new THREE.PlaneGeometry(canvas.width/100, canvas.height/100);
     this.mesh = new THREE.Mesh(geometry, this.material);
     this.mesh.position.copy(position);
+    this.glowMaterial = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0, blending: THREE.AdditiveBlending });
+    this.glow = new THREE.Mesh(geometry.clone(), this.glowMaterial);
+    this.glow.scale.setScalar(1.4);
+    this.glow.position.copy(position);
     this.startOffset = index * 0.1;
+    this.pulseOffset = Math.random() * Math.PI * 2;
   }
 
-  update(time: number, color: string): void {
+  update(time: number, color: string, glowIntensity: number, pulseSpeed: number): void {
     const progress = THREE.MathUtils.clamp((time - this.startOffset) / 0.5, 0, 1);
+    const pulse = 0.8 + 0.4 * Math.sin(time * pulseSpeed + this.pulseOffset);
     this.material.uniforms.uOpacity.value = progress;
     this.material.uniforms.uColor.value.set(color);
+    this.glowMaterial.color.set(color);
+    this.glowMaterial.opacity = progress * glowIntensity * pulse;
   }
 
   dispose(): void {
     this.mesh.geometry.dispose();
     this.material.dispose();
     this.texture.dispose();
+    this.glow.geometry.dispose();
+    this.glowMaterial.dispose();
   }
 }
 
@@ -160,6 +179,7 @@ class CustomGlitchTextPreset extends BasePreset {
       const x = i * (fontSize/100 + letterSpacing) - totalWidth/2;
       const letter = new CinematicLetter(char, fontSize, fontFamily, new THREE.Vector3(x,0,0), this.currentConfig.color, i);
       this.group.add(letter.mesh);
+      this.group.add(letter.glow);
       this.letters.push(letter);
     }
     this.start = this.clock.getElapsedTime();
@@ -177,10 +197,23 @@ class CustomGlitchTextPreset extends BasePreset {
     this.texture!.needsUpdate = true;
   }
 
+  private applyCanvasGlitch(): void {
+    if (!this.ctx || !this.canvas) return;
+    const slices = 6;
+    for (let i = 0; i < slices; i++) {
+      const y = Math.random() * this.canvas.height;
+      const h = Math.random() * 20;
+      const offset = (Math.random() - 0.5) * 40;
+      this.ctx.drawImage(this.canvas, 0, y, this.canvas.width, h, offset, y, this.canvas.width, h);
+    }
+    this.texture!.needsUpdate = true;
+  }
+
   public update(): void {
     if (this.currentConfig.effect === 'robotica') {
       const t = this.clock.getElapsedTime() - this.start;
-      this.letters.forEach(l => l.update(t, this.currentConfig.color));
+      const { glowIntensity, pulseSpeed } = this.currentConfig.effects;
+      this.letters.forEach(l => l.update(t, this.currentConfig.color, glowIntensity, pulseSpeed));
     } else {
       const delta = this.clock.getDelta();
       const { intensity, frequency } = this.currentConfig.glitch;
@@ -188,9 +221,11 @@ class CustomGlitchTextPreset extends BasePreset {
         this.mesh!.position.x = (Math.random() - 0.5) * intensity;
         this.mesh!.position.y = (Math.random() - 0.5) * intensity;
         this.mesh!.material.color.setHSL(Math.random(), 1, 0.5);
+        this.applyCanvasGlitch();
       } else {
         this.mesh!.position.set(0,0,0);
         this.mesh!.material.color.set(this.currentConfig.color);
+        this.updateCanvas();
       }
       const scaleBump = 1 + this.audioData.low * 0.1;
       this.group.scale.setScalar(scaleBump);
@@ -201,12 +236,15 @@ class CustomGlitchTextPreset extends BasePreset {
     this.currentConfig = this.deepMerge(this.currentConfig, newConfig);
     if (newConfig.text || newConfig.effect) {
       this.buildEffect();
-    } else if (newConfig.color) {
+    } else if (newConfig.color || newConfig.effects) {
       if (this.currentConfig.effect === 'robotica') {
         const t = this.clock.getElapsedTime() - this.start;
-        this.letters.forEach(l => l.update(t, this.currentConfig.color));
+        const { glowIntensity, pulseSpeed } = this.currentConfig.effects;
+        this.letters.forEach(l => l.update(t, this.currentConfig.color, glowIntensity, pulseSpeed));
       } else {
-        this.mesh!.material.color.set(newConfig.color);
+        if (newConfig.color) {
+          this.mesh!.material.color.set(newConfig.color);
+        }
         this.updateCanvas();
       }
     }
@@ -231,7 +269,7 @@ class CustomGlitchTextPreset extends BasePreset {
       this.mesh.material.dispose();
       this.mesh = undefined;
     }
-    this.letters.forEach(l => { this.group.remove(l.mesh); l.dispose(); });
+    this.letters.forEach(l => { this.group.remove(l.mesh); this.group.remove(l.glow); l.dispose(); });
     this.letters = [];
     if (this.texture) this.texture.dispose();
   }
