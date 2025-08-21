@@ -560,6 +560,22 @@ const App: React.FC = () => {
     setStatus('Capas limpiadas');
   };
 
+  const applyPresetConfig = (
+    engine: AudioVisualizerEngine,
+    layerId: string,
+    cfg: Record<string, any>,
+    prefix = ''
+  ) => {
+    Object.entries(cfg).forEach(([key, value]) => {
+      const path = prefix ? `${prefix}.${key}` : key;
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        applyPresetConfig(engine, layerId, value as Record<string, any>, path);
+      } else {
+        engine.updateLayerPresetConfig(layerId, path, value);
+      }
+    });
+  };
+
   const handleToggleMonitor = (id: string) => {
     setSelectedMonitors(prev => {
       const newSelection = prev.includes(id) 
@@ -615,11 +631,16 @@ const App: React.FC = () => {
 
               const preset = availablePresets.find(p => p.id === presetId);
               if (preset) {
-                const cfg = engineRef.current.getLayerPresetConfig(layerId, presetId);
-                setLayerPresetConfigs(prev => ({
-                  ...prev,
-                  [layerId]: { ...(prev[layerId] || {}), [presetId]: cfg }
-                }));
+                const existing = layerPresetConfigs[layerId]?.[presetId];
+                if (existing) {
+                  applyPresetConfig(engineRef.current, layerId, existing);
+                } else {
+                  const cfg = engineRef.current.getLayerPresetConfig(layerId, presetId);
+                  setLayerPresetConfigs(prev => ({
+                    ...prev,
+                    [layerId]: { ...(prev[layerId] || {}), [presetId]: cfg }
+                  }));
+                }
                 setSelectedPreset(preset);
                 setSelectedLayer(layerId);
               }
@@ -633,12 +654,6 @@ const App: React.FC = () => {
                 delete newLayers[layerId];
                 return newLayers;
               });
-              setLayerPresetConfigs(prev => {
-                const cfg = { ...prev };
-                delete cfg[layerId];
-                return cfg;
-              });
-
               if (selectedLayer === layerId) {
                 setSelectedPreset(null);
                 setSelectedLayer(null);
