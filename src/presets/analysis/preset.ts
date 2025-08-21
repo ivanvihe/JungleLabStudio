@@ -10,7 +10,7 @@ const COLOR_PALETTE = [
 
 export const config: PresetConfig = {
   name: 'ANALYSIS',
-  description: '3D audio spectrum analyzer with smooth pastel particle transitions and frequency/dB grid.',
+  description: '3D audio spectrum analyzer with smooth pastel particle transitions, starfield and pulsating frequency rings.',
   author: 'AudioVisualizer',
   version: '2.1.0',
   category: 'analysis',
@@ -83,6 +83,15 @@ class AnalysisSpectrum extends BasePreset {
   private dbLabels?: THREE.Group;
   private ambient?: THREE.AmbientLight;
   private pointLight?: THREE.PointLight;
+  private starField?: THREE.Points;
+  private rings: Record<BandName, THREE.Mesh> = {
+    band1: new THREE.Mesh(),
+    band2: new THREE.Mesh(),
+    band3: new THREE.Mesh(),
+    band4: new THREE.Mesh(),
+    band5: new THREE.Mesh(),
+    band6: new THREE.Mesh()
+  };
   private currentConfig: any;
   private initialCameraPosition = this.camera.position.clone();
   private initialCameraQuaternion = this.camera.quaternion.clone();
@@ -132,6 +141,36 @@ class AnalysisSpectrum extends BasePreset {
       band5: { particles: [], color: this.currentConfig.colors.band5, centerX: 1.92, targetCount: 0, currentCount: 0, audioLevel: 0, smoothedLevel: 0 },
       band6: { particles: [], color: this.currentConfig.colors.band6, centerX: 3.2, targetCount: 0, currentCount: 0, audioLevel: 0, smoothedLevel: 0 }
     };
+
+    // Crear campo de estrellas para un fondo más espectacular
+    const starCount = 500;
+    const starGeometry = new THREE.BufferGeometry();
+    const starPositions = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+      starPositions[i * 3] = (Math.random() - 0.5) * 50;
+      starPositions[i * 3 + 1] = Math.random() * 25;
+      starPositions[i * 3 + 2] = (Math.random() - 0.5) * 50;
+    }
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.05 });
+    this.starField = new THREE.Points(starGeometry, starMaterial);
+    this.scene.add(this.starField);
+
+    // Crear anillos para cada banda de frecuencia
+    (Object.keys(this.rings) as BandName[]).forEach((band, i) => {
+      const ringGeo = new THREE.RingGeometry(0.5, 0.6, 64);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: this.currentConfig.colors[band],
+        transparent: true,
+        opacity: 0.4,
+        side: THREE.DoubleSide
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = 1 + i * 0.3;
+      this.group.add(ring);
+      this.rings[band] = ring;
+    });
   }
 
   private createFrequencyGrid(): void {
@@ -386,7 +425,19 @@ class AnalysisSpectrum extends BasePreset {
           material.emissiveIntensity = glowIntensity;
         }
       });
+
+      const ring = this.rings[key];
+      if (ring) {
+        const scale = 1 + range.smoothedLevel * 5;
+        ring.scale.setScalar(scale);
+        (ring.material as THREE.MeshBasicMaterial).color.set(range.color);
+        (ring.material as THREE.MeshBasicMaterial).opacity = 0.2 + range.audioLevel * 0.8;
+      }
     });
+
+    if (this.starField) {
+      this.starField.rotation.y += deltaTime * 0.02;
+    }
 
     const radius = this.currentConfig.radius;
     const cameraSpeed = 0.12;
@@ -421,6 +472,13 @@ class AnalysisSpectrum extends BasePreset {
     if (this.dbLabels) this.scene.remove(this.dbLabels);
     if (this.ambient) this.scene.remove(this.ambient);
     if (this.pointLight) this.scene.remove(this.pointLight);
+    if (this.starField) this.scene.remove(this.starField);
+
+    (Object.values(this.rings) as THREE.Mesh[]).forEach(r => {
+      this.group.remove(r);
+      r.geometry.dispose();
+      (r.material as THREE.Material).dispose();
+    });
 
     this.camera.position.copy(this.initialCameraPosition);
     this.camera.quaternion.copy(this.initialCameraQuaternion);
