@@ -558,6 +558,11 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handler);
   }, [hideUiHotkey]);
 
+  // Recalcular el tamaño del canvas al mostrar/ocultar la UI
+  useEffect(() => {
+    window.dispatchEvent(new Event('resize'));
+  }, [isUiHidden]);
+
   // Handlers
   const handleFullScreen = useCallback(async () => {
     if ((window as any).electronAPI) {
