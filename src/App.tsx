@@ -77,6 +77,9 @@ const App: React.FC = () => {
   );
   const [hideUiHotkey, setHideUiHotkey] = useState(() => localStorage.getItem('hideUiHotkey') || 'F10');
   const [isUiHidden, setIsUiHidden] = useState(false);
+  const [fullscreenHotkey, setFullscreenHotkey] = useState(() => localStorage.getItem('fullscreenHotkey') || 'F9');
+  const [exitFullscreenHotkey, setExitFullscreenHotkey] = useState(() => localStorage.getItem('exitFullscreenHotkey') || 'F11');
+  const [fullscreenByDefault, setFullscreenByDefault] = useState(() => localStorage.getItem('fullscreenByDefault') !== 'false');
   const [startMaximized, setStartMaximized] = useState(() => localStorage.getItem('startMaximized') !== 'false');
   const [startMonitor, setStartMonitor] = useState<string | null>(() => localStorage.getItem('startMonitor'));
 
@@ -111,6 +114,24 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('startMaximized', startMaximized.toString());
   }, [startMaximized]);
+
+  useEffect(() => {
+    localStorage.setItem('fullscreenHotkey', fullscreenHotkey);
+  }, [fullscreenHotkey]);
+
+  useEffect(() => {
+    localStorage.setItem('exitFullscreenHotkey', exitFullscreenHotkey);
+  }, [exitFullscreenHotkey]);
+
+  useEffect(() => {
+    localStorage.setItem('fullscreenByDefault', fullscreenByDefault.toString());
+  }, [fullscreenByDefault]);
+
+  useEffect(() => {
+    if (!isFullscreenMode && midiTrigger) {
+      broadcastRef.current?.postMessage({ type: 'midiTrigger', data: midiTrigger });
+    }
+  }, [midiTrigger, isFullscreenMode]);
 
   useEffect(() => {
     if (startMonitor) {
@@ -231,6 +252,7 @@ const App: React.FC = () => {
 
   // Configurar MIDI
   useEffect(() => {
+    if (isFullscreenMode) return;
     const handleMIDIMessage = (event: any) => {
       setMidiActive(true);
       setTimeout(() => setMidiActive(false), 100);
@@ -323,7 +345,7 @@ const App: React.FC = () => {
         })
         .catch((err: any) => console.warn('MIDI access error', err));
     }
-  }, [midiDeviceId, midiClockType, midiClockDelay, layerChannels, availablePresets]);
+  }, [midiDeviceId, midiClockType, midiClockDelay, layerChannels, availablePresets, isFullscreenMode]);
 
   // Configurar listener de audio
   useEffect(() => {
@@ -439,11 +461,14 @@ const App: React.FC = () => {
     }
   }, [isFullscreenMode, isInitialized]);
 
-  // Cerrar ventana fullscreen con ESC o F11
+  // Cerrar ventana fullscreen con ESC o hotkey configurable
   useEffect(() => {
     if (isFullscreenMode) {
       const handler = (e: KeyboardEvent) => {
-        if (e.key === 'Escape' || e.key === 'F11') {
+        if (
+          e.key === 'Escape' ||
+          e.key.toUpperCase() === exitFullscreenHotkey.toUpperCase()
+        ) {
           if ((window as any).__TAURI__) {
             window.close();
           } else if (document.fullscreenElement) {
@@ -454,7 +479,7 @@ const App: React.FC = () => {
       window.addEventListener('keydown', handler);
       return () => window.removeEventListener('keydown', handler);
     }
-  }, [isFullscreenMode]);
+  }, [isFullscreenMode, exitFullscreenHotkey]);
 
   // Monitor FPS
   useEffect(() => {
@@ -538,7 +563,7 @@ const App: React.FC = () => {
             width: monitor.size.width,
             height: monitor.size.height,
             decorations: false,
-            fullscreen: true,
+            fullscreen: fullscreenByDefault,
             skipTaskbar: true,
             resizable: false,
             title: `Visual Output - ${monitor.label}`,
@@ -573,15 +598,16 @@ const App: React.FC = () => {
   }, [activeLayers, selectedMonitors, monitors]);
 
   useEffect(() => {
+    if (isFullscreenMode) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'F9') {
+      if (e.key.toUpperCase() === fullscreenHotkey.toUpperCase()) {
         e.preventDefault();
         handleFullScreen();
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [handleFullScreen]);
+  }, [handleFullScreen, fullscreenHotkey, isFullscreenMode]);
 
   const handleClearAll = () => {
     if (!engineRef.current) return;
@@ -632,6 +658,10 @@ const App: React.FC = () => {
             if (cfg) applyPresetConfig(engineRef.current!, layerId, cfg);
           });
           setActiveLayers(newActive);
+          break;
+        }
+        case 'midiTrigger': {
+          setMidiTrigger(msg.data);
           break;
         }
         case 'layerConfig': {
@@ -885,6 +915,21 @@ const App: React.FC = () => {
         onHideUiHotkeyChange={(key) => {
           setHideUiHotkey(key);
           localStorage.setItem('hideUiHotkey', key);
+        }}
+        fullscreenHotkey={fullscreenHotkey}
+        onFullscreenHotkeyChange={(key) => {
+          setFullscreenHotkey(key);
+          localStorage.setItem('fullscreenHotkey', key);
+        }}
+        exitFullscreenHotkey={exitFullscreenHotkey}
+        onExitFullscreenHotkeyChange={(key) => {
+          setExitFullscreenHotkey(key);
+          localStorage.setItem('exitFullscreenHotkey', key);
+        }}
+        fullscreenByDefault={fullscreenByDefault}
+        onFullscreenByDefaultChange={(value) => {
+          setFullscreenByDefault(value);
+          localStorage.setItem('fullscreenByDefault', value.toString());
         }}
       />
     </div>

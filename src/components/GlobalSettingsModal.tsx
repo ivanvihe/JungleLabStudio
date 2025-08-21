@@ -43,6 +43,12 @@ interface GlobalSettingsModalProps {
   onGlitchPadChange: (value: number) => void;
   hideUiHotkey: string;
   onHideUiHotkeyChange: (value: string) => void;
+  fullscreenHotkey: string;
+  onFullscreenHotkeyChange: (value: string) => void;
+  exitFullscreenHotkey: string;
+  onExitFullscreenHotkeyChange: (value: string) => void;
+  fullscreenByDefault: boolean;
+  onFullscreenByDefaultChange: (value: boolean) => void;
   startMaximized: boolean;
   onStartMaximizedChange: (value: boolean) => void;
   sidebarCollapsed: boolean;
@@ -75,6 +81,12 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   onGlitchPadChange,
   hideUiHotkey,
   onHideUiHotkeyChange,
+  fullscreenHotkey,
+  onFullscreenHotkeyChange,
+  exitFullscreenHotkey,
+  onExitFullscreenHotkeyChange,
+  fullscreenByDefault,
+  onFullscreenByDefaultChange,
   startMaximized,
   onStartMaximizedChange,
   sidebarCollapsed,
@@ -522,6 +534,51 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                   />
                 </label>
                 <small className="setting-hint">Presiona una tecla (por defecto F10)</small>
+              </div>
+
+              <div className="setting-group">
+                <label className="setting-label">
+                  <span>Tecla para fullscreen</span>
+                  <input
+                    type="text"
+                    value={fullscreenHotkey}
+                    onKeyDown={(e) => {
+                      e.preventDefault();
+                      onFullscreenHotkeyChange(e.key);
+                    }}
+                    className="setting-number"
+                    readOnly
+                  />
+                </label>
+                <small className="setting-hint">Presiona una tecla (por defecto F9)</small>
+              </div>
+
+              <div className="setting-group">
+                <label className="setting-label">
+                  <span>Tecla para salir de fullscreen</span>
+                  <input
+                    type="text"
+                    value={exitFullscreenHotkey}
+                    onKeyDown={(e) => {
+                      e.preventDefault();
+                      onExitFullscreenHotkeyChange(e.key);
+                    }}
+                    className="setting-number"
+                    readOnly
+                  />
+                </label>
+                <small className="setting-hint">Presiona una tecla (por defecto F11)</small>
+              </div>
+
+              <div className="setting-group">
+                <label className="setting-label">
+                  <input
+                    type="checkbox"
+                    checked={fullscreenByDefault}
+                    onChange={(e) => onFullscreenByDefaultChange(e.target.checked)}
+                  />
+                  <span>Ventanas en fullscreen por defecto</span>
+                </label>
               </div>
 
               <div className="setting-group">
