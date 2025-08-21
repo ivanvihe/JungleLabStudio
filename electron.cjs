@@ -2,6 +2,10 @@ const { app, BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('path');
 
 let mainWindow;
+let fullscreenWindows = [];
+const startUrl = process.env.NODE_ENV === 'development'
+  ? 'http://localhost:3000'  // Cambiado de 5173 a 3000 (puerto de Vite por defecto)
+  : path.join(__dirname, 'dist', 'index.html');
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -15,10 +19,6 @@ function createWindow() {
       // Removido webSecurity: false
     },
   });
-
-  const startUrl = process.env.NODE_ENV === 'development'
-    ? 'http://localhost:3000'  // Cambiado de 5173 a 3000 (puerto de Vite por defecto)
-    : path.join(__dirname, 'dist', 'index.html');
 
   console.log('Loading URL:', startUrl);
 
@@ -69,6 +69,55 @@ ipcMain.handle('get-displays', () => {
     scaleFactor: d.scaleFactor,
     primary: d.primary
   }));
+});
+
+ipcMain.handle('toggle-fullscreen', (event, ids = []) => {
+  if (fullscreenWindows.length) {
+    fullscreenWindows.forEach(win => win.close());
+    fullscreenWindows = [];
+    if (mainWindow) mainWindow.show();
+    return;
+  }
+
+  const displays = screen.getAllDisplays();
+  ids.forEach(id => {
+    const display = displays.find(d => d.id === id);
+    if (!display) return;
+
+    const win = new BrowserWindow({
+      x: display.bounds.x,
+      y: display.bounds.y,
+      width: display.bounds.width,
+      height: display.bounds.height,
+      frame: false,
+      fullscreen: true,
+      skipTaskbar: true,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        preload: path.join(__dirname, 'preload.cjs')
+      }
+    });
+
+    if (startUrl.startsWith('http')) {
+      win.loadURL(`${startUrl}?fullscreen=true`);
+    } else {
+      win.loadFile(startUrl, { query: { fullscreen: 'true' } });
+    }
+
+    win.on('closed', () => {
+      fullscreenWindows = fullscreenWindows.filter(w => w !== win);
+      if (fullscreenWindows.length === 0 && mainWindow) {
+        mainWindow.show();
+      }
+    });
+
+    fullscreenWindows.push(win);
+  });
+
+  if (fullscreenWindows.length && mainWindow) {
+    mainWindow.hide();
+  }
 });
 
 app.whenReady().then(() => {

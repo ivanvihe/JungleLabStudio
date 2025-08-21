@@ -1,6 +1,6 @@
 // App.tsx - Corregido y completo con todas las mejoras
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { AudioVisualizerEngine } from './core/AudioVisualizerEngine';
 import { LayerGrid } from './components/LayerGrid';
 import { StatusBar } from './components/StatusBar';
@@ -487,27 +487,41 @@ const App: React.FC = () => {
   }, [hideUiHotkey]);
 
   // Handlers
-  const handleFullScreen = async () => {
-    if ((window as any).__TAURI__) {
+  const handleFullScreen = useCallback(async () => {
+    if ((window as any).electronAPI) {
       localStorage.setItem('activeLayers', JSON.stringify(activeLayers));
-      
+      const ids = selectedMonitors.map(id => parseInt(id, 10)).filter(Boolean);
+      if (ids.length === 0) {
+        setStatus('Error: No hay monitores seleccionados');
+        return;
+      }
+      try {
+        await (window as any).electronAPI.toggleFullscreen(ids);
+        setStatus(`Fullscreen toggled en ${ids.length} monitor(es)`);
+      } catch (err) {
+        console.error('Error en fullscreen:', err);
+        setStatus('Error: No se pudo activar fullscreen');
+      }
+    } else if ((window as any).__TAURI__) {
+      localStorage.setItem('activeLayers', JSON.stringify(activeLayers));
+
       try {
         const { WebviewWindow } = await import(
           /* @vite-ignore */ '@tauri-apps/api/window'
         );
-        
+
         const selectedMonitorsList = monitors.filter(m => selectedMonitors.includes(m.id));
-        
+
         if (selectedMonitorsList.length === 0) {
           setStatus('Error: No hay monitores seleccionados');
           return;
         }
-        
+
         console.log(`🎯 Abriendo fullscreen en ${selectedMonitorsList.length} monitores`);
-        
+
         selectedMonitorsList.forEach((monitor, index) => {
           const label = `fullscreen-${monitor.id}-${Date.now()}-${index}`;
-          
+
           const windowOptions = {
             url: `index.html?fullscreen=true&monitor=${monitor.id}`,
             x: monitor.position.x,
@@ -521,9 +535,9 @@ const App: React.FC = () => {
             title: `Visual Output - ${monitor.label}`,
             alwaysOnTop: false
           };
-          
+
           console.log(`🖥️ Creando ventana en ${monitor.label}:`, windowOptions);
-          
+
           try {
             new WebviewWindow(label, windowOptions);
           } catch (windowError) {
@@ -531,7 +545,7 @@ const App: React.FC = () => {
             setStatus(`Error: No se pudo crear ventana en ${monitor.label}`);
           }
         });
-        
+
         setStatus(`Fullscreen activo en ${selectedMonitorsList.length} monitor(es)`);
       } catch (err) {
         console.error('Error en fullscreen:', err);
@@ -547,7 +561,18 @@ const App: React.FC = () => {
         setStatus('Error: Fullscreen no disponible');
       }
     }
-  };
+  }, [activeLayers, selectedMonitors, monitors]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'F9') {
+        e.preventDefault();
+        handleFullScreen();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [handleFullScreen]);
 
   const handleClearAll = () => {
     if (!engineRef.current) return;
