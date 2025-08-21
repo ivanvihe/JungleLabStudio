@@ -71,6 +71,12 @@ class AuroraPulsePreset extends BasePreset {
       `
     });
     this.mesh = new THREE.Mesh(geometry, material);
+
+    // Posicionar el pulso en un lugar aleatorio cada vez
+    const randX = (Math.random() - 0.5) * 6;
+    const randY = (Math.random() - 0.5) * 4;
+    this.mesh.position.set(randX, randY, 0);
+
     this.scene.add(this.mesh);
     this.start = this.clock.getElapsedTime();
   }

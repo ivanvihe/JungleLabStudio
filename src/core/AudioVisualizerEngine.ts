@@ -199,16 +199,23 @@ export class AudioVisualizerEngine {
       height = window.innerHeight;
     }
     const pixelRatio = Math.min(window.devicePixelRatio, 2);
+    const visualScale = parseFloat(localStorage.getItem('visualScale') || '1');
+    const scaledWidth = width * visualScale;
+    const scaledHeight = height * visualScale;
 
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(width, height);
+
+    // Ajustar tamaño interno manteniendo el canvas llenando la pantalla
+    this.renderer.setSize(scaledWidth, scaledHeight, false);
+    this.renderer.domElement.style.width = `${width}px`;
+    this.renderer.domElement.style.height = `${height}px`;
     this.renderer.setPixelRatio(pixelRatio);
 
-    // Actualizar render targets de layers
+    // Actualizar render targets de layers con la escala aplicada
     this.layers.forEach((layer, id) => {
       if (layer.renderTarget) {
-        layer.renderTarget.setSize(width * pixelRatio, height * pixelRatio);
+        layer.renderTarget.setSize(scaledWidth * pixelRatio, scaledHeight * pixelRatio);
       }
     });
   }
