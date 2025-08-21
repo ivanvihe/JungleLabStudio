@@ -3,5 +3,12 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
   applySettings: (settings) => ipcRenderer.send('apply-settings', settings),
   getDisplays: () => ipcRenderer.invoke('get-displays'),
-  toggleFullscreen: (ids) => ipcRenderer.invoke('toggle-fullscreen', ids)
+  toggleFullscreen: (ids) => ipcRenderer.invoke('toggle-fullscreen', ids),
+
+  // Envío de frames desde la ventana principal
+  broadcastFrame: (frameData) => ipcRenderer.send('broadcast-frame', frameData),
+
+  // Recepción de frames en ventanas clon
+  onReceiveFrame: (callback) => ipcRenderer.on('receive-frame', callback),
+  removeFrameListener: () => ipcRenderer.removeAllListeners('receive-frame')
 });
