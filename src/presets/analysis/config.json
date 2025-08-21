@@ -9,26 +9,24 @@
   "note": 48,
   "defaultConfig": {
     "radius": 8,
-    "butterflyCount": 12,
+    "butterflyCount": 20,
     "colors": {
-      "low": "#3498db",
-      "mid": "#2ecc71",
-      "high": "#e74c3c",
-      "butterfly": "#ffccff"
+      "low": "#607080",
+      "mid": "#8fa1b3",
+      "high": "#c7d8e8"
     }
   },
   "controls": [
     {"name": "radius", "type": "slider", "label": "Camera Radius", "min": 5, "max": 15, "step": 0.5, "default": 8},
-    {"name": "butterflyCount", "type": "slider", "label": "Butterflies", "min": 0, "max": 50, "step": 1, "default": 12},
-    {"name": "colors.low", "type": "color", "label": "Low Color", "default": "#3498db"},
-    {"name": "colors.mid", "type": "color", "label": "Mid Color", "default": "#2ecc71"},
-    {"name": "colors.high", "type": "color", "label": "High Color", "default": "#e74c3c"},
-    {"name": "colors.butterfly", "type": "color", "label": "Butterfly Color", "default": "#ffccff"}
+    {"name": "butterflyCount", "type": "slider", "label": "Max Butterflies", "min": 5, "max": 50, "step": 1, "default": 20},
+    {"name": "colors.low", "type": "color", "label": "Low Color", "default": "#607080"},
+    {"name": "colors.mid", "type": "color", "label": "Mid Color", "default": "#8fa1b3"},
+    {"name": "colors.high", "type": "color", "label": "High Color", "default": "#c7d8e8"}
   ],
   "audioMapping": {
-    "low": {"description": "Low frequencies", "frequency": "20-250 Hz", "effect": "Low bar height"},
-    "mid": {"description": "Mid frequencies", "frequency": "250-4000 Hz", "effect": "Mid bar height"},
-    "high": {"description": "High frequencies", "frequency": "4000+ Hz", "effect": "High bar height"}
+    "low": {"description": "Low frequencies", "frequency": "20-250 Hz", "effect": "Low band butterfly density"},
+    "mid": {"description": "Mid frequencies", "frequency": "250-4000 Hz", "effect": "Mid band butterfly density"},
+    "high": {"description": "High frequencies", "frequency": "4000+ Hz", "effect": "High band butterfly density"}
   },
   "performance": {"complexity": "low", "recommendedFPS": 60, "gpuIntensive": false}
 }
