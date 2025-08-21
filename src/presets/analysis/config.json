@@ -11,23 +11,23 @@
     "radius": 8,
     "butterflyCount": 40,
     "colors": {
-      "band1": "#607080",
-      "band2": "#708090",
-      "band3": "#8fa1b3",
-      "band4": "#a0b3c4",
-      "band5": "#c7d8e8",
-      "band6": "#e0e8f0"
+      "band1": "#A8A8A8",
+      "band2": "#B58E7E",
+      "band3": "#D97E7E",
+      "band4": "#8B6F6F",
+      "band5": "#C49A9A",
+      "band6": "#E68A7A"
     }
   },
   "controls": [
     {"name": "radius", "type": "slider", "label": "Camera Radius", "min": 5, "max": 15, "step": 0.5, "default": 8},
     {"name": "butterflyCount", "type": "slider", "label": "Max Butterflies", "min": 5, "max": 100, "step": 1, "default": 40},
-    {"name": "colors.band1", "type": "color", "label": "Band 1 Color", "default": "#607080"},
-    {"name": "colors.band2", "type": "color", "label": "Band 2 Color", "default": "#708090"},
-    {"name": "colors.band3", "type": "color", "label": "Band 3 Color", "default": "#8fa1b3"},
-    {"name": "colors.band4", "type": "color", "label": "Band 4 Color", "default": "#a0b3c4"},
-    {"name": "colors.band5", "type": "color", "label": "Band 5 Color", "default": "#c7d8e8"},
-    {"name": "colors.band6", "type": "color", "label": "Band 6 Color", "default": "#e0e8f0"}
+    {"name": "colors.band1", "type": "color", "label": "Band 1 Color", "default": "#A8A8A8"},
+    {"name": "colors.band2", "type": "color", "label": "Band 2 Color", "default": "#B58E7E"},
+    {"name": "colors.band3", "type": "color", "label": "Band 3 Color", "default": "#D97E7E"},
+    {"name": "colors.band4", "type": "color", "label": "Band 4 Color", "default": "#8B6F6F"},
+    {"name": "colors.band5", "type": "color", "label": "Band 5 Color", "default": "#C49A9A"},
+    {"name": "colors.band6", "type": "color", "label": "Band 6 Color", "default": "#E68A7A"}
   ],
   "audioMapping": {
     "band1": {"description": "Very low frequencies", "frequency": "40-200 Hz", "effect": "Butterfly density band 1"},
