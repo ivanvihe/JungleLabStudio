@@ -529,9 +529,16 @@ const App: React.FC = () => {
         setStatus('Error: No hay monitores seleccionados');
         return;
       }
+      // Activar o desactivar modo multi-monitor según corresponda
+      if (isFullscreenMode) {
+        engineRef.current?.setMultiMonitorMode(false);
+      } else {
+        engineRef.current?.setMultiMonitorMode(ids.length > 1);
+      }
       try {
         await (window as any).electronAPI.toggleFullscreen(ids);
         setStatus(`Fullscreen toggled en ${ids.length} monitor(es)`);
+        setIsFullscreenMode(!isFullscreenMode);
       } catch (err) {
         console.error('Error en fullscreen:', err);
         setStatus('Error: No se pudo activar fullscreen');
@@ -549,6 +556,12 @@ const App: React.FC = () => {
         if (selectedMonitorsList.length === 0) {
           setStatus('Error: No hay monitores seleccionados');
           return;
+        }
+        // Activar o desactivar modo multi-monitor según corresponda
+        if (isFullscreenMode) {
+          engineRef.current?.setMultiMonitorMode(false);
+        } else {
+          engineRef.current?.setMultiMonitorMode(selectedMonitorsList.length > 1);
         }
 
         console.log(`🎯 Abriendo fullscreen en ${selectedMonitorsList.length} monitores`);
@@ -581,6 +594,7 @@ const App: React.FC = () => {
         });
 
         setStatus(`Fullscreen activo en ${selectedMonitorsList.length} monitor(es)`);
+        setIsFullscreenMode(!isFullscreenMode);
       } catch (err) {
         console.error('Error en fullscreen:', err);
         setStatus('Error: No se pudo activar fullscreen');
