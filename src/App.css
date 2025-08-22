@@ -581,6 +581,12 @@ body {
   z-index: 20;
 }
 
+/* Espaciador flexible para empujar contenido a la derecha */
+.top-bar-spacer {
+  flex: 1;
+  min-width: 20px;
+}
+
 .midi-led {
   width: 10px;
   height: 10px;
@@ -647,8 +653,59 @@ body {
   background: #4caf50;
 }
 
-.actions-section button {
+.actions-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Controles específicos del Launchpad */
+.launchpad-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background: rgba(255, 183, 77, 0.1);
+  border: 1px solid rgba(255, 183, 77, 0.3);
+  border-radius: 6px;
+}
+
+.launchpad-preset-select {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: #fff;
+  padding: 4px 6px;
+  font-size: 11px;
+  min-width: 100px;
+}
+
+.launchpad-button {
+  background: rgba(255, 183, 77, 0.8);
+  border: none;
+  color: #000;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.launchpad-button.running {
+  background: #4CAF50;
+  animation: pulse-green 1.5s infinite;
+}
+
+.actions-section > button {
   margin-right: 5px;
+  font-size: 11px;
+  padding: 6px 10px;
+}
+
+@keyframes pulse-green {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 /* Modal */

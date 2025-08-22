@@ -94,24 +94,33 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
       </div>
 
-      <div className="separator" />
+      {/* Espaciador flexible para empujar contenido a la derecha */}
+      <div className="top-bar-spacer"></div>
 
+      {/* Sección derecha - Controles de Launchpad y acciones */}
       <div className="actions-section">
         {launchpadAvailable && (
-          <>
+          <div className="launchpad-controls">
             <select
               value={launchpadPreset}
               onChange={(e) => onLaunchpadPresetChange(e.target.value)}
+              className="launchpad-preset-select"
             >
               {LAUNCHPAD_PRESETS.map(p => (
                 <option key={p.id} value={p.id}>{p.label}</option>
               ))}
             </select>
-            <button onClick={onToggleLaunchpad}>
+            <button 
+              onClick={onToggleLaunchpad}
+              className={`launchpad-button ${launchpadRunning ? 'running' : ''}`}
+            >
               {launchpadRunning ? 'Stop Launchpad' : 'Go Launchpad'}
             </button>
-          </>
+          </div>
         )}
+        
+        <div className="separator" />
+        
         <button onClick={onFullScreen} alt="Go Full Screen mode!!">Full Screen</button>
         <button onClick={onClearAll}>Clear All</button>
         <button onClick={onOpenPresetGallery}>Presets</button>

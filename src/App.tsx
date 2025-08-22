@@ -655,16 +655,49 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!launchpadRunning || !launchpadOutput) return;
+
+    // Debug: verificar que tenemos datos de audio válidos
+    const hasValidAudio = audioData.fft.length > 0 && 
+      (audioData.low + audioData.mid + audioData.high) > 0.01;
+
+    if (!hasValidAudio && launchpadPreset === 'test') {
+      console.log('Launchpad: Usando preset test independiente');
+    }
+
     const frame = buildLaunchpadFrame(launchpadPreset, audioData);
-    frame.forEach((c, i) => launchpadOutput.send([0x90, i, c]));
+    frame.forEach((c, i) => {
+      try { 
+        launchpadOutput.send([0x90, i, c]); 
+      } catch(e) { 
+        console.warn('MIDI send error:', e); 
+      }
+    });
   }, [audioData, launchpadRunning, launchpadPreset, launchpadOutput]);
 
   useEffect(() => {
     if (launchpadRunning && launchpadOutput) {
       try {
+        console.log('Launchpad: Enviando handshake a', launchpadOutput.name);
         launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x0e, 0x0d, 0x01, 0xf7]);
+
+        // Clear launchpad inicialmente
+        for (let i = 0; i < 64; i++) {
+          launchpadOutput.send([0x90, i, 0]);
+        }
+
+        console.log('Launchpad inicializado correctamente');
       } catch (err) {
         console.error('Launchpad handshake failed', err);
+      }
+    } else if (!launchpadRunning && launchpadOutput) {
+      // Apagar todos los LEDs cuando se detiene
+      try {
+        for (let i = 0; i < 64; i++) {
+          launchpadOutput.send([0x90, i, 0]);
+        }
+        console.log('Launchpad apagado');
+      } catch (err) {
+        console.warn('Error apagando launchpad:', err);
       }
     }
   }, [launchpadRunning, launchpadOutput]);
