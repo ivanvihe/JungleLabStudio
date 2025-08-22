@@ -11,7 +11,7 @@ import { GlobalSettingsModal } from './components/GlobalSettingsModal';
 import { LoadedPreset, AudioData } from './core/PresetLoader';
 import { setNestedValue } from './utils/objectPath';
 import { AVAILABLE_EFFECTS } from './utils/effects';
-import { buildLaunchpadFrame, LaunchpadPreset, isLaunchpadDevice } from './utils/launchpad';
+import { buildLaunchpadFrame, LaunchpadPreset, isLaunchpadDevice, gridIndexToNote } from './utils/launchpad';
 import './App.css';
 import './components/LayerGrid.css';
 
@@ -668,12 +668,13 @@ const App: React.FC = () => {
     const nonZeroCount = frame.filter(c => c > 0).length;
     console.log(`🎛️ Frame Launchpad: ${nonZeroCount}/64 pads activos, preset: ${launchpadPreset}`);
 
-    // Enviar a todos los 64 pads
+    // Enviar a todos los 64 pads (mapear índice a nota MIDI del Launchpad)
     frame.forEach((color, i) => {
+      const note = gridIndexToNote(i);
       try {
-        launchpadOutput.send([0x90, i, color]);
-      } catch(e) {
-        console.warn(`MIDI send error en pad ${i}:`, e);
+        launchpadOutput.send([0x90, note, color]);
+      } catch (e) {
+        console.warn(`MIDI send error en pad ${i} (nota ${note}):`, e);
       }
     });
 
@@ -734,7 +735,8 @@ const App: React.FC = () => {
             // Clear launchpad inicialmente - usar todos los 64 pads
             console.log('Limpiando todos los 64 pads del Launchpad...');
             for (let i = 0; i < 64; i++) {
-              launchpadOutput.send([0x90, i, 0]);
+              const note = gridIndexToNote(i);
+              launchpadOutput.send([0x90, note, 0]);
             }
 
             // También limpiar los botones de función (notas 104-111) por si acaso
@@ -748,12 +750,13 @@ const App: React.FC = () => {
             console.log('Ejecutando test de verificación...');
             setTimeout(() => {
               // Encender las 4 esquinas brevemente para verificar
-              const corners = [0, 7, 56, 63]; // esquinas del grid 8x8
+              const corners = [0, 7, 56, 63]; // índices de las esquinas del grid 8x8
               corners.forEach((corner, idx) => {
+                const note = gridIndexToNote(corner);
                 setTimeout(() => {
-                  launchpadOutput.send([0x90, corner, 60 + idx * 10]);
+                  launchpadOutput.send([0x90, note, 60 + idx * 10]);
                   setTimeout(() => {
-                    launchpadOutput.send([0x90, corner, 0]);
+                    launchpadOutput.send([0x90, note, 0]);
                   }, 200);
                 }, idx * 150);
               });
@@ -774,7 +777,8 @@ const App: React.FC = () => {
 
         // Apagar grid principal (64 pads)
         for (let i = 0; i < 64; i++) {
-          launchpadOutput.send([0x90, i, 0]);
+          const note = gridIndexToNote(i);
+          launchpadOutput.send([0x90, note, 0]);
         }
 
         // Apagar botones de función también
@@ -883,12 +887,13 @@ const App: React.FC = () => {
       setTimeout(() => {
         const row = Math.floor(i / 8);
         const col = i % 8;
-        console.log(`Encendiendo pad ${i} (fila ${row}, columna ${col})`);
+        const note = gridIndexToNote(i);
+        console.log(`Encendiendo pad ${i} (fila ${row}, columna ${col}, nota ${note})`);
 
-        launchpadOutput.send([0x90, i, 60 + (i % 64)]);
+        launchpadOutput.send([0x90, note, 60 + (i % 64)]);
 
         setTimeout(() => {
-          launchpadOutput.send([0x90, i, 0]);
+          launchpadOutput.send([0x90, note, 0]);
         }, 100);
 
       }, i * 50);
