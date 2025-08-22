@@ -14,6 +14,10 @@
 
 .preset-gallery-overlay.dragging {
   opacity: 0.2;
+}
+
+.preset-gallery-overlay.dragging,
+.preset-gallery-overlay.dragging .preset-gallery-modal {
   pointer-events: none;
 }
 
@@ -31,11 +35,13 @@
 .preset-gallery-grid {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-  gap: 10px;
-  padding: 10px;
+  grid-template-columns: repeat(auto-fill, 96px);
+  grid-auto-rows: 96px;
+  gap: 2px;
+  padding: 2px;
   overflow-y: auto;
-  justify-items: center;
+  background: #0F0F0F;
+  justify-items: start;
 }
 
 .preset-gallery-item {
