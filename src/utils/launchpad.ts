@@ -17,6 +17,7 @@ export function isLaunchpadDevice(device: any): boolean {
   const manufacturer = (device?.manufacturer || '').toLowerCase();
 
   if (name.includes('launchpad')) return true;
+  if (name.includes('lppro') || name.includes('llpro') || name.includes('mk3')) return true;
 
   const fromNovation = manufacturer.includes('novation');
   return fromNovation && /^lp/.test(name);

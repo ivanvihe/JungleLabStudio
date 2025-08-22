@@ -368,9 +368,15 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                   />
                 </label>
               </div>
+            </div>
+          )}
 
+          {activeTab === 'hardware' && (
+            <div className="settings-section">
+              <h3>🎛️ Hardware MIDI</h3>
+
+              <h4>Audio MIDI (Clock)</h4>
               <div className="setting-group">
-                <h4>MIDI</h4>
                 <label className="setting-label">
                   <span>Dispositivo MIDI</span>
                   <select
@@ -384,6 +390,9 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                     ))}
                   </select>
                 </label>
+              </div>
+
+              <div className="setting-group">
                 <label className="setting-label">
                   <span>Tipo de Clock</span>
                   <select
@@ -395,6 +404,9 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                     <option value="off">Off</option>
                   </select>
                 </label>
+              </div>
+
+              <div className="setting-group">
                 <label className="setting-label">
                   <span>Delay Clock (ms)</span>
                   <input
@@ -406,47 +418,43 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                     className="setting-number"
                   />
                 </label>
-                <div className="layer-channel-settings">
-                  <h5>Canal MIDI por Layer</h5>
-                  {['A','B','C'].map(id => (
-                    <label key={id} className="setting-label">
-                      <span>Layer {id}</span>
-                      <input
-                        type="number"
-                        min={1}
-                        max={16}
-                        value={layerChannels[id]}
-                        onChange={(e) => onLayerChannelChange(id, parseInt(e.target.value) || 1)}
-                        className="setting-number"
-                      />
-                    </label>
-                  ))}
-                </div>
-                <div className="effect-note-settings">
-                  <h5>Notas MIDI por Efecto</h5>
-                  {AVAILABLE_EFFECTS.filter(eff => eff !== 'none').map(eff => (
-                    <label key={eff} className="setting-label effect-setting">
-                      <span>{eff}</span>
-                      <input
-                        type="number"
-                        min={0}
-                        max={127}
-                        value={effectMidiNotes[eff] ?? 0}
-                        onChange={(e) => onEffectMidiNoteChange(eff, parseInt(e.target.value) || 0)}
-                        className="setting-number"
-                      />
-                    </label>
-                  ))}
-                </div>
               </div>
-            </div>
-          )}
 
-          {activeTab === 'hardware' && (
-            <div className="settings-section">
-              <h3>🎛️ Hardware MIDI</h3>
-              <h4>LaunchPad Visuals</h4>
+              <h4>MIDI for Pads</h4>
+              <div className="layer-channel-settings">
+                <h5>Canal MIDI por Layer</h5>
+                {['A','B','C'].map(id => (
+                  <label key={id} className="setting-label">
+                    <span>Layer {id}</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={16}
+                      value={layerChannels[id]}
+                      onChange={(e) => onLayerChannelChange(id, parseInt(e.target.value) || 1)}
+                      className="setting-number"
+                    />
+                  </label>
+                ))}
+              </div>
+              <div className="effect-note-settings">
+                <h5>Notas MIDI por Efecto</h5>
+                {AVAILABLE_EFFECTS.filter(eff => eff !== 'none').map(eff => (
+                  <label key={eff} className="setting-label effect-setting">
+                    <span>{eff}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={127}
+                      value={effectMidiNotes[eff] ?? 0}
+                      onChange={(e) => onEffectMidiNoteChange(eff, parseInt(e.target.value) || 0)}
+                      className="setting-number"
+                    />
+                  </label>
+                ))}
+              </div>
 
+              <h4>LaunchPad MIDI</h4>
               <div className="setting-group">
                 <label className="setting-label">
                   <span>Selecciona LaunchPad</span>
