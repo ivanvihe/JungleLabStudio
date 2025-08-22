@@ -26,6 +26,21 @@ export function isLaunchpadDevice(device: any): boolean {
 }
 
 /**
+ * Convert a 0-63 grid index (0 = top-left, 63 = bottom-right) to the
+ * corresponding Launchpad MIDI note number.
+ *
+ * The physical Launchpad layout numbers pads from the bottom-left corner
+ * with a stride of 16 between rows. For example, the bottom row spans
+ * notes 0-7, the next row 16-23, and so on up to 112-119 at the top.
+ */
+export function gridIndexToNote(index: number): number {
+  const rowFromTop = Math.floor(index / 8); // 0 = top row
+  const col = index % 8;
+  const rowFromBottom = 7 - rowFromTop;
+  return rowFromBottom * 16 + col;
+}
+
+/**
  * Build a frame of 64 color values for the Launchpad grid based on audio data.
  * Colors use the built-in palette (0-127).
  * ¡IMPORTANTE! Esta función SIEMPRE debe devolver exactamente 64 valores para el grid 8x8
