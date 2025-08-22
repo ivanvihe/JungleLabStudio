@@ -7,6 +7,8 @@
   "tags": ["cloud", "vapor", "skybox", "noise", "audio-reactive"],
   "thumbnail": "gen_lab_thumb.png",
   "defaultConfig": {
+    "width": 1920,
+    "height": 1080,
     "opacity": 1.0,
     "variant": "cloud",
     "noiseScale": 1.5,

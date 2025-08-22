@@ -208,79 +208,74 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
         <div className="preset-gallery-content">
           {activeTab === 'main' ? (
             <>
-              <div className="preset-gallery-section">
-                <div className="preset-gallery-grid">
-                  {presets.map(preset => (
-                    <div key={preset.id} className="preset-gallery-item-wrapper">
-                      <div
-                        className="preset-gallery-item preset-cell"
-                        onClick={() => setSelected(preset)}
-                      >
-                        {preset.config.note !== undefined && (
-                          <div className="preset-note-badge">{preset.config.note}</div>
-                        )}
-                        <div className="preset-thumbnail">{getPresetThumbnail(preset)}</div>
-                        <div className="preset-info">
-                          <div className="preset-name">{preset.config.name}</div>
-                          <div className="preset-details">
-                            <span className="preset-category">{preset.config.category}</span>
-                          </div>
+              <div className="preset-gallery-grid preset-gallery-main-grid">
+                {presets.map(preset => (
+                  <div key={preset.id} className="preset-gallery-item-wrapper">
+                    <div
+                      className="preset-gallery-item preset-cell"
+                      onClick={() => setSelected(preset)}
+                    >
+                      {preset.config.note !== undefined && (
+                        <div className="preset-note-badge">{preset.config.note}</div>
+                      )}
+                      <div className="preset-thumbnail">{getPresetThumbnail(preset)}</div>
+                      <div className="preset-info">
+                        <div className="preset-name">{preset.config.name}</div>
+                        <div className="preset-details">
+                          <span className="preset-category">{preset.config.category}</span>
                         </div>
                       </div>
-
-                      {/* Botones de capas */}
-                      <div className="layer-button-group">
-                        {['A', 'B', 'C'].map(layer => (
-                          <button
-                            key={layer}
-                            className={`layer-button ${layerAssignments[layer].has(preset.id) ? 'active' : ''}`}
-                            onClick={e => {
-                              e.stopPropagation();
-                              toggleLayer(preset.id, layer);
-                            }}
-                          >
-                            {layer}
-                          </button>
-                        ))}
-                      </div>
                     </div>
-                  ))}
+
+                    {/* Botones de capas */}
+                    <div className="layer-button-group">
+                      {['A', 'B', 'C'].map(layer => (
+                        <button
+                          key={layer}
+                          className={`layer-button ${layerAssignments[layer].has(preset.id) ? 'active' : ''}`}
+                          onClick={e => {
+                            e.stopPropagation();
+                            toggleLayer(preset.id, layer);
+                          }}
+                        >
+                          {layer}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {selected ? (
+                <div className="controls-panel">
+                  <div className="controls-header">
+                    <h3>{selected.config.name}</h3>
+                    <span className="preset-category-badge">{selected.config.category}</span>
+                  </div>
+
+                  {/* Controles por defecto del preset */}
+                  <div className="default-controls">
+                    <h4>Valores por defecto:</h4>
+                    <PresetControls
+                      preset={selected}
+                      config={selected.config.defaultConfig || {}}
+                      onChange={handleDefaultControlChange}
+                    />
+                  </div>
                 </div>
-              </div>
-
-              {/* Panel de controles */}
-              <div className="preset-gallery-controls">
-                {selected ? (
-                  <div className="controls-panel">
-                    <div className="controls-header">
-                      <h3>{selected.config.name}</h3>
-                      <span className="preset-category-badge">{selected.config.category}</span>
-                    </div>
-
-                    {/* Controles por defecto del preset */}
-                    <div className="default-controls">
-                      <h4>Valores por defecto:</h4>
-                      <PresetControls
-                        preset={selected}
-                        config={selected.config.defaultConfig || {}}
-                        onChange={handleDefaultControlChange}
-                      />
+              ) : (
+                <div className="preset-gallery-placeholder">
+                  <div className="placeholder-content">
+                    <div className="placeholder-icon">🎯</div>
+                    <h3>Selecciona un preset</h3>
+                    <p>Haz click en un preset para ver y editar sus valores por defecto</p>
+                    <div className="placeholder-instructions">
+                      <div>• <strong>Click:</strong> Ver controles y configuración</div>
+                      <div>• <strong>A/B/C:</strong> Añadir o quitar de una layer</div>
                     </div>
                   </div>
-                ) : (
-                  <div className="preset-gallery-placeholder">
-                    <div className="placeholder-content">
-                      <div className="placeholder-icon">🎯</div>
-                      <h3>Selecciona un preset</h3>
-                      <p>Haz click en un preset para ver y editar sus valores por defecto</p>
-                      <div className="placeholder-instructions">
-                        <div>• <strong>Click:</strong> Ver controles y configuración</div>
-                        <div>• <strong>A/B/C:</strong> Añadir o quitar de una layer</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </>
           ) : (
             <div className="preset-gallery-section templates-section">
