@@ -78,7 +78,15 @@ const App: React.FC = () => {
       return {} as Record<string, 'main' | 'secondary' | 'none'>;
     }
   });
-  const [glitchTextPads, setGlitchTextPads] = useState<number>(() => parseInt(localStorage.getItem('glitchTextPads') || '1'));
+  const storedTemplate = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('customTextTemplate') || '{}');
+    } catch {
+      return {};
+    }
+  })();
+  const [glitchTextPads, setGlitchTextPads] = useState<number>(storedTemplate.count || parseInt(localStorage.getItem('glitchTextPads') || '1'));
+  const [customTextContents, setCustomTextContents] = useState<string[]>(storedTemplate.texts || []);
   const [clearSignal, setClearSignal] = useState(0);
   const [isFullscreenMode, setIsFullscreenMode] = useState(
     () => new URLSearchParams(window.location.search).get('fullscreen') === 'true'
@@ -247,7 +255,10 @@ const App: React.FC = () => {
         const multiMonitor = localStorage.getItem('multiMonitorMode') === 'true';
         engine.setMultiMonitorMode(multiMonitor);
 
-        const presets = engine.getAvailablePresets();
+        let presets = engine.getAvailablePresets();
+        if (customTextContents.length > 0) {
+          presets = await engine.updateCustomTextTemplates(glitchTextPads, customTextContents);
+        }
         setAvailablePresets(presets);
         setIsInitialized(true);
         setStatus('Listo');
@@ -780,21 +791,27 @@ const App: React.FC = () => {
     });
   };
 
-  // Handler para cambios en el número de custom text pads
-  const handleCustomTextCountChange = async (count: number) => {
+  // Handler para cambios en los templates de custom text
+  const handleCustomTextTemplateChange = async (count: number, texts: string[]) => {
     setGlitchTextPads(count);
+    setCustomTextContents(texts);
     localStorage.setItem('glitchTextPads', count.toString());
-    
+    localStorage.setItem('customTextTemplate', JSON.stringify({ count, texts }));
+
     if (engineRef.current) {
       try {
-        const updatedPresets = await engineRef.current.updateGlitchPadCount(count);
+        const updatedPresets = await engineRef.current.updateCustomTextTemplates(count, texts);
         setAvailablePresets(updatedPresets);
         setStatus(`Custom text actualizado: ${count} instancia${count > 1 ? 's' : ''}`);
       } catch (error) {
-        console.error('Error updating custom text count:', error);
+        console.error('Error updating custom text templates:', error);
         setStatus('Error al actualizar custom text');
       }
     }
+  };
+
+  const handleCustomTextCountChange = (count: number) => {
+    handleCustomTextTemplateChange(count, customTextContents);
   };
 
   // Handler para añadir preset a layer desde la galería sin activarlo
@@ -1062,8 +1079,8 @@ const App: React.FC = () => {
         isOpen={isPresetGalleryOpen}
         onClose={() => setPresetGalleryOpen(false)}
         presets={availablePresets}
-        onCustomTextCountChange={handleCustomTextCountChange}
-        currentCustomTextCount={glitchTextPads}
+        onCustomTextTemplateChange={handleCustomTextTemplateChange}
+        customTextTemplate={{ count: glitchTextPads, texts: customTextContents }}
         onAddPresetToLayer={handleAddPresetToLayer}
         onRemovePresetFromLayer={handleRemovePresetFromLayer}
       />

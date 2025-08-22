@@ -46,9 +46,17 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
   }, [clearAllSignal]);
 
   const [clickedCell, setClickedCell] = useState<string | null>(null);
+  // Dynamic slots per layer based on available width
+  const SLOT_WIDTH = 98; // width + gap per cell
+  const SIDEBAR_WIDTH = 100; // sidebar with controls
 
-  // Número fijo de slots por layer (8 slots visibles)
-  const SLOTS_PER_LAYER = 8;
+  const calculateSlots = () => {
+    const available = window.innerWidth - SIDEBAR_WIDTH - 40; // padding
+    return Math.max(1, Math.floor(available / SLOT_WIDTH));
+  };
+
+  const initialSlots = calculateSlots();
+  const [slotsPerLayer, setSlotsPerLayer] = useState(initialSlots);
 
   const defaultOrder = presets.map(p => p.id);
   const [layerPresets, setLayerPresets] = useState<Record<string, (string | null)[]>>(() => {
@@ -58,12 +66,12 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
         const parsed = JSON.parse(stored);
         const ensureSlots = (arr?: (string | null)[]) => {
           const result = Array.isArray(arr) ? [...arr] : [];
-          // Asegurar que tenemos exactamente SLOTS_PER_LAYER slots
-          while (result.length < SLOTS_PER_LAYER) {
+          // Ensure we have exactly `slotsPerLayer` slots
+          while (result.length < slotsPerLayer) {
             result.push(null);
           }
-          if (result.length > SLOTS_PER_LAYER) {
-            result.splice(SLOTS_PER_LAYER);
+          if (result.length > slotsPerLayer) {
+            result.splice(slotsPerLayer);
           }
           return result;
         };
@@ -78,9 +86,9 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
     }
     // Inicializar con slots vacíos
     return {
-      A: Array(SLOTS_PER_LAYER).fill(null),
-      B: Array(SLOTS_PER_LAYER).fill(null),
-      C: Array(SLOTS_PER_LAYER).fill(null)
+      A: Array(slotsPerLayer).fill(null),
+      B: Array(slotsPerLayer).fill(null),
+      C: Array(slotsPerLayer).fill(null)
     };
   });
 
@@ -89,6 +97,29 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
   useEffect(() => {
     localStorage.setItem('layerPresets', JSON.stringify(layerPresets));
   }, [layerPresets]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const slots = calculateSlots();
+      setSlotsPerLayer(slots);
+      setLayerPresets(prev => {
+        const adjust = (arr: (string | null)[]) => {
+          const res = [...arr];
+          while (res.length < slots) res.push(null);
+          if (res.length > slots) res.splice(slots);
+          return res;
+        };
+        return {
+          A: adjust(prev.A),
+          B: adjust(prev.B),
+          C: adjust(prev.C)
+        };
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const getBaseId = (id: string) => (id.startsWith('custom-glitch-text') ? 'custom-glitch-text' : id);
   
@@ -242,12 +273,12 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
           const [item] = list.splice(sourceIndex, 1);
           list.splice(targetIndex, 0, item);
           
-          // Rellenar con nulls si es necesario
-          while (list.length < SLOTS_PER_LAYER) {
+          // Rellenar con nulls si es necesario segun slotsPerLayer
+          while (list.length < slotsPerLayer) {
             list.push(null);
           }
-          if (list.length > SLOTS_PER_LAYER) {
-            list.splice(SLOTS_PER_LAYER);
+          if (list.length > slotsPerLayer) {
+            list.splice(slotsPerLayer);
           }
           
           next[sourceLayerId] = list;
