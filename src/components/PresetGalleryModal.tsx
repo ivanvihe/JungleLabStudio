@@ -92,6 +92,17 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
     onGenLabPresetsChange?.(list);
   };
 
+  const handleDuplicateGenLabPreset = (index: number) => {
+    const list = [...genLabPresets];
+    const original = list[index];
+    const copy = {
+      name: `${original.name} Copy`,
+      config: JSON.parse(JSON.stringify(original.config))
+    };
+    list.splice(index + 1, 0, copy);
+    onGenLabPresetsChange?.(list);
+  };
+
   const handleTemplateCountChange = (count: number) => {
     const newCount = Math.max(1, Math.min(10, count));
     setTemplateCount(newCount);
@@ -278,83 +289,96 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
               )}
             </>
           ) : (
-            <div className="preset-gallery-section templates-section">
-              <div className="preset-gallery-grid">
-                <div className="preset-gallery-item-wrapper">
-                  <div
-                    className="preset-gallery-item preset-cell"
-                    onClick={() => setActiveTemplate('custom-text')}
-                  >
-                    <div className="preset-thumbnail">📝</div>
-                    <div className="preset-info">
-                      <div className="preset-name">Custom Text</div>
-                      <div className="preset-details">
-                        <span className="preset-category">Template</span>
+            <div className="templates-layout">
+              <div className="template-selector">
+                <div className="preset-gallery-grid template-selector-grid">
+                  <div className="preset-gallery-item-wrapper">
+                    <div
+                      className="preset-gallery-item preset-cell"
+                      onClick={() => setActiveTemplate('custom-text')}
+                    >
+                      <div className="preset-thumbnail">📝</div>
+                      <div className="preset-info">
+                        <div className="preset-name">Custom Text</div>
+                        <div className="preset-details">
+                          <span className="preset-category">Template</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-                <div className="preset-gallery-item-wrapper">
-                  <div
-                    className="preset-gallery-item preset-cell"
-                    onClick={() => setActiveTemplate('gen-lab')}
-                  >
-                    <div className="preset-thumbnail">🔬</div>
-                    <div className="preset-info">
-                      <div className="preset-name">Gen Lab</div>
-                      <div className="preset-details">
-                        <span className="preset-category">Template</span>
+                  <div className="preset-gallery-item-wrapper">
+                    <div
+                      className="preset-gallery-item preset-cell"
+                      onClick={() => setActiveTemplate('gen-lab')}
+                    >
+                      <div className="preset-thumbnail">🔬</div>
+                      <div className="preset-info">
+                        <div className="preset-name">Gen Lab</div>
+                        <div className="preset-details">
+                          <span className="preset-category">Template</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-
-              {activeTemplate === 'custom-text' && (
-                <div className="custom-text-config">
-                  <label>Cantidad:</label>
-                  <div className="count-controls">
-                    <button onClick={() => handleTemplateCountChange(templateCount - 1)} disabled={templateCount <= 1}>-</button>
-                    <span className="count-display">{templateCount}</span>
-                    <button onClick={() => handleTemplateCountChange(templateCount + 1)} disabled={templateCount >= 10}>+</button>
+              <div className="template-controls-panel">
+                {!activeTemplate && (
+                  <div className="preset-gallery-placeholder">
+                    <div className="placeholder-content">
+                      <div className="placeholder-icon">📁</div>
+                      <h3>Select a template</h3>
+                      <p>Choose a template to configure it</p>
+                    </div>
                   </div>
-                  <div className="custom-text-inputs">
-                    {templateTexts.map((txt, idx) => (
-                      <input
-                        key={idx}
-                        type="text"
-                        value={txt}
-                        onChange={e => handleTemplateTextChange(idx, e.target.value)}
+                )}
+                {activeTemplate === 'custom-text' && (
+                  <div className="custom-text-config">
+                    <label>Cantidad:</label>
+                    <div className="count-controls">
+                      <button onClick={() => handleTemplateCountChange(templateCount - 1)} disabled={templateCount <= 1}>-</button>
+                      <span className="count-display">{templateCount}</span>
+                      <button onClick={() => handleTemplateCountChange(templateCount + 1)} disabled={templateCount >= 10}>+</button>
+                    </div>
+                    <div className="custom-text-inputs">
+                      {templateTexts.map((txt, idx) => (
+                        <input
+                          key={idx}
+                          type="text"
+                          value={txt}
+                          onChange={e => handleTemplateTextChange(idx, e.target.value)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {activeTemplate === 'gen-lab' && (
+                  <div className="genlab-config">
+                    <button className="genlab-add-button" onClick={() => { setEditingGenLabIndex(null); setGenLabModalOpen(true); }}>Add Preset</button>
+                    <ul className="genlab-list">
+                      {genLabPresets.map((p, idx) => (
+                        <li key={idx}>
+                          <span>{p.name}</span>
+                          <div>
+                            <button onClick={() => { setEditingGenLabIndex(idx); setGenLabModalOpen(true); }}>Edit</button>
+                            <button onClick={() => handleDuplicateGenLabPreset(idx)}>Duplicate</button>
+                            <button onClick={() => handleDeleteGenLabPreset(idx)}>Delete</button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                    {genLabBasePreset && (
+                      <GenLabPresetModal
+                        isOpen={isGenLabModalOpen}
+                        onClose={() => { setGenLabModalOpen(false); setEditingGenLabIndex(null); }}
+                        basePreset={genLabBasePreset}
+                        initial={editingGenLabIndex !== null ? genLabPresets[editingGenLabIndex] : undefined}
+                        onSave={handleSaveGenLabPreset}
                       />
-                    ))}
+                    )}
                   </div>
-                </div>
-              )}
-              {activeTemplate === 'gen-lab' && (
-                <div className="genlab-config">
-                  <button className="genlab-add-button" onClick={() => { setEditingGenLabIndex(null); setGenLabModalOpen(true); }}>Add Preset</button>
-                  <ul className="genlab-list">
-                    {genLabPresets.map((p, idx) => (
-                      <li key={idx}>
-                        <span>{p.name}</span>
-                        <div>
-                          <button onClick={() => { setEditingGenLabIndex(idx); setGenLabModalOpen(true); }}>Edit</button>
-                          <button onClick={() => handleDeleteGenLabPreset(idx)}>Delete</button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                  {genLabBasePreset && (
-                    <GenLabPresetModal
-                      isOpen={isGenLabModalOpen}
-                      onClose={() => { setGenLabModalOpen(false); setEditingGenLabIndex(null); }}
-                      basePreset={genLabBasePreset}
-                      initial={editingGenLabIndex !== null ? genLabPresets[editingGenLabIndex] : undefined}
-                      onSave={handleSaveGenLabPreset}
-                    />
-                  )}
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
         </div>
