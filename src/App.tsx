@@ -656,47 +656,133 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!launchpadRunning || !launchpadOutput) return;
 
-    // Debug: verificar que tenemos datos de audio válidos
-    const hasValidAudio = audioData.fft.length > 0 && 
-      (audioData.low + audioData.mid + audioData.high) > 0.01;
+    const frame = buildLaunchpadFrame(launchpadPreset, audioData);
 
-    if (!hasValidAudio && launchpadPreset === 'test') {
-      console.log('Launchpad: Usando preset test independiente');
+    // 🔥 DEBUG CRUCIAL: Verificar que frame tiene 64 elementos
+    if (frame.length !== 64) {
+      console.error(`❌ ERROR: buildLaunchpadFrame devolvió ${frame.length} elementos, debería ser 64!`);
+      return;
     }
 
-    const frame = buildLaunchpadFrame(launchpadPreset, audioData);
-    frame.forEach((c, i) => {
-      try { 
-        launchpadOutput.send([0x90, i, c]); 
-      } catch(e) { 
-        console.warn('MIDI send error:', e); 
+    // Debug: mostrar algunos valores del frame
+    const nonZeroCount = frame.filter(c => c > 0).length;
+    console.log(`🎛️ Frame Launchpad: ${nonZeroCount}/64 pads activos, preset: ${launchpadPreset}`);
+
+    // Enviar a todos los 64 pads
+    frame.forEach((color, i) => {
+      try {
+        launchpadOutput.send([0x90, i, color]);
+      } catch(e) {
+        console.warn(`MIDI send error en pad ${i}:`, e);
       }
     });
+
   }, [audioData, launchpadRunning, launchpadPreset, launchpadOutput]);
 
   useEffect(() => {
     if (launchpadRunning && launchpadOutput) {
       try {
         console.log('Launchpad: Enviando handshake a', launchpadOutput.name);
-        // Enable Programmer Mode so the 8x8 grid can be addressed with notes 0-63
-        launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x0d, 0x0e, 0x01, 0xf7]);
 
-        // Clear launchpad inicialmente
-        for (let i = 0; i < 64; i++) {
-          launchpadOutput.send([0x90, i, 0]);
+        // Detectar modelo del Launchpad y enviar SysEx apropiado
+        const deviceName = launchpadOutput.name?.toLowerCase() || '';
+
+        if (deviceName.includes('mk3') || deviceName.includes('lppro')) {
+          // Launchpad Pro MK3 / Mini MK3
+          console.log('Detectado Launchpad MK3, enviando SysEx MK3...');
+          launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x0d, 0x0e, 0x01, 0xf7]);
+        } else if (deviceName.includes('mk2')) {
+          // Launchpad MK2
+          console.log('Detectado Launchpad MK2, enviando SysEx MK2...');
+          launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x18, 0x0e, 0x01, 0xf7]);
+        } else if (deviceName.includes('pro')) {
+          // Launchpad Pro (original)
+          console.log('Detectado Launchpad Pro, enviando SysEx Pro...');
+          launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x10, 0x0e, 0x01, 0xf7]);
+        } else if (deviceName.includes('mini')) {
+          // Launchpad Mini (original)
+          console.log('Detectado Launchpad Mini, modo directo sin SysEx...');
+          // El Mini original no necesita SysEx para programmer mode
+        } else {
+          // Launchpad genérico - probar diferentes SysEx
+          console.log('Launchpad genérico detectado, probando múltiples SysEx...');
+
+          // Intentar MK3 primero
+          try {
+            launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x0d, 0x0e, 0x01, 0xf7]);
+            console.log('SysEx MK3 enviado');
+          } catch (e) {
+            console.warn('SysEx MK3 falló, probando MK2...');
+            try {
+              launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x18, 0x0e, 0x01, 0xf7]);
+              console.log('SysEx MK2 enviado');
+            } catch (e2) {
+              console.warn('SysEx MK2 también falló, probando Pro...');
+              try {
+                launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x10, 0x0e, 0x01, 0xf7]);
+                console.log('SysEx Pro enviado');
+              } catch (e3) {
+                console.warn('Todos los SysEx fallaron, continuando sin programmer mode');
+              }
+            }
+          }
         }
 
-        console.log('Launchpad inicializado correctamente');
+        // Esperar un poco antes de enviar los comandos de limpieza
+        setTimeout(() => {
+          try {
+            // Clear launchpad inicialmente - usar todos los 64 pads
+            console.log('Limpiando todos los 64 pads del Launchpad...');
+            for (let i = 0; i < 64; i++) {
+              launchpadOutput.send([0x90, i, 0]);
+            }
+
+            // También limpiar los botones de función (notas 104-111) por si acaso
+            for (let i = 104; i <= 111; i++) {
+              launchpadOutput.send([0x90, i, 0]);
+            }
+
+            console.log('Launchpad inicializado correctamente para grid 8x8');
+
+            // Test inmediato para verificar funcionamiento
+            console.log('Ejecutando test de verificación...');
+            setTimeout(() => {
+              // Encender las 4 esquinas brevemente para verificar
+              const corners = [0, 7, 56, 63]; // esquinas del grid 8x8
+              corners.forEach((corner, idx) => {
+                setTimeout(() => {
+                  launchpadOutput.send([0x90, corner, 60 + idx * 10]);
+                  setTimeout(() => {
+                    launchpadOutput.send([0x90, corner, 0]);
+                  }, 200);
+                }, idx * 150);
+              });
+            }, 500);
+
+          } catch (err) {
+            console.error('Error en limpieza inicial del Launchpad:', err);
+          }
+        }, 200);
+
       } catch (err) {
         console.error('Launchpad handshake failed', err);
       }
     } else if (!launchpadRunning && launchpadOutput) {
       // Apagar todos los LEDs cuando se detiene
       try {
+        console.log('Apagando Launchpad...');
+
+        // Apagar grid principal (64 pads)
         for (let i = 0; i < 64; i++) {
           launchpadOutput.send([0x90, i, 0]);
         }
-        console.log('Launchpad apagado');
+
+        // Apagar botones de función también
+        for (let i = 104; i <= 111; i++) {
+          launchpadOutput.send([0x90, i, 0]);
+        }
+
+        console.log('Launchpad apagado completamente');
       } catch (err) {
         console.warn('Error apagando launchpad:', err);
       }
@@ -782,6 +868,35 @@ const App: React.FC = () => {
   useEffect(() => {
     window.dispatchEvent(new Event('resize'));
   }, [isUiHidden]);
+
+  // Función de debug para verificar el grid completo
+  const debugLaunchpadGrid = () => {
+    if (!launchpadOutput) {
+      console.log('No hay Launchpad conectado');
+      return;
+    }
+
+    console.log('🔍 Test de debug del grid completo 8x8...');
+
+    // Test secuencial de todos los pads
+    for (let i = 0; i < 64; i++) {
+      setTimeout(() => {
+        const row = Math.floor(i / 8);
+        const col = i % 8;
+        console.log(`Encendiendo pad ${i} (fila ${row}, columna ${col})`);
+
+        launchpadOutput.send([0x90, i, 60 + (i % 64)]);
+
+        setTimeout(() => {
+          launchpadOutput.send([0x90, i, 0]);
+        }, 100);
+
+      }, i * 50);
+    }
+  };
+
+  // Exponer función de debug globalmente
+  (window as any).debugLaunchpadGrid = debugLaunchpadGrid;
 
   // Handlers
   const handleFullScreen = useCallback(async () => {
