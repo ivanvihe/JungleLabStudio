@@ -94,6 +94,7 @@ export interface LoadedPreset {
 export class PresetLoader {
   private loadedPresets: Map<string, LoadedPreset> = new Map();
   private activePresets: Map<string, BasePreset> = new Map();
+  private customTextContents: string[] = [];
 
   // Carga dinámica de presets desde el sistema de archivos
   private presetModules = import.meta.glob('../presets/*/preset.ts');
@@ -110,15 +111,19 @@ export class PresetLoader {
   ) {}
 
   public setGlitchTextPads(count: number): void {
-    const newCount = Math.max(1, Math.min(10, count)); // Límite entre 1 y 10
-    
-    if (newCount !== this.glitchTextPads) {
-      this.glitchTextPads = newCount;
-      console.log(`🔧 Custom text instances set to: ${this.glitchTextPads}`);
-      
-      // Recargar presets para aplicar el nuevo número
-      this.reloadCustomTextPresets();
+    // Mantener compatibilidad, reutilizando textos actuales
+    this.setCustomTextInstances(count, this.customTextContents);
+  }
+
+  public setCustomTextInstances(count: number, texts: string[]): void {
+    const newCount = Math.max(1, Math.min(10, count));
+    this.glitchTextPads = newCount;
+    this.customTextContents = texts.slice(0, newCount);
+    while (this.customTextContents.length < newCount) {
+      this.customTextContents.push(`Text ${this.customTextContents.length + 1}`);
     }
+    console.log(`🔧 Custom text instances set to: ${this.glitchTextPads}`);
+    this.reloadCustomTextPresets();
   }
 
   public getGlitchTextPads(): number {
@@ -162,12 +167,13 @@ export class PresetLoader {
       const baseNote = cfg.note!;
       for (let i = 1; i <= this.glitchTextPads; i++) {
         const cloneConfig = JSON.parse(JSON.stringify(cfg));
-        cloneConfig.name = `${cfg.name} ${i}`;
-        
+        const text = this.customTextContents[i - 1] || `Text ${i}`;
+        cloneConfig.name = text;
+
         if (cloneConfig.defaultConfig?.text?.content !== undefined) {
-          cloneConfig.defaultConfig.text.content = `Text ${i}`;
+          cloneConfig.defaultConfig.text.content = text;
         }
-        
+
         cloneConfig.note = baseNote + (i - 1);
         
         const clone: LoadedPreset = {
@@ -238,12 +244,13 @@ export class PresetLoader {
         
         for (let i = 1; i <= this.glitchTextPads; i++) {
           const cloneConfig = JSON.parse(JSON.stringify(cfg));
-          cloneConfig.name = `${cfg.name} ${i}`;
-          
+          const text = this.customTextContents[i - 1] || `Text ${i}`;
+          cloneConfig.name = text;
+
           if (cloneConfig.defaultConfig?.text?.content !== undefined) {
-            cloneConfig.defaultConfig.text.content = `Text ${i}`;
+            cloneConfig.defaultConfig.text.content = text;
           }
-          
+
           cloneConfig.note = baseNote + (i - 1);
           
           const clone: LoadedPreset = {

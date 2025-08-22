@@ -454,6 +454,12 @@ export class AudioVisualizerEngine {
     return this.presetLoader.getLoadedPresets();
   }
 
+  public async updateCustomTextTemplates(count: number, texts: string[]): Promise<LoadedPreset[]> {
+    this.presetLoader.setCustomTextInstances(count, texts);
+    await this.presetLoader.loadAllPresets();
+    return this.presetLoader.getLoadedPresets();
+  }
+
   public updateAudioData(audioData: AudioData): void {
     this.presetLoader.updateAudioData(audioData);
   }

@@ -9,8 +9,8 @@ interface PresetGalleryModalProps {
   isOpen: boolean;
   onClose: () => void;
   presets: LoadedPreset[];
-  onCustomTextCountChange?: (count: number) => void;
-  currentCustomTextCount?: number;
+  onCustomTextTemplateChange?: (count: number, texts: string[]) => void;
+  customTextTemplate?: { count: number; texts: string[] };
   onAddPresetToLayer?: (presetId: string, layerId: string) => void;
   onRemovePresetFromLayer?: (presetId: string, layerId: string) => void;
 }
@@ -19,18 +19,36 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
   isOpen,
   onClose,
   presets,
-  onCustomTextCountChange,
-  currentCustomTextCount = 1,
+  onCustomTextTemplateChange,
+  customTextTemplate = { count: 1, texts: [] },
   onAddPresetToLayer,
   onRemovePresetFromLayer
 }) => {
   const [selected, setSelected] = useState<LoadedPreset | null>(null);
-  const [customTextCount, setCustomTextCount] = useState(currentCustomTextCount);
+  const [activeTab, setActiveTab] = useState<'main' | 'templates'>('main');
+  const [activeTemplate, setActiveTemplate] = useState<'custom-text' | null>(null);
+  const [templateCount, setTemplateCount] = useState(customTextTemplate.count);
+  const [templateTexts, setTemplateTexts] = useState<string[]>(() => {
+    const arr = [...customTextTemplate.texts];
+    while (arr.length < customTextTemplate.count) arr.push(`Text ${arr.length + 1}`);
+    if (arr.length > customTextTemplate.count) arr.splice(customTextTemplate.count);
+    return arr;
+  });
   const [layerAssignments, setLayerAssignments] = useState<Record<string, Set<string>>>(() => ({
     A: new Set(),
     B: new Set(),
     C: new Set()
   }));
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setTemplateCount(customTextTemplate.count);
+      const arr = [...customTextTemplate.texts];
+      while (arr.length < customTextTemplate.count) arr.push(`Text ${arr.length + 1}`);
+      if (arr.length > customTextTemplate.count) arr.splice(customTextTemplate.count);
+      setTemplateTexts(arr);
+    }
+  }, [isOpen, customTextTemplate]);
 
   const getPresetThumbnail = (preset: LoadedPreset): string => {
     const thumbnails: Record<string, string> = {
@@ -48,39 +66,36 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
     return thumbnails[preset.id] || thumbnails[preset.id.split('-')[0]] || '🎨';
   };
 
-  const handleCustomTextCountChange = (count: number) => {
-    setCustomTextCount(count);
-    if (onCustomTextCountChange) {
-      onCustomTextCountChange(count);
+  const handleTemplateCountChange = (count: number) => {
+    const newCount = Math.max(1, Math.min(10, count));
+    setTemplateCount(newCount);
+    setTemplateTexts(prev => {
+      const arr = [...prev];
+      while (arr.length < newCount) arr.push(`Text ${arr.length + 1}`);
+      if (arr.length > newCount) arr.splice(newCount);
+      return arr;
+    });
+    if (onCustomTextTemplateChange) {
+      const arr = [...templateTexts];
+      while (arr.length < newCount) arr.push(`Text ${arr.length + 1}`);
+      if (arr.length > newCount) arr.splice(newCount);
+      onCustomTextTemplateChange(newCount, arr);
     }
   };
 
-  const isCustomTextPreset = (preset: LoadedPreset) => {
-    return preset.id.startsWith('custom-glitch-text');
-  };
-
-  const getBasePresetId = (preset: LoadedPreset) => {
-    return preset.id.split('-')[0] + '-' + preset.id.split('-')[1];
-  };
-
-  // Filtrar presets para mostrar solo uno de cada tipo (excepto custom text)
-  const getMainPresets = () => {
-    const seen = new Set<string>();
-    return presets.filter(preset => {
-      if (isCustomTextPreset(preset)) {
-        const baseId = getBasePresetId(preset);
-        if (seen.has(baseId)) return false;
-        seen.add(baseId);
-        return true;
+  const handleTemplateTextChange = (index: number, value: string) => {
+    setTemplateTexts(prev => {
+      const arr = [...prev];
+      arr[index] = value;
+      if (onCustomTextTemplateChange) {
+        const clone = [...arr];
+        onCustomTextTemplateChange(templateCount, clone);
       }
-      return true;
+      return arr;
     });
   };
 
-  // Obtener instancias de custom text
-  const getCustomTextInstances = () => {
-    return presets.filter(preset => isCustomTextPreset(preset));
-  };
+  // No extra filtering: all presets (including template instances) are shown in main tab
 
   // Cargar asignaciones actuales desde localStorage al abrir el modal
   React.useEffect(() => {
@@ -148,163 +163,140 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
 
   if (!isOpen) return null;
 
-  const mainPresets = getMainPresets();
-  const customTextInstances = getCustomTextInstances();
-
   return (
     <div className="preset-gallery-overlay" onClick={onClose}>
       <div className="preset-gallery-modal" onClick={e => e.stopPropagation()}>
-        
+
         {/* Header */}
         <div className="preset-gallery-header">
           <h2>🎨 Presets Gallery</h2>
           <button className="close-button" onClick={onClose}>✕</button>
         </div>
 
+        {/* Tabs */}
+        <div className="preset-gallery-tabs">
+          <button className={`tab-button ${activeTab === 'main' ? 'active' : ''}`} onClick={() => setActiveTab('main')}>Presets Principales</button>
+          <button className={`tab-button ${activeTab === 'templates' ? 'active' : ''}`} onClick={() => setActiveTab('templates')}>Presets Templates</button>
+        </div>
+
         <div className="preset-gallery-content">
-          {/* Grid principal de presets */}
-          <div className="preset-gallery-section">
-            <h3>Presets Principales</h3>
-            <div className="preset-gallery-grid">
-              {mainPresets.map(preset => (
-                <div key={preset.id} className="preset-gallery-item-wrapper">
-                  <div
-                    className="preset-gallery-item preset-cell"
-                    onClick={() => setSelected(preset)}
-                  >
-                    {preset.config.note !== undefined && (
-                      <div className="preset-note-badge">{preset.config.note}</div>
-                    )}
-                    <div className="preset-thumbnail">{getPresetThumbnail(preset)}</div>
-                    <div className="preset-info">
-                      <div className="preset-name">{preset.config.name}</div>
-                      <div className="preset-details">
-                        <span className="preset-category">{preset.config.category}</span>
+          {activeTab === 'main' ? (
+            <>
+              <div className="preset-gallery-section">
+                <div className="preset-gallery-grid">
+                  {presets.map(preset => (
+                    <div key={preset.id} className="preset-gallery-item-wrapper">
+                      <div
+                        className="preset-gallery-item preset-cell"
+                        onClick={() => setSelected(preset)}
+                      >
+                        {preset.config.note !== undefined && (
+                          <div className="preset-note-badge">{preset.config.note}</div>
+                        )}
+                        <div className="preset-thumbnail">{getPresetThumbnail(preset)}</div>
+                        <div className="preset-info">
+                          <div className="preset-name">{preset.config.name}</div>
+                          <div className="preset-details">
+                            <span className="preset-category">{preset.config.category}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Botones de capas */}
+                      <div className="layer-button-group">
+                        {['A', 'B', 'C'].map(layer => (
+                          <button
+                            key={layer}
+                            className={`layer-button ${layerAssignments[layer].has(preset.id) ? 'active' : ''}`}
+                            onClick={e => {
+                              e.stopPropagation();
+                              toggleLayer(preset.id, layer);
+                            }}
+                          >
+                            {layer}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Panel de controles */}
+              <div className="preset-gallery-controls">
+                {selected ? (
+                  <div className="controls-panel">
+                    <div className="controls-header">
+                      <h3>{selected.config.name}</h3>
+                      <span className="preset-category-badge">{selected.config.category}</span>
+                    </div>
+
+                    {/* Controles por defecto del preset */}
+                    <div className="default-controls">
+                      <h4>Valores por defecto:</h4>
+                      <PresetControls
+                        preset={selected}
+                        config={selected.config.defaultConfig || {}}
+                        onChange={handleDefaultControlChange}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="preset-gallery-placeholder">
+                    <div className="placeholder-content">
+                      <div className="placeholder-icon">🎯</div>
+                      <h3>Selecciona un preset</h3>
+                      <p>Haz click en un preset para ver y editar sus valores por defecto</p>
+                      <div className="placeholder-instructions">
+                        <div>• <strong>Click:</strong> Ver controles y configuración</div>
+                        <div>• <strong>A/B/C:</strong> Añadir o quitar de una layer</div>
                       </div>
                     </div>
                   </div>
-                  
-                  {/* Botones de capas */}
-                  <div className="layer-button-group">
-                    {['A', 'B', 'C'].map(layer => (
-                      <button
-                        key={layer}
-                        className={`layer-button ${layerAssignments[layer].has(preset.id) ? 'active' : ''}`}
-                        onClick={e => {
-                          e.stopPropagation();
-                          toggleLayer(preset.id, layer);
-                        }}
-                      >
-                        {layer}
-                      </button>
-                    ))}
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="preset-gallery-section templates-section">
+              <div className="preset-gallery-grid">
+                <div className="preset-gallery-item-wrapper">
+                  <div
+                    className="preset-gallery-item preset-cell"
+                    onClick={() => setActiveTemplate('custom-text')}
+                  >
+                    <div className="preset-thumbnail">📝</div>
+                    <div className="preset-info">
+                      <div className="preset-name">Custom Text</div>
+                      <div className="preset-details">
+                        <span className="preset-category">Template</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
 
-          {/* Grid de instancias de Custom Text */}
-          {customTextInstances.length > 0 && (
-            <div className="preset-gallery-section">
-              <div className="custom-text-header">
-                <h3>Custom Text Instances</h3>
+              {activeTemplate === 'custom-text' && (
                 <div className="custom-text-config">
                   <label>Cantidad:</label>
                   <div className="count-controls">
-                    <button 
-                      onClick={() => handleCustomTextCountChange(Math.max(1, customTextCount - 1))}
-                      disabled={customTextCount <= 1}
-                    >
-                      -
-                    </button>
-                    <span className="count-display">{customTextCount}</span>
-                    <button 
-                      onClick={() => handleCustomTextCountChange(Math.min(10, customTextCount + 1))}
-                      disabled={customTextCount >= 10}
-                    >
-                      +
-                    </button>
+                    <button onClick={() => handleTemplateCountChange(templateCount - 1)} disabled={templateCount <= 1}>-</button>
+                    <span className="count-display">{templateCount}</span>
+                    <button onClick={() => handleTemplateCountChange(templateCount + 1)} disabled={templateCount >= 10}>+</button>
+                  </div>
+                  <div className="custom-text-inputs">
+                    {templateTexts.map((txt, idx) => (
+                      <input
+                        key={idx}
+                        type="text"
+                        value={txt}
+                        onChange={e => handleTemplateTextChange(idx, e.target.value)}
+                      />
+                    ))}
                   </div>
                 </div>
-              </div>
-              
-              <div className="preset-gallery-grid custom-text-grid">
-                {customTextInstances.map(preset => (
-                  <div key={preset.id} className="preset-gallery-item-wrapper">
-                    <div
-                      className="preset-gallery-item preset-cell custom-text-cell"
-                      onClick={() => setSelected(preset)}
-                    >
-                      {preset.config.note !== undefined && (
-                        <div className="preset-note-badge">{preset.config.note}</div>
-                      )}
-                      <div className="preset-thumbnail">{getPresetThumbnail(preset)}</div>
-                      <div className="preset-info">
-                        <div className="preset-name">{preset.config.name}</div>
-                        <div className="preset-details">
-                          <span className="preset-category">{preset.config.category}</span>
-                        </div>
-                      </div>
-                      <div className="custom-text-preview">
-                        {preset.config.defaultConfig?.text?.content || 'TEXT'}
-                      </div>
-                    </div>
-                    
-                    {/* Botones de capas */}
-                    <div className="layer-button-group">
-                      {['A', 'B', 'C'].map(layer => (
-                        <button
-                          key={layer}
-                          className={`layer-button ${layerAssignments[layer].has(preset.id) ? 'active' : ''}`}
-                          onClick={e => {
-                            e.stopPropagation();
-                            toggleLayer(preset.id, layer);
-                          }}
-                        >
-                          {layer}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              )}
             </div>
           )}
-
-          {/* Panel de controles */}
-          <div className="preset-gallery-controls">
-            {selected ? (
-              <div className="controls-panel">
-                <div className="controls-header">
-                  <h3>{selected.config.name}</h3>
-                  <span className="preset-category-badge">{selected.config.category}</span>
-                </div>
-                
-                {/* Controles por defecto del preset */}
-                <div className="default-controls">
-                  <h4>Valores por defecto:</h4>
-                  <PresetControls
-                    preset={selected}
-                    config={selected.config.defaultConfig || {}}
-                    onChange={handleDefaultControlChange}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="preset-gallery-placeholder">
-                <div className="placeholder-content">
-                  <div className="placeholder-icon">🎯</div>
-                  <h3>Selecciona un preset</h3>
-                  <p>Haz click en un preset para ver y editar sus valores por defecto</p>
-                  <div className="placeholder-instructions">
-                    <div>• <strong>Click:</strong> Ver controles y configuración</div>
-                    <div>• <strong>A/B/C:</strong> Añadir o quitar de una layer</div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>
