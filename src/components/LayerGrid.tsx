@@ -461,7 +461,8 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
 
   return (
     <div className="layer-grid">
-      {layers.map((layer) => (
+      {layers.map((layer) => {
+        return (
         <div
           key={layer.id}
           className={`layer-section ${layerEffects[layer.id]?.active ? `effect-${layerEffects[layer.id].effect}` : ''}`}
@@ -656,9 +657,11 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
                 </div>
               );
             })}
+            </div>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
