@@ -678,7 +678,8 @@ const App: React.FC = () => {
     if (launchpadRunning && launchpadOutput) {
       try {
         console.log('Launchpad: Enviando handshake a', launchpadOutput.name);
-        launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x0e, 0x0d, 0x01, 0xf7]);
+        // Enable Programmer Mode so the 8x8 grid can be addressed with notes 0-63
+        launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x0d, 0x0e, 0x01, 0xf7]);
 
         // Clear launchpad inicialmente
         for (let i = 0; i < 64; i++) {
