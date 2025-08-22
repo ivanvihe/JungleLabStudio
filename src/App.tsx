@@ -232,6 +232,11 @@ const App: React.FC = () => {
     }
   }, [layerEffects]);
 
+  const activeEffectClasses = Object.entries(layerEffects)
+    .filter(([, cfg]) => cfg.active && cfg.effect !== 'none')
+    .map(([, cfg]) => `effect-${cfg.effect}`)
+    .join(' ');
+
   useEffect(() => {
     try {
       localStorage.setItem('effectMidiNotes', JSON.stringify(effectMidiNotes));
@@ -1075,7 +1080,7 @@ const App: React.FC = () => {
       <div className="bottom-section">
         <canvas
           ref={canvasRef}
-          className="main-canvas"
+          className={`main-canvas ${activeEffectClasses}`}
           style={{
             filter: `brightness(${canvasBrightness}) saturate(${canvasVibrance})`,
             background: canvasBackground
