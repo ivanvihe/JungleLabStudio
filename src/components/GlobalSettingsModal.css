@@ -32,6 +32,8 @@
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   animation: slideIn 0.3s ease;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 13px;
 }
 
 @keyframes fadeIn {
@@ -52,7 +54,7 @@
 
 /* Header */
 .settings-header {
-  padding: 15px 20px;
+  padding: 10px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
@@ -63,8 +65,8 @@
 .settings-header h2 {
   color: var(--accent-color);
   margin: 0;
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 500;
 }
 
 .close-button {
@@ -112,14 +114,14 @@
   background: transparent;
   border: none;
   color: #ccc;
-  padding: 10px 20px;
+  padding: 6px 12px;
   cursor: pointer;
   transition: all 0.2s ease;
-  border-left: 3px solid transparent;
+  border-left: 2px solid transparent;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: 6px;
+  font-size: 12px;
   font-weight: 500;
   width: 100%;
   text-align: left;
@@ -221,8 +223,8 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   color: #fff;
-  padding: 8px 10px;
-  font-size: 13px;
+  padding: 6px 8px;
+  font-size: 12px;
   transition: all 0.2s ease;
 }
 
@@ -285,7 +287,7 @@
 
 .setting-slider {
   padding: 0;
-  height: 8px;
+  height: 6px;
   -webkit-appearance: none;
   appearance: none;
   background: rgba(255, 255, 255, 0.2);
@@ -295,8 +297,8 @@
 .setting-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 14px;
+  height: 14px;
   background: var(--accent-color);
   border-radius: 50%;
   cursor: pointer;
@@ -312,15 +314,15 @@
 .setting-checkbox {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   color: #fff;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
 }
 
 .setting-checkbox input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   accent-color: var(--accent-color);
   cursor: pointer;
 }
