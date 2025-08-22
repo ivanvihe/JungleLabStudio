@@ -1,5 +1,9 @@
 /* MEJORA 4: CSS para GlobalSettingsModal mejorado */
 
+:root {
+  --accent-color: #FFB74D;
+}
+
 .settings-modal-overlay {
   position: fixed;
   top: 0;
@@ -16,7 +20,7 @@
 }
 
 .settings-modal-content {
-  background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+  background: #2b2b2b;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   width: 80vw;
@@ -57,7 +61,7 @@
 }
 
 .settings-header h2 {
-  color: #64B5F6;
+  color: var(--accent-color);
   margin: 0;
   font-size: 20px;
   font-weight: 600;
@@ -127,9 +131,9 @@
 }
 
 .tab-button.active {
-  color: #64B5F6;
-  border-left-color: #64B5F6;
-  background: rgba(100, 181, 246, 0.1);
+  color: var(--accent-color);
+  border-left-color: var(--accent-color);
+  background: rgba(255, 183, 77, 0.1);
 }
 
 .tab-icon {
@@ -164,7 +168,7 @@
 }
 
 .settings-section h3 {
-  color: #81C784;
+  color: var(--accent-color);
   margin: 0 0 20px 0;
   font-size: 18px;
   font-weight: 600;
@@ -179,6 +183,7 @@
   padding: 15px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 3px solid transparent;
   border-radius: 12px;
   transition: all 0.2s ease;
 }
@@ -186,10 +191,11 @@
 .setting-group:hover {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.15);
+  border-left-color: var(--accent-color);
 }
 
 .setting-group h4 {
-  color: #FFB74D;
+  color: var(--accent-color);
   margin: 0 0 12px 0;
   font-size: 14px;
   font-weight: 600;
@@ -267,8 +273,8 @@
 .setting-slider:focus,
 .setting-number:focus {
   outline: none;
-  border-color: #64B5F6;
-  box-shadow: 0 0 0 2px rgba(100, 181, 246, 0.2);
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(255, 183, 77, 0.2);
 }
 
 /* Ensure dropdown options are visible on dark theme */
@@ -291,7 +297,7 @@
   appearance: none;
   width: 20px;
   height: 20px;
-  background: #64B5F6;
+  background: var(--accent-color);
   border-radius: 50%;
   cursor: pointer;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
@@ -300,7 +306,7 @@
 
 .setting-slider::-webkit-slider-thumb:hover {
   transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(100, 181, 246, 0.4);
+  box-shadow: 0 4px 12px rgba(255, 183, 77, 0.4);
 }
 
 .setting-checkbox {
@@ -315,7 +321,7 @@
 .setting-checkbox input[type="checkbox"] {
   width: 16px;
   height: 16px;
-  accent-color: #64B5F6;
+  accent-color: var(--accent-color);
   cursor: pointer;
 }
 
@@ -328,8 +334,8 @@
 
 /* System Info */
 .system-info {
-  background: rgba(100, 181, 246, 0.1);
-  border: 1px solid rgba(100, 181, 246, 0.3);
+  background: rgba(255, 183, 77, 0.1);
+  border: 1px solid rgba(255, 183, 77, 0.3);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 25px;
@@ -359,7 +365,7 @@
 }
 
 .info-value {
-  color: #64B5F6;
+  color: var(--accent-color);
   font-family: 'Courier New', monospace;
   font-size: 12px;
   text-align: right;
@@ -410,7 +416,7 @@
 }
 
 .monitor-resolution {
-  color: #64B5F6;
+  color: var(--accent-color);
   font-size: 11px;
   font-weight: 600;
 }
@@ -449,20 +455,20 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #64B5F6;
+  color: var(--accent-color);
   font-weight: 500;
 }
 
 .monitors-summary {
-  background: rgba(100, 181, 246, 0.1);
-  border: 1px solid rgba(100, 181, 246, 0.3);
+  background: rgba(255, 183, 77, 0.1);
+  border: 1px solid rgba(255, 183, 77, 0.3);
   border-radius: 8px;
   padding: 15px;
   text-align: center;
 }
 
 .monitors-summary strong {
-  color: #64B5F6;
+  color: var(--accent-color);
   display: block;
   margin-bottom: 5px;
 }
@@ -535,7 +541,7 @@
 
 .quality-button:hover {
   background: rgba(255, 255, 255, 0.15);
-  border-color: #64B5F6;
+  border-color: var(--accent-color);
   transform: translateY(-1px);
 }
 
@@ -586,7 +592,7 @@
 }
 
 .clear-button:hover {
-  background: #FFB74D;
+  background: var(--accent-color);
   transform: translateY(-1px);
 }
 
@@ -632,7 +638,7 @@
 }
 
 .tech-value {
-  color: #64B5F6;
+  color: var(--accent-color);
   font-family: 'Courier New', monospace;
   font-size: 12px;
   text-align: right;
@@ -651,7 +657,7 @@
 }
 
 .settings-info {
-  color: #FFB74D;
+  color: var(--accent-color);
   font-size: 14px;
   display: flex;
   align-items: center;
@@ -659,7 +665,7 @@
 }
 
 .primary-button {
-  background: #64B5F6;
+  background: var(--accent-color);
   color: #000;
   border: none;
   padding: 12px 24px;

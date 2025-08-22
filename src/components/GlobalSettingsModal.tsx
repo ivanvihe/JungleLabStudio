@@ -123,6 +123,8 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   const [smoothingTime, setSmoothingTime] = useState(() => parseFloat(localStorage.getItem('audioSmoothing') || '0.8'));
   const [autoCleanCache, setAutoCleanCache] = useState(() => localStorage.getItem('autoCleanCache') !== 'false');
   const [memoryLimit, setMemoryLimit] = useState(() => parseInt(localStorage.getItem('memoryLimit') || '512'));
+  const [gpuInfo, setGpuInfo] = useState<string>('Detectando...');
+  const [webglSupport, setWebglSupport] = useState<string>('Detectando...');
 
   // Guardar configuraciones
   useEffect(() => {
@@ -171,6 +173,27 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
     localStorage.setItem('memoryLimit', memoryLimit.toString());
   }, [memoryLimit]);
 
+  useEffect(() => {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    if (gl) {
+      const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+      if (debugInfo) {
+        setGpuInfo(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL));
+      } else {
+        setGpuInfo('Información no disponible');
+      }
+      const loseContext = gl.getExtension('WEBGL_lose_context');
+      if (loseContext) {
+        loseContext.loseContext();
+      }
+      setWebglSupport('Disponible');
+    } else {
+      setGpuInfo('No disponible');
+      setWebglSupport('No disponible');
+    }
+  }, []);
+
   const handleClearCache = () => {
     // Limpiar localStorage y sessionStorage
     const keysToKeep = [
@@ -199,18 +222,6 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
       localStorage.clear();
       window.location.reload();
     }
-  };
-
-  const getGPUInfo = () => {
-    const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-    if (!gl) return 'No disponible';
-    
-    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-    if (debugInfo) {
-      return gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
-    }
-    return 'Información no disponible';
   };
 
   const getMemoryUsage = () => {
@@ -426,7 +437,7 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                 <div className="info-grid">
                   <div className="info-item">
                     <span className="info-label">GPU:</span>
-                    <span className="info-value">{getGPUInfo()}</span>
+                    <span className="info-value">{gpuInfo}</span>
                   </div>
                   {memInfo && (
                     <div className="info-item">
@@ -870,13 +881,7 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                   </div>
                   <div className="tech-item">
                     <span>WebGL:</span>
-                    <span className="tech-value">
-                      {(() => {
-                        const canvas = document.createElement('canvas');
-                        const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
-                        return gl ? 'Disponible' : 'No disponible';
-                      })()}
-                    </span>
+                    <span className="tech-value">{webglSupport}</span>
                   </div>
                   <div className="tech-item">
                     <span>Audio Context:</span>
