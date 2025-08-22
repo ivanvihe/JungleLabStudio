@@ -13,12 +13,12 @@ interface LayerConfig {
 
 interface LayerGridProps {
   presets: LoadedPreset[];
-  onPresetActivate: (layerId: string, presetId: string) => void;
+  onPresetActivate: (layerId: string, presetId: string, velocity?: number) => void;
   onLayerClear: (layerId: string) => void;
   onLayerConfigChange: (layerId: string, config: Partial<LayerConfig>) => void;
   onPresetSelect: (layerId: string, presetId: string) => void;
   clearAllSignal: number;
-  externalTrigger?: { layerId: string; presetId: string } | null;
+  externalTrigger?: { layerId: string; presetId: string; velocity: number } | null;
   layerChannels: Record<string, number>;
 }
 
@@ -45,24 +45,31 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
 
   const [clickedCell, setClickedCell] = useState<string | null>(null);
 
-  const handlePresetClick = (layerId: string, presetId: string) => {
+  const handlePresetClick = (layerId: string, presetId: string, velocity?: number) => {
     const cellKey = `${layerId}-${presetId}`;
     const layer = layers.find(l => l.id === layerId);
     const wasActive = layer?.activePreset === presetId;
     const preset = presets.find(p => p.id === presetId);
     const isOneShot = preset?.config.category === 'one-shot';
+    const opacityFromVelocity = velocity !== undefined
+      ? Math.max(1, Math.round((velocity / 127) * 100))
+      : undefined;
 
     setClickedCell(cellKey);
     setTimeout(() => setClickedCell(null), 150);
 
     setLayers(prev => prev.map(l =>
       l.id === layerId
-        ? { ...l, activePreset: presetId }
+        ? { ...l, activePreset: presetId, ...(opacityFromVelocity !== undefined ? { opacity: opacityFromVelocity } : {}) }
         : l
     ));
 
+    if (opacityFromVelocity !== undefined) {
+      onLayerConfigChange(layerId, { opacity: opacityFromVelocity });
+    }
+
     if (!wasActive || isOneShot) {
-      onPresetActivate(layerId, presetId);
+      onPresetActivate(layerId, presetId, velocity);
     }
     onPresetSelect(layerId, presetId);
   };
@@ -94,7 +101,11 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
 
   useEffect(() => {
     if (externalTrigger) {
-      handlePresetClick(externalTrigger.layerId, externalTrigger.presetId);
+      handlePresetClick(
+        externalTrigger.layerId,
+        externalTrigger.presetId,
+        externalTrigger.velocity
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [externalTrigger]);
