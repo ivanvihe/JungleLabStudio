@@ -45,32 +45,40 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
 
   const [clickedCell, setClickedCell] = useState<string | null>(null);
 
+  // Número fijo de slots por layer (8 slots visibles)
+  const SLOTS_PER_LAYER = 8;
+
   const defaultOrder = presets.map(p => p.id);
-  const [layerPresets, setLayerPresets] = useState<Record<string, string[]>>(() => {
+  const [layerPresets, setLayerPresets] = useState<Record<string, (string | null)[]>>(() => {
     try {
       const stored = localStorage.getItem('layerPresets');
       if (stored) {
         const parsed = JSON.parse(stored);
-        const ensure = (arr?: string[]) => {
-          const result = Array.isArray(arr) ? [...arr] : [...defaultOrder];
-          defaultOrder.forEach(id => {
-            if (!result.includes(id)) result.push(id);
-          });
+        const ensureSlots = (arr?: (string | null)[]) => {
+          const result = Array.isArray(arr) ? [...arr] : [];
+          // Asegurar que tenemos exactamente SLOTS_PER_LAYER slots
+          while (result.length < SLOTS_PER_LAYER) {
+            result.push(null);
+          }
+          if (result.length > SLOTS_PER_LAYER) {
+            result.splice(SLOTS_PER_LAYER);
+          }
           return result;
         };
         return {
-          A: ensure(parsed.A),
-          B: ensure(parsed.B),
-          C: ensure(parsed.C)
+          A: ensureSlots(parsed.A),
+          B: ensureSlots(parsed.B),
+          C: ensureSlots(parsed.C)
         };
       }
     } catch {
       /* ignore */
     }
+    // Inicializar con slots vacíos
     return {
-      A: [...defaultOrder],
-      B: [...defaultOrder],
-      C: [...defaultOrder]
+      A: Array(SLOTS_PER_LAYER).fill(null),
+      B: Array(SLOTS_PER_LAYER).fill(null),
+      C: Array(SLOTS_PER_LAYER).fill(null)
     };
   });
 
@@ -81,10 +89,13 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
   }, [layerPresets]);
 
   const getBaseId = (id: string) => (id.startsWith('custom-glitch-text') ? 'custom-glitch-text' : id);
-  const canPlace = (list: string[], id: string, ignoreIndex?: number) => {
+  
+  const canPlace = (list: (string | null)[], id: string, ignoreIndex?: number) => {
     const base = getBaseId(id);
+    // Custom text puede tener múltiples instancias
     if (base === 'custom-glitch-text') return true;
-    return !list.some((pid, idx) => getBaseId(pid) === base && idx !== ignoreIndex);
+    // Otros presets solo una instancia por layer
+    return !list.some((pid, idx) => pid && getBaseId(pid) === base && idx !== ignoreIndex);
   };
 
   const handleDragStart = (
@@ -92,12 +103,16 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
     layerId: string,
     index: number
   ) => {
+    const presetId = layerPresets[layerId][index];
+    if (!presetId) return;
+    
     e.dataTransfer.setData('application/json', JSON.stringify({ layerId, index }));
     document.body.classList.add('preset-dragging');
   };
 
   const handleDragEnd = () => {
     document.body.classList.remove('preset-dragging');
+    setDragTarget(null);
   };
 
   const handleDragEnter = (
@@ -109,8 +124,23 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
     setDragTarget({ layerId, index });
   };
 
-  const handleDragLeave = () => setDragTarget(null);
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => e.preventDefault();
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    // Solo limpiar si realmente salimos del elemento
+    const rect = e.currentTarget.getBoundingClientRect();
+    const { clientX, clientY } = e;
+    if (
+      clientX < rect.left ||
+      clientX > rect.right ||
+      clientY < rect.top ||
+      clientY > rect.bottom
+    ) {
+      setDragTarget(null);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
 
   const handleDrop = (
     e: React.DragEvent<HTMLDivElement>,
@@ -119,10 +149,12 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
   ) => {
     e.preventDefault();
     setDragTarget(null);
+    
     const data = e.dataTransfer.getData('application/json');
     const presetId = e.dataTransfer.getData('text/plain');
 
-    if (presetId) {
+    // Drop desde preset gallery
+    if (presetId && !data) {
       setLayerPresets(prev => {
         const next = { ...prev };
         const list = [...next[targetLayerId]];
@@ -135,39 +167,63 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
       return;
     }
 
+    // Drop interno (mover dentro del grid)
     if (!data) return;
-    const { layerId: sourceLayerId, index: sourceIndex } = JSON.parse(data);
-    if (sourceLayerId === undefined) return;
+    
+    try {
+      const { layerId: sourceLayerId, index: sourceIndex } = JSON.parse(data);
+      if (sourceLayerId === undefined || sourceIndex === undefined) return;
 
-    setLayerPresets(prev => {
-      const next = { ...prev };
-      if (sourceLayerId === targetLayerId) {
-        const list = [...next[sourceLayerId]];
-        const [item] = list.splice(sourceIndex, 1);
-        list.splice(targetIndex, 0, item);
-        next[sourceLayerId] = list;
+      setLayerPresets(prev => {
+        const next = { ...prev };
+        
+        if (sourceLayerId === targetLayerId) {
+          // Mover dentro de la misma layer
+          const list = [...next[sourceLayerId]];
+          const [item] = list.splice(sourceIndex, 1);
+          list.splice(targetIndex, 0, item);
+          
+          // Asegurar que mantenemos el número correcto de slots
+          while (list.length < SLOTS_PER_LAYER) {
+            list.push(null);
+          }
+          if (list.length > SLOTS_PER_LAYER) {
+            list.splice(SLOTS_PER_LAYER);
+          }
+          
+          next[sourceLayerId] = list;
+          return next;
+        }
+        
+        // Mover entre layers diferentes (intercambio)
+        const sourceList = [...next[sourceLayerId]];
+        const targetList = [...next[targetLayerId]];
+        const draggedId = sourceList[sourceIndex];
+        const targetId = targetList[targetIndex];
+        
+        if (draggedId && !canPlace(targetList, draggedId, targetIndex)) {
+          return prev;
+        }
+        if (targetId && !canPlace(sourceList, targetId, sourceIndex)) {
+          return prev;
+        }
+        
+        sourceList[sourceIndex] = targetId;
+        targetList[targetIndex] = draggedId;
+        next[sourceLayerId] = sourceList;
+        next[targetLayerId] = targetList;
         return next;
-      }
-      const sourceList = [...next[sourceLayerId]];
-      const targetList = [...next[targetLayerId]];
-      const draggedId = sourceList[sourceIndex];
-      const targetId = targetList[targetIndex];
-      if (
-        !canPlace(targetList, draggedId, targetIndex) ||
-        !canPlace(sourceList, targetId, sourceIndex)
-      ) {
-        return prev;
-      }
-      sourceList[sourceIndex] = targetId;
-      targetList[targetIndex] = draggedId;
-      next[sourceLayerId] = sourceList;
-      next[targetLayerId] = targetList;
-      return next;
-    });
+      });
+    } catch (error) {
+      console.error('Error en drop:', error);
+    }
+    
     document.body.classList.remove('preset-dragging');
   };
 
   const handlePresetClick = (layerId: string, presetId: string, velocity?: number) => {
+    if (!presetId) return; // No hacer nada si es un slot vacío
+    
     const cellKey = `${layerId}-${presetId}`;
     const layer = layers.find(l => l.id === layerId);
     const wasActive = layer?.activePreset === presetId;
@@ -203,8 +259,6 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
         : layer
     ));
     onLayerClear(layerId);
-
-    // Limpiar selección de controles
     onPresetSelect(layerId, '');
   };
 
@@ -240,7 +294,6 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
   }, [layerChannels]);
 
   const getPresetThumbnail = (preset: LoadedPreset): string => {
-    // Generar thumbnail basado en categoría/tipo
     const thumbnails: Record<string, string> = {
       'neural_network': '🧠',
       'abstract-lines': '📈',
@@ -250,9 +303,10 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
       'boom-wave': '💥',
       'plasma-ray': '⚡',
       'shot-text': '📝',
-      'text-glitch': '🔤'
+      'text-glitch': '🔤',
+      'custom-glitch-text': '📝'
     };
-    return thumbnails[preset.id] || '🎨';
+    return thumbnails[preset.id] || thumbnails[preset.id.split('-')[0]] || '🎨';
   };
 
   return (
@@ -300,11 +354,36 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
             </div>
           </div>
 
-          {/* Preset Grid */}
+          {/* Preset Grid con slots fijos */}
           <div className="preset-grid">
             {layerPresets[layer.id].map((presetId, idx) => {
+              // Slot vacío
+              if (!presetId) {
+                const isDragOver = dragTarget?.layerId === layer.id && dragTarget.index === idx;
+                return (
+                  <div
+                    key={`${layer.id}-empty-${idx}`}
+                    className={`preset-cell empty-slot ${isDragOver ? 'drag-over' : ''}`}
+                    onDragOver={handleDragOver}
+                    onDragEnter={(e) => handleDragEnter(e, layer.id, idx)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, layer.id, idx)}
+                    style={{
+                      '--layer-color': layer.color,
+                      '--layer-color-alpha': layer.color + '20'
+                    } as React.CSSProperties}
+                  >
+                    <div className="empty-slot-indicator">
+                      <div className="empty-slot-icon">+</div>
+                    </div>
+                  </div>
+                );
+              }
+
+              // Slot con preset
               const preset = presets.find(p => p.id === presetId);
               if (!preset) return null;
+              
               const cellKey = `${layer.id}-${preset.id}`;
               const isActive = layer.activePreset === preset.id;
               const isClicked = clickedCell === cellKey;
@@ -327,9 +406,9 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
                     '--layer-color-alpha': layer.color + '20'
                   } as React.CSSProperties}
                 >
-                    {preset.config.note !== undefined && (
-                      <div className="preset-note-badge">{preset.config.note}</div>
-                    )}
+                  {preset.config.note !== undefined && (
+                    <div className="preset-note-badge">{preset.config.note}</div>
+                  )}
                   <div className="preset-thumbnail">
                     {getPresetThumbnail(preset)}
                   </div>

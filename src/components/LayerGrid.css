@@ -1,11 +1,6 @@
 .layer-grid {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: #0A0A0A;
-}
-
-.layer-grid {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #0A0A0A;
   color: #FFFFFF;
   padding: 0;
   height: 300px; /* Altura fija para 3 capas */
@@ -104,8 +99,7 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-
-/* CORRECCIÓN 1: Preset Grid - altura correcta */
+/* Preset Grid */
 .preset-grid {
   height: 96px; /* Más espacio para contenido interno */
   display: flex;
@@ -136,7 +130,7 @@
   background: #555;
 }
 
-/* CORRECCIÓN 2: Preset Cell - tamaño correcto */
+/* Preset Cell Base */
 .preset-cell {
   position: relative;
   width: 96px;
@@ -144,16 +138,16 @@
   min-width: 96px;
   background: linear-gradient(135deg, #1E1E1E, #181818);
   border: 1px solid #333;
-  border-radius: 4px; /* Añadir bordes redondeados sutiles */
+  border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between; /* Distribuir contenido */
+  justify-content: space-between;
   overflow: hidden;
   user-select: none;
-  padding: 2px; /* Padding más pequeño */
+  padding: 2px;
 }
 
 .preset-cell:hover {
@@ -176,47 +170,102 @@
 
 .preset-cell.drag-over {
   outline: 2px dashed #666;
+  outline-offset: -2px;
+  background: rgba(100, 181, 246, 0.1);
+  border-color: #64B5F6;
 }
 
-body.preset-dragging .preset-cell {
-  outline: 2px dashed #444;
+/* Empty Slots */
+.preset-cell.empty-slot {
+  background: transparent;
+  border: 1px dashed #333;
+  cursor: default;
+}
+
+.preset-cell.empty-slot:hover {
+  border-color: #555;
+  background: rgba(255, 255, 255, 0.02);
+  transform: none;
+  box-shadow: none;
+}
+
+.preset-cell.empty-slot.drag-over {
+  border-style: solid;
+  border-color: var(--layer-color, #666);
+  background: var(--layer-color-alpha);
+  box-shadow: 0 0 10px var(--layer-color-alpha);
+}
+
+.empty-slot-indicator {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.3;
+  transition: opacity 0.2s ease;
+}
+
+.preset-cell.empty-slot:hover .empty-slot-indicator {
+  opacity: 0.6;
+}
+
+.preset-cell.empty-slot.drag-over .empty-slot-indicator {
+  opacity: 0.8;
+}
+
+.empty-slot-icon {
+  font-size: 24px;
+  color: #666;
+  font-weight: 300;
+}
+
+/* Drag States */
+body.preset-dragging .preset-cell.empty-slot {
+  border-style: dashed;
+  border-color: #555;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+body.preset-dragging .preset-cell.empty-slot .empty-slot-indicator {
+  opacity: 0.6;
 }
 
 body.preset-dragging .preset-grid {
   background-image:
     linear-gradient(#333 1px, transparent 1px),
     linear-gradient(90deg, #333 1px, transparent 1px);
-  background-size: 100px 100px;
+  background-size: 98px 98px;
+  background-position: 1px 1px;
 }
 
-/* CORRECCIÓN 3: Thumbnail mejorado */
+/* Preset Content */
 .preset-thumbnail {
   width: 100%;
-  height: 60px; /* Más espacio para texto abajo */
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px; /* Tamaño del emoji ajustado */
+  font-size: 32px;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
 }
 
-/* CORRECCIÓN 4: Info del preset más visible */
 .preset-info {
   width: 100%;
-  height: 32px; /* Más altura para textos */
+  height: 32px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  background: rgba(0, 0, 0, 0.5); /* Fondo más oscuro */
+  background: rgba(0, 0, 0, 0.5);
   border-radius: 2px;
   padding: 1px 2px;
   gap: 1px;
 }
 
 .preset-name {
-  font-size: 10px; /* Más grande */
+  font-size: 10px;
   font-weight: 600;
   color: #FFF;
   line-height: 11px;
@@ -228,7 +277,7 @@ body.preset-dragging .preset-grid {
 }
 
 .preset-details {
-  font-size: 7px; /* Más grande */
+  font-size: 7px;
   color: #888;
   font-weight: 400;
   text-transform: uppercase;
@@ -246,15 +295,13 @@ body.preset-dragging .preset-grid {
 }
 
 .preset-note-badge {
-    position: absolute;
-    top: 3px;
-    left: 3px;
-    font-size: 8px;
-    color: #aaa;
-    pointer-events: none;
-  }
-
-
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  font-size: 8px;
+  color: #aaa;
+  pointer-events: none;
+}
 
 .active-indicator {
   position: absolute;
@@ -278,7 +325,7 @@ body.preset-dragging .preset-grid {
   }
 }
 
-/* Responsive - mantener proporciones */
+/* Responsive */
 @media (max-width: 1200px) {
   .opacity-slider {
     width: 50px;
@@ -293,11 +340,15 @@ body.preset-dragging .preset-grid {
   }
   
   .preset-grid {
-    height: 82px; /* Ajustar para celdas más pequeñas */
+    height: 82px;
+  }
+  
+  .empty-slot-icon {
+    font-size: 18px;
   }
 }
 
-/* Animaciones suaves */
+/* Smooth transitions */
 * {
   transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
 }

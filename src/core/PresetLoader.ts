@@ -13,7 +13,7 @@ export interface PresetConfig {
   defaultConfig: any;
   controls: Array<{
     name: string;
-    type: 'slider' | 'color' | 'checkbox' | 'select';
+    type: 'slider' | 'color' | 'checkbox' | 'select' | 'text';
     label: string;
     min?: number;
     max?: number;
@@ -91,24 +91,104 @@ export interface LoadedPreset {
   folderPath: string;
 }
 
-  export class PresetLoader {
-    private loadedPresets: Map<string, LoadedPreset> = new Map();
-    private activePresets: Map<string, BasePreset> = new Map();
+export class PresetLoader {
+  private loadedPresets: Map<string, LoadedPreset> = new Map();
+  private activePresets: Map<string, BasePreset> = new Map();
 
-    // Carga dinámica de presets desde el sistema de archivos
-    private presetModules = import.meta.glob('../presets/*/preset.ts');
-    private shaderModules = import.meta.glob('../presets/*/shader.wgsl', { as: 'raw' });
-    private nextMidiNote: number = 36; // C2 como nota base
+  // Carga dinámica de presets desde el sistema de archivos
+  private presetModules = import.meta.glob('../presets/*/preset.ts');
+  private shaderModules = import.meta.glob('../presets/*/shader.wgsl', { as: 'raw' });
+  private nextMidiNote: number = 36; // C2 como nota base
 
-    constructor(
-      private camera: THREE.Camera,
-      private renderer: THREE.WebGLRenderer,
-      private glitchTextPads: number = 1
-    ) {}
+  // Listeners para cambios en presets
+  private presetsChangeListeners: (() => void)[] = [];
 
-    public setGlitchTextPads(count: number): void {
-      this.glitchTextPads = Math.max(1, count);
+  constructor(
+    private camera: THREE.Camera,
+    private renderer: THREE.WebGLRenderer,
+    private glitchTextPads: number = 1
+  ) {}
+
+  public setGlitchTextPads(count: number): void {
+    const newCount = Math.max(1, Math.min(10, count)); // Límite entre 1 y 10
+    
+    if (newCount !== this.glitchTextPads) {
+      this.glitchTextPads = newCount;
+      console.log(`🔧 Custom text instances set to: ${this.glitchTextPads}`);
+      
+      // Recargar presets para aplicar el nuevo número
+      this.reloadCustomTextPresets();
     }
+  }
+
+  public getGlitchTextPads(): number {
+    return this.glitchTextPads;
+  }
+
+  private async reloadCustomTextPresets(): Promise<void> {
+    // Buscar el preset custom-glitch-text base
+    const customTextEntry = Object.entries(this.presetModules)
+      .find(([path]) => path.includes('custom-glitch-text'));
+    
+    if (!customTextEntry) return;
+
+    const [path, loader] = customTextEntry;
+    const presetId = path.split('/')[2];
+    
+    try {
+      const mod: any = await loader();
+      let cfg: PresetConfig = mod.config;
+      const createPreset = mod.createPreset;
+
+      // Auto-configurar preset si es necesario
+      cfg = this.autoConfigurePreset(cfg, presetId);
+      
+      let shaderCode: string | undefined;
+      const shaderPath = `../presets/${presetId}/shader.wgsl`;
+      const shaderLoader = this.shaderModules[shaderPath];
+      if (shaderLoader) {
+        const shaderModule: any = await (shaderLoader as any)();
+        shaderCode = shaderModule.default;
+      }
+
+      // Limpiar instancias existentes de custom text
+      for (const [id] of this.loadedPresets.entries()) {
+        if (id.startsWith('custom-glitch-text')) {
+          this.loadedPresets.delete(id);
+        }
+      }
+
+      // Crear nuevas instancias
+      const baseNote = cfg.note!;
+      for (let i = 1; i <= this.glitchTextPads; i++) {
+        const cloneConfig = JSON.parse(JSON.stringify(cfg));
+        cloneConfig.name = `${cfg.name} ${i}`;
+        
+        if (cloneConfig.defaultConfig?.text?.content !== undefined) {
+          cloneConfig.defaultConfig.text.content = `Text ${i}`;
+        }
+        
+        cloneConfig.note = baseNote + (i - 1);
+        
+        const clone: LoadedPreset = {
+          id: `${presetId}-${i}`,
+          config: cloneConfig,
+          createPreset,
+          shaderCode,
+          folderPath: `src/presets/${presetId}`,
+        };
+        
+        this.loadedPresets.set(clone.id, clone);
+        console.log(`✅ Custom text instance reloaded: ${clone.config.name}`);
+      }
+
+      // Notificar cambios
+      this.notifyPresetsChanged();
+      
+    } catch (error) {
+      console.error('Error reloading custom text presets:', error);
+    }
+  }
 
   public async loadAllPresets(): Promise<LoadedPreset[]> {
     const moduleEntries = Object.entries(this.presetModules);
@@ -117,7 +197,7 @@ export interface LoadedPreset {
     this.loadedPresets.clear();
     const loadedPresets: LoadedPreset[] = [];
 
-    // determinar la siguiente nota disponible
+    // Determinar la siguiente nota disponible
     let maxNote = 0;
     for (const [, loader] of moduleEntries) {
       const mod: any = await loader();
@@ -152,16 +232,20 @@ export interface LoadedPreset {
 
       this.updateMidiNoteTracking(cfg.note);
 
+      // Manejo especial para custom-glitch-text
       if (presetId === 'custom-glitch-text') {
-        // base config para clonación
         const baseNote = cfg.note!;
+        
         for (let i = 1; i <= this.glitchTextPads; i++) {
           const cloneConfig = JSON.parse(JSON.stringify(cfg));
           cloneConfig.name = `${cfg.name} ${i}`;
+          
           if (cloneConfig.defaultConfig?.text?.content !== undefined) {
             cloneConfig.defaultConfig.text.content = `Text ${i}`;
           }
+          
           cloneConfig.note = baseNote + (i - 1);
+          
           const clone: LoadedPreset = {
             id: `${presetId}-${i}`,
             config: cloneConfig,
@@ -169,11 +253,13 @@ export interface LoadedPreset {
             shaderCode,
             folderPath: `src/presets/${presetId}`,
           };
+          
           this.loadedPresets.set(clone.id, clone);
           loadedPresets.push(clone);
           console.log(`✅ Preset loaded: ${clone.config.name}`);
         }
       } else {
+        // Preset normal
         const loaded: LoadedPreset = {
           id: presetId,
           config: cfg,
@@ -181,13 +267,14 @@ export interface LoadedPreset {
           shaderCode,
           folderPath: `src/presets/${presetId}`
         };
+        
         this.loadedPresets.set(presetId, loaded);
         loadedPresets.push(loaded);
         console.log(`✅ Preset loaded: ${cfg.name}`);
       }
     }
 
-    console.log(`🎨 Loaded ${loadedPresets.length} presets total`);
+    console.log(`🎨 Loaded ${loadedPresets.length} presets total (${this.glitchTextPads} custom text instances)`);
     return loadedPresets;
   }
 
@@ -308,12 +395,50 @@ export interface LoadedPreset {
     this.activePresets.forEach(preset => preset.updateAudioData(audioData));
   }
 
+  // Métodos para gestión de listeners de cambios en presets
+  public onPresetsChanged(callback: () => void): void {
+    this.presetsChangeListeners.push(callback);
+  }
+  
+  public removePresetsChangeListener(callback: () => void): void {
+    const index = this.presetsChangeListeners.indexOf(callback);
+    if (index > -1) {
+      this.presetsChangeListeners.splice(index, 1);
+    }
+  }
+  
+  private notifyPresetsChanged(): void {
+    this.presetsChangeListeners.forEach(callback => {
+      try {
+        callback();
+      } catch (error) {
+        console.error('Error in presets change listener:', error);
+      }
+    });
+  }
+
+  // Métodos de utilidad para custom text
+  public getCustomTextInstances(): LoadedPreset[] {
+    return Array.from(this.loadedPresets.values())
+      .filter(preset => preset.id.startsWith('custom-glitch-text'));
+  }
+
+  public getPresetById(id: string): LoadedPreset | undefined {
+    return this.loadedPresets.get(id);
+  }
+
+  public getAllPresetIds(): string[] {
+    return Array.from(this.loadedPresets.keys());
+  }
+
   public dispose(): void {
     this.activePresets.forEach(preset => preset.dispose());
     this.activePresets.clear();
     this.loadedPresets.clear();
+    this.presetsChangeListeners.length = 0;
   }
 }
+
 // Tipos para controles de configuración
 export interface ControlConfig {
   name: string;

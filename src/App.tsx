@@ -1,4 +1,4 @@
-// App.tsx - Corregido y completo con todas las mejoras
+// App.tsx - Completo con todas las mejoras del presets gallery
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { AudioVisualizerEngine } from './core/AudioVisualizerEngine';
@@ -149,7 +149,6 @@ const App: React.FC = () => {
     }
   }, [startMonitor]);
 
-
   useEffect(() => {
     (window as any).electronAPI?.applySettings({
       maximize: startMaximized,
@@ -166,7 +165,6 @@ const App: React.FC = () => {
       console.warn('Failed to persist layer preset configs:', e);
     }
   }, [layerPresetConfigs]);
-
 
   // Enumerar monitores disponibles usando Electron
   useEffect(() => {
@@ -223,8 +221,6 @@ const App: React.FC = () => {
     const handler = () => {
       setIsFullscreenMode(false);
       engineRef.current?.setMultiMonitorMode(false);
-      // Asegurar que el estado de multi-monitor se restablezca cuando se
-      // abandona el modo fullscreen desde la ventana principal
       localStorage.setItem('multiMonitorMode', 'false');
     };
     api.onMainLeaveFullscreen(handler);
@@ -248,9 +244,6 @@ const App: React.FC = () => {
         await engine.initialize();
         engineRef.current = engine;
 
-        // Restaurar el modo multi-monitor tras una recarga en fullscreen.
-        // Esto permite que las ventanas clon reciban frames correctamente
-        // después de que la ventana principal se vuelva a cargar.
         const multiMonitor = localStorage.getItem('multiMonitorMode') === 'true';
         engine.setMultiMonitorMode(multiMonitor);
 
@@ -463,7 +456,6 @@ const App: React.FC = () => {
       } catch (error) {
         console.warn('⚠️ Audio listener setup failed:', error);
         
-        // Fallback: datos de audio estáticos
         const fallbackData: AudioData = {
           low: 0.3,
           mid: 0.5,
@@ -581,7 +573,6 @@ const App: React.FC = () => {
         setStatus('Error: No hay monitores seleccionados');
         return;
       }
-      // Activar o desactivar modo multi-monitor según corresponda
       if (isFullscreenMode) {
         engineRef.current?.setMultiMonitorMode(false);
         localStorage.setItem('multiMonitorMode', 'false');
@@ -622,7 +613,6 @@ const App: React.FC = () => {
           setStatus('Error: No hay monitores seleccionados');
           return;
         }
-        // Activar o desactivar modo multi-monitor según corresponda
         if (isFullscreenMode) {
           engineRef.current?.setMultiMonitorMode(false);
           localStorage.setItem('multiMonitorMode', 'false');
@@ -790,6 +780,23 @@ const App: React.FC = () => {
     });
   };
 
+  // Handler para cambios en el número de custom text pads
+  const handleCustomTextCountChange = async (count: number) => {
+    setGlitchTextPads(count);
+    localStorage.setItem('glitchTextPads', count.toString());
+    
+    if (engineRef.current) {
+      try {
+        const updatedPresets = await engineRef.current.updateGlitchPadCount(count);
+        setAvailablePresets(updatedPresets);
+        setStatus(`Custom text actualizado: ${count} instancia${count > 1 ? 's' : ''}`);
+      } catch (error) {
+        console.error('Error updating custom text count:', error);
+        setStatus('Error al actualizar custom text');
+      }
+    }
+  };
+
   const getCurrentPresetName = (): string => {
     if (!selectedPreset) return 'Ninguno';
     return `${selectedPreset.config.name} (${selectedLayer || 'N/A'})`;
@@ -912,7 +919,7 @@ const App: React.FC = () => {
             <PresetControls
               preset={selectedPreset}
               config={layerPresetConfigs[selectedLayer!]?.[selectedPreset.id]}
-              onConfigUpdate={(path, value) => {
+              onChange={(path, value) => {
                 if (engineRef.current && selectedLayer && selectedPreset) {
                   engineRef.current.updateLayerPresetConfig(selectedLayer, path, value);
                   setLayerPresetConfigs(prev => {
@@ -940,6 +947,7 @@ const App: React.FC = () => {
         audioData={audioData}
       />
 
+      {/* Modal de configuración global */}
       <GlobalSettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
@@ -987,14 +995,7 @@ const App: React.FC = () => {
         startMonitor={startMonitor}
         onStartMonitorChange={setStartMonitor}
         glitchTextPads={glitchTextPads}
-        onGlitchPadChange={async (value: number) => {
-          setGlitchTextPads(value);
-          localStorage.setItem('glitchTextPads', value.toString());
-          if (engineRef.current) {
-            const presets = await engineRef.current.updateGlitchPadCount(value);
-            setAvailablePresets(presets);
-          }
-        }}
+        onGlitchPadChange={handleCustomTextCountChange}
         startMaximized={startMaximized}
         onStartMaximizedChange={setStartMaximized}
         sidebarCollapsed={!isControlsOpen}
@@ -1024,10 +1025,13 @@ const App: React.FC = () => {
         }}
       />
 
+      {/* Modal de galería de presets */}
       <PresetGalleryModal
         isOpen={isPresetGalleryOpen}
         onClose={() => setPresetGalleryOpen(false)}
         presets={availablePresets}
+        onCustomTextCountChange={handleCustomTextCountChange}
+        currentCustomTextCount={glitchTextPads}
       />
     </div>
   );
