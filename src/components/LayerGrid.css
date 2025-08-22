@@ -182,17 +182,23 @@
   font-size: 10px;
 }
 
+.control-separator {
+  margin: 0 4px;
+  color: #555;
+  font-size: 10px;
+}
+
 /* Effect styles */
-.layer-section.effect-blur { filter: blur(3px); }
-.layer-section.effect-distortion { transform: skewX(5deg); }
-.layer-section.effect-pixelate { image-rendering: pixelated; transform: scale(1.05); }
-.layer-section.effect-invert { filter: invert(1); }
-.layer-section.effect-sepia { filter: sepia(1); }
-.layer-section.effect-noise { animation: noise 0.2s steps(5) infinite; }
-.layer-section.effect-scanlines { background-image: repeating-linear-gradient(to bottom, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 2px); }
-.layer-section.effect-glitch1 { animation: glitch1 0.5s infinite; }
-.layer-section.effect-glitch2 { animation: glitch2 0.5s infinite; }
-.layer-section.effect-glitch3 { animation: glitch3 0.5s infinite; }
+.effect-blur { filter: blur(3px); }
+.effect-distortion { transform: skewX(5deg); }
+.effect-pixelate { image-rendering: pixelated; transform: scale(1.05); }
+.effect-invert { filter: invert(1); }
+.effect-sepia { filter: sepia(1); }
+.effect-noise { animation: noise 0.2s steps(5) infinite; }
+.effect-scanlines { background-image: repeating-linear-gradient(to bottom, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 2px); }
+.effect-glitch1 { animation: glitch1 0.5s infinite; }
+.effect-glitch2 { animation: glitch2 0.5s infinite; }
+.effect-glitch3 { animation: glitch3 0.5s infinite; }
 
 @keyframes glitch1 {
   0% { transform: translate(0); }

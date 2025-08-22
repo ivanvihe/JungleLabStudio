@@ -13,7 +13,11 @@ interface LayerConfig {
   autoJump: boolean;
   jumpDirection: 'right' | 'left' | 'random';
   jumpSync: 'time' | 'beats';
-  jumpInterval: number;
+  /**
+   * Jump interval in seconds when `jumpSync` is `time` or as a beat
+   * fraction (e.g. "2/4") when `jumpSync` is `beats`.
+   */
+  jumpInterval: number | string;
 }
 
 interface LayerGridProps {
@@ -397,7 +401,7 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
   }, [layerChannels]);
 
   useEffect(() => {
-    const timers: NodeJS.Timeout[] = [];
+    const timers: ReturnType<typeof setTimeout>[] = [];
 
     layers.forEach(layer => {
       if (!layer.autoJump) return;
@@ -406,9 +410,21 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
 
       let intervalMs: number | null = null;
       if (layer.jumpSync === 'time') {
-        intervalMs = layer.jumpInterval * 1000;
+        const val = typeof layer.jumpInterval === 'number'
+          ? layer.jumpInterval
+          : parseFloat(layer.jumpInterval as string) || 0;
+        intervalMs = val * 1000;
       } else if (layer.jumpSync === 'beats' && bpm) {
-        intervalMs = (60 / bpm) * layer.jumpInterval * 1000;
+        let ratio = 1;
+        if (typeof layer.jumpInterval === 'string') {
+          const parts = layer.jumpInterval.split('/').map(n => parseFloat(n));
+          if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1]) && parts[1] !== 0) {
+            ratio = parts[0] / parts[1];
+          }
+        } else if (typeof layer.jumpInterval === 'number') {
+          ratio = layer.jumpInterval;
+        }
+        intervalMs = (60 / bpm) * ratio * 1000;
       }
 
       if (!intervalMs) return;
@@ -463,13 +479,22 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
     <div className="layer-grid">
       {layers.map((layer) => {
         return (
-        <div
-          key={layer.id}
-          className={`layer-section ${layerEffects[layer.id]?.active ? `effect-${layerEffects[layer.id].effect}` : ''}`}
-        >
-          <div
-            className={`layer-header ${layerEffects[layer.id]?.active ? 'effect-active' : ''}`}
-          >
+        <div key={layer.id} className="layer-section">
+          <div className={`layer-header ${layerEffects[layer.id]?.active ? 'effect-active' : ''}`}>
+            <div className="midi-channel-edit">
+              <label>MIDI</label>
+              <input
+                type="number"
+                min={1}
+                max={16}
+                value={layer.midiChannel}
+                onChange={(e) =>
+                  handleLayerConfigChange(layer.id, 'midiChannel', parseInt(e.target.value))
+                }
+                className="midi-channel-input"
+              />
+            </div>
+            <span className="control-separator">|</span>
             <select
               value={layerEffects[layer.id]?.effect}
               onChange={(e) => onLayerEffectChange(layer.id, e.target.value)}
@@ -488,19 +513,7 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
               />
               Always
             </label>
-            <div className="midi-channel-edit">
-              <label>MIDI</label>
-              <input
-                type="number"
-                min={1}
-                max={16}
-                value={layer.midiChannel}
-                onChange={(e) =>
-                  handleLayerConfigChange(layer.id, 'midiChannel', parseInt(e.target.value))
-                }
-                className="midi-channel-input"
-              />
-            </div>
+            <span className="control-separator">|</span>
             <div className="jump-controls">
               <label>
                 <input
@@ -522,22 +535,44 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
               </select>
               <select
                 value={layer.jumpSync}
-                onChange={(e) =>
-                  handleLayerConfigChange(layer.id, 'jumpSync', e.target.value as any)
-                }
+                onChange={(e) => {
+                  const val = e.target.value as any;
+                  handleLayerConfigChange(layer.id, 'jumpSync', val);
+                  if (val === 'time' && typeof layer.jumpInterval === 'string') {
+                    const parts = layer.jumpInterval.split('/').map(n => parseFloat(n));
+                    const num = parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1]) && parts[1] !== 0 ? parts[0] / parts[1] : 1;
+                    handleLayerConfigChange(layer.id, 'jumpInterval', num);
+                  }
+                  if (val === 'beats' && typeof layer.jumpInterval === 'number') {
+                    handleLayerConfigChange(layer.id, 'jumpInterval', '4/4');
+                  }
+                }}
               >
                 <option value="time">time</option>
                 <option value="beats">beats</option>
               </select>
-              <input
-                type="number"
-                min={1}
-                value={layer.jumpInterval}
-                onChange={(e) =>
-                  handleLayerConfigChange(layer.id, 'jumpInterval', parseInt(e.target.value))
-                }
-                className="jump-interval-input"
-              />
+              {layer.jumpSync === 'time' ? (
+                <input
+                  type="number"
+                  min={1}
+                  value={layer.jumpInterval as number}
+                  onChange={(e) =>
+                    handleLayerConfigChange(layer.id, 'jumpInterval', parseInt(e.target.value))
+                  }
+                  className="jump-interval-input"
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={layer.jumpInterval as string}
+                  onChange={(e) =>
+                    handleLayerConfigChange(layer.id, 'jumpInterval', e.target.value)
+                  }
+                  className="jump-interval-input"
+                  placeholder="4/4"
+                  pattern="\d+/\d+"
+                />
+              )}
             </div>
           </div>
 
