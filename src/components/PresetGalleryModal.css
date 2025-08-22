@@ -153,6 +153,7 @@
   display: flex;
   flex-direction: row;
   height: calc(100% - 80px);
+  justify-content: center;
 }
 
 /* Sections */
@@ -312,10 +313,11 @@
 
 /* Overrides for main preset list */
 .preset-gallery-main-grid {
-  width: 100px;
+  width: 115px;
   flex: none;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 15px;
   overflow-y: auto;
   height: 100%;
@@ -544,7 +546,9 @@
 /* Layout elements */
 .gallery-controls-panel,
 .preset-gallery-placeholder {
-  flex: 1;
+  flex: 0 0 60%;
+  max-width: 700px;
+  margin-left: 20px;
   border-left: 1px solid #444;
   background: #1a1a1a;
 }
