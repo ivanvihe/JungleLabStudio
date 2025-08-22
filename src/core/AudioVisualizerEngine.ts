@@ -188,8 +188,8 @@ export class AudioVisualizerEngine {
   }
 
   private updateSize(): void {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    const width = 1920;
+    const height = 1080;
     const pixelRatio = Math.min(window.devicePixelRatio, 2);
     const visualScale = parseFloat(localStorage.getItem('visualScale') || '1');
     const scaledWidth = width * visualScale;
@@ -198,14 +198,12 @@ export class AudioVisualizerEngine {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
 
-    // Ajustar tamaño interno manteniendo el canvas llenando la pantalla
     this.renderer.setSize(scaledWidth, scaledHeight, false);
-    this.renderer.domElement.style.width = `${width}px`;
-    this.renderer.domElement.style.height = `${height}px`;
+    this.renderer.domElement.style.width = '100%';
+    this.renderer.domElement.style.height = '100%';
     this.renderer.setPixelRatio(pixelRatio);
 
-    // Actualizar render targets de layers con la escala aplicada
-    this.layers.forEach((layer, id) => {
+    this.layers.forEach((layer) => {
       if (layer.renderTarget) {
         layer.renderTarget.setSize(scaledWidth * pixelRatio, scaledHeight * pixelRatio);
       }

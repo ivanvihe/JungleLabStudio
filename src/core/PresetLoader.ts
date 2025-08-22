@@ -357,6 +357,16 @@ export class PresetLoader {
       autoConfig.controls = [];
     }
 
+    if (!autoConfig.defaultConfig) {
+      autoConfig.defaultConfig = {} as any;
+    }
+    if (autoConfig.defaultConfig.width === undefined) {
+      autoConfig.defaultConfig.width = 1920;
+    }
+    if (autoConfig.defaultConfig.height === undefined) {
+      autoConfig.defaultConfig.height = 1080;
+    }
+
     return autoConfig;
   }
 
