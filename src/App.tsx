@@ -90,6 +90,8 @@ const App: React.FC = () => {
     });
     return defaults;
   });
+  const [launchpadOutputs, setLaunchpadOutputs] = useState<any[]>([]);
+  const [launchpadId, setLaunchpadId] = useState<string | null>(() => localStorage.getItem('launchpadId'));
   const [launchpadOutput, setLaunchpadOutput] = useState<any | null>(null);
   const [launchpadRunning, setLaunchpadRunning] = useState(false);
   const [launchpadPreset, setLaunchpadPreset] = useState<LaunchpadPreset>('spectrum');
@@ -506,8 +508,14 @@ const App: React.FC = () => {
           const inputs = Array.from(access.inputs.values());
           setMidiDevices(inputs);
           const outputs = Array.from(access.outputs.values());
-          const lp = outputs.find((out: any) => (out.name || '').includes('Launchpad Pro')) || null;
+          const lps = outputs.filter((out: any) => (out.name || '').toLowerCase().includes('launchpad'));
+          setLaunchpadOutputs(lps);
+          const lp = lps.find((out: any) => out.id === launchpadId) || lps[0] || null;
           setLaunchpadOutput(lp);
+          if (!launchpadId && lp) {
+            setLaunchpadId(lp.id);
+            localStorage.setItem('launchpadId', lp.id);
+          }
 
           inputs.forEach((input: any) => {
             if (!midiDeviceId || input.id === midiDeviceId) {
@@ -521,13 +529,29 @@ const App: React.FC = () => {
             const ins = Array.from(access.inputs.values());
             setMidiDevices(ins);
             const outs = Array.from(access.outputs.values());
-            const lp2 = outs.find((out: any) => (out.name || '').includes('Launchpad Pro')) || null;
+            const lps2 = outs.filter((out: any) => (out.name || '').toLowerCase().includes('launchpad'));
+            setLaunchpadOutputs(lps2);
+            const lp2 = lps2.find((out: any) => out.id === launchpadId) || lps2[0] || null;
             setLaunchpadOutput(lp2);
+            if (!launchpadId && lp2) {
+              setLaunchpadId(lp2.id);
+              localStorage.setItem('launchpadId', lp2.id);
+            }
           };
         })
         .catch((err: any) => console.warn('MIDI access error', err));
     }
-  }, [midiDeviceId, midiClockType, midiClockDelay, layerChannels, layerEffects, availablePresets, isFullscreenMode, launchpadChannel, launchpadNote]);
+  }, [midiDeviceId, midiClockType, midiClockDelay, layerChannels, layerEffects, availablePresets, isFullscreenMode, launchpadChannel, launchpadNote, launchpadId]);
+
+  useEffect(() => {
+    let lp = launchpadOutputs.find(out => out.id === launchpadId) || null;
+    if (!lp && launchpadOutputs.length > 0) {
+      lp = launchpadOutputs[0];
+      setLaunchpadId(lp.id);
+      localStorage.setItem('launchpadId', lp.id);
+    }
+    setLaunchpadOutput(lp);
+  }, [launchpadOutputs, launchpadId]);
 
   // Configurar listener de audio
   useEffect(() => {
@@ -1039,7 +1063,7 @@ const App: React.FC = () => {
   };
 
   const midiDeviceName = midiDeviceId ? midiDevices.find((d: any) => d.id === midiDeviceId)?.name || null : null;
-  const launchpadAvailable = !!launchpadOutput;
+  const launchpadAvailable = launchpadOutputs.length > 0;
   const audioDeviceName = audioDeviceId ? audioDevices.find(d => d.deviceId === audioDeviceId)?.label || null : null;
   const audioLevel = Math.min((audioData.low + audioData.mid + audioData.high) / 3, 1);
 
@@ -1213,8 +1237,10 @@ const App: React.FC = () => {
         onClose={() => setIsSettingsOpen(false)}
         audioDevices={audioDevices.map(d => ({ id: d.deviceId, label: d.label || d.deviceId }))}
         midiDevices={midiDevices.map((d: any) => ({ id: d.id, label: d.name || d.id }))}
+        launchpadDevices={launchpadOutputs.map((d: any) => ({ id: d.id, label: d.name || d.id }))}
         selectedAudioId={audioDeviceId}
         selectedMidiId={midiDeviceId}
+        selectedLaunchpadId={launchpadId}
         onSelectAudio={(id) => {
           setAudioDeviceId(id || null);
           if (id) {
@@ -1229,6 +1255,14 @@ const App: React.FC = () => {
             localStorage.setItem('selectedMidiDevice', id);
           } else {
             localStorage.removeItem('selectedMidiDevice');
+          }
+        }}
+        onSelectLaunchpad={(id) => {
+          setLaunchpadId(id);
+          if (id) {
+            localStorage.setItem('launchpadId', id);
+          } else {
+            localStorage.removeItem('launchpadId');
           }
         }}
         audioGain={audioGain}

@@ -108,7 +108,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               ))}
             </select>
             <button onClick={onToggleLaunchpad}>
-              {launchpadRunning ? 'Stop LaunchPad' : 'Go LaunchPad'}
+              {launchpadRunning ? 'Stop Launchpad' : 'Go Launchpad'}
             </button>
           </>
         )}
