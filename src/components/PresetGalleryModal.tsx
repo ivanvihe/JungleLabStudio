@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { LoadedPreset } from '../core/PresetLoader';
 import { PresetControls } from './PresetControls';
+import { setNestedValue } from '../utils/objectPath';
+import fs from 'fs';
 import './PresetGalleryModal.css';
 
 interface PresetGalleryModalProps {
@@ -115,6 +117,33 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
       }
       return { ...prev, [layerId]: set };
     });
+  };
+
+  const handleDefaultControlChange = (path: string, value: any) => {
+    if (!selected) return;
+
+    // Update in-memory default config
+    setNestedValue(selected.config.defaultConfig, path, value);
+
+    // Persist to disk
+    try {
+      const cfgPath = `${selected.folderPath}/config.json`;
+      if (
+        typeof fs?.existsSync === 'function' &&
+        typeof fs?.readFileSync === 'function' &&
+        typeof fs?.writeFileSync === 'function' &&
+        fs.existsSync(cfgPath)
+      ) {
+        const json = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+        setNestedValue(json.defaultConfig, path, value);
+        fs.writeFileSync(cfgPath, JSON.stringify(json, null, 2));
+      }
+    } catch (err) {
+      console.warn('Could not save default config for', selected.id, err);
+    }
+
+    // Force re-render
+    setSelected({ ...selected });
   };
 
   if (!isOpen) return null;
@@ -258,8 +287,7 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
                   <PresetControls
                     preset={selected}
                     config={selected.config.defaultConfig || {}}
-                    onChange={() => {}} // Solo lectura para mostrar valores por defecto
-                    isReadOnly={true}
+                    onChange={handleDefaultControlChange}
                   />
                 </div>
               </div>
@@ -268,7 +296,7 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
                 <div className="placeholder-content">
                   <div className="placeholder-icon">🎯</div>
                   <h3>Selecciona un preset</h3>
-                  <p>Haz click en un preset para ver sus controles y valores por defecto</p>
+                  <p>Haz click en un preset para ver y editar sus valores por defecto</p>
                   <div className="placeholder-instructions">
                     <div>• <strong>Click:</strong> Ver controles y configuración</div>
                     <div>• <strong>A/B/C:</strong> Añadir o quitar de una layer</div>
