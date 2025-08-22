@@ -8,6 +8,21 @@ export const LAUNCHPAD_PRESETS: { id: LaunchpadPreset; label: string }[] = [
 ];
 
 /**
+ * Determine whether a given MIDI port belongs to a Novation Launchpad.
+ * Some Launchpad models expose names like "LPPRO MIDI" or "LPX Standalone Port",
+ * so we check both the manufacturer and common LP prefixes.
+ */
+export function isLaunchpadDevice(device: any): boolean {
+  const name = (device?.name || '').toLowerCase();
+  const manufacturer = (device?.manufacturer || '').toLowerCase();
+
+  if (name.includes('launchpad')) return true;
+
+  const fromNovation = manufacturer.includes('novation');
+  return fromNovation && /^lp/.test(name);
+}
+
+/**
  * Build a frame of 64 color values for the Launchpad grid based on audio data.
  * Colors use the built-in palette (0-127).
  */

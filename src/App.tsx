@@ -11,7 +11,7 @@ import { GlobalSettingsModal } from './components/GlobalSettingsModal';
 import { LoadedPreset, AudioData } from './core/PresetLoader';
 import { setNestedValue } from './utils/objectPath';
 import { AVAILABLE_EFFECTS } from './utils/effects';
-import { buildLaunchpadFrame, LaunchpadPreset } from './utils/launchpad';
+import { buildLaunchpadFrame, LaunchpadPreset, isLaunchpadDevice } from './utils/launchpad';
 import './App.css';
 import './components/LayerGrid.css';
 
@@ -508,7 +508,7 @@ const App: React.FC = () => {
           const inputs = Array.from(access.inputs.values());
           setMidiDevices(inputs);
           const outputs = Array.from(access.outputs.values());
-          const lps = outputs.filter((out: any) => (out.name || '').toLowerCase().includes('launchpad'));
+          const lps = outputs.filter(isLaunchpadDevice);
           setLaunchpadOutputs(lps);
           const lp = lps.find((out: any) => out.id === launchpadId) || lps[0] || null;
           setLaunchpadOutput(lp);
@@ -529,7 +529,7 @@ const App: React.FC = () => {
             const ins = Array.from(access.inputs.values());
             setMidiDevices(ins);
             const outs = Array.from(access.outputs.values());
-            const lps2 = outs.filter((out: any) => (out.name || '').toLowerCase().includes('launchpad'));
+            const lps2 = outs.filter(isLaunchpadDevice);
             setLaunchpadOutputs(lps2);
             const lp2 = lps2.find((out: any) => out.id === launchpadId) || lps2[0] || null;
             setLaunchpadOutput(lp2);
