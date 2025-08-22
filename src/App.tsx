@@ -1078,14 +1078,18 @@ const App: React.FC = () => {
 
       {/* Sección inferior con visuales y controles */}
       <div className="bottom-section">
-        <canvas
-          ref={canvasRef}
-          className={`main-canvas ${activeEffectClasses}`}
-          style={{
-            filter: `brightness(${canvasBrightness}) saturate(${canvasVibrance})`,
-            background: canvasBackground
-          }}
-        />
+        <div
+          className={`visual-wrapper ${activeEffectClasses}`}
+          style={{ background: canvasBackground }}
+        >
+          <canvas
+            ref={canvasRef}
+            className="main-canvas"
+            style={{
+              filter: `brightness(${canvasBrightness}) saturate(${canvasVibrance})`
+            }}
+          />
+        </div>
         <div className={`controls-panel ${isControlsOpen ? '' : 'collapsed'}`}>
           <button
             className="toggle-sidebar"

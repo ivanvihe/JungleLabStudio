@@ -189,43 +189,112 @@
 }
 
 /* Effect styles */
-.effect-blur { filter: blur(3px); }
-.effect-distortion { transform: skewX(5deg); }
-.effect-pixelate { image-rendering: pixelated; transform: scale(1.05); }
-.effect-invert { filter: invert(1); }
-.effect-sepia { filter: sepia(1); }
-.effect-noise { animation: noise 0.2s steps(5) infinite; }
-.effect-scanlines { background-image: repeating-linear-gradient(to bottom, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 2px); }
-.effect-glitch1 { animation: glitch1 0.5s infinite; }
-.effect-glitch2 { animation: glitch2 0.5s infinite; }
-.effect-glitch3 { animation: glitch3 0.5s infinite; }
+.effect-blur {
+  overflow: hidden;
+}
+.effect-blur::before {
+  content: '';
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 120%;
+  height: 120%;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15), transparent 60%),
+              radial-gradient(circle at 70% 70%, rgba(255,255,255,0.1), transparent 60%);
+  mix-blend-mode: screen;
+  animation: blurCloud 15s ease-in-out infinite alternate;
+}
+
+.effect-distortion {
+  overflow: hidden;
+}
+.effect-distortion::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0 2px, transparent 2px 4px);
+  mix-blend-mode: overlay;
+  animation: gentleDistort 3s ease-in-out infinite;
+}
+
+.effect-pixelate {
+  image-rendering: pixelated;
+  transform: scale(1.02);
+  opacity: 0.8;
+}
+
+.effect-invert { filter: invert(0.2); }
+
+.effect-sepia { filter: sepia(0.4); }
+
+.effect-noise {
+  overflow: hidden;
+}
+.effect-noise::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+PGZpbHRlciBpZD0ibCI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuOCIgbnVtT2N0YXZlcz0iNCIgc3RpdGNoVGlsZXM9InN0aXRjaCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWx0ZXI9InVybCgjbCkiLz48L3N2Zz4=');
+  opacity: 0.08;
+  animation: noise 0.3s steps(8) infinite;
+}
+
+.effect-scanlines {
+  background-image: repeating-linear-gradient(to bottom, rgba(255,255,255,0.07) 0, rgba(255,255,255,0.07) 1px, transparent 1px, transparent 3px);
+  opacity: 0.2;
+}
+
+.effect-glitch1 { animation: glitch1 1s infinite; }
+.effect-glitch2 { animation: glitch2 1s infinite; }
+.effect-glitch3 { animation: glitch3 1s infinite; }
 
 @keyframes glitch1 {
-  0% { transform: translate(0); }
-  20% { transform: translate(-2px,2px); }
-  40% { transform: translate(2px,-2px); }
-  60% { transform: translate(-1px,1px); }
-  80% { transform: translate(1px,-1px); }
-  100% { transform: translate(0); }
+  0%,100% { transform: translate(0); }
+  20% { transform: translate(-1px,1px); }
+  40% { transform: translate(1px,-1px); }
+  60% { transform: translate(-0.5px,0.5px); }
+  80% { transform: translate(0.5px,-0.5px); }
 }
 
 @keyframes glitch2 {
   0% { transform: skewX(0deg); }
-  25% { transform: skewX(5deg); }
-  50% { transform: skewX(-5deg); }
-  75% { transform: skewX(3deg); }
+  25% { transform: skewX(2deg); }
+  50% { transform: skewX(-2deg); }
+  75% { transform: skewX(1deg); }
   100% { transform: skewX(0deg); }
 }
 
 @keyframes glitch3 {
   0% { filter: hue-rotate(0deg); }
-  50% { filter: hue-rotate(180deg); }
+  50% { filter: hue-rotate(90deg); }
   100% { filter: hue-rotate(0deg); }
 }
 
 @keyframes noise {
   0%,100% { background-position: 0 0; }
-  50% { background-position: 10px 10px; }
+  50% { background-position: 8px 8px; }
+}
+
+@keyframes blurCloud {
+  0% { transform: translate(0,0); }
+  100% { transform: translate(-5%,5%); }
+}
+
+@keyframes gentleDistort {
+  0% { transform: translate(0,0) skewX(0deg); }
+  33% { transform: translate(-1%,0.5%) skewX(1deg); }
+  66% { transform: translate(1%,-0.5%) skewX(-1deg); }
+  100% { transform: translate(0,0) skewX(0deg); }
 }
 
 .preset-grid::-webkit-scrollbar {
