@@ -182,6 +182,13 @@ body.preset-dragging .preset-cell {
   outline: 2px dashed #444;
 }
 
+body.preset-dragging .preset-grid {
+  background-image:
+    linear-gradient(#333 1px, transparent 1px),
+    linear-gradient(90deg, #333 1px, transparent 1px);
+  background-size: 100px 100px;
+}
+
 /* CORRECCIÓN 3: Thumbnail mejorado */
 .preset-thumbnail {
   width: 100%;
