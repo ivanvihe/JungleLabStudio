@@ -64,33 +64,453 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
+.preset-gallery-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  transition: opacity 0.2s ease;
+}
+
+.preset-gallery-modal {
+  background: #222;
+  color: #fff;
+  width: 90%;
+  height: 90%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Header */
+.preset-gallery-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 30px;
+  background: linear-gradient(135deg, #333, #2a2a2a);
+  border-bottom: 1px solid #444;
+}
+
+.preset-gallery-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.close-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
 /* Content Layout */
 .preset-gallery-content {
   flex: 1;
   display: flex;
+  flex-direction: column;
   height: calc(100% - 80px);
 }
 
-.preset-gallery-grid {
+/* Sections */
+.preset-gallery-section {
   flex: 1;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, 96px);
-  grid-auto-rows: 96px;
-  gap: 2px;
   padding: 20px;
+  border-bottom: 1px solid #333;
+}
+
+.preset-gallery-section:last-of-type {
+  border-bottom: none;
+}
+
+.preset-gallery-section h3 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Custom Text Header */
+.custom-text-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.custom-text-header h3 {
+  margin: 0;
+}
+
+.custom-text-config {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.custom-text-config label {
+  font-size: 14px;
+  color: #ccc;
+}
+
+.count-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.count-controls button {
+  background: #333;
+  border: 1px solid #555;
+  color: #fff;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.count-controls button:hover:not(:disabled) {
+  background: #444;
+  border-color: #666;
+}
+
+.count-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.count-display {
+  font-size: 14px;
+  font-weight: 600;
+  color: #64B5F6;
+  min-width: 20px;
+  text-align: center;
+}
+
+.preset-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 120px);
+  grid-auto-rows: 140px;
+  gap: 15px;
   overflow-y: auto;
+  max-height: 300px;
+  padding: 10px;
   background: #0F0F0F;
-  justify-content: start;
-  align-content: start;
+  border-radius: 8px;
+}
+
+.custom-text-grid {
+  max-height: 200px;
+}
+
+/* Gallery Item Wrapper */
+.preset-gallery-item-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .preset-gallery-item {
   cursor: pointer;
   user-select: none;
   transition: all 0.2s ease;
+  width: 100%;
+  height: 100px;
 }
 
 .preset-gallery-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.custom-text-cell {
+  border: 1px solid #4ECDC4;
+}
+
+.custom-text-preview {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  right: 2px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #4ECDC4;
+  font-size: 8px;
+  padding: 2px 4px;
+  text-align: center;
+  border-radius: 2px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Add to Layer Button */
+.add-button-container {
+  position: relative;
+}
+
+.add-to-button {
+  width: 100%;
+  background: linear-gradient(135deg, #64B5F6, #42A5F5);
+  border: none;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-to-button:hover {
+  background: linear-gradient(135deg, #90CAF9, #64B5F6);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(100, 181, 246, 0.3);
+}
+
+.custom-text-add {
+  background: linear-gradient(135deg, #4ECDC4, #26C6DA);
+}
+
+.custom-text-add:hover {
+  background: linear-gradient(135deg, #80DEEA, #4ECDC4);
+  box-shadow: 0 3px 8px rgba(78, 205, 196, 0.3);
+}
+
+/* Layer Dropdown */
+.layer-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #333;
+  border: 1px solid #555;
+  border-radius: 4px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  margin-top: 4px;
+}
+
+.layer-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.layer-option:hover {
+  background: #444;
+}
+
+.layer-option:first-child {
+  border-radius: 4px 4px 0 0;
+}
+
+.layer-option:last-child {
+  border-radius: 0 0 4px 4px;
+}
+
+.layer-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* Controls Panel */
+.preset-gallery-controls {
+  width: 100%;
+  max-width: 400px;
+  min-height: 200px;
+  border-top: 1px solid #444;
+  overflow-y: auto;
+  background: #1a1a1a;
+  flex-shrink: 0;
+}
+
+.controls-panel {
+  padding: 20px;
+  height: 100%;
+}
+
+.controls-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #333;
+}
+
+.controls-header h3 {
+  margin: 0;
+  font-size: 20px;
+  color: #fff;
+}
+
+.preset-category-badge {
+  background: #444;
+  color: #ccc;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* Default Controls */
+.default-controls {
+  margin-top: 20px;
+}
+
+.default-controls h4 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  color: #fff;
+  border-bottom: 1px solid #333;
+  padding-bottom: 8px;
+}
+
+/* Placeholder */
+.preset-gallery-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 40px;
+}
+
+.placeholder-content {
+  text-align: center;
+  max-width: 300px;
+}
+
+.placeholder-icon {
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.placeholder-content h3 {
+  margin: 0 0 10px 0;
+  font-size: 24px;
+  color: #fff;
+}
+
+.placeholder-content p {
+  margin: 0 0 20px 0;
+  color: #ccc;
+  line-height: 1.5;
+}
+
+.placeholder-instructions {
+  text-align: left;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 3px solid #64B5F6;
+}
+
+.placeholder-instructions div {
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #ccc;
+}
+
+.placeholder-instructions div:last-child {
+  margin-bottom: 0;
+}
+
+.placeholder-instructions strong {
+  color: #64B5F6;
+}
+
+/* Scrollbars */
+.preset-gallery-grid::-webkit-scrollbar,
+.preset-gallery-controls::-webkit-scrollbar {
+  width: 8px;
+}
+
+.preset-gallery-grid::-webkit-scrollbar-track,
+.preset-gallery-controls::-webkit-scrollbar-track {
+  background: #111;
+  border-radius: 4px;
+}
+
+.preset-gallery-grid::-webkit-scrollbar-thumb,
+.preset-gallery-controls::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+.preset-gallery-grid::-webkit-scrollbar-thumb:hover,
+.preset-gallery-controls::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .preset-gallery-modal {
+    width: 95%;
+    height: 95%;
+  }
+  
+  .preset-gallery-grid {
+    grid-template-columns: repeat(auto-fill, 100px);
+    grid-auto-rows: 120px;
+  }
+}
+
+@media (max-width: 768px) {
+  .preset-gallery-content {
+    flex-direction: column;
+  }
+  
+  .preset-gallery-section {
+    padding: 15px;
+  }
+  
+  .custom-text-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .preset-gallery-grid {
+    grid-template-columns: repeat(auto-fill, 80px);
+    grid-auto-rows: 100px;
+    gap: 10px;
+  }
+}gallery-item:hover {
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }

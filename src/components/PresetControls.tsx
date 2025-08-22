@@ -1,146 +1,151 @@
-// MEJORA 1: PresetControls.tsx con scroll mejorado
-
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { LoadedPreset } from '../core/PresetLoader';
-import './PresetControls.css';  // ✅ AÑADIR ESTE IMPORT
-import { getNestedValue } from '../utils/objectPath';
+import { getNestedValue, setNestedValue } from '../utils/objectPath';
 
 interface PresetControlsProps {
   preset: LoadedPreset;
-  config: any;
-  onConfigUpdate: (path: string, value: any) => void;
+  config: Record<string, any>;
+  onChange?: (path: string, value: any) => void;
+  isReadOnly?: boolean;
 }
 
 export const PresetControls: React.FC<PresetControlsProps> = ({
   preset,
   config,
-  onConfigUpdate
+  onChange,
+  isReadOnly = false
 }) => {
-  const contentRef = useRef<HTMLDivElement>(null);
-
-  // Detectar si hay overflow para mostrar indicador
-  useEffect(() => {
-    const checkOverflow = () => {
-      if (contentRef.current) {
-        const hasOverflow = contentRef.current.scrollHeight > contentRef.current.clientHeight;
-        contentRef.current.classList.toggle('has-overflow', hasOverflow);
-      }
-    };
-
-    checkOverflow();
-    window.addEventListener('resize', checkOverflow);
-    return () => window.removeEventListener('resize', checkOverflow);
-  }, [preset]);
-
-  const handleControlChange = (controlName: string, value: any, type: string) => {
-    let processedValue = value;
-
-    switch (type) {
-      case 'number':
-      case 'slider':
-        processedValue = parseFloat(value);
-        break;
-      case 'boolean':
-        processedValue = Boolean(value);
-        break;
-      case 'color':
-        // Convertir hex a RGB normalizado
-        const hex = value.replace('#', '');
-        const r = parseInt(hex.substr(0, 2), 16) / 255;
-        const g = parseInt(hex.substr(2, 2), 16) / 255;
-        const b = parseInt(hex.substr(4, 2), 16) / 255;
-        processedValue = [r, g, b];
-        break;
-    }
-
-    onConfigUpdate(controlName, processedValue);
+  const handleControlChange = (controlName: string, value: any) => {
+    if (isReadOnly || !onChange) return;
+    onChange(controlName, value);
   };
 
+  const getControlValue = (controlName: string, defaultValue: any): any => {
+    if (config) {
+      const value = getNestedValue(config, controlName);
+      return value !== undefined ? value : defaultValue;
+    }
+    return defaultValue;
+  };
+
+  const isCustomTextPreset = preset.id.startsWith('custom-glitch-text');
+
   const renderControl = (control: any) => {
-    const currentValue = getNestedValue(config, control.name) ?? control.default;
+    const value = getControlValue(control.name, control.default);
+    const controlId = `${preset.id}-${control.name}`;
 
     switch (control.type) {
       case 'slider':
         return (
           <div key={control.name} className="control-group">
-            <label className="control-label">
-              {control.label || control.name}: {currentValue?.toFixed?.(2) ?? currentValue}
+            <label htmlFor={controlId} className="control-label">
+              {control.label}
+              {isCustomTextPreset && control.name === 'text.content' && (
+                <span className="custom-text-indicator">✨</span>
+              )}
             </label>
-            <input
-              type="range"
-              min={control.min || 0}
-              max={control.max || 1}
-              step={control.step || 0.01}
-              value={currentValue ?? control.default ?? 0}
-              onChange={(e) => handleControlChange(control.name, e.target.value, 'slider')}
-              className="control-slider"
-            />
-            <div className="slider-range">
-              <span className="range-min">{control.min || 0}</span>
-              <span className="range-max">{control.max || 1}</span>
+            <div className="slider-container">
+              <input
+                id={controlId}
+                type="range"
+                min={control.min}
+                max={control.max}
+                step={control.step}
+                value={value}
+                onChange={(e) => handleControlChange(control.name, parseFloat(e.target.value))}
+                className="control-slider"
+                disabled={isReadOnly}
+              />
+              <span className="slider-value">{value}</span>
             </div>
           </div>
         );
-      
-      case 'number':
+
+      case 'text':
         return (
           <div key={control.name} className="control-group">
-            <label className="control-label">{control.label || control.name}</label>
-            <input
-              type="number"
-              min={control.min}
-              max={control.max}
-              step={control.step || 1}
-              value={currentValue ?? control.default ?? 0}
-              onChange={(e) => handleControlChange(control.name, e.target.value, 'number')}
-              className="control-number"
-            />
+            <label htmlFor={controlId} className="control-label">
+              {control.label}
+              {isCustomTextPreset && control.name === 'text.content' && (
+                <span className="custom-text-indicator">✨</span>
+              )}
+            </label>
+            <div className="text-control-container">
+              <input
+                id={controlId}
+                type="text"
+                value={value || ''}
+                onChange={(e) => handleControlChange(control.name, e.target.value)}
+                className={`control-text ${isCustomTextPreset ? 'custom-text-input' : ''}`}
+                placeholder={control.placeholder || control.label}
+                disabled={isReadOnly}
+              />
+              {isCustomTextPreset && control.name === 'text.content' && !isReadOnly && (
+                <div className="text-control-hints">
+                  <small>Texto personalizado para esta instancia</small>
+                </div>
+              )}
+            </div>
           </div>
         );
-      
+
       case 'color':
-        const colorHex = Array.isArray(currentValue) 
-          ? `#${Math.round(currentValue[0] * 255).toString(16).padStart(2, '0')}${Math.round(currentValue[1] * 255).toString(16).padStart(2, '0')}${Math.round(currentValue[2] * 255).toString(16).padStart(2, '0')}`
-          : currentValue ?? control.default ?? '#ffffff';
-        
         return (
           <div key={control.name} className="control-group">
-            <label className="control-label">{control.label || control.name}</label>
-            <div className="color-control-wrapper">
+            <label htmlFor={controlId} className="control-label">
+              {control.label}
+            </label>
+            <div className="color-control-container">
               <input
+                id={controlId}
                 type="color"
-                value={colorHex}
-                onChange={(e) => handleControlChange(control.name, e.target.value, 'color')}
+                value={value || control.default}
+                onChange={(e) => handleControlChange(control.name, e.target.value)}
                 className="control-color"
+                disabled={isReadOnly}
               />
-              <span className="color-value">{colorHex.toUpperCase()}</span>
+              <input
+                type="text"
+                value={value || control.default}
+                onChange={(e) => handleControlChange(control.name, e.target.value)}
+                className="control-color-text"
+                placeholder="#ffffff"
+                disabled={isReadOnly}
+              />
             </div>
           </div>
         );
-      
-      case 'boolean':
+
+      case 'checkbox':
         return (
           <div key={control.name} className="control-group">
-            <label className="control-label checkbox-label">
+            <label htmlFor={controlId} className="control-checkbox-label">
               <input
+                id={controlId}
                 type="checkbox"
-                checked={currentValue ?? control.default ?? false}
-                onChange={(e) => handleControlChange(control.name, e.target.checked, 'boolean')}
+                checked={!!value}
+                onChange={(e) => handleControlChange(control.name, e.target.checked)}
                 className="control-checkbox"
+                disabled={isReadOnly}
               />
-              {control.label || control.name}
+              <span className="checkbox-custom"></span>
+              {control.label}
             </label>
           </div>
         );
-      
+
       case 'select':
         return (
           <div key={control.name} className="control-group">
-            <label className="control-label">{control.label || control.name}</label>
+            <label htmlFor={controlId} className="control-label">
+              {control.label}
+            </label>
             <select
-              value={currentValue ?? control.default ?? ''}
-              onChange={(e) => handleControlChange(control.name, e.target.value, 'select')}
+              id={controlId}
+              value={value || control.default}
+              onChange={(e) => handleControlChange(control.name, e.target.value)}
               className="control-select"
+              disabled={isReadOnly}
             >
               {control.options?.map((option: string) => (
                 <option key={option} value={option}>
@@ -150,143 +155,57 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
             </select>
           </div>
         );
-      
-      case 'text':
-        return (
-          <div key={control.name} className="control-group">
-            <label className="control-label">{control.label || control.name}</label>
-            <input
-              type="text"
-              value={currentValue?.toString() ?? control.default?.toString() ?? ''}
-              onChange={(e) => handleControlChange(control.name, e.target.value, 'text')}
-              className="control-text"
-              placeholder={control.placeholder}
-            />
-          </div>
-        );
-      
+
       default:
-        return (
-          <div key={control.name} className="control-group">
-            <label className="control-label">{control.label || control.name}</label>
-            <input
-              type="text"
-              value={currentValue?.toString() ?? control.default?.toString() ?? ''}
-              onChange={(e) => handleControlChange(control.name, e.target.value, 'text')}
-              className="control-text"
-            />
-          </div>
-        );
+        return null;
     }
   };
 
-  const basicControls = [
-    { name: 'width', type: 'number', label: 'Ancho', min: 100, max: 4096, default: getNestedValue(config, 'width') ?? preset.config.defaultConfig?.width ?? 1920 },
-    { name: 'height', type: 'number', label: 'Alto', min: 100, max: 4096, default: getNestedValue(config, 'height') ?? preset.config.defaultConfig?.height ?? 1080 },
-    { name: 'zoom', type: 'slider', label: 'Zoom', min: 0.1, max: 5, step: 0.1, default: getNestedValue(config, 'zoom') ?? preset.config.defaultConfig?.zoom ?? 1 },
-  ];
-
-  const audioControls = [
-    { name: 'audioSensitivity', type: 'slider', label: 'Sensibilidad', min: 0, max: 2, step: 0.01, default: getNestedValue(config, 'audioSensitivity') ?? preset.config.defaultConfig?.audioSensitivity ?? 1 },
-    { name: 'audioSmoothness', type: 'slider', label: 'Suavizado', min: 0, max: 1, step: 0.01, default: getNestedValue(config, 'audioSmoothness') ?? preset.config.defaultConfig?.audioSmoothness ?? 0.5 },
-    { name: 'audioReactivity', type: 'slider', label: 'Reactividad', min: 0, max: 2, step: 0.01, default: getNestedValue(config, 'audioReactivity') ?? preset.config.defaultConfig?.audioReactivity ?? 1 },
-  ];
+  if (!preset.config.controls || preset.config.controls.length === 0) {
+    return (
+      <div className="preset-controls no-controls">
+        <p>No hay controles disponibles para este preset.</p>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <div className="controls-panel-header">
-        <div className="preset-header">
-          <h3>{preset.config.name}</h3>
-          <div className="preset-meta-line">v{preset.config.version} • {preset.config.category}</div>
-          {preset.config.tags && (
-            <div className="preset-tags-line">
-              {preset.config.tags.join(', ')}
-            </div>
-          )}
-          <p className="preset-description">{preset.config.description}</p>
-          <div className="preset-meta">
-            <span className="preset-meta-line">📁 {preset.config.category} | 🏷️ {preset.config.tags?.join(', ')}</span>
-            <span className="preset-meta-line">👤 {preset.config.author} | 📦 v{preset.config.version}</span>
+    <div className={`preset-controls ${isCustomTextPreset ? 'custom-text-controls' : ''} ${isReadOnly ? 'read-only' : ''}`}>
+      {isCustomTextPreset && !isReadOnly && (
+        <div className="custom-text-header">
+          <div className="custom-text-badge">
+            📝 Custom Text Instance
+          </div>
+          <div className="instance-info">
+            <small>Instancia: {preset.config.name}</small>
           </div>
         </div>
+      )}
+
+      <div className="controls-container">
+        {preset.config.controls.map(renderControl)}
       </div>
 
-      <div className="controls-panel-content" ref={contentRef}>
-        <div className="preset-controls-container">
-          {/* Configuración Básica */}
-          <div className="section">
-            <div className="section-title">📐 Configuración Básica</div>
-            {basicControls.map(control => renderControl(control))}
-          </div>
-
-          <div className="section-divider" />
-
-          {/* Controles de Audio */}
-          <div className="section">
-            <div className="section-title">🎵 Audio</div>
-            {audioControls.map(control => renderControl(control))}
-          </div>
-
-          <div className="section-divider" />
-
-          {/* Controles Específicos del Preset */}
-          {preset.config.controls && preset.config.controls.length > 0 && (
-            <>
-              <div className="section">
-                <div className="section-title">🎨 Controles Específicos</div>
-                {preset.config.controls.map((control: any) => renderControl(control))}
+      {preset.config.audioMapping && (
+        <div className="audio-mapping">
+          <h4>Mapeo de Audio</h4>
+          <div className="audio-mapping-grid">
+            {Object.entries(preset.config.audioMapping).map(([band, mapping]: [string, any]) => (
+              <div key={band} className="audio-band">
+                <div className="band-label">{band.toUpperCase()}</div>
+                <div className="band-frequency">{mapping.frequency}</div>
+                <div className="band-effect">{mapping.effect}</div>
               </div>
-
-              <div className="section-divider" />
-            </>
-          )}
-
-          {/* Mapeo de Audio */}
-          {preset.config.audioMapping && (
-            <>
-              <div className="section">
-                <div className="section-title">🎤 Mapeo de Audio</div>
-                <div className="audio-mapping">
-                  {Object.entries(preset.config.audioMapping).map(([freq, mapping]: [string, any]) => (
-                    <div key={freq} className="mapping-item">
-                      <div className="mapping-freq">{freq.toUpperCase()}</div>
-                      <div className="mapping-desc">{mapping.description}</div>
-                      <div className="mapping-effect">{mapping.effect}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="section-divider" />
-            </>
-          )}
-
-          {/* Información del Preset */}
-          <div className="section">
-            <div className="section-title">ℹ️ Información</div>
-            <div className="preset-info">
-              <div className="info-item">
-                <span className="info-label">MIDI Note:</span>
-                <span className="info-value">{preset.config.note || 'No asignada'}</span>
-              </div>
-              {preset.config.performance && (
-                <div className="info-item">
-                  <span className="info-label">Rendimiento:</span>
-                  <span className={`performance-badge ${preset.config.performance.complexity || 'medium'}`}>
-                    {String(preset.config.performance.complexity || 'medium').toUpperCase()}
-                  </span>
-                </div>
-              )}
-              {preset.config.performance?.gpuIntensive && (
-                <div className="info-item">
-                  <span className="info-label">GPU:</span>
-                  <span className="info-value">Intensivo</span>
-                </div>
-              )}
-            </div>
+            ))}
           </div>
         </div>
-      </div>
-    </>
+      )}
+
+      {isReadOnly && (
+        <div className="read-only-notice">
+          <small>👁️ Vista previa - Los valores se aplicarán al añadir a una layer</small>
+        </div>
+      )}
+    </div>
   );
 };

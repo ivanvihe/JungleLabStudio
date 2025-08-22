@@ -10,6 +10,7 @@ interface PresetGalleryModalProps {
   presets: LoadedPreset[];
   onCustomTextCountChange?: (count: number) => void;
   currentCustomTextCount?: number;
+  onAddPresetToLayer?: (presetId: string, layerId: string) => void;
 }
 
 export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
@@ -17,11 +18,12 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
   onClose,
   presets,
   onCustomTextCountChange,
-  currentCustomTextCount = 1
+  currentCustomTextCount = 1,
+  onAddPresetToLayer
 }) => {
   const [selected, setSelected] = useState<LoadedPreset | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
   const [customTextCount, setCustomTextCount] = useState(currentCustomTextCount);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
   const getPresetThumbnail = (preset: LoadedPreset): string => {
     const thumbnails: Record<string, string> = {
@@ -55,7 +57,7 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
   };
 
   // Filtrar presets para mostrar solo uno de cada tipo (excepto custom text)
-  const getFilteredPresets = () => {
+  const getMainPresets = () => {
     const seen = new Set<string>();
     return presets.filter(preset => {
       if (isCustomTextPreset(preset)) {
@@ -68,50 +70,202 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
     });
   };
 
+  // Obtener instancias de custom text
+  const getCustomTextInstances = () => {
+    return presets.filter(preset => isCustomTextPreset(preset));
+  };
+
+  const handleAddToLayer = (presetId: string, layerId: string) => {
+    if (onAddPresetToLayer) {
+      onAddPresetToLayer(presetId, layerId);
+    }
+    setActiveDropdown(null);
+  };
+
+  const toggleDropdown = (presetId: string) => {
+    setActiveDropdown(activeDropdown === presetId ? null : presetId);
+  };
+
+  // Cerrar dropdown al hacer click fuera
+  React.useEffect(() => {
+    const handleClickOutside = () => setActiveDropdown(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   if (!isOpen) return null;
 
+  const mainPresets = getMainPresets();
+  const customTextInstances = getCustomTextInstances();
+
   return (
-    <div className={`preset-gallery-overlay ${isDragging ? 'dragging' : ''}`} onClick={onClose}>
+    <div className="preset-gallery-overlay" onClick={onClose}>
       <div className="preset-gallery-modal" onClick={e => e.stopPropagation()}>
         
-        {/* Header con configuraciones */}
+        {/* Header */}
         <div className="preset-gallery-header">
           <h2>🎨 Presets Gallery</h2>
           <button className="close-button" onClick={onClose}>✕</button>
         </div>
 
         <div className="preset-gallery-content">
-          {/* Grid de presets */}
-          <div className="preset-gallery-grid">
-            {getFilteredPresets().map(preset => (
-              <div
-                key={preset.id}
-                className="preset-gallery-item preset-cell"
-                onClick={() => setSelected(preset)}
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.setData('text/plain', preset.id);
-                  setIsDragging(true);
-                  document.body.classList.add('preset-dragging');
-                }}
-                onDragEnd={() => {
-                  setIsDragging(false);
-                  document.body.classList.remove('preset-dragging');
-                }}
-              >
-                {preset.config.note !== undefined && (
-                  <div className="preset-note-badge">{preset.config.note}</div>
-                )}
-                <div className="preset-thumbnail">{getPresetThumbnail(preset)}</div>
-                <div className="preset-info">
-                  <div className="preset-name">{preset.config.name}</div>
-                  <div className="preset-details">
-                    <span className="preset-category">{preset.config.category}</span>
+          {/* Grid principal de presets */}
+          <div className="preset-gallery-section">
+            <h3>Presets Principales</h3>
+            <div className="preset-gallery-grid">
+              {mainPresets.map(preset => (
+                <div key={preset.id} className="preset-gallery-item-wrapper">
+                  <div
+                    className="preset-gallery-item preset-cell"
+                    onClick={() => setSelected(preset)}
+                  >
+                    {preset.config.note !== undefined && (
+                      <div className="preset-note-badge">{preset.config.note}</div>
+                    )}
+                    <div className="preset-thumbnail">{getPresetThumbnail(preset)}</div>
+                    <div className="preset-info">
+                      <div className="preset-name">{preset.config.name}</div>
+                      <div className="preset-details">
+                        <span className="preset-category">{preset.config.category}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Botón Add to... */}
+                  <div className="add-button-container">
+                    <button 
+                      className="add-to-button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleDropdown(preset.id);
+                      }}
+                    >
+                      Add to...
+                    </button>
+                    
+                    {/* Dropdown menu */}
+                    {activeDropdown === preset.id && (
+                      <div className="layer-dropdown" onClick={e => e.stopPropagation()}>
+                        <div 
+                          className="layer-option layer-a"
+                          onClick={() => handleAddToLayer(preset.id, 'A')}
+                        >
+                          <span className="layer-color" style={{backgroundColor: '#FF6B6B'}}></span>
+                          Layer A
+                        </div>
+                        <div 
+                          className="layer-option layer-b"
+                          onClick={() => handleAddToLayer(preset.id, 'B')}
+                        >
+                          <span className="layer-color" style={{backgroundColor: '#4ECDC4'}}></span>
+                          Layer B
+                        </div>
+                        <div 
+                          className="layer-option layer-c"
+                          onClick={() => handleAddToLayer(preset.id, 'C')}
+                        >
+                          <span className="layer-color" style={{backgroundColor: '#45B7D1'}}></span>
+                          Layer C
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Grid de instancias de Custom Text */}
+          {customTextInstances.length > 0 && (
+            <div className="preset-gallery-section">
+              <div className="custom-text-header">
+                <h3>Custom Text Instances</h3>
+                <div className="custom-text-config">
+                  <label>Cantidad:</label>
+                  <div className="count-controls">
+                    <button 
+                      onClick={() => handleCustomTextCountChange(Math.max(1, customTextCount - 1))}
+                      disabled={customTextCount <= 1}
+                    >
+                      -
+                    </button>
+                    <span className="count-display">{customTextCount}</span>
+                    <button 
+                      onClick={() => handleCustomTextCountChange(Math.min(10, customTextCount + 1))}
+                      disabled={customTextCount >= 10}
+                    >
+                      +
+                    </button>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+              
+              <div className="preset-gallery-grid custom-text-grid">
+                {customTextInstances.map(preset => (
+                  <div key={preset.id} className="preset-gallery-item-wrapper">
+                    <div
+                      className="preset-gallery-item preset-cell custom-text-cell"
+                      onClick={() => setSelected(preset)}
+                    >
+                      {preset.config.note !== undefined && (
+                        <div className="preset-note-badge">{preset.config.note}</div>
+                      )}
+                      <div className="preset-thumbnail">{getPresetThumbnail(preset)}</div>
+                      <div className="preset-info">
+                        <div className="preset-name">{preset.config.name}</div>
+                        <div className="preset-details">
+                          <span className="preset-category">{preset.config.category}</span>
+                        </div>
+                      </div>
+                      <div className="custom-text-preview">
+                        {preset.config.defaultConfig?.text?.content || 'TEXT'}
+                      </div>
+                    </div>
+                    
+                    {/* Botón Add to... para custom text */}
+                    <div className="add-button-container">
+                      <button 
+                        className="add-to-button custom-text-add"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleDropdown(preset.id);
+                        }}
+                      >
+                        Add to...
+                      </button>
+                      
+                      {/* Dropdown menu */}
+                      {activeDropdown === preset.id && (
+                        <div className="layer-dropdown" onClick={e => e.stopPropagation()}>
+                          <div 
+                            className="layer-option layer-a"
+                            onClick={() => handleAddToLayer(preset.id, 'A')}
+                          >
+                            <span className="layer-color" style={{backgroundColor: '#FF6B6B'}}></span>
+                            Layer A
+                          </div>
+                          <div 
+                            className="layer-option layer-b"
+                            onClick={() => handleAddToLayer(preset.id, 'B')}
+                          >
+                            <span className="layer-color" style={{backgroundColor: '#4ECDC4'}}></span>
+                            Layer B
+                          </div>
+                          <div 
+                            className="layer-option layer-c"
+                            onClick={() => handleAddToLayer(preset.id, 'C')}
+                          >
+                            <span className="layer-color" style={{backgroundColor: '#45B7D1'}}></span>
+                            Layer C
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Panel de controles */}
           <div className="preset-gallery-controls">
@@ -122,34 +276,6 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
                   <span className="preset-category-badge">{selected.config.category}</span>
                 </div>
                 
-                {/* Configuración especial para Custom Text */}
-                {isCustomTextPreset(selected) && (
-                  <div className="custom-text-config">
-                    <div className="config-section">
-                      <label>Cantidad de instancias de Custom Text:</label>
-                      <div className="count-controls">
-                        <button 
-                          onClick={() => handleCustomTextCountChange(Math.max(1, customTextCount - 1))}
-                          disabled={customTextCount <= 1}
-                        >
-                          -
-                        </button>
-                        <span className="count-display">{customTextCount}</span>
-                        <button 
-                          onClick={() => handleCustomTextCountChange(Math.min(10, customTextCount + 1))}
-                          disabled={customTextCount >= 10}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                    <div className="config-description">
-                      Se crearán {customTextCount} instancia{customTextCount > 1 ? 's' : ''} de Custom Text, 
-                      cada una con su propio texto configurable.
-                    </div>
-                  </div>
-                )}
-
                 {/* Controles por defecto del preset */}
                 <div className="default-controls">
                   <h4>Valores por defecto:</h4>
@@ -169,7 +295,7 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
                   <p>Haz click en un preset para ver sus controles y valores por defecto</p>
                   <div className="placeholder-instructions">
                     <div>• <strong>Click:</strong> Ver controles y configuración</div>
-                    <div>• <strong>Drag & Drop:</strong> Arrastrar al grid principal</div>
+                    <div>• <strong>Add to...:</strong> Añadir a una layer específica</div>
                   </div>
                 </div>
               </div>

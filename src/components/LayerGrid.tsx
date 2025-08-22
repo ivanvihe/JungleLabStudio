@@ -98,6 +98,35 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
     return !list.some((pid, idx) => pid && getBaseId(pid) === base && idx !== ignoreIndex);
   };
 
+  // Añadir un preset a una posición específica del layer
+  const addPresetToLayer = (layerId: string, presetId: string) => {
+    setLayerPresets(prev => {
+      const next = { ...prev };
+      const list = [...next[layerId]];
+      
+      // Buscar primer slot vacío
+      const emptyIndex = list.findIndex(slot => slot === null);
+      if (emptyIndex !== -1) {
+        // Verificar si se puede colocar
+        if (canPlace(list, presetId, emptyIndex)) {
+          list[emptyIndex] = presetId;
+          next[layerId] = list;
+          return next;
+        }
+      }
+      return prev;
+    });
+  };
+
+  // Exponer función para uso externo
+  React.useEffect(() => {
+    if ((window as any).addPresetToLayer) return;
+    (window as any).addPresetToLayer = addPresetToLayer;
+    return () => {
+      delete (window as any).addPresetToLayer;
+    };
+  }, []);
+
   const handleDragStart = (
     e: React.DragEvent<HTMLDivElement>,
     layerId: string,
@@ -106,7 +135,13 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
     const presetId = layerPresets[layerId][index];
     if (!presetId) return;
     
-    e.dataTransfer.setData('application/json', JSON.stringify({ layerId, index }));
+    e.dataTransfer.setData('application/json', JSON.stringify({ 
+      layerId, 
+      index,
+      presetId,
+      source: 'layer-grid'
+    }));
+    e.dataTransfer.effectAllowed = 'move';
     document.body.classList.add('preset-dragging');
   };
 
@@ -140,6 +175,7 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
   };
 
   const handleDrop = (
@@ -150,16 +186,16 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
     e.preventDefault();
     setDragTarget(null);
     
-    const data = e.dataTransfer.getData('application/json');
-    const presetId = e.dataTransfer.getData('text/plain');
+    const jsonData = e.dataTransfer.getData('application/json');
+    const plainData = e.dataTransfer.getData('text/plain');
 
-    // Drop desde preset gallery
-    if (presetId && !data) {
+    // Drop desde preset gallery (usando text/plain)
+    if (plainData && !jsonData) {
       setLayerPresets(prev => {
         const next = { ...prev };
         const list = [...next[targetLayerId]];
-        if (!canPlace(list, presetId, targetIndex)) return prev;
-        list[targetIndex] = presetId;
+        if (!canPlace(list, plainData, targetIndex)) return prev;
+        list[targetIndex] = plainData;
         next[targetLayerId] = list;
         return next;
       });
@@ -168,11 +204,13 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
     }
 
     // Drop interno (mover dentro del grid)
-    if (!data) return;
+    if (!jsonData) return;
     
     try {
-      const { layerId: sourceLayerId, index: sourceIndex } = JSON.parse(data);
-      if (sourceLayerId === undefined || sourceIndex === undefined) return;
+      const dragData = JSON.parse(jsonData);
+      const { layerId: sourceLayerId, index: sourceIndex, source } = dragData;
+      
+      if (source !== 'layer-grid' || sourceLayerId === undefined || sourceIndex === undefined) return;
 
       setLayerPresets(prev => {
         const next = { ...prev };
@@ -183,7 +221,7 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
           const [item] = list.splice(sourceIndex, 1);
           list.splice(targetIndex, 0, item);
           
-          // Asegurar que mantenemos el número correcto de slots
+          // Rellenar con nulls si es necesario
           while (list.length < SLOTS_PER_LAYER) {
             list.push(null);
           }

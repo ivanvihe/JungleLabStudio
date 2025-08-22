@@ -797,6 +797,36 @@ const App: React.FC = () => {
     }
   };
 
+  // Handler para añadir preset a layer desde la galería
+  const handleAddPresetToLayer = async (presetId: string, layerId: string) => {
+    if (!engineRef.current) return;
+    
+    try {
+      await engineRef.current.activateLayerPreset(layerId, presetId);
+      setActiveLayers(prev => ({ ...prev, [layerId]: presetId }));
+
+      const preset = availablePresets.find(p => p.id === presetId);
+      if (preset) {
+        const existing = layerPresetConfigs[layerId]?.[presetId];
+        if (existing) {
+          applyPresetConfig(engineRef.current, layerId, existing);
+        } else {
+          const cfg = engineRef.current.getLayerPresetConfig(layerId, presetId);
+          setLayerPresetConfigs(prev => ({
+            ...prev,
+            [layerId]: { ...(prev[layerId] || {}), [presetId]: cfg }
+          }));
+        }
+        setSelectedPreset(preset);
+        setSelectedLayer(layerId);
+        setStatus(`${preset.config.name} añadido a Layer ${layerId}`);
+      }
+    } catch (error) {
+      console.error('Error adding preset to layer:', error);
+      setStatus('Error al añadir preset');
+    }
+  };
+
   const getCurrentPresetName = (): string => {
     if (!selectedPreset) return 'Ninguno';
     return `${selectedPreset.config.name} (${selectedLayer || 'N/A'})`;
@@ -1032,6 +1062,7 @@ const App: React.FC = () => {
         presets={availablePresets}
         onCustomTextCountChange={handleCustomTextCountChange}
         currentCustomTextCount={glitchTextPads}
+        onAddPresetToLayer={handleAddPresetToLayer}
       />
     </div>
   );
