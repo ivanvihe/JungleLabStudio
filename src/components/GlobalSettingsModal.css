@@ -235,14 +235,14 @@
   font-weight: 500;
 }
 
-.layer-effect-settings {
+.effect-note-settings {
   display: flex;
   flex-direction: column;
   gap: 8px;
   margin-top: 8px;
 }
 
-.layer-effect-settings h5 {
+.effect-note-settings h5 {
   margin: 0;
   font-size: 14px;
   color: #ccc;

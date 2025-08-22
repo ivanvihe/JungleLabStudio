@@ -22,8 +22,9 @@ interface LayerGridProps {
   externalTrigger?: { layerId: string; presetId: string; velocity: number } | null;
   layerChannels: Record<string, number>;
   onOpenPresetGallery: () => void;
-  layerEffects: Record<string, { effect: string; midiNote: number; active: boolean }>;
+  layerEffects: Record<string, { effect: string; alwaysOn: boolean; active: boolean }>;
   onLayerEffectChange: (layerId: string, effect: string) => void;
+  onLayerEffectToggle: (layerId: string, alwaysOn: boolean) => void;
 }
 
 export const LayerGrid: React.FC<LayerGridProps> = ({
@@ -37,7 +38,8 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
   layerChannels,
   onOpenPresetGallery,
   layerEffects,
-  onLayerEffectChange
+  onLayerEffectChange,
+  onLayerEffectToggle
 }) => {
   const [layers, setLayers] = useState<LayerConfig[]>([
     { id: 'A', name: 'Layer A', color: '#FF6B6B', midiChannel: layerChannels.A || 14, fadeTime: 200, opacity: 100, activePreset: null },
@@ -424,6 +426,14 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
                 </option>
               ))}
             </select>
+            <label className="effect-always">
+              <input
+                type="checkbox"
+                checked={layerEffects[layer.id]?.alwaysOn}
+                onChange={(e) => onLayerEffectToggle(layer.id, e.target.checked)}
+              />
+              Always
+            </label>
           </div>
 
           {/* Layer Controls - 100x100 square */}

@@ -10,6 +10,7 @@ import { PresetGalleryModal } from './components/PresetGalleryModal';
 import { GlobalSettingsModal } from './components/GlobalSettingsModal';
 import { LoadedPreset, AudioData } from './core/PresetLoader';
 import { setNestedValue } from './utils/objectPath';
+import { AVAILABLE_EFFECTS } from './utils/effects';
 import './App.css';
 import './components/LayerGrid.css';
 
@@ -68,15 +69,38 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('layerMidiChannels');
     return saved ? JSON.parse(saved) : { A: 14, B: 15, C: 16 };
   });
-  const [layerEffects, setLayerEffects] = useState<Record<string, { effect: string; midiNote: number; active: boolean }>>(() => {
+  const [effectMidiNotes, setEffectMidiNotes] = useState<Record<string, number>>(() => {
     try {
-      const stored = localStorage.getItem('layerEffects');
+      const stored = localStorage.getItem('effectMidiNotes');
       if (stored) return JSON.parse(stored);
     } catch {}
+    const defaults: Record<string, number> = {};
+    AVAILABLE_EFFECTS.forEach((eff, idx) => {
+      if (eff !== 'none') defaults[eff] = 80 + idx;
+    });
+    return defaults;
+  });
+  const [layerEffects, setLayerEffects] = useState<Record<string, { effect: string; alwaysOn: boolean; active: boolean }>>(() => {
+    try {
+      const stored = localStorage.getItem('layerEffects');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const ensure = (layer: any) => ({
+          effect: layer?.effect || 'none',
+          alwaysOn: layer?.alwaysOn || false,
+          active: layer?.alwaysOn || false,
+        });
+        return {
+          A: ensure(parsed.A),
+          B: ensure(parsed.B),
+          C: ensure(parsed.C),
+        };
+      }
+    } catch {}
     return {
-      A: { effect: 'none', midiNote: 80, active: false },
-      B: { effect: 'none', midiNote: 81, active: false },
-      C: { effect: 'none', midiNote: 82, active: false }
+      A: { effect: 'none', alwaysOn: false, active: false },
+      B: { effect: 'none', alwaysOn: false, active: false },
+      C: { effect: 'none', alwaysOn: false, active: false },
     };
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -207,6 +231,14 @@ const App: React.FC = () => {
       console.warn('Failed to persist layer effects:', e);
     }
   }, [layerEffects]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('effectMidiNotes', JSON.stringify(effectMidiNotes));
+    } catch (e) {
+      console.warn('Failed to persist effect MIDI notes:', e);
+    }
+  }, [effectMidiNotes]);
 
   // Enumerar monitores disponibles usando Electron
   useEffect(() => {
@@ -399,17 +431,35 @@ const App: React.FC = () => {
       ) as Record<number, string>;
       const layerId = channelToLayer[channel];
 
+      const matchedEffect = Object.entries(effectMidiNotes).find(([, n]) => n === note)?.[0];
+
       if (command === 0x90 && vel > 0) {
-        if (layerId && layerEffects[layerId]?.midiNote === note) {
-          setLayerEffects(prev => ({ ...prev, [layerId]: { ...prev[layerId], active: true } }));
+        if (matchedEffect) {
+          setLayerEffects(prev => {
+            const updated = { ...prev };
+            Object.keys(prev).forEach(id => {
+              if (prev[id].effect === matchedEffect && !prev[id].alwaysOn) {
+                updated[id] = { ...prev[id], active: true };
+              }
+            });
+            return updated;
+          });
         }
         const preset = availablePresets.find(p => p.config.note === note);
         if (layerId && preset) {
           setMidiTrigger({ layerId, presetId: preset.id, velocity: vel });
         }
       } else if (command === 0x80 || (command === 0x90 && vel === 0)) {
-        if (layerId && layerEffects[layerId]?.midiNote === note) {
-          setLayerEffects(prev => ({ ...prev, [layerId]: { ...prev[layerId], active: false } }));
+        if (matchedEffect) {
+          setLayerEffects(prev => {
+            const updated = { ...prev };
+            Object.keys(prev).forEach(id => {
+              if (prev[id].effect === matchedEffect && !prev[id].alwaysOn) {
+                updated[id] = { ...prev[id], active: false };
+              }
+            });
+            return updated;
+          });
         }
       }
     };
@@ -748,18 +798,28 @@ const App: React.FC = () => {
     setClearSignal(prev => prev + 1);
     setStatus('Capas limpiadas');
     setLayerEffects(prev => ({
-      A: { ...prev.A, active: false },
-      B: { ...prev.B, active: false },
-      C: { ...prev.C, active: false }
+      A: { ...prev.A, active: prev.A.alwaysOn },
+      B: { ...prev.B, active: prev.B.alwaysOn },
+      C: { ...prev.C, active: prev.C.alwaysOn }
     }));
   };
 
   const handleLayerEffectChange = (layerId: string, effect: string) => {
-    setLayerEffects(prev => ({ ...prev, [layerId]: { ...prev[layerId], effect } }));
+    setLayerEffects(prev => ({
+      ...prev,
+      [layerId]: { ...prev[layerId], effect, active: prev[layerId].alwaysOn }
+    }));
   };
 
-  const handleLayerEffectNoteChange = (layerId: string, note: number) => {
-    setLayerEffects(prev => ({ ...prev, [layerId]: { ...prev[layerId], midiNote: note } }));
+  const handleLayerEffectToggle = (layerId: string, alwaysOn: boolean) => {
+    setLayerEffects(prev => ({
+      ...prev,
+      [layerId]: { ...prev[layerId], alwaysOn, active: alwaysOn }
+    }));
+  };
+
+  const handleEffectMidiNoteChange = (effect: string, note: number) => {
+    setEffectMidiNotes(prev => ({ ...prev, [effect]: note }));
   };
 
   const applyPresetConfig = (
@@ -1005,6 +1065,7 @@ const App: React.FC = () => {
           layerChannels={layerChannels}
           layerEffects={layerEffects}
           onLayerEffectChange={handleLayerEffectChange}
+          onLayerEffectToggle={handleLayerEffectToggle}
           onOpenPresetGallery={() => setPresetGalleryOpen(true)}
         />
       </div>
@@ -1106,9 +1167,8 @@ const App: React.FC = () => {
           setLayerChannels(updated);
           localStorage.setItem('layerMidiChannels', JSON.stringify(updated));
         }}
-        layerEffects={layerEffects}
-        onLayerEffectChange={handleLayerEffectChange}
-        onLayerEffectNoteChange={handleLayerEffectNoteChange}
+        effectMidiNotes={effectMidiNotes}
+        onEffectMidiNoteChange={handleEffectMidiNoteChange}
         monitors={monitors}
         monitorRoles={monitorRoles}
         onMonitorRoleChange={handleMonitorRoleChange}
