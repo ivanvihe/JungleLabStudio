@@ -162,8 +162,14 @@ class CustomGlitchTextPreset extends BasePreset {
     this.ctx = this.canvas.getContext('2d')!;
     this.texture = new THREE.Texture(this.canvas);
     this.texture.needsUpdate = true;
+    const cam = this.camera as THREE.PerspectiveCamera;
+    const distance = cam.position.z;
+    const vFov = THREE.MathUtils.degToRad(cam.fov);
+    const visibleHeight = 2 * Math.tan(vFov / 2) * distance;
+    const visibleWidth = visibleHeight * cam.aspect;
+    const planeHeight = visibleWidth / 4; // mantener proporción 4:1 del canvas
     this.mesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(2, 0.5),
+      new THREE.PlaneGeometry(visibleWidth, planeHeight),
       new THREE.MeshBasicMaterial({ map: this.texture, transparent: true, color: new THREE.Color(this.currentConfig.color) })
     );
     this.group.add(this.mesh);
@@ -182,6 +188,13 @@ class CustomGlitchTextPreset extends BasePreset {
       this.group.add(letter.glow);
       this.letters.push(letter);
     }
+    const cam = this.camera as THREE.PerspectiveCamera;
+    const distance = cam.position.z;
+    const vFov = THREE.MathUtils.degToRad(cam.fov);
+    const visibleHeight = 2 * Math.tan(vFov / 2) * distance;
+    const visibleWidth = visibleHeight * cam.aspect;
+    const scale = visibleWidth / totalWidth;
+    this.group.scale.set(scale, scale, 1);
     this.start = this.clock.getElapsedTime();
   }
 
