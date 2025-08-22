@@ -912,6 +912,7 @@ const App: React.FC = () => {
           }}
           clearAllSignal={clearSignal}
           layerChannels={layerChannels}
+          onOpenPresetGallery={() => setPresetGalleryOpen(true)}
         />
       </div>
 

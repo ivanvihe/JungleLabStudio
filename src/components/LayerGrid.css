@@ -179,7 +179,7 @@
 .preset-cell.empty-slot {
   background: transparent;
   border: 1px dashed #333;
-  cursor: default;
+  cursor: pointer;
 }
 
 .preset-cell.empty-slot:hover {
