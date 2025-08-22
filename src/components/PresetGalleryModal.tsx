@@ -16,23 +16,55 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
   presets
 }) => {
   const [selected, setSelected] = useState<LoadedPreset | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const getPresetThumbnail = (preset: LoadedPreset): string => {
+    const thumbnails: Record<string, string> = {
+      'neural_network': '🧠',
+      'abstract-lines': '📈',
+      'abstract-lines-pro': '📊',
+      'abstract-shapes': '🔷',
+      'evolutive-particles': '✨',
+      'boom-wave': '💥',
+      'plasma-ray': '⚡',
+      'shot-text': '📝',
+      'text-glitch': '🔤'
+    };
+    return thumbnails[preset.id] || '🎨';
+  };
 
   if (!isOpen) return null;
 
   return (
-    <div className="preset-gallery-overlay" onClick={onClose}>
+    <div className={`preset-gallery-overlay ${isDragging ? 'dragging' : ''}`} onClick={onClose}>
       <div className="preset-gallery-modal" onClick={e => e.stopPropagation()}>
         <div className="preset-gallery-grid">
           {presets.map(preset => (
             <div
               key={preset.id}
-              className="preset-gallery-item"
+              className="preset-gallery-item preset-cell"
               onClick={() => setSelected(preset)}
               draggable
-              onDragStart={(e) => e.dataTransfer.setData('text/plain', preset.id)}
+              onDragStart={(e) => {
+                e.dataTransfer.setData('text/plain', preset.id);
+                setIsDragging(true);
+                document.body.classList.add('preset-dragging');
+              }}
+              onDragEnd={() => {
+                setIsDragging(false);
+                document.body.classList.remove('preset-dragging');
+              }}
             >
-              <div className="preset-gallery-thumb">{preset.config.thumbnail || '🎨'}</div>
-              <div className="preset-gallery-name">{preset.config.name}</div>
+              {preset.config.note !== undefined && (
+                <div className="preset-note-badge">{preset.config.note}</div>
+              )}
+              <div className="preset-thumbnail">{getPresetThumbnail(preset)}</div>
+              <div className="preset-info">
+                <div className="preset-name">{preset.config.name}</div>
+                <div className="preset-details">
+                  <span className="preset-category">{preset.config.category}</span>
+                </div>
+              </div>
             </div>
           ))}
         </div>

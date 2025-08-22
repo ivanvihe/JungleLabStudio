@@ -93,6 +93,11 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
     index: number
   ) => {
     e.dataTransfer.setData('application/json', JSON.stringify({ layerId, index }));
+    document.body.classList.add('preset-dragging');
+  };
+
+  const handleDragEnd = () => {
+    document.body.classList.remove('preset-dragging');
   };
 
   const handleDragEnter = (
@@ -115,6 +120,21 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
     e.preventDefault();
     setDragTarget(null);
     const data = e.dataTransfer.getData('application/json');
+    const presetId = e.dataTransfer.getData('text/plain');
+
+    if (presetId) {
+      setLayerPresets(prev => {
+        const next = { ...prev };
+        const list = [...next[targetLayerId]];
+        if (!canPlace(list, presetId, targetIndex)) return prev;
+        list[targetIndex] = presetId;
+        next[targetLayerId] = list;
+        return next;
+      });
+      document.body.classList.remove('preset-dragging');
+      return;
+    }
+
     if (!data) return;
     const { layerId: sourceLayerId, index: sourceIndex } = JSON.parse(data);
     if (sourceLayerId === undefined) return;
@@ -144,6 +164,7 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
       next[targetLayerId] = targetList;
       return next;
     });
+    document.body.classList.remove('preset-dragging');
   };
 
   const handlePresetClick = (layerId: string, presetId: string, velocity?: number) => {
@@ -296,6 +317,7 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
                   onClick={() => handlePresetClick(layer.id, preset.id)}
                   draggable
                   onDragStart={(e) => handleDragStart(e, layer.id, idx)}
+                  onDragEnd={handleDragEnd}
                   onDragOver={handleDragOver}
                   onDragEnter={(e) => handleDragEnter(e, layer.id, idx)}
                   onDragLeave={handleDragLeave}

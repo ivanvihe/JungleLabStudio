@@ -178,6 +178,10 @@
   outline: 2px dashed #666;
 }
 
+body.preset-dragging .preset-cell {
+  outline: 2px dashed #444;
+}
+
 /* CORRECCIÓN 3: Thumbnail mejorado */
 .preset-thumbnail {
   width: 100%;
