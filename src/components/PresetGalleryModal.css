@@ -9,6 +9,12 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  transition: opacity 0.2s ease;
+}
+
+.preset-gallery-overlay.dragging {
+  opacity: 0.2;
+  pointer-events: none;
 }
 
 .preset-gallery-modal {
@@ -25,24 +31,16 @@
 .preset-gallery-grid {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
   gap: 10px;
   padding: 10px;
   overflow-y: auto;
+  justify-items: center;
 }
 
 .preset-gallery-item {
-  background: #333;
-  border-radius: 4px;
-  padding: 8px;
-  text-align: center;
   cursor: pointer;
   user-select: none;
-}
-
-.preset-gallery-thumb {
-  font-size: 32px;
-  margin-bottom: 4px;
 }
 
 .preset-gallery-controls {
