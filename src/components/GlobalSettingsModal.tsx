@@ -238,28 +238,28 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
           <button className="close-button" onClick={onClose}>✕</button>
         </div>
 
-        {/* Tabs */}
-        <div className="settings-tabs">
-          {[
-            { id: 'audio', label: 'Audio', icon: '🎵' },
-            { id: 'video', label: 'Rendimiento', icon: '🎮' },
-            { id: 'fullscreen', label: 'Monitores', icon: '🖥️' },
-            { id: 'visual', label: 'Visuales', icon: '🎨' },
-            { id: 'system', label: 'Sistema', icon: '🔧' }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              <span className="tab-icon">{tab.icon}</span>
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <div className="settings-main">
+          <div className="settings-sidebar">
+            {[
+              { id: 'audio', label: 'Audio', icon: '🎵' },
+              { id: 'video', label: 'Rendimiento', icon: '🎮' },
+              { id: 'fullscreen', label: 'Monitores', icon: '🖥️' },
+              { id: 'visual', label: 'Visuales', icon: '🎨' },
+              { id: 'system', label: 'Sistema', icon: '🔧' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                <span className="tab-icon">{tab.icon}</span>
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-        {/* Content */}
-        <div className="settings-content">
+          {/* Content */}
+          <div className="settings-content">
           {/* Audio Tab */}
           {activeTab === 'audio' && (
             <div className="settings-section">
@@ -889,9 +889,10 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
             </div>
           )}
         </div>
+      </div>
 
-        {/* Footer */}
-        <div className="settings-footer">
+      {/* Footer */}
+      <div className="settings-footer">
           <div className="settings-info">
             <span>💡 Los cambios se aplican automáticamente</span>
           </div>
