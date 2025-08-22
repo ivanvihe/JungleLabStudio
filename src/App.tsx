@@ -1118,41 +1118,43 @@ const App: React.FC = () => {
             }}
           />
         </div>
-        <div className={`controls-panel ${isControlsOpen ? '' : 'collapsed'}`}>
-          <button
-            className="toggle-sidebar"
-            onClick={() =>
-              setIsControlsOpen(prev => {
-                const next = !prev;
-                localStorage.setItem('sidebarCollapsed', (!next).toString());
-                return next;
-              })
-            }
-          >
-            {isControlsOpen ? '✕' : '⚙️'}
-          </button>
-          {isControlsOpen && selectedPreset && (
-            <PresetControls
-              preset={selectedPreset}
-              config={layerPresetConfigs[selectedLayer!]?.[selectedPreset.id]}
-              onChange={(path, value) => {
-                if (engineRef.current && selectedLayer && selectedPreset) {
-                  engineRef.current.updateLayerPresetConfig(selectedLayer, path, value);
-                  setLayerPresetConfigs(prev => {
-                    const layerMap = { ...(prev[selectedLayer] || {}) };
-                    const cfg = { ...(layerMap[selectedPreset.id] || {}) };
-                    setNestedValue(cfg, path, value);
-                    layerMap[selectedPreset.id] = cfg;
-                    return { ...prev, [selectedLayer]: layerMap };
-                  });
-                }
-              }}
-            />
-          )}
-          {isControlsOpen && !selectedPreset && (
-            <div className="no-preset-selected">Selecciona un preset</div>
-          )}
-        </div>
+        {!isPresetGalleryOpen && (
+          <div className={`controls-panel ${isControlsOpen ? '' : 'collapsed'}`}>
+            <button
+              className="toggle-sidebar"
+              onClick={() =>
+                setIsControlsOpen(prev => {
+                  const next = !prev;
+                  localStorage.setItem('sidebarCollapsed', (!next).toString());
+                  return next;
+                })
+              }
+            >
+              {isControlsOpen ? '✕' : '⚙️'}
+            </button>
+            {isControlsOpen && selectedPreset && (
+              <PresetControls
+                preset={selectedPreset}
+                config={layerPresetConfigs[selectedLayer!]?.[selectedPreset.id]}
+                onChange={(path, value) => {
+                  if (engineRef.current && selectedLayer && selectedPreset) {
+                    engineRef.current.updateLayerPresetConfig(selectedLayer, path, value);
+                    setLayerPresetConfigs(prev => {
+                      const layerMap = { ...(prev[selectedLayer] || {}) };
+                      const cfg = { ...(layerMap[selectedPreset.id] || {}) };
+                      setNestedValue(cfg, path, value);
+                      layerMap[selectedPreset.id] = cfg;
+                      return { ...prev, [selectedLayer]: layerMap };
+                    });
+                  }
+                }}
+              />
+            )}
+            {isControlsOpen && !selectedPreset && (
+              <div className="no-preset-selected">Selecciona un preset</div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Barra de estado */}
