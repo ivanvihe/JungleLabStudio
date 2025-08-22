@@ -20,6 +20,7 @@ interface LayerGridProps {
   clearAllSignal: number;
   externalTrigger?: { layerId: string; presetId: string; velocity: number } | null;
   layerChannels: Record<string, number>;
+  onOpenPresetGallery: () => void;
 }
 
 export const LayerGrid: React.FC<LayerGridProps> = ({
@@ -30,7 +31,8 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
   onPresetSelect,
   clearAllSignal,
   externalTrigger,
-  layerChannels
+  layerChannels,
+  onOpenPresetGallery
 }) => {
   const [layers, setLayers] = useState<LayerConfig[]>([
     { id: 'A', name: 'Layer A', color: '#FF6B6B', midiChannel: layerChannels.A || 14, fadeTime: 200, opacity: 100, activePreset: null },
@@ -402,6 +404,7 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
                   <div
                     key={`${layer.id}-empty-${idx}`}
                     className={`preset-cell empty-slot ${isDragOver ? 'drag-over' : ''}`}
+                    onClick={onOpenPresetGallery}
                     onDragOver={handleDragOver}
                     onDragEnter={(e) => handleDragEnter(e, layer.id, idx)}
                     onDragLeave={handleDragLeave}
