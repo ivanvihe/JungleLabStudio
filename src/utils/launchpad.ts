@@ -1,9 +1,10 @@
-export type LaunchpadPreset = 'spectrum' | 'pulse' | 'wave';
+export type LaunchpadPreset = 'spectrum' | 'pulse' | 'wave' | 'test';
 
 export const LAUNCHPAD_PRESETS: { id: LaunchpadPreset; label: string }[] = [
   { id: 'spectrum', label: 'Spectrum' },
   { id: 'pulse', label: 'Pulse' },
-  { id: 'wave', label: 'Wave' }
+  { id: 'wave', label: 'Wave' },
+  { id: 'test', label: 'Test' }
 ];
 
 /**
@@ -47,6 +48,19 @@ export function buildLaunchpadFrame(
         );
         for (let x = 0; x < 8; x++) {
           colors[y * 8 + x] = v;
+        }
+      }
+      break;
+    }
+    case 'test': {
+      const t = Date.now() / 200;
+      for (let y = 0; y < 8; y++) {
+        for (let x = 0; x < 8; x++) {
+          const fftIndex = (x + y * 8) % data.fft.length;
+          const v = data.fft[fftIndex] || 0;
+          const wave = (Math.sin(t + x / 2 + y / 3) + 1) / 2;
+          const color = Math.min(127, Math.floor(v * wave * 127));
+          colors[y * 8 + x] = color;
         }
       }
       break;

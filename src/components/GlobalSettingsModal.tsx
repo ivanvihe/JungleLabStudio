@@ -23,10 +23,13 @@ interface GlobalSettingsModalProps {
   onClose: () => void;
   audioDevices: DeviceOption[];
   midiDevices: DeviceOption[];
+  launchpadDevices: DeviceOption[];
   selectedAudioId: string | null;
   selectedMidiId: string | null;
+  selectedLaunchpadId: string | null;
   onSelectAudio: (id: string) => void;
   onSelectMidi: (id: string) => void;
+  onSelectLaunchpad: (id: string | null) => void;
   audioGain: number;
   onAudioGainChange: (value: number) => void;
   midiClockDelay: number;
@@ -73,10 +76,13 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   onClose,
   audioDevices,
   midiDevices,
+  launchpadDevices,
   selectedAudioId,
   selectedMidiId,
+  selectedLaunchpadId,
   onSelectAudio,
   onSelectMidi,
+  onSelectLaunchpad,
   audioGain,
   onAudioGainChange,
   midiClockDelay,
@@ -439,6 +445,22 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
           {activeTab === 'hardware' && (
             <div className="settings-section">
               <h3>🎛️ Hardware MIDI</h3>
+              <h4>LaunchPad Visuals</h4>
+
+              <div className="setting-group">
+                <label className="setting-label">
+                  <span>Selecciona LaunchPad</span>
+                  <select
+                    value={selectedLaunchpadId || ''}
+                    onChange={(e) => onSelectLaunchpad(e.target.value || null)}
+                  >
+                    <option value="">Ninguno</option>
+                    {launchpadDevices.map(d => (
+                      <option key={d.id} value={d.id}>{d.label}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
 
               <div className="setting-group">
                 <label className="setting-label">
