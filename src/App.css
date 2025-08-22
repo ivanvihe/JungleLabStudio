@@ -671,7 +671,7 @@ body {
 }
 
 .launchpad-preset-select {
-  background: rgba(255, 255, 255, 0.1);
+  background: #000;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 4px;
   color: #fff;
