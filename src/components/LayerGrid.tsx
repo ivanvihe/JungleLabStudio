@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LoadedPreset } from '../core/PresetLoader';
+import { AVAILABLE_EFFECTS } from '../utils/effects';
 
 interface LayerConfig {
   id: string;
@@ -21,6 +22,8 @@ interface LayerGridProps {
   externalTrigger?: { layerId: string; presetId: string; velocity: number } | null;
   layerChannels: Record<string, number>;
   onOpenPresetGallery: () => void;
+  layerEffects: Record<string, { effect: string; midiNote: number; active: boolean }>;
+  onLayerEffectChange: (layerId: string, effect: string) => void;
 }
 
 export const LayerGrid: React.FC<LayerGridProps> = ({
@@ -32,7 +35,9 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
   clearAllSignal,
   externalTrigger,
   layerChannels,
-  onOpenPresetGallery
+  onOpenPresetGallery,
+  layerEffects,
+  onLayerEffectChange
 }) => {
   const [layers, setLayers] = useState<LayerConfig[]>([
     { id: 'A', name: 'Layer A', color: '#FF6B6B', midiChannel: layerChannels.A || 14, fadeTime: 200, opacity: 100, activePreset: null },
@@ -402,51 +407,70 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
   return (
     <div className="layer-grid">
       {layers.map((layer) => (
-        <div key={layer.id} className="layer-section">
-          {/* Layer Controls - 100x100 square */}
+        <div
+          key={layer.id}
+          className={`layer-section ${layerEffects[layer.id]?.active ? `effect-${layerEffects[layer.id].effect}` : ''}`}
+        >
           <div
-            className="layer-sidebar"
-            style={{ borderLeftColor: layer.color }}
+            className={`layer-header ${layerEffects[layer.id]?.active ? 'effect-active' : ''}`}
           >
-            <div className="layer-letter" style={{ color: layer.color }}>
-              {layer.id}
-            </div>
-            <div className="midi-channel-label">CH {layer.midiChannel}</div>
-            <div className="sidebar-controls">
-              <input
-                type="range"
-                value={layer.opacity}
-                onChange={(e) =>
-                  handleLayerConfigChange(layer.id, 'opacity', parseInt(e.target.value))
-                }
-                className="opacity-slider"
-                min="0"
-                max="100"
-              />
-              <div className="fade-control">
-                <input
-                  type="number"
-                  value={layer.fadeTime}
-                  onChange={(e) =>
-                    handleLayerConfigChange(
-                      layer.id,
-                      'fadeTime',
-                      parseInt(e.target.value)
-                    )
-                  }
-                  className="fade-input"
-                  min="0"
-                  max="5000"
-                  step="50"
-                />
-                <span className="unit">ms</span>
-              </div>
-            </div>
+            <select
+              value={layerEffects[layer.id]?.effect}
+              onChange={(e) => onLayerEffectChange(layer.id, e.target.value)}
+            >
+              {AVAILABLE_EFFECTS.map((eff) => (
+                <option key={eff} value={eff}>
+                  {eff}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Preset Grid con slots fijos */}
-          <div className="preset-grid">
-            {layerPresets[layer.id].map((presetId, idx) => {
+          {/* Layer Controls - 100x100 square */}
+          <div className="layer-content">
+            <div
+              className="layer-sidebar"
+              style={{ borderLeftColor: layer.color }}
+            >
+              <div className="layer-letter" style={{ color: layer.color }}>
+                {layer.id}
+              </div>
+              <div className="midi-channel-label">CH {layer.midiChannel}</div>
+              <div className="sidebar-controls">
+                <input
+                  type="range"
+                  value={layer.opacity}
+                  onChange={(e) =>
+                    handleLayerConfigChange(layer.id, 'opacity', parseInt(e.target.value))
+                  }
+                  className="opacity-slider"
+                  min="0"
+                  max="100"
+                />
+                <div className="fade-control">
+                  <input
+                    type="number"
+                    value={layer.fadeTime}
+                    onChange={(e) =>
+                      handleLayerConfigChange(
+                        layer.id,
+                        'fadeTime',
+                        parseInt(e.target.value)
+                      )
+                    }
+                    className="fade-input"
+                    min="0"
+                    max="5000"
+                    step="50"
+                  />
+                  <span className="unit">ms</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Preset Grid con slots fijos */}
+            <div className="preset-grid">
+              {layerPresets[layer.id].map((presetId, idx) => {
               // Slot vacío
               if (!presetId) {
                 const isDragOver = dragTarget?.layerId === layer.id && dragTarget.index === idx;
@@ -520,6 +544,7 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
               );
             })}
           </div>
+        </div>
         </div>
       ))}
     </div>
