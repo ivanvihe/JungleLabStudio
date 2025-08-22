@@ -452,6 +452,16 @@ export class AudioVisualizerEngine {
     return this.presetLoader.getLoadedPresets();
   }
 
+  public async updateGenLabPresets(presets: { name: string; config: any }[]): Promise<LoadedPreset[]> {
+    this.presetLoader.setGenLabPresets(presets);
+    await this.presetLoader.loadAllPresets();
+    return this.presetLoader.getLoadedPresets();
+  }
+
+  public getGenLabBasePreset(): LoadedPreset | null {
+    return this.presetLoader.getGenLabBasePreset();
+  }
+
   public updateAudioData(audioData: AudioData): void {
     this.presetLoader.updateAudioData(audioData);
   }
