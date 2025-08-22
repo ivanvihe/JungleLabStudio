@@ -12,11 +12,13 @@ export const config: PresetConfig = {
   note: 70,
   defaultConfig: {
     speed: 0.5,
-    color: '#3366ff'
+    color: '#3366ff',
+    height: 5
   },
   controls: [
     { name: 'speed', type: 'slider', label: 'Speed', min: 0.1, max: 2.0, step: 0.1, default: 0.5 },
-    { name: 'color', type: 'color', label: 'Color', default: '#3366ff' }
+    { name: 'color', type: 'color', label: 'Color', default: '#3366ff' },
+    { name: 'height', type: 'slider', label: 'Tunnel Radius', min: 2, max: 10, step: 0.5, default: 5 }
   ],
   audioMapping: {},
   performance: { complexity: 'low', recommendedFPS: 60, gpuIntensive: false }
@@ -34,10 +36,11 @@ class AmbientTunnelPreset extends BasePreset {
   init(): void {
     this.renderer.setClearColor(0x000000, 1);
     for (let i = 0; i < 20; i++) {
-      const geo = new THREE.TorusGeometry(5, 0.05, 16, 64);
+      const geo = new THREE.TorusGeometry(1, 0.05, 16, 64);
       const mat = new THREE.MeshBasicMaterial({ color: this.currentConfig.color, transparent: true, opacity: 0.3 });
       const ring = new THREE.Mesh(geo, mat);
       ring.rotation.x = Math.PI / 2;
+      ring.scale.setScalar(this.currentConfig.height);
       ring.position.z = -i * 2;
       this.scene.add(ring);
       this.rings.push(ring);
@@ -56,6 +59,9 @@ class AmbientTunnelPreset extends BasePreset {
     this.currentConfig = { ...this.currentConfig, ...newConfig };
     if (newConfig.color) {
       this.rings.forEach(r => (r.material as THREE.MeshBasicMaterial).color.set(newConfig.color));
+    }
+    if (newConfig.height !== undefined) {
+      this.rings.forEach(r => r.scale.setScalar(this.currentConfig.height));
     }
   }
 
