@@ -56,7 +56,16 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
                 className="control-slider"
                 disabled={isReadOnly}
               />
-              <span className="slider-value">{value}</span>
+              <input
+                type="number"
+                min={control.min}
+                max={control.max}
+                step={control.step}
+                value={value}
+                onChange={(e) => handleControlChange(control.name, parseFloat(e.target.value))}
+                className="slider-number"
+                disabled={isReadOnly}
+              />
             </div>
           </div>
         );
