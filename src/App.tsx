@@ -57,7 +57,7 @@ const App: React.FC = () => {
   const [midiActive, setMidiActive] = useState(false);
   const [bpm, setBpm] = useState<number | null>(null);
   const [beatActive, setBeatActive] = useState(false);
-  const [midiTrigger, setMidiTrigger] = useState<{layerId: string; presetId: string} | null>(null);
+  const [midiTrigger, setMidiTrigger] = useState<{layerId: string; presetId: string; velocity: number} | null>(null);
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [audioDeviceId, setAudioDeviceId] = useState<string | null>(null);
   const [audioGain, setAudioGain] = useState(1);
@@ -357,7 +357,7 @@ const App: React.FC = () => {
         const layerId = channelToLayer[channel];
         const preset = availablePresets.find(p => p.config.note === note);
         if (layerId && preset) {
-          setMidiTrigger({ layerId, presetId: preset.id });
+          setMidiTrigger({ layerId, presetId: preset.id, velocity: vel });
         }
       }
     };
@@ -820,7 +820,7 @@ const App: React.FC = () => {
         <LayerGrid
           presets={availablePresets}
           externalTrigger={midiTrigger}
-          onPresetActivate={async (layerId, presetId) => {
+          onPresetActivate={async (layerId, presetId, velocity) => {
             if (engineRef.current) {
               await engineRef.current.activateLayerPreset(layerId, presetId);
               setActiveLayers(prev => ({ ...prev, [layerId]: presetId }));
