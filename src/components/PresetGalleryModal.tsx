@@ -247,7 +247,7 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
               </div>
 
               {selected ? (
-                <div className="controls-panel">
+                <div className="gallery-controls-panel">
                   <div className="controls-header">
                     <h3>{selected.config.name}</h3>
                     <span className="preset-category-badge">{selected.config.category}</span>

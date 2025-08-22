@@ -312,21 +312,20 @@
 
 /* Overrides for main preset list */
 .preset-gallery-main-grid {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-auto-rows: 112px;
+  width: 100px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
   gap: 15px;
   overflow-y: auto;
   height: 100%;
-  max-height: none;
   padding: 10px;
   background: #0F0F0F;
-  border-radius: 8px;
+  border-radius: 8px 0 0 8px;
 }
 
 .preset-gallery-main-grid .preset-gallery-item {
-  width: 80%;
+  width: 80px;
   height: 80px;
   margin: 0 auto;
 }
@@ -427,10 +426,6 @@
   background: #1a1a1a;
 }
 
-.controls-panel {
-  padding: 20px;
-  height: 100%;
-}
 
 .controls-header {
   display: flex;
@@ -525,37 +520,36 @@
 
 /* Scrollbars */
 .preset-gallery-grid::-webkit-scrollbar,
-.controls-panel::-webkit-scrollbar {
+.gallery-controls-panel::-webkit-scrollbar {
   width: 8px;
 }
 
 .preset-gallery-grid::-webkit-scrollbar-track,
-.controls-panel::-webkit-scrollbar-track {
+.gallery-controls-panel::-webkit-scrollbar-track {
   background: #111;
   border-radius: 4px;
 }
 
 .preset-gallery-grid::-webkit-scrollbar-thumb,
-.controls-panel::-webkit-scrollbar-thumb {
+.gallery-controls-panel::-webkit-scrollbar-thumb {
   background: #333;
   border-radius: 4px;
 }
 
 .preset-gallery-grid::-webkit-scrollbar-thumb:hover,
-.controls-panel::-webkit-scrollbar-thumb:hover {
+.gallery-controls-panel::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
 
 /* Layout elements */
-.controls-panel,
+.gallery-controls-panel,
 .preset-gallery-placeholder {
-  width: 300px;
-  flex-shrink: 0;
+  flex: 1;
   border-left: 1px solid #444;
   background: #1a1a1a;
 }
 
-.controls-panel {
+.gallery-controls-panel {
   padding: 20px;
   height: 100%;
   overflow-y: auto;
