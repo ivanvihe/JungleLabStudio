@@ -34,7 +34,7 @@ class AmbientTunnelPreset extends BasePreset {
   }
 
   init(): void {
-    this.renderer.setClearColor(0x000000, 1);
+    this.renderer.setClearColor(0x000000, 0);
     for (let i = 0; i < 20; i++) {
       const geo = new THREE.TorusGeometry(1, 0.05, 16, 64);
       const mat = new THREE.MeshBasicMaterial({ color: this.currentConfig.color, transparent: true, opacity: 0.3 });

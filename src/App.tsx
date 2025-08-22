@@ -180,14 +180,19 @@ const App: React.FC = () => {
       if ((window as any).electronAPI?.getDisplays) {
         try {
           const displays = await (window as any).electronAPI.getDisplays();
-          const mapped: MonitorInfo[] = displays.map((d: any) => ({
-            id: d.id.toString(),
-            label: `${d.label} (${d.bounds.width}x${d.bounds.height})`,
-            position: { x: d.bounds.x, y: d.bounds.y },
-            size: { width: d.bounds.width, height: d.bounds.height },
-            isPrimary: d.primary,
-            scaleFactor: d.scaleFactor || 1
-          }));
+          const mapped: MonitorInfo[] = displays.map((d: any) => {
+            const scale = d.scaleFactor || 1;
+            const width = d.bounds.width * scale;
+            const height = d.bounds.height * scale;
+            return {
+              id: d.id.toString(),
+              label: `${d.label} (${width}x${height})`,
+              position: { x: d.bounds.x, y: d.bounds.y },
+              size: { width, height },
+              isPrimary: d.primary,
+              scaleFactor: scale
+            };
+          });
           mapped.sort((a, b) => {
             if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
             return a.position.x - b.position.x;

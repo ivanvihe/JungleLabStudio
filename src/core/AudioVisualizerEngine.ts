@@ -188,16 +188,8 @@ export class AudioVisualizerEngine {
   }
 
   private updateSize(): void {
-    const rect = this.canvas.getBoundingClientRect();
-    let width = rect.width;
-    let height = rect.height;
-
-    // Al ir a fullscreen el canvas puede reportar 0x0 temporalmente.
-    // Evitamos propagar esos valores para no crear render targets inválidos.
-    if (width === 0 || height === 0) {
-      width = window.innerWidth;
-      height = window.innerHeight;
-    }
+    const width = window.innerWidth;
+    const height = window.innerHeight;
     const pixelRatio = Math.min(window.devicePixelRatio, 2);
     const visualScale = parseFloat(localStorage.getItem('visualScale') || '1');
     const scaledWidth = width * visualScale;
