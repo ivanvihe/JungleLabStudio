@@ -11,7 +11,13 @@ import { GlobalSettingsModal } from './components/GlobalSettingsModal';
 import { LoadedPreset, AudioData } from './core/PresetLoader';
 import { setNestedValue } from './utils/objectPath';
 import { AVAILABLE_EFFECTS } from './utils/effects';
-import { buildLaunchpadFrame, LaunchpadPreset, isLaunchpadDevice, gridIndexToNote } from './utils/launchpad';
+import {
+  buildLaunchpadFrame,
+  LaunchpadPreset,
+  isLaunchpadDevice,
+  gridIndexToNote,
+  canvasToLaunchpadFrame
+} from './utils/launchpad';
 import './App.css';
 import './components/LayerGrid.css';
 
@@ -31,6 +37,7 @@ const App: React.FC = () => {
   const lastBeatRef = useRef<number | null>(null);
   const bpmSamplesRef = useRef<number[]>([]);
   const broadcastRef = useRef<BroadcastChannel | null>(null);
+  const launchpadPrevFrameRef = useRef<number[]>(new Array(64).fill(0));
   
   const [isInitialized, setIsInitialized] = useState(false);
   const [availablePresets, setAvailablePresets] = useState<LoadedPreset[]>([]);
@@ -97,6 +104,7 @@ const App: React.FC = () => {
   const [launchpadPreset, setLaunchpadPreset] = useState<LaunchpadPreset>('spectrum');
   const [launchpadChannel, setLaunchpadChannel] = useState(() => parseInt(localStorage.getItem('launchpadChannel') || '1'));
   const [launchpadNote, setLaunchpadNote] = useState(() => parseInt(localStorage.getItem('launchpadNote') || '60'));
+  const [launchpadSmoothness, setLaunchpadSmoothness] = useState(() => parseFloat(localStorage.getItem('launchpadSmoothness') || '0'));
   const [layerEffects, setLayerEffects] = useState<Record<string, { effect: string; alwaysOn: boolean; active: boolean }>>(() => {
     try {
       const stored = localStorage.getItem('layerEffects');
@@ -269,6 +277,10 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('launchpadNote', launchpadNote.toString());
   }, [launchpadNote]);
+
+  useEffect(() => {
+    localStorage.setItem('launchpadSmoothness', launchpadSmoothness.toString());
+  }, [launchpadSmoothness]);
 
   // Enumerar monitores disponibles usando Electron
   useEffect(() => {
@@ -655,14 +667,26 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!launchpadRunning || !launchpadOutput) return;
-
-    const frame = buildLaunchpadFrame(launchpadPreset, audioData);
+    const rawFrame =
+      launchpadPreset === 'canvas'
+        ? canvasRef.current
+          ? canvasToLaunchpadFrame(canvasRef.current)
+          : new Array(64).fill(0)
+        : buildLaunchpadFrame(launchpadPreset, audioData);
 
     // 🔥 DEBUG CRUCIAL: Verificar que frame tiene 64 elementos
-    if (frame.length !== 64) {
-      console.error(`❌ ERROR: buildLaunchpadFrame devolvió ${frame.length} elementos, debería ser 64!`);
+    if (rawFrame.length !== 64) {
+      console.error(`❌ ERROR: buildLaunchpadFrame devolvió ${rawFrame.length} elementos, debería ser 64!`);
       return;
     }
+
+    const prev = launchpadPrevFrameRef.current;
+    const alpha = 1 - Math.min(0.99, launchpadSmoothness);
+    const frame = rawFrame.map((value, i) => {
+      const smoothed = prev[i] + (value - prev[i]) * alpha;
+      prev[i] = smoothed;
+      return Math.round(smoothed);
+    });
 
     // Debug: mostrar algunos valores del frame
     const nonZeroCount = frame.filter(c => c > 0).length;
@@ -678,7 +702,7 @@ const App: React.FC = () => {
       }
     });
 
-  }, [audioData, launchpadRunning, launchpadPreset, launchpadOutput]);
+  }, [audioData, launchpadRunning, launchpadPreset, launchpadOutput, launchpadSmoothness]);
 
   useEffect(() => {
     if (launchpadRunning && launchpadOutput) {
@@ -1450,6 +1474,8 @@ const App: React.FC = () => {
         onLaunchpadChannelChange={setLaunchpadChannel}
         launchpadNote={launchpadNote}
         onLaunchpadNoteChange={setLaunchpadNote}
+        launchpadSmoothness={launchpadSmoothness}
+        onLaunchpadSmoothnessChange={setLaunchpadSmoothness}
         monitors={monitors}
         monitorRoles={monitorRoles}
         onMonitorRoleChange={handleMonitorRoleChange}
