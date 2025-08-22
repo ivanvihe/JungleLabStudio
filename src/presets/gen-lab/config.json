@@ -1,0 +1,38 @@
+{
+  "name": "Gen Lab",
+  "description": "Generative cloud laboratory with multiple modes",
+  "author": "AudioVisualizer",
+  "version": "1.0.0",
+  "category": "generative",
+  "tags": ["cloud", "vapor", "skybox", "noise", "audio-reactive"],
+  "thumbnail": "gen_lab_thumb.png",
+  "defaultConfig": {
+    "opacity": 1.0,
+    "variant": "cloud",
+    "noiseScale": 1.5,
+    "speed": 0.2,
+    "color1": "#ff8a00",
+    "color2": "#4e00ff",
+    "radialBlur": 0.4,
+    "uvDistort": 0.2
+  },
+  "controls": [
+    { "name": "variant", "type": "select", "label": "Variant", "options": ["cloud", "vapor", "skybox"], "default": "cloud" },
+    { "name": "noiseScale", "type": "slider", "label": "Noise Scale", "min": 0.5, "max": 5.0, "step": 0.1, "default": 1.5 },
+    { "name": "speed", "type": "slider", "label": "Speed", "min": 0.0, "max": 2.0, "step": 0.01, "default": 0.2 },
+    { "name": "color1", "type": "color", "label": "Color 1", "default": "#ff8a00" },
+    { "name": "color2", "type": "color", "label": "Color 2", "default": "#4e00ff" },
+    { "name": "radialBlur", "type": "slider", "label": "Radial Blur", "min": 0.0, "max": 1.0, "step": 0.01, "default": 0.4 },
+    { "name": "uvDistort", "type": "slider", "label": "UV Distortion", "min": 0.0, "max": 1.0, "step": 0.01, "default": 0.2 }
+  ],
+  "audioMapping": {
+    "low": { "description": "Modula densidad del ruido", "frequency": "20-250 Hz", "effect": "Noise density" },
+    "mid": { "description": "Desplazamiento UV y profundidad", "frequency": "250-4000 Hz", "effect": "Distortion & depth" },
+    "high": { "description": "Remolinos y cambio de color", "frequency": "4000+ Hz", "effect": "Color swirl" }
+  },
+  "performance": {
+    "complexity": "medium",
+    "recommendedFPS": 60,
+    "gpuIntensive": false
+  }
+}
