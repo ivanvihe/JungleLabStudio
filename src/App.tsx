@@ -503,7 +503,7 @@ const App: React.FC = () => {
     };
 
     if ((navigator as any).requestMIDIAccess) {
-      (navigator as any).requestMIDIAccess()
+      (navigator as any).requestMIDIAccess({ sysex: true })
         .then((access: any) => {
           const inputs = Array.from(access.inputs.values());
           setMidiDevices(inputs);
@@ -661,7 +661,11 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (launchpadRunning && launchpadOutput) {
-      launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x0e, 0x0d, 0x01, 0xf7]);
+      try {
+        launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x0e, 0x0d, 0x01, 0xf7]);
+      } catch (err) {
+        console.error('Launchpad handshake failed', err);
+      }
     }
   }, [launchpadRunning, launchpadOutput]);
 
@@ -673,8 +677,11 @@ const App: React.FC = () => {
         const layers = JSON.parse(stored) as Record<string, string>;
         Object.entries(layers).forEach(([layerId, presetId]) => {
           engineRef.current!.activateLayerPreset(layerId, presetId);
+        })
+        .catch((err: any) => {
+          console.error('Failed to access MIDI devices', err);
         });
-      }
+    }
     }
   }, [isFullscreenMode, isInitialized]);
 
