@@ -16,7 +16,8 @@ import {
   LaunchpadPreset,
   isLaunchpadDevice,
   gridIndexToNote,
-  canvasToLaunchpadFrame
+  canvasToLaunchpadFrame,
+  LAUNCHPAD_PRESETS
 } from './utils/launchpad';
 import './App.css';
 import './components/LayerGrid.css';
@@ -105,6 +106,7 @@ const App: React.FC = () => {
   const [launchpadChannel, setLaunchpadChannel] = useState(() => parseInt(localStorage.getItem('launchpadChannel') || '1'));
   const [launchpadNote, setLaunchpadNote] = useState(() => parseInt(localStorage.getItem('launchpadNote') || '60'));
   const [launchpadSmoothness, setLaunchpadSmoothness] = useState(() => parseFloat(localStorage.getItem('launchpadSmoothness') || '0'));
+  const [launchpadText, setLaunchpadText] = useState(() => localStorage.getItem('launchpadText') || 'HELLO');
   const [layerEffects, setLayerEffects] = useState<Record<string, { effect: string; alwaysOn: boolean; active: boolean }>>(() => {
     try {
       const stored = localStorage.getItem('layerEffects');
@@ -281,6 +283,10 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('launchpadSmoothness', launchpadSmoothness.toString());
   }, [launchpadSmoothness]);
+
+  useEffect(() => {
+    localStorage.setItem('launchpadText', launchpadText);
+  }, [launchpadText]);
 
   // Enumerar monitores disponibles usando Electron
   useEffect(() => {
@@ -672,7 +678,7 @@ const App: React.FC = () => {
         ? canvasRef.current
           ? canvasToLaunchpadFrame(canvasRef.current)
           : new Array(64).fill(0)
-        : buildLaunchpadFrame(launchpadPreset, audioData);
+        : buildLaunchpadFrame(launchpadPreset, audioData, { text: launchpadText });
 
     // 🔥 DEBUG CRUCIAL: Verificar que frame tiene 64 elementos
     if (rawFrame.length !== 64) {
@@ -702,7 +708,7 @@ const App: React.FC = () => {
       }
     });
 
-  }, [audioData, launchpadRunning, launchpadPreset, launchpadOutput, launchpadSmoothness]);
+  }, [audioData, launchpadRunning, launchpadPreset, launchpadOutput, launchpadSmoothness, launchpadText]);
 
   useEffect(() => {
     if (launchpadRunning && launchpadOutput) {
@@ -1530,6 +1536,13 @@ const App: React.FC = () => {
         onGenLabPresetsChange={handleGenLabPresetsChange}
         onAddPresetToLayer={handleAddPresetToLayer}
         onRemovePresetFromLayer={handleRemovePresetFromLayer}
+        launchpadPresets={LAUNCHPAD_PRESETS}
+        launchpadPreset={launchpadPreset}
+        onLaunchpadPresetChange={setLaunchpadPreset}
+        launchpadRunning={launchpadRunning}
+        onToggleLaunchpad={() => setLaunchpadRunning(r => !r)}
+        launchpadText={launchpadText}
+        onLaunchpadTextChange={setLaunchpadText}
       />
     </div>
   );

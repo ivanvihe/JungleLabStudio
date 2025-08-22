@@ -5,7 +5,8 @@ export type LaunchpadPreset =
   | 'test'
   | 'rainbow'
   | 'snake'
-  | 'canvas';
+  | 'canvas'
+  | 'custom-text';
 
 export const LAUNCHPAD_PRESETS: { id: LaunchpadPreset; label: string }[] = [
   { id: 'spectrum', label: 'Spectrum' },
@@ -14,11 +15,14 @@ export const LAUNCHPAD_PRESETS: { id: LaunchpadPreset; label: string }[] = [
   { id: 'test', label: 'Test Pattern' },
   { id: 'rainbow', label: 'Rainbow' },
   { id: 'snake', label: 'Snake' },
-  { id: 'canvas', label: 'Canvas' }
+  { id: 'canvas', label: 'Canvas' },
+  { id: 'custom-text', label: 'Custom Text' }
 ];
 
 const GRID_SIZE = 8;
 const GRID_LEN = GRID_SIZE * GRID_SIZE;
+
+let textCanvas: HTMLCanvasElement | null = null;
 
 /**
  * Determine whether a given MIDI port belongs to a Novation Launchpad.
@@ -90,7 +94,8 @@ export function canvasToLaunchpadFrame(canvas: HTMLCanvasElement): number[] {
  */
 export function buildLaunchpadFrame(
   preset: LaunchpadPreset,
-  data: { fft: number[]; low: number; mid: number; high: number }
+  data: { fft: number[]; low: number; mid: number; high: number },
+  options?: { text?: string }
 ): number[] {
   // 🔥 CRÍTICO: Siempre inicializar con exactamente 64 elementos (8x8 grid)
   const colors = new Array(GRID_LEN).fill(0);
@@ -216,6 +221,35 @@ export function buildLaunchpadFrame(
         // Solo actualizar si el nuevo color es más brillante
         if (colors[gridIndex] < intensity) {
           colors[gridIndex] = intensity;
+        }
+      }
+      break;
+    }
+    case 'custom-text': {
+      const message = (options?.text || '').toUpperCase();
+      if (!message) break;
+
+      if (!textCanvas) {
+        textCanvas = document.createElement('canvas');
+        textCanvas.height = GRID_SIZE;
+      }
+      const ctx = textCanvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) break;
+
+      ctx.font = '8px monospace';
+      const textWidth = Math.ceil(ctx.measureText(message).width);
+      textCanvas.width = textWidth + GRID_SIZE;
+      ctx.clearRect(0, 0, textCanvas.width, GRID_SIZE);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(message, 0, 7);
+      const img = ctx.getImageData(0, 0, textCanvas.width, GRID_SIZE).data;
+      const shift = Math.floor((Date.now() / 100) % textCanvas.width);
+      for (let y = 0; y < GRID_SIZE; y++) {
+        for (let x = 0; x < GRID_SIZE; x++) {
+          const srcX = (x + shift) % textCanvas.width;
+          const idx = (y * textCanvas.width + srcX) * 4;
+          const v = img[idx];
+          colors[y * GRID_SIZE + x] = v > 128 ? 100 : 0;
         }
       }
       break;

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { LAUNCHPAD_PRESETS, LaunchpadPreset } from '../utils/launchpad';
 import { LoadedPreset } from '../core/PresetLoader';
 import { PresetControls } from './PresetControls';
 import { setNestedValue } from '../utils/objectPath';
@@ -17,6 +18,13 @@ interface PresetGalleryModalProps {
   onGenLabPresetsChange?: (presets: { name: string; config: any }[]) => void;
   onAddPresetToLayer?: (presetId: string, layerId: string) => void;
   onRemovePresetFromLayer?: (presetId: string, layerId: string) => void;
+  launchpadPresets?: { id: LaunchpadPreset; label: string }[];
+  launchpadPreset?: LaunchpadPreset;
+  onLaunchpadPresetChange?: (preset: LaunchpadPreset) => void;
+  launchpadRunning?: boolean;
+  onToggleLaunchpad?: () => void;
+  launchpadText?: string;
+  onLaunchpadTextChange?: (text: string) => void;
 }
 
 export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
@@ -29,10 +37,17 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
   genLabBasePreset,
   onGenLabPresetsChange,
   onAddPresetToLayer,
-  onRemovePresetFromLayer
+  onRemovePresetFromLayer,
+  launchpadPresets = LAUNCHPAD_PRESETS,
+  launchpadPreset,
+  onLaunchpadPresetChange,
+  launchpadRunning,
+  onToggleLaunchpad,
+  launchpadText,
+  onLaunchpadTextChange
 }) => {
   const [selected, setSelected] = useState<LoadedPreset | null>(null);
-  const [activeTab, setActiveTab] = useState<'main' | 'templates'>('main');
+  const [activeTab, setActiveTab] = useState<'main' | 'templates' | 'launchpad'>('main');
   const [activeTemplate, setActiveTemplate] = useState<'custom-text' | 'gen-lab' | null>(null);
   const [templateCount, setTemplateCount] = useState(customTextTemplate.count);
   const [templateTexts, setTemplateTexts] = useState<string[]>(() => {
@@ -48,6 +63,7 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
   }));
   const [editingGenLabIndex, setEditingGenLabIndex] = useState<number | null>(null);
   const [isGenLabModalOpen, setGenLabModalOpen] = useState(false);
+  const [selectedLaunchpad, setSelectedLaunchpad] = useState<LaunchpadPreset | null>(null);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -58,6 +74,12 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
       setTemplateTexts(arr);
     }
   }, [isOpen, customTextTemplate]);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setSelectedLaunchpad(launchpadPreset || null);
+    }
+  }, [isOpen, launchpadPreset]);
 
   const getPresetThumbnail = (preset: LoadedPreset): string => {
     const thumbnails: Record<string, string> = {
@@ -73,6 +95,20 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
       'custom-glitch-text': '📝'
     };
     return thumbnails[preset.id] || thumbnails[preset.id.split('-')[0]] || '🎨';
+  };
+
+  const getLaunchpadThumbnail = (id: LaunchpadPreset): string => {
+    const icons: Record<LaunchpadPreset, string> = {
+      spectrum: '📊',
+      pulse: '💓',
+      wave: '🌊',
+      test: '🧪',
+      rainbow: '🌈',
+      snake: '🐍',
+      canvas: '🖼️',
+      'custom-text': '🔤'
+    };
+    return icons[id] || '🎹';
   };
 
   const handleSaveGenLabPreset = (preset: { name: string; config: any }) => {
@@ -214,6 +250,7 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
         <div className="preset-gallery-tabs">
           <button className={`tab-button ${activeTab === 'main' ? 'active' : ''}`} onClick={() => setActiveTab('main')}>Presets Principales</button>
           <button className={`tab-button ${activeTab === 'templates' ? 'active' : ''}`} onClick={() => setActiveTab('templates')}>Presets Templates</button>
+          <button className={`tab-button ${activeTab === 'launchpad' ? 'active' : ''}`} onClick={() => setActiveTab('launchpad')}>LaunchPad Presets</button>
         </div>
 
         <div className="preset-gallery-content">
@@ -288,7 +325,7 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
                 </div>
               )}
             </>
-          ) : (
+          ) : activeTab === 'templates' ? (
             <div className="templates-layout">
               <div className="template-selector">
                 <div className="preset-gallery-grid template-selector-grid">
@@ -377,6 +414,67 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
                       />
                     )}
                   </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="launchpad-layout">
+              <div className="launchpad-selector">
+                <div className="preset-gallery-grid launchpad-selector-grid">
+                  {launchpadPresets.map(lp => (
+                    <div key={lp.id} className="preset-gallery-item-wrapper">
+                      <div
+                        className="preset-gallery-item preset-cell"
+                        onClick={() => {
+                          setSelectedLaunchpad(lp.id);
+                          onLaunchpadPresetChange?.(lp.id);
+                        }}
+                      >
+                        <div className="preset-thumbnail">{getLaunchpadThumbnail(lp.id)}</div>
+                        <div className="preset-info">
+                          <div className="preset-name">{lp.label}</div>
+                          <div className="preset-details">
+                            <span className="preset-category">LaunchPad</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="launchpad-controls-panel">
+                {!selectedLaunchpad && (
+                  <div className="preset-gallery-placeholder">
+                    <div className="placeholder-content">
+                      <div className="placeholder-icon">🎹</div>
+                      <h3>Select a launchpad preset</h3>
+                      <p>Click a preset to configure it</p>
+                    </div>
+                  </div>
+                )}
+                {selectedLaunchpad && (
+                  <>
+                    <div className="controls-header">
+                      <h3>{launchpadPresets.find(p => p.id === selectedLaunchpad)?.label}</h3>
+                      <span className="preset-category-badge">LaunchPad</span>
+                    </div>
+                    {selectedLaunchpad === 'custom-text' && (
+                      <div className="default-controls">
+                        <h4>Text:</h4>
+                        <input
+                          type="text"
+                          value={launchpadText || ''}
+                          onChange={e => onLaunchpadTextChange?.(e.target.value)}
+                        />
+                      </div>
+                    )}
+                    <button
+                      className={`launchpad-button ${launchpadRunning ? 'running' : ''}`}
+                      onClick={onToggleLaunchpad}
+                    >
+                      {launchpadRunning ? 'Stop Launchpad' : 'Go Launchpad'}
+                    </button>
+                  </>
                 )}
               </div>
             </div>
