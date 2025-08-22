@@ -1067,6 +1067,7 @@ const App: React.FC = () => {
           onLayerEffectChange={handleLayerEffectChange}
           onLayerEffectToggle={handleLayerEffectToggle}
           onOpenPresetGallery={() => setPresetGalleryOpen(true)}
+          bpm={bpm}
         />
       </div>
 

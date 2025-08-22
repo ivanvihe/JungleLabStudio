@@ -10,6 +10,10 @@ interface LayerConfig {
   fadeTime: number;
   opacity: number;
   activePreset: string | null;
+  autoJump: boolean;
+  jumpDirection: 'right' | 'left' | 'random';
+  jumpSync: 'time' | 'beats';
+  jumpInterval: number;
 }
 
 interface LayerGridProps {
@@ -25,6 +29,7 @@ interface LayerGridProps {
   layerEffects: Record<string, { effect: string; alwaysOn: boolean; active: boolean }>;
   onLayerEffectChange: (layerId: string, effect: string) => void;
   onLayerEffectToggle: (layerId: string, alwaysOn: boolean) => void;
+  bpm: number | null;
 }
 
 export const LayerGrid: React.FC<LayerGridProps> = ({
@@ -39,12 +44,13 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
   onOpenPresetGallery,
   layerEffects,
   onLayerEffectChange,
-  onLayerEffectToggle
+  onLayerEffectToggle,
+  bpm
 }) => {
   const [layers, setLayers] = useState<LayerConfig[]>([
-    { id: 'A', name: 'Layer A', color: '#FF6B6B', midiChannel: layerChannels.A || 14, fadeTime: 200, opacity: 100, activePreset: null },
-    { id: 'B', name: 'Layer B', color: '#4ECDC4', midiChannel: layerChannels.B || 15, fadeTime: 200, opacity: 100, activePreset: null },
-    { id: 'C', name: 'Layer C', color: '#45B7D1', midiChannel: layerChannels.C || 16, fadeTime: 200, opacity: 100, activePreset: null },
+    { id: 'A', name: 'Layer A', color: '#FF6B6B', midiChannel: layerChannels.A || 14, fadeTime: 200, opacity: 100, activePreset: null, autoJump: false, jumpDirection: 'right', jumpSync: 'time', jumpInterval: 1 },
+    { id: 'B', name: 'Layer B', color: '#4ECDC4', midiChannel: layerChannels.B || 15, fadeTime: 200, opacity: 100, activePreset: null, autoJump: false, jumpDirection: 'right', jumpSync: 'time', jumpInterval: 1 },
+    { id: 'C', name: 'Layer C', color: '#45B7D1', midiChannel: layerChannels.C || 16, fadeTime: 200, opacity: 100, activePreset: null, autoJump: false, jumpDirection: 'right', jumpSync: 'time', jumpInterval: 1 },
   ]);
 
   useEffect(() => {
@@ -100,6 +106,7 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
   });
 
   const [dragTarget, setDragTarget] = useState<{ layerId: string; index: number } | null>(null);
+  const jumpPositions = React.useRef<Record<string, number>>({});
 
   useEffect(() => {
     localStorage.setItem('layerPresets', JSON.stringify(layerPresets));
@@ -360,14 +367,13 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
   };
 
   const handleLayerConfigChange = (layerId: string, field: keyof LayerConfig, value: any) => {
-    setLayers(prev => prev.map(layer => 
-      layer.id === layerId 
+    setLayers(prev => prev.map(layer =>
+      layer.id === layerId
         ? { ...layer, [field]: value }
         : layer
     ));
-    
-    const updatedLayer = layers.find(l => l.id === layerId);
-    if (updatedLayer) {
+
+    if (['midiChannel', 'fadeTime', 'opacity'].includes(field)) {
       onLayerConfigChange(layerId, { [field]: value });
     }
   };
@@ -389,6 +395,53 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
       midiChannel: layerChannels[layer.id] || layer.midiChannel
     })));
   }, [layerChannels]);
+
+  useEffect(() => {
+    const timers: NodeJS.Timeout[] = [];
+
+    layers.forEach(layer => {
+      if (!layer.autoJump) return;
+      const list = layerPresets[layer.id];
+      if (!list.some(p => p)) return;
+
+      let intervalMs: number | null = null;
+      if (layer.jumpSync === 'time') {
+        intervalMs = layer.jumpInterval * 1000;
+      } else if (layer.jumpSync === 'beats' && bpm) {
+        intervalMs = (60 / bpm) * layer.jumpInterval * 1000;
+      }
+
+      if (!intervalMs) return;
+
+      const timer = setInterval(() => {
+        const currentList = layerPresets[layer.id];
+        const valid = currentList.map((p, idx) => ({ p, idx })).filter(v => v.p);
+        if (valid.length === 0) return;
+        let idx: number;
+        if (layer.jumpDirection === 'random') {
+          idx = valid[Math.floor(Math.random() * valid.length)].idx;
+        } else {
+          let cur = jumpPositions.current[layer.id] ?? (layer.jumpDirection === 'right' ? -1 : valid.length);
+          const step = layer.jumpDirection === 'right' ? 1 : -1;
+          do {
+            cur = (cur + step + currentList.length) % currentList.length;
+          } while (!currentList[cur]);
+          jumpPositions.current[layer.id] = cur;
+          idx = cur;
+        }
+        const presetId = currentList[idx];
+        if (presetId) {
+          handlePresetClick(layer.id, presetId);
+        }
+      }, intervalMs);
+
+      timers.push(timer);
+    });
+
+    return () => {
+      timers.forEach(clearInterval);
+    };
+  }, [layers, layerPresets, bpm]);
 
   const getPresetThumbnail = (preset: LoadedPreset): string => {
     const thumbnails: Record<string, string> = {
@@ -434,6 +487,57 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
               />
               Always
             </label>
+            <div className="midi-channel-edit">
+              <label>MIDI</label>
+              <input
+                type="number"
+                min={1}
+                max={16}
+                value={layer.midiChannel}
+                onChange={(e) =>
+                  handleLayerConfigChange(layer.id, 'midiChannel', parseInt(e.target.value))
+                }
+                className="midi-channel-input"
+              />
+            </div>
+            <div className="jump-controls">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={layer.autoJump}
+                  onChange={(e) => handleLayerConfigChange(layer.id, 'autoJump', e.target.checked)}
+                />
+                Jump
+              </label>
+              <select
+                value={layer.jumpDirection}
+                onChange={(e) =>
+                  handleLayerConfigChange(layer.id, 'jumpDirection', e.target.value as any)
+                }
+              >
+                <option value="right">right</option>
+                <option value="left">left</option>
+                <option value="random">random</option>
+              </select>
+              <select
+                value={layer.jumpSync}
+                onChange={(e) =>
+                  handleLayerConfigChange(layer.id, 'jumpSync', e.target.value as any)
+                }
+              >
+                <option value="time">time</option>
+                <option value="beats">beats</option>
+              </select>
+              <input
+                type="number"
+                min={1}
+                value={layer.jumpInterval}
+                onChange={(e) =>
+                  handleLayerConfigChange(layer.id, 'jumpInterval', parseInt(e.target.value))
+                }
+                className="jump-interval-input"
+              />
+            </div>
           </div>
 
           {/* Layer Controls - 100x100 square */}
@@ -445,7 +549,6 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
               <div className="layer-letter" style={{ color: layer.color }}>
                 {layer.id}
               </div>
-              <div className="midi-channel-label">CH {layer.midiChannel}</div>
               <div className="sidebar-controls">
                 <input
                   type="range"
@@ -554,7 +657,6 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
               );
             })}
           </div>
-        </div>
         </div>
       ))}
     </div>
