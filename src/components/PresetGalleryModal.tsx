@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { LoadedPreset } from '../core/PresetLoader';
 import { PresetControls } from './PresetControls';
 import { setNestedValue } from '../utils/objectPath';
+import { GenLabPresetModal } from './GenLabPresetModal';
 import fs from 'fs';
 import './PresetGalleryModal.css';
 
@@ -11,6 +12,9 @@ interface PresetGalleryModalProps {
   presets: LoadedPreset[];
   onCustomTextTemplateChange?: (count: number, texts: string[]) => void;
   customTextTemplate?: { count: number; texts: string[] };
+  genLabPresets?: { name: string; config: any }[];
+  genLabBasePreset?: LoadedPreset | null;
+  onGenLabPresetsChange?: (presets: { name: string; config: any }[]) => void;
   onAddPresetToLayer?: (presetId: string, layerId: string) => void;
   onRemovePresetFromLayer?: (presetId: string, layerId: string) => void;
 }
@@ -21,12 +25,15 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
   presets,
   onCustomTextTemplateChange,
   customTextTemplate = { count: 1, texts: [] },
+  genLabPresets = [],
+  genLabBasePreset,
+  onGenLabPresetsChange,
   onAddPresetToLayer,
   onRemovePresetFromLayer
 }) => {
   const [selected, setSelected] = useState<LoadedPreset | null>(null);
   const [activeTab, setActiveTab] = useState<'main' | 'templates'>('main');
-  const [activeTemplate, setActiveTemplate] = useState<'custom-text' | null>(null);
+  const [activeTemplate, setActiveTemplate] = useState<'custom-text' | 'gen-lab' | null>(null);
   const [templateCount, setTemplateCount] = useState(customTextTemplate.count);
   const [templateTexts, setTemplateTexts] = useState<string[]>(() => {
     const arr = [...customTextTemplate.texts];
@@ -39,6 +46,8 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
     B: new Set(),
     C: new Set()
   }));
+  const [editingGenLabIndex, setEditingGenLabIndex] = useState<number | null>(null);
+  const [isGenLabModalOpen, setGenLabModalOpen] = useState(false);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -64,6 +73,23 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
       'custom-glitch-text': '📝'
     };
     return thumbnails[preset.id] || thumbnails[preset.id.split('-')[0]] || '🎨';
+  };
+
+  const handleSaveGenLabPreset = (preset: { name: string; config: any }) => {
+    const list = [...genLabPresets];
+    if (editingGenLabIndex !== null) {
+      list[editingGenLabIndex] = preset;
+    } else {
+      list.push(preset);
+    }
+    onGenLabPresetsChange?.(list);
+    setEditingGenLabIndex(null);
+  };
+
+  const handleDeleteGenLabPreset = (index: number) => {
+    const list = [...genLabPresets];
+    list.splice(index, 1);
+    onGenLabPresetsChange?.(list);
   };
 
   const handleTemplateCountChange = (count: number) => {
@@ -273,6 +299,20 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
                     </div>
                   </div>
                 </div>
+                <div className="preset-gallery-item-wrapper">
+                  <div
+                    className="preset-gallery-item preset-cell"
+                    onClick={() => setActiveTemplate('gen-lab')}
+                  >
+                    <div className="preset-thumbnail">🔬</div>
+                    <div className="preset-info">
+                      <div className="preset-name">Gen Lab</div>
+                      <div className="preset-details">
+                        <span className="preset-category">Template</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {activeTemplate === 'custom-text' && (
@@ -293,6 +333,31 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
                       />
                     ))}
                   </div>
+                </div>
+              )}
+              {activeTemplate === 'gen-lab' && (
+                <div className="genlab-config">
+                  <button className="genlab-add-button" onClick={() => { setEditingGenLabIndex(null); setGenLabModalOpen(true); }}>Add Preset</button>
+                  <ul className="genlab-list">
+                    {genLabPresets.map((p, idx) => (
+                      <li key={idx}>
+                        <span>{p.name}</span>
+                        <div>
+                          <button onClick={() => { setEditingGenLabIndex(idx); setGenLabModalOpen(true); }}>Edit</button>
+                          <button onClick={() => handleDeleteGenLabPreset(idx)}>Delete</button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  {genLabBasePreset && (
+                    <GenLabPresetModal
+                      isOpen={isGenLabModalOpen}
+                      onClose={() => { setGenLabModalOpen(false); setEditingGenLabIndex(null); }}
+                      basePreset={genLabBasePreset}
+                      initial={editingGenLabIndex !== null ? genLabPresets[editingGenLabIndex] : undefined}
+                      onSave={handleSaveGenLabPreset}
+                    />
+                  )}
                 </div>
               )}
             </div>

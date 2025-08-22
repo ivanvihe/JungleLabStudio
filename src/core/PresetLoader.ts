@@ -95,6 +95,8 @@ export class PresetLoader {
   private loadedPresets: Map<string, LoadedPreset> = new Map();
   private activePresets: Map<string, BasePreset> = new Map();
   private customTextContents: string[] = [];
+  private genLabPresets: { name: string; config: any }[] = [];
+  private genLabBase: { config: PresetConfig; createPreset: any; shaderCode?: string; folderPath: string } | null = null;
 
   // Carga dinámica de presets desde el sistema de archivos
   private presetModules = import.meta.glob('../presets/*/preset.ts');
@@ -108,7 +110,14 @@ export class PresetLoader {
     private camera: THREE.Camera,
     private renderer: THREE.WebGLRenderer,
     private glitchTextPads: number = 1
-  ) {}
+  ) {
+    try {
+      const stored = localStorage.getItem('genLabPresets');
+      if (stored) this.genLabPresets = JSON.parse(stored);
+    } catch {
+      this.genLabPresets = [];
+    }
+  }
 
   public setGlitchTextPads(count: number): void {
     // Mantener compatibilidad, reutilizando textos actuales
@@ -196,6 +205,43 @@ export class PresetLoader {
     }
   }
 
+  private reloadGenLabPresets(loadedList?: LoadedPreset[]): void {
+    if (!this.genLabBase) return;
+
+    // Eliminar instancias existentes
+    for (const id of Array.from(this.loadedPresets.keys())) {
+      if (id.startsWith('gen-lab-')) {
+        this.loadedPresets.delete(id);
+      }
+    }
+
+    const baseNote = this.nextMidiNote;
+
+    this.genLabPresets.forEach((preset, idx) => {
+      const cloneConfig = JSON.parse(JSON.stringify(this.genLabBase!.config));
+      cloneConfig.name = preset.name;
+      if (preset.config) {
+        cloneConfig.defaultConfig = {
+          ...cloneConfig.defaultConfig,
+          ...preset.config,
+        };
+      }
+      cloneConfig.note = baseNote + idx;
+      this.updateMidiNoteTracking(cloneConfig.note);
+
+      const clone: LoadedPreset = {
+        id: `gen-lab-${idx + 1}`,
+        config: cloneConfig,
+        createPreset: this.genLabBase!.createPreset,
+        shaderCode: this.genLabBase!.shaderCode,
+        folderPath: this.genLabBase!.folderPath,
+      };
+
+      this.loadedPresets.set(clone.id, clone);
+      if (loadedList) loadedList.push(clone);
+    });
+  }
+
   public async loadAllPresets(): Promise<LoadedPreset[]> {
     const moduleEntries = Object.entries(this.presetModules);
     console.log('🔍 Loading presets:', moduleEntries.map(([p]) => p));
@@ -265,6 +311,14 @@ export class PresetLoader {
           loadedPresets.push(clone);
           console.log(`✅ Preset loaded: ${clone.config.name}`);
         }
+      } else if (presetId === 'gen-lab') {
+        // Guardar preset base para generar instancias personalizadas
+        this.genLabBase = {
+          config: cfg,
+          createPreset,
+          shaderCode,
+          folderPath: `src/presets/${presetId}`,
+        };
       } else {
         // Preset normal
         const loaded: LoadedPreset = {
@@ -274,14 +328,17 @@ export class PresetLoader {
           shaderCode,
           folderPath: `src/presets/${presetId}`
         };
-        
+
         this.loadedPresets.set(presetId, loaded);
         loadedPresets.push(loaded);
         console.log(`✅ Preset loaded: ${cfg.name}`);
       }
     }
 
-    console.log(`🎨 Loaded ${loadedPresets.length} presets total (${this.glitchTextPads} custom text instances)`);
+    // Añadir presets personalizados de Gen Lab
+    this.reloadGenLabPresets(loadedPresets);
+
+    console.log(`🎨 Loaded ${loadedPresets.length} presets total (${this.glitchTextPads} custom text instances, ${this.genLabPresets.length} gen lab presets)`);
     return loadedPresets;
   }
 
@@ -422,6 +479,31 @@ export class PresetLoader {
         console.error('Error in presets change listener:', error);
       }
     });
+  }
+
+  // Gestión de presets personalizados de Gen Lab
+  public setGenLabPresets(presets: { name: string; config: any }[]): void {
+    this.genLabPresets = presets;
+    try {
+      localStorage.setItem('genLabPresets', JSON.stringify(presets));
+    } catch {}
+    this.reloadGenLabPresets();
+    this.notifyPresetsChanged();
+  }
+
+  public getGenLabPresets(): { name: string; config: any }[] {
+    return this.genLabPresets;
+  }
+
+  public getGenLabBasePreset(): LoadedPreset | null {
+    if (!this.genLabBase) return null;
+    return {
+      id: 'gen-lab',
+      config: this.genLabBase.config,
+      createPreset: this.genLabBase.createPreset,
+      shaderCode: this.genLabBase.shaderCode,
+      folderPath: this.genLabBase.folderPath,
+    };
   }
 
   // Métodos de utilidad para custom text

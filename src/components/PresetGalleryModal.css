@@ -33,6 +33,11 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
+.preset-gallery-modal.small {
+  width: 60%;
+  height: 60%;
+}
+
 /* Header */
 .preset-gallery-header {
   display: flex;
@@ -216,6 +221,48 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.genlab-config {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.genlab-add-button {
+  align-self: flex-start;
+  background: #333;
+  border: 1px solid #555;
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.genlab-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.genlab-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #2a2a2a;
+  padding: 6px 8px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+
+.genlab-list li button {
+  margin-left: 5px;
+  background: #333;
+  border: 1px solid #555;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 .custom-text-inputs {

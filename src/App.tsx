@@ -53,6 +53,15 @@ const App: React.FC = () => {
     }
   });
 
+  const [genLabPresets, setGenLabPresets] = useState<{ name: string; config: any }[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('genLabPresets') || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const [genLabBasePreset, setGenLabBasePreset] = useState<LoadedPreset | null>(null);
+
   // Top bar & settings state
   const [midiDevices, setMidiDevices] = useState<any[]>([]);
   const [midiDeviceId, setMidiDeviceId] = useState<string | null>(null);
@@ -327,6 +336,7 @@ const App: React.FC = () => {
         const engine = new AudioVisualizerEngine(canvasRef.current, { glitchTextPads });
         await engine.initialize();
         engineRef.current = engine;
+        setGenLabBasePreset(engine.getGenLabBasePreset());
 
         const multiMonitor = localStorage.getItem('multiMonitorMode') === 'true';
         engine.setMultiMonitorMode(multiMonitor);
@@ -334,6 +344,9 @@ const App: React.FC = () => {
         let presets = engine.getAvailablePresets();
         if (customTextContents.length > 0) {
           presets = await engine.updateCustomTextTemplates(glitchTextPads, customTextContents);
+        }
+        if (genLabPresets.length > 0) {
+          presets = await engine.updateGenLabPresets(genLabPresets);
         }
         setAvailablePresets(presets);
         setIsInitialized(true);
@@ -938,6 +951,21 @@ const App: React.FC = () => {
     handleCustomTextTemplateChange(count, customTextContents);
   };
 
+  const handleGenLabPresetsChange = async (presets: { name: string; config: any }[]) => {
+    setGenLabPresets(presets);
+    localStorage.setItem('genLabPresets', JSON.stringify(presets));
+    if (engineRef.current) {
+      try {
+        const updated = await engineRef.current.updateGenLabPresets(presets);
+        setAvailablePresets(updated);
+        setStatus(`Gen Lab actualizado: ${presets.length} preset${presets.length !== 1 ? 's' : ''}`);
+      } catch (err) {
+        console.error('Error updating Gen Lab presets:', err);
+        setStatus('Error al actualizar Gen Lab');
+      }
+    }
+  };
+
   // Handler para añadir preset a layer desde la galería sin activarlo
   const handleAddPresetToLayer = (presetId: string, layerId: string) => {
     const addFn = (window as any).addPresetToLayer as
@@ -1228,6 +1256,9 @@ const App: React.FC = () => {
         presets={availablePresets}
         onCustomTextTemplateChange={handleCustomTextTemplateChange}
         customTextTemplate={{ count: glitchTextPads, texts: customTextContents }}
+        genLabPresets={genLabPresets}
+        genLabBasePreset={genLabBasePreset}
+        onGenLabPresetsChange={handleGenLabPresetsChange}
         onAddPresetToLayer={handleAddPresetToLayer}
         onRemovePresetFromLayer={handleRemovePresetFromLayer}
       />
