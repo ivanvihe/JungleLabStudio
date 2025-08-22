@@ -120,12 +120,31 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
     });
   };
 
+  const removePresetFromLayer = (layerId: string, presetId: string) => {
+    setLayerPresets(prev => {
+      const next = { ...prev };
+      const list = [...next[layerId]];
+      const idx = list.findIndex(id => id === presetId);
+      if (idx !== -1) {
+        list[idx] = null;
+        next[layerId] = list;
+        return next;
+      }
+      return prev;
+    });
+  };
+
   // Exponer función para uso externo
   React.useEffect(() => {
-    if ((window as any).addPresetToLayer) return;
-    (window as any).addPresetToLayer = addPresetToLayer;
+    if (!(window as any).addPresetToLayer) {
+      (window as any).addPresetToLayer = addPresetToLayer;
+    }
+    if (!(window as any).removePresetFromLayer) {
+      (window as any).removePresetFromLayer = removePresetFromLayer;
+    }
     return () => {
       delete (window as any).addPresetToLayer;
+      delete (window as any).removePresetFromLayer;
     };
   }, []);
 

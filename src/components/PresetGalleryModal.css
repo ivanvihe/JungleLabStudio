@@ -24,8 +24,8 @@
 .preset-gallery-modal {
   background: #222;
   color: #fff;
-  width: 90%;
-  height: 90%;
+  width: 80%;
+  height: 80%;
   display: flex;
   flex-direction: column;
   border-radius: 8px;
@@ -38,7 +38,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 30px;
+  padding: 10px 20px;
   background: linear-gradient(135deg, #333, #2a2a2a);
   border-bottom: 1px solid #444;
 }
@@ -81,8 +81,8 @@
 .preset-gallery-modal {
   background: #222;
   color: #fff;
-  width: 90%;
-  height: 90%;
+  width: 80%;
+  height: 80%;
   display: flex;
   flex-direction: column;
   border-radius: 8px;
@@ -95,7 +95,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 30px;
+  padding: 10px 20px;
   background: linear-gradient(135deg, #333, #2a2a2a);
   border-bottom: 1px solid #444;
 }
@@ -141,7 +141,7 @@
 }
 
 .preset-gallery-section h3 {
-  margin: 0 0 15px 0;
+  margin: 0 0 8px 0;
   font-size: 18px;
   color: #fff;
   display: flex;
@@ -154,7 +154,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 8px;
 }
 
 .custom-text-header h3 {
@@ -270,81 +270,36 @@
   white-space: nowrap;
 }
 
-/* Add to Layer Button */
-.add-button-container {
-  position: relative;
-}
-
-.add-to-button {
-  width: 100%;
-  background: linear-gradient(135deg, #64B5F6, #42A5F5);
-  border: none;
-  color: #fff;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.add-to-button:hover {
-  background: linear-gradient(135deg, #90CAF9, #64B5F6);
-  transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(100, 181, 246, 0.3);
-}
-
-.custom-text-add {
-  background: linear-gradient(135deg, #4ECDC4, #26C6DA);
-}
-
-.custom-text-add:hover {
-  background: linear-gradient(135deg, #80DEEA, #4ECDC4);
-  box-shadow: 0 3px 8px rgba(78, 205, 196, 0.3);
-}
-
-/* Layer Dropdown */
-.layer-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: #333;
-  border: 1px solid #555;
-  border-radius: 4px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  z-index: 1000;
+/* Layer Buttons */
+.layer-button-group {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
   margin-top: 4px;
 }
 
-.layer-option {
+.layer-button {
+  width: 24px;
+  height: 24px;
+  background: #333;
+  border: 1px solid #555;
+  color: #fff;
+  font-size: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  font-size: 12px;
-  color: #fff;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
+  justify-content: center;
 }
 
-.layer-option:hover {
+.layer-button:hover:not(.active) {
   background: #444;
 }
 
-.layer-option:first-child {
-  border-radius: 4px 4px 0 0;
-}
-
-.layer-option:last-child {
-  border-radius: 0 0 4px 4px;
-}
-
-.layer-color {
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
-  flex-shrink: 0;
+.layer-button.active {
+  border-color: #39FF14;
+  color: #39FF14;
 }
 
 /* Controls Panel */

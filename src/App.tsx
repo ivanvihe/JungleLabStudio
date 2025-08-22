@@ -813,6 +813,21 @@ const App: React.FC = () => {
     }
   };
 
+  const handleRemovePresetFromLayer = (presetId: string, layerId: string) => {
+    const removeFn = (window as any).removePresetFromLayer as
+      | ((layerId: string, presetId: string) => void)
+      | undefined;
+
+    if (typeof removeFn !== 'function') return;
+
+    removeFn(layerId, presetId);
+
+    const preset = availablePresets.find(p => p.id === presetId);
+    if (preset) {
+      setStatus(`${preset.config.name} eliminado de Layer ${layerId}`);
+    }
+  };
+
   const getCurrentPresetName = (): string => {
     if (!selectedPreset) return 'Ninguno';
     return `${selectedPreset.config.name} (${selectedLayer || 'N/A'})`;
@@ -1050,6 +1065,7 @@ const App: React.FC = () => {
         onCustomTextCountChange={handleCustomTextCountChange}
         currentCustomTextCount={glitchTextPads}
         onAddPresetToLayer={handleAddPresetToLayer}
+        onRemovePresetFromLayer={handleRemovePresetFromLayer}
       />
     </div>
   );

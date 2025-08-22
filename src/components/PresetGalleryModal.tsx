@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { LoadedPreset } from '../core/PresetLoader';
 import { PresetControls } from './PresetControls';
-import { setNestedValue } from '../utils/objectPath';
 import './PresetGalleryModal.css';
 
 interface PresetGalleryModalProps {
@@ -11,6 +10,7 @@ interface PresetGalleryModalProps {
   onCustomTextCountChange?: (count: number) => void;
   currentCustomTextCount?: number;
   onAddPresetToLayer?: (presetId: string, layerId: string) => void;
+  onRemovePresetFromLayer?: (presetId: string, layerId: string) => void;
 }
 
 export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
@@ -19,11 +19,16 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
   presets,
   onCustomTextCountChange,
   currentCustomTextCount = 1,
-  onAddPresetToLayer
+  onAddPresetToLayer,
+  onRemovePresetFromLayer
 }) => {
   const [selected, setSelected] = useState<LoadedPreset | null>(null);
   const [customTextCount, setCustomTextCount] = useState(currentCustomTextCount);
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [layerAssignments, setLayerAssignments] = useState<Record<string, Set<string>>>(() => ({
+    A: new Set(),
+    B: new Set(),
+    C: new Set()
+  }));
 
   const getPresetThumbnail = (preset: LoadedPreset): string => {
     const thumbnails: Record<string, string> = {
@@ -75,23 +80,42 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
     return presets.filter(preset => isCustomTextPreset(preset));
   };
 
-  const handleAddToLayer = (presetId: string, layerId: string) => {
-    if (onAddPresetToLayer) {
-      onAddPresetToLayer(presetId, layerId);
-    }
-    setActiveDropdown(null);
-  };
-
-  const toggleDropdown = (presetId: string) => {
-    setActiveDropdown(activeDropdown === presetId ? null : presetId);
-  };
-
-  // Cerrar dropdown al hacer click fuera
+  // Cargar asignaciones actuales desde localStorage al abrir el modal
   React.useEffect(() => {
-    const handleClickOutside = () => setActiveDropdown(null);
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
+    if (isOpen) {
+      try {
+        const stored = localStorage.getItem('layerPresets');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setLayerAssignments({
+            A: new Set((parsed.A || []).filter((p: string | null) => p)),
+            B: new Set((parsed.B || []).filter((p: string | null) => p)),
+            C: new Set((parsed.C || []).filter((p: string | null) => p))
+          });
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [isOpen]);
+
+  const toggleLayer = (presetId: string, layerId: string) => {
+    setLayerAssignments(prev => {
+      const set = new Set(prev[layerId]);
+      if (set.has(presetId)) {
+        if (onRemovePresetFromLayer) {
+          onRemovePresetFromLayer(presetId, layerId);
+        }
+        set.delete(presetId);
+      } else {
+        if (onAddPresetToLayer) {
+          onAddPresetToLayer(presetId, layerId);
+        }
+        set.add(presetId);
+      }
+      return { ...prev, [layerId]: set };
+    });
+  };
 
   if (!isOpen) return null;
 
@@ -131,44 +155,20 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
                     </div>
                   </div>
                   
-                  {/* Botón Add to... */}
-                  <div className="add-button-container">
-                    <button 
-                      className="add-to-button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleDropdown(preset.id);
-                      }}
-                    >
-                      Add to...
-                    </button>
-                    
-                    {/* Dropdown menu */}
-                    {activeDropdown === preset.id && (
-                      <div className="layer-dropdown" onClick={e => e.stopPropagation()}>
-                        <div 
-                          className="layer-option layer-a"
-                          onClick={() => handleAddToLayer(preset.id, 'A')}
-                        >
-                          <span className="layer-color" style={{backgroundColor: '#FF6B6B'}}></span>
-                          Layer A
-                        </div>
-                        <div 
-                          className="layer-option layer-b"
-                          onClick={() => handleAddToLayer(preset.id, 'B')}
-                        >
-                          <span className="layer-color" style={{backgroundColor: '#4ECDC4'}}></span>
-                          Layer B
-                        </div>
-                        <div 
-                          className="layer-option layer-c"
-                          onClick={() => handleAddToLayer(preset.id, 'C')}
-                        >
-                          <span className="layer-color" style={{backgroundColor: '#45B7D1'}}></span>
-                          Layer C
-                        </div>
-                      </div>
-                    )}
+                  {/* Botones de capas */}
+                  <div className="layer-button-group">
+                    {['A', 'B', 'C'].map(layer => (
+                      <button
+                        key={layer}
+                        className={`layer-button ${layerAssignments[layer].has(preset.id) ? 'active' : ''}`}
+                        onClick={e => {
+                          e.stopPropagation();
+                          toggleLayer(preset.id, layer);
+                        }}
+                      >
+                        {layer}
+                      </button>
+                    ))}
                   </div>
                 </div>
               ))}
@@ -222,44 +222,20 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
                       </div>
                     </div>
                     
-                    {/* Botón Add to... para custom text */}
-                    <div className="add-button-container">
-                      <button 
-                        className="add-to-button custom-text-add"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleDropdown(preset.id);
-                        }}
-                      >
-                        Add to...
-                      </button>
-                      
-                      {/* Dropdown menu */}
-                      {activeDropdown === preset.id && (
-                        <div className="layer-dropdown" onClick={e => e.stopPropagation()}>
-                          <div 
-                            className="layer-option layer-a"
-                            onClick={() => handleAddToLayer(preset.id, 'A')}
-                          >
-                            <span className="layer-color" style={{backgroundColor: '#FF6B6B'}}></span>
-                            Layer A
-                          </div>
-                          <div 
-                            className="layer-option layer-b"
-                            onClick={() => handleAddToLayer(preset.id, 'B')}
-                          >
-                            <span className="layer-color" style={{backgroundColor: '#4ECDC4'}}></span>
-                            Layer B
-                          </div>
-                          <div 
-                            className="layer-option layer-c"
-                            onClick={() => handleAddToLayer(preset.id, 'C')}
-                          >
-                            <span className="layer-color" style={{backgroundColor: '#45B7D1'}}></span>
-                            Layer C
-                          </div>
-                        </div>
-                      )}
+                    {/* Botones de capas */}
+                    <div className="layer-button-group">
+                      {['A', 'B', 'C'].map(layer => (
+                        <button
+                          key={layer}
+                          className={`layer-button ${layerAssignments[layer].has(preset.id) ? 'active' : ''}`}
+                          onClick={e => {
+                            e.stopPropagation();
+                            toggleLayer(preset.id, layer);
+                          }}
+                        >
+                          {layer}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 ))}
@@ -295,7 +271,7 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
                   <p>Haz click en un preset para ver sus controles y valores por defecto</p>
                   <div className="placeholder-instructions">
                     <div>• <strong>Click:</strong> Ver controles y configuración</div>
-                    <div>• <strong>Add to...:</strong> Añadir a una layer específica</div>
+                    <div>• <strong>A/B/C:</strong> Añadir o quitar de una layer</div>
                   </div>
                 </div>
               </div>
