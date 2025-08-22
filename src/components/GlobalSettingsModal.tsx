@@ -44,6 +44,8 @@ interface GlobalSettingsModalProps {
   onLaunchpadChannelChange: (value: number) => void;
   launchpadNote: number;
   onLaunchpadNoteChange: (value: number) => void;
+  launchpadSmoothness: number;
+  onLaunchpadSmoothnessChange: (value: number) => void;
   monitors: MonitorInfo[];
   monitorRoles: Record<string, 'main' | 'secondary' | 'none'>;
   onMonitorRoleChange: (id: string, role: 'main' | 'secondary' | 'none') => void;
@@ -97,6 +99,8 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   onLaunchpadChannelChange,
   launchpadNote,
   onLaunchpadNoteChange,
+  launchpadSmoothness,
+  onLaunchpadSmoothnessChange,
   monitors,
   monitorRoles,
   onMonitorRoleChange,
@@ -494,6 +498,21 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                     value={launchpadNote}
                     onChange={(e) => onLaunchpadNoteChange(parseInt(e.target.value) || 0)}
                     className="setting-number"
+                  />
+                </label>
+              </div>
+
+              <div className="setting-group">
+                <label className="setting-label">
+                  <span>Suavizado LaunchPad: {(launchpadSmoothness * 100).toFixed(0)}%</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={0.9}
+                    step={0.05}
+                    value={launchpadSmoothness}
+                    onChange={(e) => onLaunchpadSmoothnessChange(parseFloat(e.target.value))}
+                    className="setting-slider"
                   />
                 </label>
               </div>
