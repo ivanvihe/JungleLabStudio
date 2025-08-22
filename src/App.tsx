@@ -1079,12 +1079,12 @@ const App: React.FC = () => {
       {/* Sección inferior con visuales y controles */}
       <div className="bottom-section">
         <div
-          className={`visual-wrapper ${activeEffectClasses}`}
+          className="visual-wrapper"
           style={{ background: canvasBackground }}
         >
           <canvas
             ref={canvasRef}
-            className="main-canvas"
+            className={`main-canvas ${activeEffectClasses}`}
             style={{
               filter: `brightness(${canvasBrightness}) saturate(${canvasVibrance})`
             }}
