@@ -68,6 +68,17 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('layerMidiChannels');
     return saved ? JSON.parse(saved) : { A: 14, B: 15, C: 16 };
   });
+  const [layerEffects, setLayerEffects] = useState<Record<string, { effect: string; midiNote: number; active: boolean }>>(() => {
+    try {
+      const stored = localStorage.getItem('layerEffects');
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return {
+      A: { effect: 'none', midiNote: 80, active: false },
+      B: { effect: 'none', midiNote: 81, active: false },
+      C: { effect: 'none', midiNote: 82, active: false }
+    };
+  });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPresetGalleryOpen, setPresetGalleryOpen] = useState(false);
   const [monitors, setMonitors] = useState<MonitorInfo[]>([]);
@@ -188,6 +199,14 @@ const App: React.FC = () => {
       console.warn('Failed to persist layer preset configs:', e);
     }
   }, [layerPresetConfigs]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('layerEffects', JSON.stringify(layerEffects));
+    } catch (e) {
+      console.warn('Failed to persist layer effects:', e);
+    }
+  }, [layerEffects]);
 
   // Enumerar monitores disponibles usando Electron
   useEffect(() => {
@@ -373,17 +392,24 @@ const App: React.FC = () => {
         return;
       }
 
-      // Note on messages
       const command = statusByte & 0xf0;
       const channel = (statusByte & 0x0f) + 1;
+      const channelToLayer = Object.fromEntries(
+        Object.entries(layerChannels).map(([layerId, ch]) => [ch, layerId])
+      ) as Record<number, string>;
+      const layerId = channelToLayer[channel];
+
       if (command === 0x90 && vel > 0) {
-        const channelToLayer = Object.fromEntries(
-          Object.entries(layerChannels).map(([layerId, ch]) => [ch, layerId])
-        ) as Record<number, string>;
-        const layerId = channelToLayer[channel];
+        if (layerId && layerEffects[layerId]?.midiNote === note) {
+          setLayerEffects(prev => ({ ...prev, [layerId]: { ...prev[layerId], active: true } }));
+        }
         const preset = availablePresets.find(p => p.config.note === note);
         if (layerId && preset) {
           setMidiTrigger({ layerId, presetId: preset.id, velocity: vel });
+        }
+      } else if (command === 0x80 || (command === 0x90 && vel === 0)) {
+        if (layerId && layerEffects[layerId]?.midiNote === note) {
+          setLayerEffects(prev => ({ ...prev, [layerId]: { ...prev[layerId], active: false } }));
         }
       }
     };
@@ -409,7 +435,7 @@ const App: React.FC = () => {
         })
         .catch((err: any) => console.warn('MIDI access error', err));
     }
-  }, [midiDeviceId, midiClockType, midiClockDelay, layerChannels, availablePresets, isFullscreenMode]);
+  }, [midiDeviceId, midiClockType, midiClockDelay, layerChannels, layerEffects, availablePresets, isFullscreenMode]);
 
   // Configurar listener de audio
   useEffect(() => {
@@ -721,6 +747,19 @@ const App: React.FC = () => {
     setSelectedLayer(null);
     setClearSignal(prev => prev + 1);
     setStatus('Capas limpiadas');
+    setLayerEffects(prev => ({
+      A: { ...prev.A, active: false },
+      B: { ...prev.B, active: false },
+      C: { ...prev.C, active: false }
+    }));
+  };
+
+  const handleLayerEffectChange = (layerId: string, effect: string) => {
+    setLayerEffects(prev => ({ ...prev, [layerId]: { ...prev[layerId], effect } }));
+  };
+
+  const handleLayerEffectNoteChange = (layerId: string, note: number) => {
+    setLayerEffects(prev => ({ ...prev, [layerId]: { ...prev[layerId], midiNote: note } }));
   };
 
   const applyPresetConfig = (
@@ -964,6 +1003,8 @@ const App: React.FC = () => {
           }}
           clearAllSignal={clearSignal}
           layerChannels={layerChannels}
+          layerEffects={layerEffects}
+          onLayerEffectChange={handleLayerEffectChange}
           onOpenPresetGallery={() => setPresetGalleryOpen(true)}
         />
       </div>
@@ -1065,6 +1106,9 @@ const App: React.FC = () => {
           setLayerChannels(updated);
           localStorage.setItem('layerMidiChannels', JSON.stringify(updated));
         }}
+        layerEffects={layerEffects}
+        onLayerEffectChange={handleLayerEffectChange}
+        onLayerEffectNoteChange={handleLayerEffectNoteChange}
         monitors={monitors}
         monitorRoles={monitorRoles}
         onMonitorRoleChange={handleMonitorRoleChange}

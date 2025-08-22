@@ -235,6 +235,26 @@
   font-weight: 500;
 }
 
+.layer-effect-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.layer-effect-settings h5 {
+  margin: 0;
+  font-size: 14px;
+  color: #ccc;
+  font-weight: 500;
+}
+
+.effect-setting {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .setting-select:focus,
 .setting-slider:focus,
 .setting-number:focus {

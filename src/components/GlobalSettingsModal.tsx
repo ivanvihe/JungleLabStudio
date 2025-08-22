@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import './GlobalSettingsModal.css';  // ✅ AÑADIR ESTE IMPORT
+import { AVAILABLE_EFFECTS } from '../utils/effects';
 
 interface DeviceOption {
   id: string;
@@ -34,6 +35,9 @@ interface GlobalSettingsModalProps {
   onMidiClockTypeChange: (value: string) => void;
   layerChannels: Record<string, number>;
   onLayerChannelChange: (layerId: string, channel: number) => void;
+  layerEffects: Record<string, { effect: string; midiNote: number }>;
+  onLayerEffectChange: (layerId: string, effect: string) => void;
+  onLayerEffectNoteChange: (layerId: string, note: number) => void;
   monitors: MonitorInfo[];
   monitorRoles: Record<string, 'main' | 'secondary' | 'none'>;
   onMonitorRoleChange: (id: string, role: 'main' | 'secondary' | 'none') => void;
@@ -78,6 +82,9 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   onMidiClockTypeChange,
   layerChannels,
   onLayerChannelChange,
+  layerEffects,
+  onLayerEffectChange,
+  onLayerEffectNoteChange,
   monitors,
   monitorRoles,
   onMonitorRoleChange,
@@ -386,6 +393,31 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                         max={16}
                         value={layerChannels[id]}
                         onChange={(e) => onLayerChannelChange(id, parseInt(e.target.value) || 1)}
+                        className="setting-number"
+                      />
+                    </label>
+                  ))}
+                </div>
+                <div className="layer-effect-settings">
+                  <h5>Efectos por Layer</h5>
+                  {['A','B','C'].map(id => (
+                    <label key={id} className="setting-label effect-setting">
+                      <span>Layer {id}</span>
+                      <select
+                        value={layerEffects[id].effect}
+                        onChange={(e) => onLayerEffectChange(id, e.target.value)}
+                        className="setting-select"
+                      >
+                        {AVAILABLE_EFFECTS.map(eff => (
+                          <option key={eff} value={eff}>{eff}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        min={0}
+                        max={127}
+                        value={layerEffects[id].midiNote}
+                        onChange={(e) => onLayerEffectNoteChange(id, parseInt(e.target.value) || 0)}
                         className="setting-number"
                       />
                     </label>
