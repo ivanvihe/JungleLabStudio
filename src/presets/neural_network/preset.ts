@@ -161,22 +161,25 @@ export class InfiniteNeuralNetwork extends BasePreset {
   private spawnNode(): void {
     const size = this.currentConfig.nodeSize;
 
-    const x = this.nextSpawnX + Math.random() * 2 + 1;
+    // Reduce spacing between nodes for higher density
+    const x = this.nextSpawnX + Math.random() * 1 + 0.5;
     const y = (Math.random() - 0.5) * 4;
     const z = (Math.random() - 0.5) * 4;
     const node = new Node(new THREE.Vector3(x, y, z), this.createNodeMaterial(), size);
     this.scene.add(node.mesh);
     this.nodes.push(node);
 
-    // Connect to previous nodes to ensure continuity
+    // Connect to several previous nodes to create a denser network
     if (this.nodes.length > 1) {
       const prev = this.nodes[this.nodes.length - 2];
       const connection = new Connection(prev, node, this.createConnectionMaterial());
       this.scene.add(connection.line);
       this.connections.push(connection);
 
-      if (this.nodes.length > 2) {
-        const randomIndex = Math.max(0, this.nodes.length - 3 - Math.floor(Math.random() * 10));
+      // Add additional random connections for richer structure
+      const connectionCount = Math.min(2, this.nodes.length - 2);
+      for (let i = 0; i < connectionCount; i++) {
+        const randomIndex = Math.floor(Math.random() * (this.nodes.length - 2));
         const randomNode = this.nodes[randomIndex];
         const extraConn = new Connection(randomNode, node, this.createConnectionMaterial());
         this.scene.add(extraConn.line);

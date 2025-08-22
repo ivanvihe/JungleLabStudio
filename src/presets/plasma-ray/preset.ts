@@ -2,13 +2,13 @@ import * as THREE from 'three';
 import { BasePreset, PresetConfig } from '../../core/PresetLoader';
 
 export const config: PresetConfig = {
-  name: "Energy Wave Ray",
-  description: "Rayo horizontal de ondas de energía fluidas como la imagen",
+  name: "Professional Plasma Ray",
+  description: "Refined plasma energy beam with layered wave animations",
   author: "AudioVisualizer Pro",
-  version: "1.0.0",
+  version: "1.1.0",
   category: "energy",
-  tags: ["energy", "wave", "flow", "horizontal", "plasma", "smooth"],
-  thumbnail: "energy_wave_ray_thumb.png",
+  tags: ["energy", "plasma", "wave", "beam", "professional"],
+  thumbnail: "professional_plasma_ray_thumb.png",
   note: 57,
   defaultConfig: {
     opacity: 1.0,
@@ -16,8 +16,8 @@ export const config: PresetConfig = {
     wave: {
       width: 10.0,
       height: 2.0,
-      segments: 200,
-      layers: 5,
+      segments: 400,
+      layers: 7,
       speed: 0.4,
       amplitude: 0.5,
       direction: 1.0 // 1.0 = izquierda a derecha, -1.0 = derecha a izquierda
@@ -101,6 +101,8 @@ class EnergyWaveRay {
   private layers: THREE.Line[] = [];
   private materials: THREE.ShaderMaterial[] = [];
   private geometries: THREE.BufferGeometry[] = [];
+  private glowLines: THREE.Line[] = [];
+  private glowMaterials: THREE.LineBasicMaterial[] = [];
   
   constructor(private config: any) {
     this.createWaveLayers();
@@ -270,10 +272,21 @@ class EnergyWaveRay {
     });
     
     const line = new THREE.Line(geometry, material);
-    
-    this.geometries.push(geometry);
+
+    // Create a glow duplicate for a more professional look
+    const glowGeo = geometry.clone();
+    const glowMat = new THREE.LineBasicMaterial({
+      color: new THREE.Color(this.config.colors.hot),
+      transparent: true,
+      opacity: 0.15
+    });
+    const glowLine = new THREE.Line(glowGeo, glowMat);
+
+    this.geometries.push(geometry, glowGeo);
     this.materials.push(material);
+    this.glowMaterials.push(glowMat);
     this.layers.push(line);
+    this.glowLines.push(glowLine);
   }
   
   public update(deltaTime: number, time: number, audioData: any, globalOpacity: number): void {
@@ -289,10 +302,15 @@ class EnergyWaveRay {
       material.uniforms.uAudioMid.value = audioData.mid;
       material.uniforms.uAudioHigh.value = audioData.high;
     });
+
+    // Ajustar la intensidad de las líneas de brillo
+    this.glowMaterials.forEach(mat => {
+      mat.opacity = 0.1 + audioData.high * 0.3;
+    });
   }
   
   public getMeshes(): THREE.Line[] {
-    return this.layers;
+    return [...this.layers, ...this.glowLines];
   }
   
   public updateColors(colors: any): void {
@@ -302,6 +320,7 @@ class EnergyWaveRay {
       material.uniforms.uCoolColor.value.setHex(colors.cool.replace('#', '0x'));
       material.uniforms.uColdColor.value.setHex(colors.cold.replace('#', '0x'));
     });
+    this.glowMaterials.forEach(mat => mat.color.set(colors.hot));
   }
   
   public updateConfig(newConfig: any): void {
@@ -318,11 +337,12 @@ class EnergyWaveRay {
   public dispose(): void {
     this.geometries.forEach(geo => geo.dispose());
     this.materials.forEach(mat => mat.dispose());
+    this.glowMaterials.forEach(mat => mat.dispose());
   }
 }
 
-class EnergyWaveRayPreset extends BasePreset {
-  private energyWave: EnergyWaveRay;
+class ProfessionalPlasmaRayPreset extends BasePreset {
+  private plasmaRay: EnergyWaveRay;
   private currentConfig: any;
   
   constructor(
@@ -339,9 +359,9 @@ class EnergyWaveRayPreset extends BasePreset {
     // Fondo completamente transparente
     this.renderer.setClearColor(0x000000, 0);
     
-    // Crear el rayo de ondas de energía
-    this.energyWave = new EnergyWaveRay(this.currentConfig);
-    this.energyWave.getMeshes().forEach(mesh => this.scene.add(mesh));
+    // Crear el rayo de plasma profesional
+    this.plasmaRay = new EnergyWaveRay(this.currentConfig);
+    this.plasmaRay.getMeshes().forEach(mesh => this.scene.add(mesh));
   }
   
   public update(): void {
@@ -349,16 +369,16 @@ class EnergyWaveRayPreset extends BasePreset {
     const time = this.clock.getElapsedTime();
     
     // Actualizar el rayo
-    this.energyWave.update(deltaTime, time, this.audioData, this.opacity);
+    this.plasmaRay.update(deltaTime, time, this.audioData, this.opacity);
   }
   
   public updateConfig(newConfig: any): void {
     this.currentConfig = this.deepMerge(this.currentConfig, newConfig);
     
-    this.energyWave.updateConfig(this.currentConfig);
+    this.plasmaRay.updateConfig(this.currentConfig);
     
     if (newConfig.colors) {
-      this.energyWave.updateColors(this.currentConfig.colors);
+      this.plasmaRay.updateColors(this.currentConfig.colors);
     }
   }
   
@@ -375,8 +395,8 @@ class EnergyWaveRayPreset extends BasePreset {
   }
   
   public dispose(): void {
-    this.energyWave.getMeshes().forEach(mesh => this.scene.remove(mesh));
-    this.energyWave.dispose();
+    this.plasmaRay.getMeshes().forEach(mesh => this.scene.remove(mesh));
+    this.plasmaRay.dispose();
   }
 }
 
@@ -387,5 +407,5 @@ export function createPreset(
   config: PresetConfig,
   shaderCode?: string
 ): BasePreset {
-  return new EnergyWaveRayPreset(scene, camera, renderer, config);
+  return new ProfessionalPlasmaRayPreset(scene, camera, renderer, config);
 }
