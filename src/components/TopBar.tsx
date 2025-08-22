@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { LAUNCHPAD_PRESETS } from '../utils/launchpad';
 
 interface TopBarProps {
   midiActive: boolean;
@@ -15,6 +16,11 @@ interface TopBarProps {
   onClearAll: () => void;
   onOpenSettings: () => void;
   onOpenPresetGallery: () => void;
+  launchpadAvailable: boolean;
+  launchpadRunning: boolean;
+  launchpadPreset: string;
+  onToggleLaunchpad: () => void;
+  onLaunchpadPresetChange: (preset: string) => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -31,7 +37,12 @@ export const TopBar: React.FC<TopBarProps> = ({
   onFullScreen,
   onClearAll,
   onOpenSettings,
-  onOpenPresetGallery
+  onOpenPresetGallery,
+  launchpadAvailable,
+  launchpadRunning,
+  launchpadPreset,
+  onToggleLaunchpad,
+  onLaunchpadPresetChange
 }) => {
   const [activeLed, setActiveLed] = useState(0);
 
@@ -86,6 +97,21 @@ export const TopBar: React.FC<TopBarProps> = ({
       <div className="separator" />
 
       <div className="actions-section">
+        {launchpadAvailable && (
+          <>
+            <select
+              value={launchpadPreset}
+              onChange={(e) => onLaunchpadPresetChange(e.target.value)}
+            >
+              {LAUNCHPAD_PRESETS.map(p => (
+                <option key={p.id} value={p.id}>{p.label}</option>
+              ))}
+            </select>
+            <button onClick={onToggleLaunchpad}>
+              {launchpadRunning ? 'Stop LaunchPad' : 'Go LaunchPad'}
+            </button>
+          </>
+        )}
         <button onClick={onFullScreen} alt="Go Full Screen mode!!">Full Screen</button>
         <button onClick={onClearAll}>Clear All</button>
         <button onClick={onOpenPresetGallery}>Presets</button>
