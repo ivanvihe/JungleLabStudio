@@ -98,6 +98,9 @@ const App: React.FC = () => {
   const [fullscreenByDefault, setFullscreenByDefault] = useState(() => localStorage.getItem('fullscreenByDefault') !== 'false');
   const [startMaximized, setStartMaximized] = useState(() => localStorage.getItem('startMaximized') !== 'false');
   const [startMonitor, setStartMonitor] = useState<string | null>(() => localStorage.getItem('startMonitor'));
+  const [canvasBrightness, setCanvasBrightness] = useState(() => parseFloat(localStorage.getItem('canvasBrightness') || '1'));
+  const [canvasVibrance, setCanvasVibrance] = useState(() => parseFloat(localStorage.getItem('canvasVibrance') || '1'));
+  const [canvasBackground, setCanvasBackground] = useState(() => localStorage.getItem('canvasBackground') || '#000000');
 
   useEffect(() => {
     const channel = new BroadcastChannel('av-sync');
@@ -142,6 +145,18 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('fullscreenByDefault', fullscreenByDefault.toString());
   }, [fullscreenByDefault]);
+
+  useEffect(() => {
+    localStorage.setItem('canvasBrightness', canvasBrightness.toString());
+  }, [canvasBrightness]);
+
+  useEffect(() => {
+    localStorage.setItem('canvasVibrance', canvasVibrance.toString());
+  }, [canvasVibrance]);
+
+  useEffect(() => {
+    localStorage.setItem('canvasBackground', canvasBackground);
+  }, [canvasBackground]);
 
   useEffect(() => {
     if (!isFullscreenMode && midiTrigger) {
@@ -955,7 +970,14 @@ const App: React.FC = () => {
 
       {/* Sección inferior con visuales y controles */}
       <div className="bottom-section">
-        <canvas ref={canvasRef} className="main-canvas" />
+        <canvas
+          ref={canvasRef}
+          className="main-canvas"
+          style={{
+            filter: `brightness(${canvasBrightness}) saturate(${canvasVibrance})`,
+            background: canvasBackground
+          }}
+        />
         <div className={`controls-panel ${isControlsOpen ? '' : 'collapsed'}`}>
           <button
             className="toggle-sidebar"
@@ -1077,6 +1099,12 @@ const App: React.FC = () => {
           setFullscreenByDefault(value);
           localStorage.setItem('fullscreenByDefault', value.toString());
         }}
+        canvasBrightness={canvasBrightness}
+        onCanvasBrightnessChange={setCanvasBrightness}
+        canvasVibrance={canvasVibrance}
+        onCanvasVibranceChange={setCanvasVibrance}
+        canvasBackground={canvasBackground}
+        onCanvasBackgroundChange={setCanvasBackground}
       />
 
       {/* Modal de galería de presets */}

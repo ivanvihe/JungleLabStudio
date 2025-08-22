@@ -53,6 +53,12 @@ interface GlobalSettingsModalProps {
   onStartMaximizedChange: (value: boolean) => void;
   sidebarCollapsed: boolean;
   onSidebarCollapsedChange: (value: boolean) => void;
+  canvasBrightness: number;
+  onCanvasBrightnessChange: (value: number) => void;
+  canvasVibrance: number;
+  onCanvasVibranceChange: (value: number) => void;
+  canvasBackground: string;
+  onCanvasBackgroundChange: (value: string) => void;
 }
 
 export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
@@ -90,7 +96,13 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   startMaximized,
   onStartMaximizedChange,
   sidebarCollapsed,
-  onSidebarCollapsedChange
+  onSidebarCollapsedChange,
+  canvasBrightness,
+  onCanvasBrightnessChange,
+  canvasVibrance,
+  onCanvasVibranceChange,
+  canvasBackground,
+  onCanvasBackgroundChange
 }) => {
   const [activeTab, setActiveTab] = useState('audio');
   
@@ -606,6 +618,51 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                   />
                   <span>Ventanas en fullscreen por defecto</span>
                 </label>
+              </div>
+
+              <div className="setting-group">
+                <label className="setting-label">
+                  <span>Brillo: {canvasBrightness.toFixed(2)}</span>
+                  <input
+                    type="range"
+                    min={0.5}
+                    max={2}
+                    step={0.1}
+                    value={canvasBrightness}
+                    onChange={(e) => onCanvasBrightnessChange(parseFloat(e.target.value))}
+                    className="setting-slider"
+                  />
+                </label>
+                <small className="setting-hint">Ajusta el brillo global del canvas</small>
+              </div>
+
+              <div className="setting-group">
+                <label className="setting-label">
+                  <span>Viveza: {canvasVibrance.toFixed(2)}</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={2}
+                    step={0.1}
+                    value={canvasVibrance}
+                    onChange={(e) => onCanvasVibranceChange(parseFloat(e.target.value))}
+                    className="setting-slider"
+                  />
+                </label>
+                <small className="setting-hint">Acentúa los valores de brillo</small>
+              </div>
+
+              <div className="setting-group">
+                <label className="setting-label">
+                  <span>Color de fondo del canvas</span>
+                  <input
+                    type="color"
+                    value={canvasBackground}
+                    onChange={(e) => onCanvasBackgroundChange(e.target.value)}
+                    className="setting-color"
+                  />
+                </label>
+                <small className="setting-hint">Elige un color de fondo para el canvas</small>
               </div>
 
               <div className="setting-group">
