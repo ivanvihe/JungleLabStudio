@@ -112,25 +112,36 @@ export function buildLaunchpadFrame(
         const amplified = Math.min(1, v * 3);
         const height = Math.min(GRID_SIZE, Math.floor(amplified * GRID_SIZE));
         const color = Math.min(127, Math.floor(amplified * 100) + 10);
+        const baseline = Math.max(5, Math.floor(amplified * 20));
 
-        // Llenar desde abajo hacia arriba
-        for (let y = 0; y < height; y++) {
-          const gridIndex = (GRID_SIZE - 1 - y) * GRID_SIZE + x; // Fila (7-y) * 8 + columna x
-          if (gridIndex >= 0 && gridIndex < GRID_LEN && color > 0) {
+        // Llenar la columna completa asegurando uso del grid 8x8
+        for (let y = 0; y < GRID_SIZE; y++) {
+          const gridIndex = (GRID_SIZE - 1 - y) * GRID_SIZE + x;
+          if (y < height) {
             colors[gridIndex] = color;
+          } else {
+            colors[gridIndex] = baseline;
           }
         }
       }
       break;
     }
     case 'pulse': {
-      // Pulso que llena todo el grid
-      const v = Math.min(
-        127,
-        Math.floor(((data.low + data.mid + data.high) / 3) * 150) + 5
-      );
-      // Llenar todos los 64 pads con la misma intensidad
-      colors.fill(v);
+      // Ondas circulares expansivas desde el centro
+      const t = Date.now() / 400;
+      const avg = (data.low + data.mid + data.high) / 3;
+      const radius = ((Math.sin(t) + 1) / 2) * (GRID_SIZE / 2);
+      for (let y = 0; y < GRID_SIZE; y++) {
+        for (let x = 0; x < GRID_SIZE; x++) {
+          const dx = x - (GRID_SIZE - 1) / 2;
+          const dy = y - (GRID_SIZE - 1) / 2;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const diff = Math.abs(dist - radius);
+          const ring = Math.max(0, 1 - diff / 1.5);
+          const value = Math.min(127, Math.floor(ring * avg * 200));
+          colors[y * GRID_SIZE + x] = value;
+        }
+      }
       break;
     }
     case 'wave': {
