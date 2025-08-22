@@ -11,6 +11,7 @@ import { GlobalSettingsModal } from './components/GlobalSettingsModal';
 import { LoadedPreset, AudioData } from './core/PresetLoader';
 import { setNestedValue } from './utils/objectPath';
 import { AVAILABLE_EFFECTS } from './utils/effects';
+import { buildLaunchpadFrame, LaunchpadPreset } from './utils/launchpad';
 import './App.css';
 import './components/LayerGrid.css';
 
@@ -89,6 +90,11 @@ const App: React.FC = () => {
     });
     return defaults;
   });
+  const [launchpadOutput, setLaunchpadOutput] = useState<any | null>(null);
+  const [launchpadRunning, setLaunchpadRunning] = useState(false);
+  const [launchpadPreset, setLaunchpadPreset] = useState<LaunchpadPreset>('spectrum');
+  const [launchpadChannel, setLaunchpadChannel] = useState(() => parseInt(localStorage.getItem('launchpadChannel') || '1'));
+  const [launchpadNote, setLaunchpadNote] = useState(() => parseInt(localStorage.getItem('launchpadNote') || '60'));
   const [layerEffects, setLayerEffects] = useState<Record<string, { effect: string; alwaysOn: boolean; active: boolean }>>(() => {
     try {
       const stored = localStorage.getItem('layerEffects');
@@ -253,6 +259,14 @@ const App: React.FC = () => {
       console.warn('Failed to persist effect MIDI notes:', e);
     }
   }, [effectMidiNotes]);
+
+  useEffect(() => {
+    localStorage.setItem('launchpadChannel', launchpadChannel.toString());
+  }, [launchpadChannel]);
+
+  useEffect(() => {
+    localStorage.setItem('launchpadNote', launchpadNote.toString());
+  }, [launchpadNote]);
 
   // Enumerar monitores disponibles usando Electron
   useEffect(() => {
@@ -444,6 +458,10 @@ const App: React.FC = () => {
 
       const command = statusByte & 0xf0;
       const channel = (statusByte & 0x0f) + 1;
+      if (command === 0x90 && vel > 0 && channel === launchpadChannel && note === launchpadNote) {
+        setLaunchpadRunning(prev => !prev);
+        return;
+      }
       const channelToLayer = Object.fromEntries(
         Object.entries(layerChannels).map(([layerId, ch]) => [ch, layerId])
       ) as Record<number, string>;
@@ -487,6 +505,9 @@ const App: React.FC = () => {
         .then((access: any) => {
           const inputs = Array.from(access.inputs.values());
           setMidiDevices(inputs);
+          const outputs = Array.from(access.outputs.values());
+          const lp = outputs.find((out: any) => (out.name || '').includes('Launchpad Pro')) || null;
+          setLaunchpadOutput(lp);
 
           inputs.forEach((input: any) => {
             if (!midiDeviceId || input.id === midiDeviceId) {
@@ -499,11 +520,14 @@ const App: React.FC = () => {
           access.onstatechange = () => {
             const ins = Array.from(access.inputs.values());
             setMidiDevices(ins);
+            const outs = Array.from(access.outputs.values());
+            const lp2 = outs.find((out: any) => (out.name || '').includes('Launchpad Pro')) || null;
+            setLaunchpadOutput(lp2);
           };
         })
         .catch((err: any) => console.warn('MIDI access error', err));
     }
-  }, [midiDeviceId, midiClockType, midiClockDelay, layerChannels, layerEffects, availablePresets, isFullscreenMode]);
+  }, [midiDeviceId, midiClockType, midiClockDelay, layerChannels, layerEffects, availablePresets, isFullscreenMode, launchpadChannel, launchpadNote]);
 
   // Configurar listener de audio
   useEffect(() => {
@@ -604,6 +628,18 @@ const App: React.FC = () => {
       if (teardown) teardown();
     };
   }, [isInitialized, audioGain, audioDeviceId]);
+
+  useEffect(() => {
+    if (!launchpadRunning || !launchpadOutput) return;
+    const frame = buildLaunchpadFrame(launchpadPreset, audioData);
+    frame.forEach((c, i) => launchpadOutput.send([0x90, i, c]));
+  }, [audioData, launchpadRunning, launchpadPreset, launchpadOutput]);
+
+  useEffect(() => {
+    if (launchpadRunning && launchpadOutput) {
+      launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x0e, 0x0d, 0x01, 0xf7]);
+    }
+  }, [launchpadRunning, launchpadOutput]);
 
   // Activar capas almacenadas en modo fullscreen
   useEffect(() => {
@@ -1003,6 +1039,7 @@ const App: React.FC = () => {
   };
 
   const midiDeviceName = midiDeviceId ? midiDevices.find((d: any) => d.id === midiDeviceId)?.name || null : null;
+  const launchpadAvailable = !!launchpadOutput;
   const audioDeviceName = audioDeviceId ? audioDevices.find(d => d.deviceId === audioDeviceId)?.label || null : null;
   const audioLevel = Math.min((audioData.low + audioData.mid + audioData.high) / 3, 1);
 
@@ -1023,6 +1060,11 @@ const App: React.FC = () => {
         onClearAll={handleClearAll}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenPresetGallery={() => setPresetGalleryOpen(true)}
+        launchpadAvailable={launchpadAvailable}
+        launchpadRunning={launchpadRunning}
+        launchpadPreset={launchpadPreset}
+        onToggleLaunchpad={() => setLaunchpadRunning(r => !r)}
+        onLaunchpadPresetChange={setLaunchpadPreset}
       />
 
       {/* Grid de capas */}
@@ -1209,6 +1251,10 @@ const App: React.FC = () => {
         }}
         effectMidiNotes={effectMidiNotes}
         onEffectMidiNoteChange={handleEffectMidiNoteChange}
+        launchpadChannel={launchpadChannel}
+        onLaunchpadChannelChange={setLaunchpadChannel}
+        launchpadNote={launchpadNote}
+        onLaunchpadNoteChange={setLaunchpadNote}
         monitors={monitors}
         monitorRoles={monitorRoles}
         onMonitorRoleChange={handleMonitorRoleChange}

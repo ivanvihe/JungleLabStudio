@@ -37,6 +37,10 @@ interface GlobalSettingsModalProps {
   onLayerChannelChange: (layerId: string, channel: number) => void;
   effectMidiNotes: Record<string, number>;
   onEffectMidiNoteChange: (effect: string, note: number) => void;
+  launchpadChannel: number;
+  onLaunchpadChannelChange: (value: number) => void;
+  launchpadNote: number;
+  onLaunchpadNoteChange: (value: number) => void;
   monitors: MonitorInfo[];
   monitorRoles: Record<string, 'main' | 'secondary' | 'none'>;
   onMonitorRoleChange: (id: string, role: 'main' | 'secondary' | 'none') => void;
@@ -83,6 +87,10 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   onLayerChannelChange,
   effectMidiNotes,
   onEffectMidiNoteChange,
+  launchpadChannel,
+  onLaunchpadChannelChange,
+  launchpadNote,
+  onLaunchpadNoteChange,
   monitors,
   monitorRoles,
   onMonitorRoleChange,
@@ -253,6 +261,7 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
           <div className="settings-sidebar">
             {[
               { id: 'audio', label: 'Audio', icon: '🎵' },
+              { id: 'hardware', label: 'Hardware MIDI', icon: '🎛️' },
               { id: 'video', label: 'Rendimiento', icon: '🎮' },
               { id: 'fullscreen', label: 'Monitores', icon: '🖥️' },
               { id: 'visual', label: 'Visuales', icon: '🎨' },
@@ -423,6 +432,40 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                     </label>
                   ))}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'hardware' && (
+            <div className="settings-section">
+              <h3>🎛️ Hardware MIDI</h3>
+
+              <div className="setting-group">
+                <label className="setting-label">
+                  <span>Canal LaunchPad Toggle</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={16}
+                    value={launchpadChannel}
+                    onChange={(e) => onLaunchpadChannelChange(parseInt(e.target.value) || 1)}
+                    className="setting-number"
+                  />
+                </label>
+              </div>
+
+              <div className="setting-group">
+                <label className="setting-label">
+                  <span>Nota LaunchPad Toggle</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={127}
+                    value={launchpadNote}
+                    onChange={(e) => onLaunchpadNoteChange(parseInt(e.target.value) || 0)}
+                    className="setting-number"
+                  />
+                </label>
               </div>
             </div>
           )}
