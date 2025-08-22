@@ -6,6 +6,7 @@ import { LayerGrid } from './components/LayerGrid';
 import { StatusBar } from './components/StatusBar';
 import { PresetControls } from './components/PresetControls';
 import { TopBar } from './components/TopBar';
+import { PresetGalleryModal } from './components/PresetGalleryModal';
 import { GlobalSettingsModal } from './components/GlobalSettingsModal';
 import { LoadedPreset, AudioData } from './core/PresetLoader';
 import { setNestedValue } from './utils/objectPath';
@@ -68,6 +69,7 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : { A: 14, B: 15, C: 16 };
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isPresetGalleryOpen, setPresetGalleryOpen] = useState(false);
   const [monitors, setMonitors] = useState<MonitorInfo[]>([]);
   const [monitorRoles, setMonitorRoles] = useState<Record<string, 'main' | 'secondary' | 'none'>>(() => {
     try {
@@ -813,6 +815,7 @@ const App: React.FC = () => {
         onFullScreen={handleFullScreen}
         onClearAll={handleClearAll}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenPresetGallery={() => setPresetGalleryOpen(true)}
       />
 
       {/* Grid de capas */}
@@ -1019,6 +1022,12 @@ const App: React.FC = () => {
           setFullscreenByDefault(value);
           localStorage.setItem('fullscreenByDefault', value.toString());
         }}
+      />
+
+      <PresetGalleryModal
+        isOpen={isPresetGalleryOpen}
+        onClose={() => setPresetGalleryOpen(false)}
+        presets={availablePresets}
       />
     </div>
   );

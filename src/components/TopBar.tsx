@@ -14,6 +14,7 @@ interface TopBarProps {
   onFullScreen: () => void;
   onClearAll: () => void;
   onOpenSettings: () => void;
+  onOpenPresetGallery: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -29,7 +30,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   audioLevel,
   onFullScreen,
   onClearAll,
-  onOpenSettings
+  onOpenSettings,
+  onOpenPresetGallery
 }) => {
   const [activeLed, setActiveLed] = useState(0);
 
@@ -86,6 +88,7 @@ export const TopBar: React.FC<TopBarProps> = ({
       <div className="actions-section">
         <button onClick={onFullScreen} alt="Go Full Screen mode!!">Full Screen</button>
         <button onClick={onClearAll}>Clear All</button>
+        <button onClick={onOpenPresetGallery}>Presets</button>
         <button onClick={onOpenSettings}>Settings</button>
       </div>
     </div>

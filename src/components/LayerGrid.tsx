@@ -45,6 +45,107 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
 
   const [clickedCell, setClickedCell] = useState<string | null>(null);
 
+  const defaultOrder = presets.map(p => p.id);
+  const [layerPresets, setLayerPresets] = useState<Record<string, string[]>>(() => {
+    try {
+      const stored = localStorage.getItem('layerPresets');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const ensure = (arr?: string[]) => {
+          const result = Array.isArray(arr) ? [...arr] : [...defaultOrder];
+          defaultOrder.forEach(id => {
+            if (!result.includes(id)) result.push(id);
+          });
+          return result;
+        };
+        return {
+          A: ensure(parsed.A),
+          B: ensure(parsed.B),
+          C: ensure(parsed.C)
+        };
+      }
+    } catch {
+      /* ignore */
+    }
+    return {
+      A: [...defaultOrder],
+      B: [...defaultOrder],
+      C: [...defaultOrder]
+    };
+  });
+
+  const [dragTarget, setDragTarget] = useState<{ layerId: string; index: number } | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem('layerPresets', JSON.stringify(layerPresets));
+  }, [layerPresets]);
+
+  const getBaseId = (id: string) => (id.startsWith('custom-glitch-text') ? 'custom-glitch-text' : id);
+  const canPlace = (list: string[], id: string, ignoreIndex?: number) => {
+    const base = getBaseId(id);
+    if (base === 'custom-glitch-text') return true;
+    return !list.some((pid, idx) => getBaseId(pid) === base && idx !== ignoreIndex);
+  };
+
+  const handleDragStart = (
+    e: React.DragEvent<HTMLDivElement>,
+    layerId: string,
+    index: number
+  ) => {
+    e.dataTransfer.setData('application/json', JSON.stringify({ layerId, index }));
+  };
+
+  const handleDragEnter = (
+    e: React.DragEvent<HTMLDivElement>,
+    layerId: string,
+    index: number
+  ) => {
+    e.preventDefault();
+    setDragTarget({ layerId, index });
+  };
+
+  const handleDragLeave = () => setDragTarget(null);
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => e.preventDefault();
+
+  const handleDrop = (
+    e: React.DragEvent<HTMLDivElement>,
+    targetLayerId: string,
+    targetIndex: number
+  ) => {
+    e.preventDefault();
+    setDragTarget(null);
+    const data = e.dataTransfer.getData('application/json');
+    if (!data) return;
+    const { layerId: sourceLayerId, index: sourceIndex } = JSON.parse(data);
+    if (sourceLayerId === undefined) return;
+
+    setLayerPresets(prev => {
+      const next = { ...prev };
+      if (sourceLayerId === targetLayerId) {
+        const list = [...next[sourceLayerId]];
+        const [item] = list.splice(sourceIndex, 1);
+        list.splice(targetIndex, 0, item);
+        next[sourceLayerId] = list;
+        return next;
+      }
+      const sourceList = [...next[sourceLayerId]];
+      const targetList = [...next[targetLayerId]];
+      const draggedId = sourceList[sourceIndex];
+      const targetId = targetList[targetIndex];
+      if (
+        !canPlace(targetList, draggedId, targetIndex) ||
+        !canPlace(sourceList, targetId, sourceIndex)
+      ) {
+        return prev;
+      }
+      sourceList[sourceIndex] = targetId;
+      targetList[targetIndex] = draggedId;
+      next[sourceLayerId] = sourceList;
+      next[targetLayerId] = targetList;
+      return next;
+    });
+  };
+
   const handlePresetClick = (layerId: string, presetId: string, velocity?: number) => {
     const cellKey = `${layerId}-${presetId}`;
     const layer = layers.find(l => l.id === layerId);
@@ -180,16 +281,25 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
 
           {/* Preset Grid */}
           <div className="preset-grid">
-            {presets.map((preset) => {
+            {layerPresets[layer.id].map((presetId, idx) => {
+              const preset = presets.find(p => p.id === presetId);
+              if (!preset) return null;
               const cellKey = `${layer.id}-${preset.id}`;
               const isActive = layer.activePreset === preset.id;
               const isClicked = clickedCell === cellKey;
-              
+              const isDragOver = dragTarget?.layerId === layer.id && dragTarget.index === idx;
+
               return (
                 <div
                   key={cellKey}
-                  className={`preset-cell ${isActive ? 'active' : ''} ${isClicked ? 'clicked' : ''}`}
+                  className={`preset-cell ${isActive ? 'active' : ''} ${isClicked ? 'clicked' : ''} ${isDragOver ? 'drag-over' : ''}`}
                   onClick={() => handlePresetClick(layer.id, preset.id)}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, layer.id, idx)}
+                  onDragOver={handleDragOver}
+                  onDragEnter={(e) => handleDragEnter(e, layer.id, idx)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, layer.id, idx)}
                   style={{
                     '--layer-color': layer.color,
                     '--layer-color-alpha': layer.color + '20'
