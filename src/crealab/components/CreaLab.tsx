@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CreaLabProject, GenerativeTrack, TrackType } from '../types/CrealabTypes';
 import { TopBar } from './TopBar';
 import LaunchControlVisualizer from './LaunchControlVisualizer';
 import useLaunchControlXL from '../hooks/useLaunchControlXL';
 import { useMidiDevices } from '../hooks/useMidiDevices';
-import GeneratorControls from './GeneratorControls';
 import BassGeneratorControls from './BassGeneratorControls';
 import MidiConfiguration from './MidiConfiguration';
 import ProjectManager from './ProjectManager';
@@ -110,6 +109,21 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
     }
   });
 
+  useEffect(() => {
+    const stored = localStorage.getItem('crealab_project');
+    if (stored) {
+      try {
+        setProject(JSON.parse(stored));
+      } catch (e) {
+        console.error('Failed to load project', e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('crealab_project', JSON.stringify(project));
+  }, [project]);
+
   const updateTrackName = (trackNumber: number, name: string) => {
     setProject(prev => ({
       ...prev,
@@ -200,13 +214,16 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
     }));
   };
 
-  const applyTrackUpdates = (trackNumber: number, updates: Partial<GenerativeTrack>) => {
-    setProject(prev => ({
-      ...prev,
-      tracks: prev.tracks.map(t =>
-        t.trackNumber === trackNumber ? { ...t, ...updates } : t
-      ) as any
-    }));
+  const handleKnobWheel = (
+    track: GenerativeTrack,
+    field: keyof GenerativeTrack['controls'],
+    e: React.WheelEvent
+  ) => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 1 : -1;
+    const current = track.controls[field] as number;
+    const value = Math.min(127, Math.max(0, current + delta));
+    updateTrackControls(track.trackNumber, { [field]: value } as any);
   };
 
   return (
@@ -249,38 +266,23 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
 
               <div className="track-controls">
                 <select
-                  className="track-type-selector"
-                  value={track.trackType}
-                  onChange={e =>
-                    updateTrackType(track.trackNumber, e.target.value as TrackType)
-                  }
+                  className="device-selector"
+                  value={track.inputDevice || ''}
+                  onChange={e => updateInputDevice(track.trackNumber, e.target.value)}
                 >
-                  <option value="kick">Kick</option>
-                  <option value="bass">Bass</option>
-                  <option value="arp">Arp</option>
-                  <option value="lead">Lead</option>
-                  <option value="fx">FX</option>
-                  <option value="perc">Perc</option>
-                  <option value="visual">Visual</option>
+                  <option value="">MIDI Input</option>
+                  {inputDevices.map(dev => (
+                    <option key={dev.id} value={dev.id}>{dev.name}</option>
+                  ))}
                 </select>
 
-                <div className="midi-config">
-                  <select
-                    className="device-selector"
-                    value={track.inputDevice || ''}
-                    onChange={e => updateInputDevice(track.trackNumber, e.target.value)}
-                  >
-                    <option value="">Input</option>
-                    {inputDevices.map(dev => (
-                      <option key={dev.id} value={dev.id}>{dev.name}</option>
-                    ))}
-                  </select>
+                <div className="output-row">
                   <select
                     className="device-selector"
                     value={track.outputDevice}
                     onChange={e => updateOutputDevice(track.trackNumber, e.target.value)}
                   >
-                    <option value="">Output</option>
+                    <option value="">MIDI Output</option>
                     {outputDevices.map(dev => (
                       <option key={dev.id} value={dev.id}>{dev.name}</option>
                     ))}
@@ -298,46 +300,16 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
                   </select>
                 </div>
 
-                <div className="generator-config">
-                  <select
-                    className="generator-selector"
-                    value={track.generator.type}
-                    onChange={e => updateGeneratorType(track.trackNumber, e.target.value)}
-                  >
-                    <option value="off">Off</option>
-                    <option value="euclidean">Euclidean</option>
-                    <option value="probabilistic">Probabilistic</option>
-                    <option value="markov">Markov</option>
-                    <option value="arpeggiator">Arpeggiator</option>
-                    <option value="chaos">Chaos</option>
-                    <option value="magenta">Magenta</option>
-                  </select>
-                </div>
-
-                {track.trackType === 'bass' && (
-                  <BassGeneratorControls
-                    track={track}
-                    onParametersChange={params =>
-                      updateGeneratorParameters(track.trackNumber, params)
-                    }
-                  />
-                )}
-
-                <GeneratorControls
-                  track={track}
-                  onChange={changes =>
-                    updateTrackControls(track.trackNumber, changes)
-                  }
-                />
-
+                <div className="section-divider" />
+                <div className="section-title">Controles MIDI</div>
                 <div className="launch-control-preview">
                   <div className="lc-controls">
                     <div className="lc-knobs">
-                      <div className="lc-knob"><span className="knob-value">{track.controls.paramA}</span></div>
-                      <div className="lc-knob"><span className="knob-value">{track.controls.paramB}</span></div>
-                      <div className="lc-knob"><span className="knob-value">{track.controls.paramC}</span></div>
+                      <div className="lc-knob" onWheel={e => handleKnobWheel(track, 'paramA', e)}><span className="knob-value">{track.controls.paramA}</span></div>
+                      <div className="lc-knob" onWheel={e => handleKnobWheel(track, 'paramB', e)}><span className="knob-value">{track.controls.paramB}</span></div>
+                      <div className="lc-knob" onWheel={e => handleKnobWheel(track, 'paramC', e)}><span className="knob-value">{track.controls.paramC}</span></div>
                     </div>
-                    <div className="lc-fader">
+                    <div className="lc-fader" onWheel={e => handleKnobWheel(track, 'intensity', e)}>
                       <div className="fader-track">
                         <div
                           className="fader-thumb"
@@ -351,6 +323,47 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
                     </div>
                   </div>
                 </div>
+
+                <div className="section-divider" />
+                <div className="section-title">Generador</div>
+                <select
+                  className="track-type-selector"
+                  value={track.trackType}
+                  onChange={e =>
+                    updateTrackType(track.trackNumber, e.target.value as TrackType)
+                  }
+                >
+                  <option value="kick">Kick</option>
+                  <option value="bass">Bass</option>
+                  <option value="arp">Arp</option>
+                  <option value="lead">Lead</option>
+                  <option value="fx">FX</option>
+                  <option value="perc">Perc</option>
+                  <option value="visual">Visual</option>
+                </select>
+
+                <select
+                  className="generator-selector"
+                  value={track.generator.type}
+                  onChange={e => updateGeneratorType(track.trackNumber, e.target.value)}
+                >
+                  <option value="off">Off</option>
+                  <option value="euclidean">Euclidean</option>
+                  <option value="probabilistic">Probabilistic</option>
+                  <option value="markov">Markov</option>
+                  <option value="arpeggiator">Arpeggiator</option>
+                  <option value="chaos">Chaos</option>
+                  <option value="magenta">Magenta</option>
+                </select>
+
+                {track.trackType === 'bass' && (
+                  <BassGeneratorControls
+                    track={track}
+                    onParametersChange={params =>
+                      updateGeneratorParameters(track.trackNumber, params)
+                    }
+                  />
+                )}
               </div>
 
               <div className="track-status">
