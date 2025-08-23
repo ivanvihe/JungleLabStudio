@@ -9,7 +9,7 @@ use tauri::{Manager, State};
 
 #[tauri::command]
 async fn set_layer_opacity(layer: String, opacity: f32, state: State<'_, ConfigState>) {
-    let mut cfg = state.inner.lock().unwrap();
+    let mut cfg = state.inner.write().unwrap();
     if let Some(l) = cfg.layers.get_mut(&layer) {
         l.opacity = opacity;
     } else {
@@ -25,13 +25,13 @@ async fn set_layer_opacity(layer: String, opacity: f32, state: State<'_, ConfigS
 
 #[tauri::command]
 async fn get_config(state: State<'_, ConfigState>) -> Config {
-    let cfg = state.inner.lock().unwrap();
+    let cfg = state.inner.read().unwrap();
     cfg.clone()
 }
 
 #[tauri::command]
 async fn save_config(state: State<'_, ConfigState>) -> Result<(), String> {
-    let cfg = state.inner.lock().unwrap();
+    let cfg = state.inner.read().unwrap();
     cfg.save(&state.path).map_err(|e| e.to_string())
 }
 
@@ -42,15 +42,9 @@ fn main() {
     let cfg = Config::load(&config_path);
 
     tauri::Builder::default()
-        .manage(ConfigState {
-            path: config_path,
-            inner: std::sync::Mutex::new(cfg),
-        })
-        .invoke_handler(tauri::generate_handler![
-            set_layer_opacity,
-            get_config,
-            save_config
-        ])
+        .manage(ConfigState { path: config_path, inner: std::sync::RwLock::new(cfg) })
+        .invoke_handler(tauri::generate_handler![set_layer_opacity, get_config, save_config])
+
         .setup(|app| {
             if let Err(e) = midi::start(app.handle().clone()) {
                 error!("failed to start midi: {e:?}");
