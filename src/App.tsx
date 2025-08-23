@@ -8,19 +8,15 @@ import { PresetControls } from './components/PresetControls';
 import { TopBar } from './components/TopBar';
 import { PresetGalleryModal } from './components/PresetGalleryModal';
 import { GlobalSettingsModal } from './components/GlobalSettingsModal';
-import { LoadedPreset, AudioData } from './core/PresetLoader';
+import { LoadedPreset } from './core/PresetLoader';
 import { setNestedValue } from './utils/objectPath';
 import { AVAILABLE_EFFECTS } from './utils/effects';
-import {
-  buildLaunchpadFrame,
-  LaunchpadPreset,
-  isLaunchpadDevice,
-  gridIndexToNote,
-  canvasToLaunchpadFrame,
-  LAUNCHPAD_PRESETS
-} from './utils/launchpad';
+import { gridIndexToNote, LAUNCHPAD_PRESETS } from './utils/launchpad';
+import { useAudio } from './hooks/useAudio';
+import { useMidi } from './hooks/useMidi';
+import { useLaunchpad } from './hooks/useLaunchpad';
 import './App.css';
-import './components/LayerGrid.css';
+import './AppLayout.css';
 
 interface MonitorInfo {
   id: string;
@@ -34,15 +30,10 @@ interface MonitorInfo {
 const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<AudioVisualizerEngine | null>(null);
-  const tickCountRef = useRef(0);
-  const lastBeatRef = useRef<number | null>(null);
-  const bpmSamplesRef = useRef<number[]>([]);
   const broadcastRef = useRef<BroadcastChannel | null>(null);
-  const launchpadPrevFrameRef = useRef<number[]>(new Array(64).fill(0));
   
   const [isInitialized, setIsInitialized] = useState(false);
   const [availablePresets, setAvailablePresets] = useState<LoadedPreset[]>([]);
-  const [audioData, setAudioData] = useState<AudioData>({ low: 0, mid: 0, high: 0, fft: [] });
   const [fps, setFps] = useState(60);
   const [status, setStatus] = useState('Inicializando...');
   const [activeLayers, setActiveLayers] = useState<Record<string, string>>({});
@@ -72,17 +63,6 @@ const App: React.FC = () => {
   const [genLabBasePreset, setGenLabBasePreset] = useState<LoadedPreset | null>(null);
 
   // Top bar & settings state
-  const [midiDevices, setMidiDevices] = useState<any[]>([]);
-  const [midiDeviceId, setMidiDeviceId] = useState<string | null>(null);
-  const [midiActive, setMidiActive] = useState(false);
-  const [bpm, setBpm] = useState<number | null>(null);
-  const [beatActive, setBeatActive] = useState(false);
-  const [midiTrigger, setMidiTrigger] = useState<{layerId: string; presetId: string; velocity: number} | null>(null);
-  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
-  const [audioDeviceId, setAudioDeviceId] = useState<string | null>(null);
-  const [audioGain, setAudioGain] = useState(1);
-  const [midiClockDelay, setMidiClockDelay] = useState(() => parseInt(localStorage.getItem('midiClockDelay') || '0'));
-  const [midiClockType, setMidiClockType] = useState(() => localStorage.getItem('midiClockType') || 'midi');
   const [layerChannels, setLayerChannels] = useState<Record<string, number>>(() => {
     const saved = localStorage.getItem('layerMidiChannels');
     return saved ? JSON.parse(saved) : { A: 14, B: 15, C: 16 };
@@ -98,15 +78,6 @@ const App: React.FC = () => {
     });
     return defaults;
   });
-  const [launchpadOutputs, setLaunchpadOutputs] = useState<any[]>([]);
-  const [launchpadId, setLaunchpadId] = useState<string | null>(() => localStorage.getItem('launchpadId'));
-  const [launchpadOutput, setLaunchpadOutput] = useState<any | null>(null);
-  const [launchpadRunning, setLaunchpadRunning] = useState(false);
-  const [launchpadPreset, setLaunchpadPreset] = useState<LaunchpadPreset>('spectrum');
-  const [launchpadChannel, setLaunchpadChannel] = useState(() => parseInt(localStorage.getItem('launchpadChannel') || '1'));
-  const [launchpadNote, setLaunchpadNote] = useState(() => parseInt(localStorage.getItem('launchpadNote') || '60'));
-  const [launchpadSmoothness, setLaunchpadSmoothness] = useState(() => parseFloat(localStorage.getItem('launchpadSmoothness') || '0'));
-  const [launchpadText, setLaunchpadText] = useState(() => localStorage.getItem('launchpadText') || 'HELLO');
   const [layerEffects, setLayerEffects] = useState<Record<string, { effect: string; alwaysOn: boolean; active: boolean }>>(() => {
     try {
       const stored = localStorage.getItem('layerEffects');
@@ -130,6 +101,64 @@ const App: React.FC = () => {
       C: { effect: 'none', alwaysOn: false, active: false },
     };
   });
+
+  const [isFullscreenMode, setIsFullscreenMode] = useState(
+    () => new URLSearchParams(window.location.search).get('fullscreen') === 'true'
+  );
+
+  const {
+    audioData,
+    audioDevices,
+    audioDeviceId,
+    setAudioDeviceId,
+    audioGain,
+    setAudioGain,
+  } = useAudio(engineRef, isInitialized);
+
+  const {
+    launchpadOutputs,
+    launchpadId,
+    setLaunchpadId,
+    launchpadOutput,
+    launchpadRunning,
+    setLaunchpadRunning,
+    launchpadPreset,
+    setLaunchpadPreset,
+    launchpadChannel,
+    setLaunchpadChannel,
+    launchpadNote,
+    setLaunchpadNote,
+    launchpadSmoothness,
+    setLaunchpadSmoothness,
+    launchpadText,
+    setLaunchpadText,
+  } = useLaunchpad(audioData, canvasRef);
+
+  const {
+    midiDevices,
+    midiDeviceId,
+    setMidiDeviceId,
+    midiActive,
+    bpm,
+    beatActive,
+    midiTrigger,
+    setMidiTrigger,
+    midiClockDelay,
+    setMidiClockDelay,
+    midiClockType,
+    setMidiClockType,
+  } = useMidi({
+    isFullscreenMode,
+    availablePresets,
+    layerChannels,
+    layerEffects,
+    setLayerEffects,
+    effectMidiNotes,
+    launchpadChannel,
+    launchpadNote,
+    onLaunchpadToggle: () => setLaunchpadRunning(prev => !prev),
+    engineRef,
+  });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPresetGalleryOpen, setPresetGalleryOpen] = useState(false);
   const [monitors, setMonitors] = useState<MonitorInfo[]>([]);
@@ -150,9 +179,6 @@ const App: React.FC = () => {
   const [glitchTextPads, setGlitchTextPads] = useState<number>(storedTemplate.count || parseInt(localStorage.getItem('glitchTextPads') || '1'));
   const [customTextContents, setCustomTextContents] = useState<string[]>(storedTemplate.texts || []);
   const [clearSignal, setClearSignal] = useState(0);
-  const [isFullscreenMode, setIsFullscreenMode] = useState(
-    () => new URLSearchParams(window.location.search).get('fullscreen') === 'true'
-  );
   const [hideUiHotkey, setHideUiHotkey] = useState(() => localStorage.getItem('hideUiHotkey') || 'F10');
   const [isUiHidden, setIsUiHidden] = useState(false);
   const [fullscreenHotkey, setFullscreenHotkey] = useState(() => localStorage.getItem('fullscreenHotkey') || 'F9');
@@ -272,21 +298,6 @@ const App: React.FC = () => {
     }
   }, [effectMidiNotes]);
 
-  useEffect(() => {
-    localStorage.setItem('launchpadChannel', launchpadChannel.toString());
-  }, [launchpadChannel]);
-
-  useEffect(() => {
-    localStorage.setItem('launchpadNote', launchpadNote.toString());
-  }, [launchpadNote]);
-
-  useEffect(() => {
-    localStorage.setItem('launchpadSmoothness', launchpadSmoothness.toString());
-  }, [launchpadSmoothness]);
-
-  useEffect(() => {
-    localStorage.setItem('launchpadText', launchpadText);
-  }, [launchpadText]);
 
   // Enumerar monitores disponibles usando Electron
   useEffect(() => {
@@ -402,426 +413,6 @@ const App: React.FC = () => {
     };
   }, [glitchTextPads]);
 
-  // Enumerar dispositivos de audio
-  useEffect(() => {
-    if (navigator?.mediaDevices?.enumerateDevices) {
-      navigator.mediaDevices.enumerateDevices()
-        .then(devs => {
-          const inputs = devs.filter(d => d.kind === 'audioinput');
-          setAudioDevices(inputs);
-          if (audioDeviceId && !inputs.some(d => d.deviceId === audioDeviceId)) {
-            setAudioDeviceId(null);
-          }
-        })
-        .catch(err => console.warn('Audio devices error', err));
-    }
-  }, [audioDeviceId]);
-
-  // Configurar MIDI
-  useEffect(() => {
-    if (isFullscreenMode) return;
-    const handleMIDIMessage = (event: any) => {
-      setMidiActive(true);
-      setTimeout(() => setMidiActive(false), 100);
-      const [statusByte, note, vel] = event.data;
-
-      // MIDI Start/Stop/Continue handling
-      if (statusByte === 0xfa || statusByte === 0xfb || statusByte === 0xfc) {
-        tickCountRef.current = 0;
-        lastBeatRef.current = null;
-        bpmSamplesRef.current = [];
-        if (statusByte === 0xfc) {
-          setBpm(null);
-        }
-        return;
-      }
-
-      // MIDI Clock handling
-      if (statusByte === 0xf8 && midiClockType === 'midi') {
-        const now = performance.now();
-        tickCountRef.current++;
-
-        if (tickCountRef.current >= 24) {
-          const lastBeat = lastBeatRef.current;
-          if (lastBeat !== null) {
-            const diff = now - lastBeat;
-            const bpmVal = 60000 / diff;
-            if (isFinite(bpmVal)) {
-              bpmSamplesRef.current.push(bpmVal);
-              if (bpmSamplesRef.current.length > 8) bpmSamplesRef.current.shift();
-              const avg = bpmSamplesRef.current.reduce((a, b) => a + b, 0) / bpmSamplesRef.current.length;
-              setBpm(avg);
-              if (engineRef.current) {
-                engineRef.current.updateBpm(avg);
-              }
-            }
-          }
-          lastBeatRef.current = now;
-          tickCountRef.current = 0;
-
-          const trigger = () => {
-            setBeatActive(true);
-            setTimeout(() => setBeatActive(false), 100);
-            if (engineRef.current) {
-              engineRef.current.triggerBeat();
-            }
-          };
-
-          if (midiClockDelay > 0) {
-            setTimeout(trigger, midiClockDelay);
-          } else {
-            trigger();
-          }
-        }
-        return;
-      }
-
-      const command = statusByte & 0xf0;
-      const channel = (statusByte & 0x0f) + 1;
-      if (command === 0x90 && vel > 0 && channel === launchpadChannel && note === launchpadNote) {
-        setLaunchpadRunning(prev => !prev);
-        return;
-      }
-      const channelToLayer = Object.fromEntries(
-        Object.entries(layerChannels).map(([layerId, ch]) => [ch, layerId])
-      ) as Record<number, string>;
-      const layerId = channelToLayer[channel];
-
-      const matchedEffect = Object.entries(effectMidiNotes).find(([, n]) => n === note)?.[0];
-
-      if (command === 0x90 && vel > 0) {
-        if (matchedEffect) {
-          setLayerEffects(prev => {
-            const updated = { ...prev };
-            Object.keys(prev).forEach(id => {
-              if (prev[id].effect === matchedEffect && !prev[id].alwaysOn) {
-                updated[id] = { ...prev[id], active: true };
-              }
-            });
-            return updated;
-          });
-        }
-        const preset = availablePresets.find(p => p.config.note === note);
-        if (layerId && preset) {
-          setMidiTrigger({ layerId, presetId: preset.id, velocity: vel });
-        }
-      } else if (command === 0x80 || (command === 0x90 && vel === 0)) {
-        if (matchedEffect) {
-          setLayerEffects(prev => {
-            const updated = { ...prev };
-            Object.keys(prev).forEach(id => {
-              if (prev[id].effect === matchedEffect && !prev[id].alwaysOn) {
-                updated[id] = { ...prev[id], active: false };
-              }
-            });
-            return updated;
-          });
-        }
-      }
-    };
-
-    if ((navigator as any).requestMIDIAccess) {
-      (navigator as any).requestMIDIAccess({ sysex: true })
-        .then((access: any) => {
-          const inputs = Array.from(access.inputs.values());
-          setMidiDevices(inputs);
-          const outputs = Array.from(access.outputs.values());
-          const lps = outputs.filter(isLaunchpadDevice);
-          setLaunchpadOutputs(lps);
-          const lp = lps.find((out: any) => out.id === launchpadId) || lps[0] || null;
-          setLaunchpadOutput(lp);
-          if (!launchpadId && lp) {
-            setLaunchpadId(lp.id);
-            localStorage.setItem('launchpadId', lp.id);
-          }
-
-          inputs.forEach((input: any) => {
-            if (!midiDeviceId || input.id === midiDeviceId) {
-              input.onmidimessage = handleMIDIMessage;
-            } else {
-              input.onmidimessage = null;
-            }
-          });
-
-          access.onstatechange = () => {
-            const ins = Array.from(access.inputs.values());
-            setMidiDevices(ins);
-            const outs = Array.from(access.outputs.values());
-            const lps2 = outs.filter(isLaunchpadDevice);
-            setLaunchpadOutputs(lps2);
-            const lp2 = lps2.find((out: any) => out.id === launchpadId) || lps2[0] || null;
-            setLaunchpadOutput(lp2);
-            if (!launchpadId && lp2) {
-              setLaunchpadId(lp2.id);
-              localStorage.setItem('launchpadId', lp2.id);
-            }
-          };
-        })
-        .catch((err: any) => console.warn('MIDI access error', err));
-    }
-  }, [midiDeviceId, midiClockType, midiClockDelay, layerChannels, layerEffects, availablePresets, isFullscreenMode, launchpadChannel, launchpadNote, launchpadId]);
-
-  useEffect(() => {
-    let lp = launchpadOutputs.find(out => out.id === launchpadId) || null;
-    if (!lp && launchpadOutputs.length > 0) {
-      lp = launchpadOutputs[0];
-      setLaunchpadId(lp.id);
-      localStorage.setItem('launchpadId', lp.id);
-    }
-    setLaunchpadOutput(lp);
-  }, [launchpadOutputs, launchpadId]);
-
-  // Configurar listener de audio
-  useEffect(() => {
-    let teardown: (() => void) | undefined;
-
-    const scaleAudio = (d: AudioData): AudioData => ({
-      low: d.low * audioGain,
-      mid: d.mid * audioGain,
-      high: d.high * audioGain,
-      fft: d.fft.map(v => v * audioGain)
-    });
-
-    const setupAudioListener = async () => {
-      try {
-        if (typeof window !== 'undefined' && (window as any).__TAURI__) {
-          console.log('🎵 Tauri environment detected, setting up audio listener...');
-          
-          const tauriApi = await import('@tauri-apps/api/event');
-          const unlisten = await tauriApi.listen('audio_data', (event) => {
-            const data = event.payload as AudioData;
-            const scaled = scaleAudio(data);
-            setAudioData(scaled);
-            if (engineRef.current) {
-              engineRef.current.updateAudioData(scaled);
-            }
-          });
-
-          console.log('✅ Tauri audio listener setup complete');
-          teardown = () => { unlisten(); };
-        } else {
-          console.log('🎙️ Using Web Audio API for input');
-          const constraints: MediaStreamConstraints = {
-            audio: audioDeviceId ? { deviceId: { exact: audioDeviceId } } : true
-          };
-          
-          const stream = await navigator.mediaDevices.getUserMedia(constraints);
-          const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
-          const audioCtx = new AudioContextClass();
-          const source = audioCtx.createMediaStreamSource(stream);
-          const analyser = audioCtx.createAnalyser();
-          
-          analyser.fftSize = 512;
-          source.connect(analyser);
-          
-          const bufferLength = analyser.frequencyBinCount;
-          const dataArray = new Uint8Array(bufferLength);
-          let rafId = 0;
-
-          const update = () => {
-            analyser.getByteFrequencyData(dataArray);
-            const third = Math.floor(bufferLength / 3);
-            
-            const avg = (arr: Uint8Array) => arr.reduce((sum, v) => sum + v, 0) / arr.length / 255;
-            const low = avg(dataArray.slice(0, third));
-            const mid = avg(dataArray.slice(third, third * 2));
-            const high = avg(dataArray.slice(third * 2));
-            const fft = Array.from(dataArray, v => v / 255);
-
-            const scaled = scaleAudio({ low, mid, high, fft });
-            setAudioData(scaled);
-            if (engineRef.current) {
-              engineRef.current.updateAudioData(scaled);
-            }
-
-            rafId = requestAnimationFrame(update);
-          };
-
-          rafId = requestAnimationFrame(update);
-          teardown = () => {
-            cancelAnimationFrame(rafId);
-            audioCtx.close();
-            stream.getTracks().forEach(t => t.stop());
-          };
-        }
-      } catch (error) {
-        console.warn('⚠️ Audio listener setup failed:', error);
-        
-        const fallbackData: AudioData = {
-          low: 0.3,
-          mid: 0.5,
-          high: 0.2,
-          fft: Array.from({ length: 256 }, () => Math.random() * 0.5)
-        };
-
-        const scaled = scaleAudio(fallbackData);
-        setAudioData(scaled);
-        if (engineRef.current) {
-          engineRef.current.updateAudioData(scaled);
-        }
-      }
-    };
-
-    if (isInitialized) {
-      setupAudioListener();
-    }
-
-    return () => {
-      if (teardown) teardown();
-    };
-  }, [isInitialized, audioGain, audioDeviceId]);
-
-  useEffect(() => {
-    if (!launchpadRunning || !launchpadOutput) return;
-    const rawFrame =
-      launchpadPreset === 'canvas'
-        ? canvasRef.current
-          ? canvasToLaunchpadFrame(canvasRef.current)
-          : new Array(64).fill(0)
-        : buildLaunchpadFrame(launchpadPreset, audioData, { text: launchpadText });
-
-    // 🔥 DEBUG CRUCIAL: Verificar que frame tiene 64 elementos
-    if (rawFrame.length !== 64) {
-      console.error(`❌ ERROR: buildLaunchpadFrame devolvió ${rawFrame.length} elementos, debería ser 64!`);
-      return;
-    }
-
-    const prev = launchpadPrevFrameRef.current;
-    const alpha = 1 - Math.min(0.99, launchpadSmoothness);
-    const frame = rawFrame.map((value, i) => {
-      const smoothed = prev[i] + (value - prev[i]) * alpha;
-      prev[i] = smoothed;
-      return Math.round(smoothed);
-    });
-
-    // Debug: mostrar algunos valores del frame
-    const nonZeroCount = frame.filter(c => c > 0).length;
-    console.log(`🎛️ Frame Launchpad: ${nonZeroCount}/64 pads activos, preset: ${launchpadPreset}`);
-
-    // Enviar a todos los 64 pads (mapear índice a nota MIDI del Launchpad)
-    frame.forEach((color, i) => {
-      const note = gridIndexToNote(i);
-      try {
-        launchpadOutput.send([0x90, note, color]);
-      } catch (e) {
-        console.warn(`MIDI send error en pad ${i} (nota ${note}):`, e);
-      }
-    });
-
-  }, [audioData, launchpadRunning, launchpadPreset, launchpadOutput, launchpadSmoothness, launchpadText]);
-
-  useEffect(() => {
-    if (launchpadRunning && launchpadOutput) {
-      try {
-        console.log('Launchpad: Enviando handshake a', launchpadOutput.name);
-
-        // Detectar modelo del Launchpad y enviar SysEx apropiado
-        const deviceName = launchpadOutput.name?.toLowerCase() || '';
-
-        if (deviceName.includes('mk3') || deviceName.includes('lppro')) {
-          // Launchpad Pro MK3 / Mini MK3
-          console.log('Detectado Launchpad MK3, enviando SysEx MK3...');
-          launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x0d, 0x0e, 0x01, 0xf7]);
-        } else if (deviceName.includes('mk2')) {
-          // Launchpad MK2
-          console.log('Detectado Launchpad MK2, enviando SysEx MK2...');
-          launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x18, 0x0e, 0x01, 0xf7]);
-        } else if (deviceName.includes('pro')) {
-          // Launchpad Pro (original)
-          console.log('Detectado Launchpad Pro, enviando SysEx Pro...');
-          launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x10, 0x0e, 0x01, 0xf7]);
-        } else if (deviceName.includes('mini')) {
-          // Launchpad Mini (original)
-          console.log('Detectado Launchpad Mini, modo directo sin SysEx...');
-          // El Mini original no necesita SysEx para programmer mode
-        } else {
-          // Launchpad genérico - probar diferentes SysEx
-          console.log('Launchpad genérico detectado, probando múltiples SysEx...');
-
-          // Intentar MK3 primero
-          try {
-            launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x0d, 0x0e, 0x01, 0xf7]);
-            console.log('SysEx MK3 enviado');
-          } catch (e) {
-            console.warn('SysEx MK3 falló, probando MK2...');
-            try {
-              launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x18, 0x0e, 0x01, 0xf7]);
-              console.log('SysEx MK2 enviado');
-            } catch (e2) {
-              console.warn('SysEx MK2 también falló, probando Pro...');
-              try {
-                launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x10, 0x0e, 0x01, 0xf7]);
-                console.log('SysEx Pro enviado');
-              } catch (e3) {
-                console.warn('Todos los SysEx fallaron, continuando sin programmer mode');
-              }
-            }
-          }
-        }
-
-        // Esperar un poco antes de enviar los comandos de limpieza
-        setTimeout(() => {
-          try {
-            // Clear launchpad inicialmente - usar todos los 64 pads
-            console.log('Limpiando todos los 64 pads del Launchpad...');
-            for (let i = 0; i < 64; i++) {
-              const note = gridIndexToNote(i);
-              launchpadOutput.send([0x90, note, 0]);
-            }
-
-            // También limpiar los botones de función (notas 104-111) por si acaso
-            for (let i = 104; i <= 111; i++) {
-              launchpadOutput.send([0x90, i, 0]);
-            }
-
-            console.log('Launchpad inicializado correctamente para grid 8x8');
-
-            // Test inmediato para verificar funcionamiento
-            console.log('Ejecutando test de verificación...');
-            setTimeout(() => {
-              // Encender las 4 esquinas brevemente para verificar
-              const corners = [0, 7, 56, 63]; // índices de las esquinas del grid 8x8
-              corners.forEach((corner, idx) => {
-                const note = gridIndexToNote(corner);
-                setTimeout(() => {
-                  launchpadOutput.send([0x90, note, 60 + idx * 10]);
-                  setTimeout(() => {
-                    launchpadOutput.send([0x90, note, 0]);
-                  }, 200);
-                }, idx * 150);
-              });
-            }, 500);
-
-          } catch (err) {
-            console.error('Error en limpieza inicial del Launchpad:', err);
-          }
-        }, 200);
-
-      } catch (err) {
-        console.error('Launchpad handshake failed', err);
-      }
-    } else if (!launchpadRunning && launchpadOutput) {
-      // Apagar todos los LEDs cuando se detiene
-      try {
-        console.log('Apagando Launchpad...');
-
-        // Apagar grid principal (64 pads)
-        for (let i = 0; i < 64; i++) {
-          const note = gridIndexToNote(i);
-          launchpadOutput.send([0x90, note, 0]);
-        }
-
-        // Apagar botones de función también
-        for (let i = 104; i <= 111; i++) {
-          launchpadOutput.send([0x90, i, 0]);
-        }
-
-        console.log('Launchpad apagado completamente');
-      } catch (err) {
-        console.warn('Error apagando launchpad:', err);
-      }
-    }
-  }, [launchpadRunning, launchpadOutput]);
 
   // Activar capas almacenadas en modo fullscreen
   useEffect(() => {
@@ -1287,27 +878,29 @@ const App: React.FC = () => {
         <LayerGrid
           presets={availablePresets}
           externalTrigger={midiTrigger}
-          onPresetActivate={async (layerId, presetId, velocity) => {
-            if (engineRef.current) {
-              await engineRef.current.activateLayerPreset(layerId, presetId);
-              setActiveLayers(prev => ({ ...prev, [layerId]: presetId }));
+          onPresetActivate={(layerId, presetId, velocity) => {
+            (async () => {
+              if (engineRef.current) {
+                await engineRef.current.activateLayerPreset(layerId, presetId);
+                setActiveLayers(prev => ({ ...prev, [layerId]: presetId }));
 
-              const preset = availablePresets.find(p => p.id === presetId);
-              if (preset) {
-                const existing = layerPresetConfigs[layerId]?.[presetId];
-                if (existing) {
-                  applyPresetConfig(engineRef.current, layerId, existing);
-                } else {
-                  const cfg = engineRef.current.getLayerPresetConfig(layerId, presetId);
-                  setLayerPresetConfigs(prev => ({
-                    ...prev,
-                    [layerId]: { ...(prev[layerId] || {}), [presetId]: cfg }
-                  }));
+                const preset = availablePresets.find(p => p.id === presetId);
+                if (preset) {
+                  const existing = layerPresetConfigs[layerId]?.[presetId];
+                  if (existing) {
+                    applyPresetConfig(engineRef.current, layerId, existing);
+                  } else {
+                    const cfg = await engineRef.current.getLayerPresetConfig(layerId, presetId);
+                    setLayerPresetConfigs(prev => ({
+                      ...prev,
+                      [layerId]: { ...(prev[layerId] || {}), [presetId]: cfg }
+                    }));
+                  }
+                  setSelectedPreset(preset);
+                  setSelectedLayer(layerId);
                 }
-                setSelectedPreset(preset);
-                setSelectedLayer(layerId);
               }
-            }
+            })();
           }}
           onLayerClear={(layerId) => {
             if (engineRef.current) {
@@ -1330,26 +923,28 @@ const App: React.FC = () => {
             broadcastRef.current?.postMessage({ type: 'layerConfig', layerId, config });
           }}
           onPresetSelect={(layerId, presetId) => {
-            if (presetId) {
-              const preset = availablePresets.find(p => p.id === presetId);
-              if (preset) {
-                const existing = layerPresetConfigs[layerId]?.[presetId];
-                if (!existing) {
-                  const cfg = engineRef.current?.getLayerPresetConfig(layerId, presetId);
-                  if (cfg) {
-                    setLayerPresetConfigs(prev => ({
-                      ...prev,
-                      [layerId]: { ...(prev[layerId] || {}), [presetId]: cfg }
-                    }));
+            (async () => {
+              if (presetId) {
+                const preset = availablePresets.find(p => p.id === presetId);
+                if (preset) {
+                  const existing = layerPresetConfigs[layerId]?.[presetId];
+                  if (!existing) {
+                    const cfg = await engineRef.current?.getLayerPresetConfig(layerId, presetId);
+                    if (cfg) {
+                      setLayerPresetConfigs(prev => ({
+                        ...prev,
+                        [layerId]: { ...(prev[layerId] || {}), [presetId]: cfg }
+                      }));
+                    }
                   }
+                  setSelectedPreset(preset);
+                  setSelectedLayer(layerId);
                 }
-                setSelectedPreset(preset);
-                setSelectedLayer(layerId);
+              } else if (selectedLayer === layerId) {
+                setSelectedPreset(null);
+                setSelectedLayer(null);
               }
-            } else if (selectedLayer === layerId) {
-              setSelectedPreset(null);
-              setSelectedLayer(null);
-            }
+            })();
           }}
           clearAllSignal={clearSignal}
           layerChannels={layerChannels}

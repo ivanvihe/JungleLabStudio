@@ -19,6 +19,7 @@ impl Drop for MidiState {
             drop(conn);
         }
     }
+
 }
 
 #[tauri::command]
@@ -49,6 +50,7 @@ fn connect_port(port_name: &str, app: AppHandle, state: &State<MidiState>) -> Re
             if message.len() >= 3 {
                 let status = message[0];
                 let channel = status & 0x0F;
+
                 if (13..=15).contains(&channel) {
                     let note = message[1];
                     let vel = message[2];
@@ -60,6 +62,7 @@ fn connect_port(port_name: &str, app: AppHandle, state: &State<MidiState>) -> Re
 
     let mut lock = state.connection.lock().unwrap();
     *lock = Some(conn);
+
 
     Ok(())
 }
