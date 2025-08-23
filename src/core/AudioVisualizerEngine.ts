@@ -2,7 +2,6 @@
 
 import * as THREE from 'three';
 import { PresetLoader, LoadedPreset, AudioData } from './PresetLoader';
-import fs from 'fs';
 // Using simple path helpers instead of Node's `path` module which is not
 // available in the browser runtime. Node's `path.join` was causing errors
 // after bundling (e.g. `TypeError: Bi.join is not a function`).
@@ -307,7 +306,7 @@ export class AudioVisualizerEngine {
       }
 
       // Cargar configuración guardada específica para el layer y clonar config base
-      const savedConfig = this.loadLayerPresetConfig(presetId, layerId);
+      const savedConfig = await this.loadLayerPresetConfig(presetId, layerId);
       const loadedPresetConfig = JSON.parse(JSON.stringify(loadedPreset.config));
       loadedPresetConfig.defaultConfig = {
         ...loadedPresetConfig.defaultConfig,
@@ -377,15 +376,16 @@ export class AudioVisualizerEngine {
     return `${folder}/layers/${layerId}${variantSuffix}.json`;
   }
 
-  private loadLayerPresetConfig(presetId: string, layerId: string): any {
+  private async loadLayerPresetConfig(presetId: string, layerId: string): Promise<any> {
     try {
       const cfgPath = this.getLayerConfigPath(presetId, layerId);
-      if (
-        typeof fs?.existsSync === 'function' &&
-        typeof fs?.readFileSync === 'function' &&
-        fs.existsSync(cfgPath)
-      ) {
-        return JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+      if (typeof window !== 'undefined' && (window as any).__TAURI__) {
+        const { exists, readTextFile } = await import(
+          /* @vite-ignore */ '@tauri-apps/api/fs'
+        );
+        if (await exists(cfgPath)) {
+          return JSON.parse(await readTextFile(cfgPath));
+        }
       }
     } catch (err) {
       console.warn(`Could not load config for ${presetId} layer ${layerId}:`, err);
@@ -393,24 +393,24 @@ export class AudioVisualizerEngine {
     return {};
   }
 
-  private saveLayerPresetConfig(presetId: string, layerId: string, cfg: any): void {
+  private async saveLayerPresetConfig(presetId: string, layerId: string, cfg: any): Promise<void> {
     try {
-      if (
-        typeof fs?.mkdirSync === 'function' &&
-        typeof fs?.writeFileSync === 'function'
-      ) {
+      if (typeof window !== 'undefined' && (window as any).__TAURI__) {
+        const { createDir, writeFile } = await import(
+          /* @vite-ignore */ '@tauri-apps/api/fs'
+        );
         const cfgPath = this.getLayerConfigPath(presetId, layerId);
         const dir = cfgPath.substring(0, cfgPath.lastIndexOf('/'));
-        fs.mkdirSync(dir, { recursive: true });
-        fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2));
+        await createDir(dir, { recursive: true });
+        await writeFile({ path: cfgPath, contents: JSON.stringify(cfg, null, 2) });
       }
     } catch (err) {
       console.warn(`Could not save config for ${presetId} layer ${layerId}:`, err);
     }
   }
 
-  public getLayerPresetConfig(layerId: string, presetId: string): any {
-    const saved = this.loadLayerPresetConfig(presetId, layerId);
+  public async getLayerPresetConfig(layerId: string, presetId: string): Promise<any> {
+    const saved = await this.loadLayerPresetConfig(presetId, layerId);
     if (Object.keys(saved).length > 0) return saved;
     const loaded = this.presetLoader.getLoadedPresets().find(p => p.id === presetId);
     return loaded ? JSON.parse(JSON.stringify(loaded.config.defaultConfig)) : {};
@@ -426,7 +426,9 @@ export class AudioVisualizerEngine {
     if (activePreset && activePreset.updateConfig) {
       activePreset.updateConfig(layer.preset.config.defaultConfig);
     }
-    this.saveLayerPresetConfig(layer.preset.id, layerId, layer.preset.config.defaultConfig);
+    this.saveLayerPresetConfig(layer.preset.id, layerId, layer.preset.config.defaultConfig).catch(
+      err => console.warn(`Could not save config for ${layer.preset?.id}:`, err)
+    );
   }
 
   public setGlobalOpacity(opacity: number): void {
