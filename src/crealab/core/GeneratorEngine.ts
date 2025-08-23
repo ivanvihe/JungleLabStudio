@@ -54,6 +54,7 @@ export class GeneratorEngine {
   private initializeGenerators() {
     // Crear instancias de todos los generadores
     this.generators.set('euclidean', new EuclideanGenerator());
+    this.generators.set('euclidean-circles', new EuclideanGenerator());
     this.generators.set('probabilistic', new ProbabilisticGenerator());
     this.generators.set('markov', new MarkovGenerator());
     this.generators.set('arpeggiator', new ArpeggiatorGenerator());
@@ -282,6 +283,7 @@ export class GeneratorEngine {
   private setDefaultParameters(track: GenerativeTrack, type: GeneratorType) {
     switch (type) {
       case 'euclidean':
+      case 'euclidean-circles':
         track.generator.parameters = { pulses: 8, steps: 16, offset: 0, mutation: 0.1 };
         break;
       case 'probabilistic':

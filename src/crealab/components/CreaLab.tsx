@@ -7,6 +7,7 @@ import { SessionMidiManager } from '../core/SessionMidiController';
 import { useMidiDevices } from '../hooks/useMidiDevices';
 import BassGeneratorControls from './BassGeneratorControls';
 import GeneratorControls from './GeneratorControls';
+import EuclideanCirclesModule from './EuclideanCirclesModule';
 import MidiConfiguration from './MidiConfiguration';
 import ProjectManager from './ProjectManager';
 import './CreaLab.css';
@@ -465,6 +466,7 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
                 >
                   <option value="off">Off</option>
                   <option value="euclidean">Euclidean</option>
+                  <option value="euclidean-circles">Euclidean Circles</option>
                 <option value="probabilistic">Probabilistic</option>
                 <option value="markov">Markov</option>
                 <option value="arpeggiator">Arpeggiator</option>
@@ -474,11 +476,20 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
                 <option value="pattern">Pattern</option>
               </select>
 
-                <GeneratorControls
-                  track={track}
-                  onChange={changes => updateTrackControls(track.trackNumber, changes)}
-                  mappingMode={midiMapping}
-                />
+                {track.generator.type === 'euclidean-circles' ? (
+                  <EuclideanCirclesModule
+                    track={track}
+                    onParametersChange={params =>
+                      updateGeneratorParameters(track.trackNumber, params)
+                    }
+                  />
+                ) : (
+                  <GeneratorControls
+                    track={track}
+                    onChange={changes => updateTrackControls(track.trackNumber, changes)}
+                    mappingMode={midiMapping}
+                  />
+                )}
 
                 {track.trackType === 'bass' && (
                   <BassGeneratorControls

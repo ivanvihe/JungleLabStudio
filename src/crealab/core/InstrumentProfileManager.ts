@@ -46,6 +46,7 @@ export class InstrumentProfileManager {
     
     switch (generatorType) {
       case 'euclidean':
+      case 'euclidean-circles':
         return {
           pulses: baseParams.pulses || 8,
           steps: baseParams.steps || 16,

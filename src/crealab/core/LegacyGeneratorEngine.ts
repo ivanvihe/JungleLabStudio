@@ -81,6 +81,7 @@ export class LegacyGeneratorEngine {
   private generateNote(generator: MidiGenerator, currentTime: number): MidiNote | null {
     switch (generator.type) {
       case 'euclidean':
+      case 'euclidean-circles':
         return this.generateEuclideanNote(generator, currentTime);
       case 'markov':
         return this.generateMarkovNote(generator, currentTime);
