@@ -17,8 +17,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 }) => {
   const getStatusColor = (status: string): string => {
     if (status.includes('Error')) return '#ff4444';
-    if (status.includes('Listo')) return '#44ff44';
-    if (status.includes('Cargando') || status.includes('Inicializando')) return '#ffaa44';
+    if (status.includes('Ready')) return '#44ff44';
+    if (status.includes('Loading') || status.includes('Initializing')) return '#ffaa44';
     return '#ffffff';
   };
 
@@ -32,7 +32,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
     <div className="status-bar">
       <div className="status-section">
         <div className="status-item">
-          <span className="status-label">Estado:</span>
+          <span className="status-label">Status:</span>
           <span 
             className="status-value" 
             style={{ color: getStatusColor(status) }}
@@ -61,7 +61,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       
       <div className="audio-levels">
         <div className="audio-level-group">
-          <span className="level-label">Bajos</span>
+          <span className="level-label">Bass</span>
           <div className="audio-level-bar">
             <div 
               className="audio-level-fill low"
@@ -72,7 +72,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         </div>
         
         <div className="audio-level-group">
-          <span className="level-label">Medios</span>
+          <span className="level-label">Mid</span>
           <div className="audio-level-bar">
             <div 
               className="audio-level-fill mid"
@@ -83,7 +83,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         </div>
         
         <div className="audio-level-group">
-          <span className="level-label">Agudos</span>
+          <span className="level-label">Treble</span>
           <div className="audio-level-bar">
             <div 
               className="audio-level-fill high"

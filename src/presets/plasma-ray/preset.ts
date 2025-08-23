@@ -39,7 +39,7 @@ export const config: PresetConfig = {
     {
       name: "wave.amplitude",
       type: "slider",
-      label: "Amplitud de Ondas",
+      label: "Wave Amplitude",
       min: 0.2,
       max: 1.5,
       step: 0.1,
@@ -48,7 +48,7 @@ export const config: PresetConfig = {
     {
       name: "wave.speed",
       type: "slider",
-      label: "Velocidad de Flujo",
+      label: "Flow Speed",
       min: 0.1,
       max: 1.5,
       step: 0.1,
@@ -57,7 +57,7 @@ export const config: PresetConfig = {
     {
       name: "wave.direction",
       type: "slider",
-      label: "Direccion (-1=Der→Izq, 1=Izq→Der)",
+      label: "Direction (-1=Right→Left, 1=Left→Right)",
       min: -1.0,
       max: 1.0,
       step: 2.0,
@@ -66,7 +66,7 @@ export const config: PresetConfig = {
     {
       name: "flow.turbulence",
       type: "slider",
-      label: "Turbulencia",
+      label: "Turbulence",
       min: 0.1,
       max: 1.0,
       step: 0.1,
@@ -75,19 +75,19 @@ export const config: PresetConfig = {
   ],
   audioMapping: {
     low: {
-      description: "Controla amplitud y grosor del rayo",
+      description: "Controls beam amplitude and thickness",
       frequency: "20-250 Hz",
-      effect: "Intensidad y anchura de las ondas"
+      effect: "Wave intensity and width"
     },
     mid: {
-      description: "Modula la turbulencia y flujo",
+      description: "Modulates turbulence and flow",
       frequency: "250-4000 Hz",
-      effect: "Variaciones en el patron de ondas"
+      effect: "Variations in the wave pattern"
     },
     high: {
-      description: "Controla colores calientes y efectos",
+      description: "Controls warm colors and effects",
       frequency: "4000+ Hz",
-      effect: "Transiciones de color y brillantez"
+      effect: "Color transitions and brightness"
     }
   },
   performance: {

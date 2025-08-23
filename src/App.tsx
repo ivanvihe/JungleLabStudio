@@ -385,7 +385,7 @@ const App: React.FC = () => {
       
       console.log('🔧 Canvas found, initializing engine...');
       try {
-        setStatus('Cargando presets...');
+        setStatus('Loading presets...');
         const engine = new AudioVisualizerEngine(canvasRef.current, { glitchTextPads });
         await engine.initialize();
         engineRef.current = engine;
@@ -403,11 +403,11 @@ const App: React.FC = () => {
         }
         setAvailablePresets(presets);
         setIsInitialized(true);
-        setStatus('Listo');
+        setStatus('Ready');
         console.log(`✅ Engine initialized with ${presets.length} presets`);
       } catch (error) {
         console.error('❌ Failed to initialize engine:', error);
-        setStatus('Error al inicializar');
+        setStatus('Error during initialization');
       }
     };
 
@@ -546,7 +546,7 @@ const App: React.FC = () => {
         ...secondaryIds.map(id => parseInt(id, 10))
       ].filter(id => !Number.isNaN(id));
       if (ids.length === 0) {
-        setStatus('Error: No hay monitores seleccionados');
+        setStatus('Error: No monitors selected');
         return;
       }
       if (isFullscreenMode) {
@@ -562,8 +562,8 @@ const App: React.FC = () => {
         setStatus(`Fullscreen toggled en ${ids.length} monitor(es)`);
         setIsFullscreenMode(!isFullscreenMode);
       } catch (err) {
-        console.error('Error en fullscreen:', err);
-        setStatus('Error: No se pudo activar fullscreen');
+        console.error('Fullscreen error:', err);
+        setStatus('Error: Fullscreen could not be enabled');
       }
     } else if ((window as any).__TAURI__) {
       localStorage.setItem('activeLayers', JSON.stringify(activeLayers));
@@ -586,7 +586,7 @@ const App: React.FC = () => {
         }
 
         if (activeMonitors.length === 0) {
-          setStatus('Error: No hay monitores seleccionados');
+          setStatus('Error: No monitors selected');
           return;
         }
         if (isFullscreenMode) {
@@ -622,16 +622,16 @@ const App: React.FC = () => {
           try {
             new WebviewWindow(label, windowOptions);
           } catch (windowError) {
-            console.error(`Error creando ventana para ${monitor.label}:`, windowError);
-            setStatus(`Error: No se pudo crear ventana en ${monitor.label}`);
+            console.error(`Error creating window for ${monitor.label}:`, windowError);
+            setStatus(`Error: Could not create window on ${monitor.label}`);
           }
         });
 
         setStatus(`Fullscreen activo en ${activeMonitors.length} monitor(es)`);
         setIsFullscreenMode(!isFullscreenMode);
       } catch (err) {
-        console.error('Error en fullscreen:', err);
-        setStatus('Error: No se pudo activar fullscreen');
+        console.error('Fullscreen error:', err);
+        setStatus('Error: Fullscreen could not be enabled');
       }
     } else {
       const elem: any = document.documentElement;
@@ -640,7 +640,7 @@ const App: React.FC = () => {
         setIsFullscreenMode(true);
         setStatus('Fullscreen activado (navegador)');
       } else {
-        setStatus('Error: Fullscreen no disponible');
+        setStatus('Error: Fullscreen not available');
       }
     }
   }, [activeLayers, monitorRoles, monitors, isFullscreenMode]);
@@ -797,7 +797,7 @@ const App: React.FC = () => {
         setStatus(`Custom text actualizado: ${count} instancia${count > 1 ? 's' : ''}`);
       } catch (error) {
         console.error('Error updating custom text templates:', error);
-        setStatus('Error al actualizar custom text');
+        setStatus('Error updating custom text');
       }
     }
   };
@@ -816,7 +816,7 @@ const App: React.FC = () => {
         setStatus(`Gen Lab actualizado: ${presets.length} preset${presets.length !== 1 ? 's' : ''}`);
       } catch (err) {
         console.error('Error updating Gen Lab presets:', err);
-        setStatus('Error al actualizar Gen Lab');
+        setStatus('Error updating Gen Lab');
       }
     }
   };

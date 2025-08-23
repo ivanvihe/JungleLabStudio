@@ -34,7 +34,7 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({
   const [memoryLimit, setMemoryLimit] = useState(() =>
     parseInt(localStorage.getItem('memoryLimit') || '512')
   );
-  const [webglSupport, setWebglSupport] = useState<string>('Detectando...');
+  const [webglSupport, setWebglSupport] = useState<string>('Detecting...');
 
   useEffect(() => {
     localStorage.setItem('autoCleanCache', autoCleanCache.toString());
@@ -52,9 +52,9 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({
       if (loseContext) {
         loseContext.loseContext();
       }
-      setWebglSupport('Disponible');
+      setWebglSupport('Available');
     } else {
-      setWebglSupport('No disponible');
+      setWebglSupport('Not available');
     }
   }, []);
 
@@ -87,7 +87,7 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({
       (window as any).gc();
     }
 
-    alert('Cache limpiado exitosamente');
+    alert('Cache cleared successfully');
   };
 
   const handleResetSettings = () => {
@@ -113,7 +113,7 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({
 
   return (
     <div className="settings-section">
-      <h3>🔧 Sistema y Mantenimiento</h3>
+      <h3>🔧 System & Maintenance</h3>
 
       <div className="setting-group">
         <label className="setting-checkbox">
@@ -122,19 +122,19 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({
             checked={startMaximized}
             onChange={(e) => onStartMaximizedChange(e.target.checked)}
           />
-          <span>Iniciar maximizada</span>
+          <span>Start maximized</span>
         </label>
       </div>
 
       <div className="setting-group">
         <label className="setting-label">
-          <span>Monitor de inicio</span>
+          <span>Startup monitor</span>
           <select
             value={startMonitor || ''}
             onChange={(e) => onStartMonitorChange(e.target.value || null)}
             className="setting-select"
           >
-            <option value="">Monitor principal</option>
+            <option value="">Primary monitor</option>
             {monitors.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.label}
@@ -151,13 +151,13 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({
             checked={sidebarCollapsed}
             onChange={(e) => onSidebarCollapsedChange(e.target.checked)}
           />
-          <span>Plegar sidebar al iniciar</span>
+          <span>Collapse sidebar on start</span>
         </label>
       </div>
 
       {memInfo && (
         <div className="memory-usage">
-          <h4>Uso de Memoria</h4>
+          <h4>Memory Usage</h4>
           <div className="memory-bar">
             <div
               className="memory-fill"
@@ -165,7 +165,7 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({
             />
           </div>
           <span>
-            {memInfo.used}MB de {memInfo.limit}MB usados
+            {memInfo.used}MB of {memInfo.limit}MB used
           </span>
         </div>
       )}
@@ -205,14 +205,14 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({
           className="action-button clear-button"
           onClick={handleClearCache}
         >
-          🧹 Limpiar Cache
+          🧹 Clear Cache
         </button>
 
         <button
           className="action-button reset-button"
           onClick={handleResetSettings}
         >
-          ⚠️ Restablecer Todo
+          ⚠️ Reset All
         </button>
       </div>
 
@@ -233,8 +233,8 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({
             <span>Audio Context:</span>
             <span className="tech-value">
               {window.AudioContext || (window as any).webkitAudioContext
-                ? 'Disponible'
-                : 'No disponible'}
+                ? 'Available'
+                : 'Not available'}
             </span>
           </div>
         </div>

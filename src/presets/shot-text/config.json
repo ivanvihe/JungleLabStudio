@@ -1,6 +1,6 @@
 {
   "name": "ROBOTICA Text Intro",
-  "description": "Visualizacion de texto 'R O B O T I C A' con animacion cinematografica de aparicion letra por letra con efectos de brillo",
+  "description": "Text visualization 'R O B O T I C A' with cinematic letter-by-letter appearance and glow effects",
   "author": "AudioVisualizer",
   "version": "1.0.0",
   "category": "text",
@@ -44,7 +44,7 @@
     {
       "name": "text.scale",
       "type": "slider",
-      "label": "Escala del Texto",
+      "label": "Text Scale",
       "min": 0.5,
       "max": 3.0,
       "step": 0.1,
@@ -53,7 +53,7 @@
     {
       "name": "animation.fadeDuration",
       "type": "slider",
-      "label": "Duracion de Fade",
+      "label": "Fade Duration",
       "min": 2.0,
       "max": 10.0,
       "step": 0.5,
@@ -62,7 +62,7 @@
     {
       "name": "animation.letterDelay",
       "type": "slider",
-      "label": "Velocidad de Animacion",
+      "label": "Animation Speed",
       "min": 0.1,
       "max": 1.0,
       "step": 0.05,
@@ -71,7 +71,7 @@
     {
       "name": "animation.glowIntensity",
       "type": "slider",
-      "label": "Intensidad de Brillo",
+      "label": "Glow Intensity",
       "min": 0.0,
       "max": 3.0,
       "step": 0.1,
@@ -80,7 +80,7 @@
     {
       "name": "animation.pulseSpeed",
       "type": "slider",
-      "label": "Velocidad de Pulso",
+      "label": "Pulse Speed",
       "min": 0.5,
       "max": 5.0,
       "step": 0.1,
@@ -89,49 +89,49 @@
     {
       "name": "colors.text",
       "type": "color",
-      "label": "Color del Texto",
+      "label": "Text Color",
       "default": "#FFFFFF"
     },
     {
       "name": "colors.glow",
       "type": "color",
-      "label": "Color del Brillo",
+      "label": "Glow Color",
       "default": "#FFFFFF"
     },
     {
       "name": "effects.enableGlow",
       "type": "checkbox",
-      "label": "Efectos de Brillo",
+      "label": "Glow Effects",
       "default": true
     },
     {
       "name": "effects.enablePulse",
       "type": "checkbox",
-      "label": "Pulso",
+      "label": "Pulse",
       "default": true
     },
     {
       "name": "effects.enableSparkle",
       "type": "checkbox",
-      "label": "Destellos",
+      "label": "Sparkles",
       "default": true
     }
   ],
   "audioMapping": {
     "low": {
-      "description": "Controla la velocidad de animacion y aparicion de letras",
+      "description": "Controls animation speed and letter appearance",
       "frequency": "20-250 Hz",
-      "effect": "Velocidad de aparicion de letras"
+      "effect": "Letter appearance speed"
     },
     "mid": {
-      "description": "Controla el pulso y efectos de brillo",
+      "description": "Controls pulse and glow effects",
       "frequency": "250-4000 Hz",
-      "effect": "Intensidad de pulso y brillo"
+      "effect": "Pulse and glow intensity"
     },
     "high": {
-      "description": "Controla los destellos y efectos especiales",
+      "description": "Controls sparkles and special effects",
       "frequency": "4000+ Hz",
-      "effect": "Destellos y efectos de sparkle"
+      "effect": "Sparkles and special effects"
     }
   },
   "performance": {

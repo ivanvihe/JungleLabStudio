@@ -36,7 +36,7 @@ export const TextControl: React.FC<TextControlProps> = ({
       />
       {isCustomTextPreset && control.name === 'text.content' && !isReadOnly && (
         <div className="text-control-hints">
-          <small>Texto personalizado para esta instancia</small>
+          <small>Custom text for this instance</small>
         </div>
       )}
     </div>

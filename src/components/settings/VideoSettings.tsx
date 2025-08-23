@@ -19,7 +19,7 @@ export const VideoSettings: React.FC = () => {
   const [preferredGPU, setPreferredGPU] = useState(
     () => localStorage.getItem('preferredGPU') || 'high-performance'
   );
-  const [gpuInfo, setGpuInfo] = useState<string>('Detectando...');
+  const [gpuInfo, setGpuInfo] = useState<string>('Detecting...');
 
   useEffect(() => {
     localStorage.setItem('targetFPS', targetFPS.toString());
@@ -56,7 +56,7 @@ export const VideoSettings: React.FC = () => {
         loseContext.loseContext();
       }
     } else {
-      setGpuInfo('No disponible');
+      setGpuInfo('Not available');
     }
   }, []);
 
@@ -87,7 +87,7 @@ export const VideoSettings: React.FC = () => {
           </div>
           {memInfo && (
             <div className="info-item">
-              <span className="info-label">Memoria:</span>
+              <span className="info-label">Memory:</span>
               <span className="info-value">
                 {memInfo.used}MB / {memInfo.limit}MB
               </span>
@@ -98,22 +98,22 @@ export const VideoSettings: React.FC = () => {
 
       <div className="setting-group">
         <label className="setting-label">
-          <span>Preferencia de GPU</span>
+          <span>GPU Preference</span>
           <select
             value={preferredGPU}
             onChange={(e) => setPreferredGPU(e.target.value)}
             className="setting-select"
           >
-            <option value="default">Por Defecto</option>
-            <option value="high-performance">Alto Rendimiento</option>
-            <option value="low-power">Bajo Consumo</option>
+            <option value="default">Default</option>
+            <option value="high-performance">High Performance</option>
+            <option value="low-power">Low Power</option>
           </select>
         </label>
       </div>
 
       <div className="setting-group">
         <label className="setting-label">
-          <span>FPS Objetivo: {targetFPS}</span>
+          <span>Target FPS: {targetFPS}</span>
           <input
             type="range"
             min={30}
@@ -139,12 +139,12 @@ export const VideoSettings: React.FC = () => {
             className="setting-slider"
           />
         </label>
-        <small className="setting-hint">Menor = mejor rendimiento, Mayor = mejor calidad</small>
+        <small className="setting-hint">Lower = better performance, Higher = better quality</small>
       </div>
 
       <div className="setting-group">
         <label className="setting-label">
-          <span>Escala de Pantalla: {(visualScale * 100).toFixed(0)}%</span>
+          <span>Screen Scale: {(visualScale * 100).toFixed(0)}%</span>
           <input
             type="range"
             min={0.5}
@@ -165,9 +165,9 @@ export const VideoSettings: React.FC = () => {
             checked={vsync}
             onChange={(e) => setVsync(e.target.checked)}
           />
-          <span>Activar V-Sync</span>
+          <span>Enable V-Sync</span>
         </label>
-        <small className="setting-hint">Sincroniza con la frecuencia del monitor</small>
+        <small className="setting-hint">Syncs with the monitor refresh rate</small>
       </div>
 
       <div className="setting-group">
@@ -179,7 +179,7 @@ export const VideoSettings: React.FC = () => {
           />
           <span>Anti-aliasing</span>
         </label>
-        <small className="setting-hint">Suaviza los bordes (impacto en rendimiento)</small>
+        <small className="setting-hint">Smooths edges (performance impact)</small>
       </div>
     </div>
   );

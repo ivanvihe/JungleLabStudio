@@ -33,12 +33,12 @@ export const LaunchpadSettings: React.FC<LaunchpadSettingsProps> = ({
       <h4>LaunchPad MIDI</h4>
       <div className="setting-group">
         <label className="setting-label">
-          <span>Selecciona LaunchPad</span>
+          <span>Select LaunchPad</span>
           <select
             value={selectedLaunchpadId || ''}
             onChange={(e) => onSelectLaunchpad(e.target.value || null)}
           >
-            <option value="">Ninguno</option>
+            <option value="">None</option>
             {launchpadDevices.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.label}
@@ -50,7 +50,7 @@ export const LaunchpadSettings: React.FC<LaunchpadSettingsProps> = ({
 
       <div className="setting-group">
         <label className="setting-label">
-          <span>Canal LaunchPad Toggle</span>
+          <span>LaunchPad Toggle Channel</span>
           <input
             type="number"
             min={1}
@@ -66,7 +66,7 @@ export const LaunchpadSettings: React.FC<LaunchpadSettingsProps> = ({
 
       <div className="setting-group">
         <label className="setting-label">
-          <span>Nota LaunchPad Toggle</span>
+          <span>LaunchPad Toggle Note</span>
           <input
             type="number"
             min={0}
@@ -82,7 +82,7 @@ export const LaunchpadSettings: React.FC<LaunchpadSettingsProps> = ({
 
       <div className="setting-group">
         <label className="setting-label">
-          <span>Suavizado LaunchPad: {(launchpadSmoothness * 100).toFixed(0)}%</span>
+          <span>LaunchPad Smoothing: {(launchpadSmoothness * 100).toFixed(0)}%</span>
           <input
             type="range"
             min={0}

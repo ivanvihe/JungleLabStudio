@@ -55,6 +55,7 @@ export function useMidi(options: MidiOptions) {
   const quarterNoteCountRef = useRef(0);
   const measureCountRef = useRef(0);
   const lastTickTimeRef = useRef<number | null>(null);
+  const lastQuarterTimeRef = useRef<number | null>(null);
   const bpmHistoryRef = useRef<number[]>([]);
   const clockStableRef = useRef(false);
 
@@ -90,13 +91,13 @@ export function useMidi(options: MidiOptions) {
   }, [midiClockSettings]);
 
   // BPM calculation with improved stability
-  const calculateBpm = (tickInterval: number): number => {
-    const quarterNoteInterval = tickInterval * midiClockSettings.resolution;
-    return (60 * 1000) / quarterNoteInterval;
-  };
-
   const updateBpmWithStability = (newBpm: number) => {
-    if (!isFinite(newBpm) || newBpm < 50 || newBpm > 300) return;
+    if (!isFinite(newBpm) || newBpm < 40 || newBpm > 300) return;
+
+    const last = bpmHistoryRef.current[bpmHistoryRef.current.length - 1];
+    if (last && Math.abs(newBpm - last) > 5) {
+      newBpm = last + Math.sign(newBpm - last) * 5;
+    }
 
     bpmHistoryRef.current.push(newBpm);
 
@@ -148,15 +149,17 @@ export function useMidi(options: MidiOptions) {
   const handleClockTick = (timestamp: number, isInternal: boolean = false) => {
     tickCountRef.current++;
 
-    if (!isInternal && lastTickTimeRef.current !== null) {
-      const tickInterval = timestamp - lastTickTimeRef.current;
-      const currentBpm = calculateBpm(tickInterval);
-      updateBpmWithStability(currentBpm);
-    }
-
     lastTickTimeRef.current = timestamp;
 
     if (tickCountRef.current % midiClockSettings.resolution === 0) {
+      if (!isInternal) {
+        if (lastQuarterTimeRef.current !== null) {
+          const quarterInterval = timestamp - lastQuarterTimeRef.current;
+          const currentBpm = (60 * 1000) / quarterInterval;
+          updateBpmWithStability(currentBpm);
+        }
+        lastQuarterTimeRef.current = timestamp;
+      }
       quarterNoteCountRef.current++;
 
       if (quarterNoteCountRef.current % 4 === 0) {
@@ -215,6 +218,7 @@ export function useMidi(options: MidiOptions) {
     quarterNoteCountRef.current = 0;
     measureCountRef.current = 0;
     lastTickTimeRef.current = null;
+    lastQuarterTimeRef.current = null;
     bpmHistoryRef.current = [];
     clockStableRef.current = false;
     setBpm(null);

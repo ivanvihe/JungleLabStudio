@@ -32,7 +32,7 @@ export const FullscreenSettings: React.FC<FullscreenSettingsProps> = ({
                 <span className="monitor-resolution">
                   {monitor.size.width}×{monitor.size.height}
                 </span>
-                {monitor.isPrimary && <span className="primary-badge">Principal</span>}
+                {monitor.isPrimary && <span className="primary-badge">Primary</span>}
               </div>
             </div>
 
@@ -40,11 +40,11 @@ export const FullscreenSettings: React.FC<FullscreenSettingsProps> = ({
               <h4>{monitor.label}</h4>
               <div className="monitor-details">
                 <span>Position: {monitor.position.x}, {monitor.position.y}</span>
-                <span>Escala: {monitor.scaleFactor}x</span>
+                <span>Scale: {monitor.scaleFactor}x</span>
               </div>
 
               <div className="monitor-role">
-                <span>Rol:</span>
+                <span>Role:</span>
                 <select
                   value={monitorRoles[monitor.id] || 'none'}
                   onChange={(e) =>
@@ -52,9 +52,9 @@ export const FullscreenSettings: React.FC<FullscreenSettingsProps> = ({
                   }
                   className="setting-select"
                 >
-                  <option value="none">No usar</option>
-                  <option value="main">Principal</option>
-                  <option value="secondary">Secundario</option>
+                  <option value="none">Do not use</option>
+                  <option value="main">Primary</option>
+                  <option value="secondary">Secondary</option>
                 </select>
               </div>
             </div>
@@ -64,11 +64,11 @@ export const FullscreenSettings: React.FC<FullscreenSettingsProps> = ({
 
       <div className="monitors-summary">
         <strong>
-          Monitores en uso: {
+          Monitors in use: {
             Object.values(monitorRoles).filter((r) => r !== 'none').length
           }
         </strong>
-        <p>Configura un monitor principal y opcionalmente secundarios.</p>
+        <p>Configure a primary monitor and optionally secondary ones.</p>
       </div>
     </div>
   );

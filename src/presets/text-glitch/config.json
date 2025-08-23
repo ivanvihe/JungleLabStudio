@@ -1,6 +1,6 @@
 {
   "name": "Text Glitch",
-  "description": "Texto animado con efectos glitch y aparicion desordenada de letras",
+  "description": "Animated text with glitch effects and scrambled letter appearance",
   "author": "AudioVisualizer",
   "version": "1.0.0",
   "category": "text",
@@ -63,13 +63,13 @@
     {
       "name": "text.content",
       "type": "text",
-      "label": "Texto a Mostrar",
+      "label": "Text to Display",
       "default": "ROBOTICA"
     },
     {
       "name": "text.fontSize",
       "type": "slider",
-      "label": "Tamano de Fuente",
+      "label": "Font Size",
       "min": 40,
       "max": 200,
       "step": 10,
@@ -78,7 +78,7 @@
     {
       "name": "animation.letterDelay",
       "type": "slider",
-      "label": "Retraso entre Letras",
+      "label": "Letter Delay",
       "min": 0.2,
       "max": 2.0,
       "step": 0.1,
@@ -87,7 +87,7 @@
     {
       "name": "animation.shuffleIntensity",
       "type": "slider",
-      "label": "Intensidad de Mezcla",
+      "label": "Shuffle Intensity",
       "min": 0.0,
       "max": 1.0,
       "step": 0.1,
@@ -96,7 +96,7 @@
     {
       "name": "animation.glitchFrequency",
       "type": "slider",
-      "label": "Frecuencia de Glitch",
+      "label": "Glitch Frequency",
       "min": 0.5,
       "max": 5.0,
       "step": 0.1,
@@ -105,7 +105,7 @@
     {
       "name": "effects.glitchIntensity",
       "type": "slider",
-      "label": "Intensidad de Glitch",
+      "label": "Glitch Intensity",
       "min": 0.0,
       "max": 1.0,
       "step": 0.1,
@@ -114,7 +114,7 @@
     {
       "name": "effects.chromaticAberration",
       "type": "slider",
-      "label": "Aberracion Cromatica",
+      "label": "Chromatic Aberration",
       "min": 0.0,
       "max": 1.0,
       "step": 0.1,
@@ -123,73 +123,73 @@
     {
       "name": "effects.enableGlitch",
       "type": "checkbox",
-      "label": "Habilitar Glitch",
+      "label": "Enable Glitch",
       "default": true
     },
     {
       "name": "effects.enableShuffle",
       "type": "checkbox",
-      "label": "Habilitar Mezcla",
+      "label": "Enable Shuffle",
       "default": true
     },
     {
       "name": "effects.enableScanlines",
       "type": "checkbox",
-      "label": "Lineas de Escaneo",
+      "label": "Scanlines",
       "default": true
     },
     {
       "name": "effects.enableChromatic",
       "type": "checkbox",
-      "label": "Aberracion Cromatica",
+      "label": "Chromatic Aberration",
       "default": true
     },
     {
       "name": "colors.primary",
       "type": "color",
-      "label": "Color Primario",
+      "label": "Primary Color",
       "default": "#00FF88"
     },
     {
       "name": "colors.secondary",
       "type": "color",
-      "label": "Color Secundario",
+      "label": "Secondary Color",
       "default": "#FF0088"
     },
     {
       "name": "colors.accent",
       "type": "color",
-      "label": "Color de Acento",
+      "label": "Accent Color",
       "default": "#88FF00"
     },
     {
       "name": "colors.glitch1",
       "type": "color",
-      "label": "Color Glitch 1",
+      "label": "Glitch Color 1",
       "default": "#FF4444"
     },
     {
       "name": "colors.glitch2",
       "type": "color",
-      "label": "Color Glitch 2",
+      "label": "Glitch Color 2",
       "default": "#4444FF"
     }
   ],
   "audioMapping": {
     "low": {
-      "description": "Controla la aparicion y timing de las letras",
+      "description": "Controls letter appearance and timing",
       "frequency": "20-250 Hz",
-      "effect": "Velocidad de aparicion y movimientos base"
+      "effect": "Appearance speed and base movements"
     },
     "mid": {
-      "description": "Modula los efectos glitch y distorsion",
+      "description": "Modulates glitch and distortion effects",
       "frequency": "250-4000 Hz",
-      "effect": "Intensidad de glitch y efectos digitales"
+      "effect": "Glitch intensity and digital effects"
     },
     "high": {
-      "description": "Controla efectos de alta frecuencia y detalles",
+      "description": "Controls high-frequency effects and details",
       "frequency": "4000+ Hz",
-      "effect": "Scanlines, ruido y aberracion cromatica"
+      "effect": "Scanlines, noise and chromatic aberration"
     }
   },
   "performance": {
