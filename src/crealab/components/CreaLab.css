@@ -97,39 +97,6 @@
   height: 100%;
 }
 
-.section-column {
-  display: flex;
-  flex-direction: column;
-  background: #252525;
-  border-right: 1px solid #444;
-}
-
-.section-header {
-  padding: 8px;
-  border-bottom: 1px solid #444;
-  text-align: center;
-  font-weight: 500;
-}
-
-.section-label {
-  width: 120px;
-  height: 60px;
-  border-bottom: 1px solid #333;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-}
-
-.add-section {
-  background: #333;
-  border: none;
-  color: #fff;
-  padding: 8px;
-  cursor: pointer;
-  border-top: 1px solid #444;
-}
-
 .track-column {
   display: flex;
   flex-direction: column;
@@ -155,6 +122,15 @@
   font-size: 0.85rem;
 }
 
+.track-header select {
+  background: #3a3a3a;
+  border: 1px solid #555;
+  color: #fff;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
 .clip-slot {
   height: 60px;
   border-bottom: 1px solid #333;
@@ -164,17 +140,20 @@
   color: #888;
 }
 
-.add-track-column {
+.add-track-button {
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
 }
 
-.add-track-column button {
-  margin-top: 40px;
+.add-track-button button {
+  margin: 8px;
   background: #4CAF50;
   border: none;
   color: #fff;
   padding: 8px 12px;
   cursor: pointer;
   border-radius: 4px;
+  height: 40px;
+  width: 40px;
 }
