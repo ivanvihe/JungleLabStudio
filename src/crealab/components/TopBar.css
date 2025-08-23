@@ -91,3 +91,8 @@
   background: #4a4a4a;
 }
 
+.icon-btn.active {
+  background: #4caf50;
+  color: #000;
+}
+

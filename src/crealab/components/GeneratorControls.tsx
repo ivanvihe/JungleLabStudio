@@ -2,49 +2,52 @@ import React from 'react';
 import { GenerativeTrack } from '../types/CrealabTypes';
 import { MODULE_KNOB_LABELS } from '../data/EurorackModules';
 import './CreaLab.css';
+import KnobControl from './KnobControl';
 
 interface Props {
   track: GenerativeTrack;
   onChange: (changes: Partial<GenerativeTrack['controls']>) => void;
+  mappingMode?: boolean;
 }
 
-export const GeneratorControls: React.FC<Props> = ({ track, onChange }) => {
+export const GeneratorControls: React.FC<Props> = ({ track, onChange, mappingMode }) => {
   const handleNumber = (field: keyof GenerativeTrack['controls']) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = Number(e.target.value);
       onChange({ [field]: value });
     };
 
+  const handleMap = (field: keyof GenerativeTrack['controls']) => () => {
+    if (!mappingMode) return;
+    console.log(`MIDI mapping for ${field} not implemented`);
+  };
+
   const labels = MODULE_KNOB_LABELS[track.trackType] || ['Param A', 'Param B', 'Param C'];
 
   return (
-    <div className="generator-module">
+    <div className={`generator-module${mappingMode ? ' mapping-mode' : ''}`}>
       <div className="module-header">
         <span>{track.trackType.toUpperCase()} Module</span>
         <span className={`activity-led ${track.generator.enabled ? 'on' : ''}`} />
       </div>
-      <div className="control-row">
+      <div className="control-row" onClick={handleMap('intensity')}>
         <label>Intensity</label>
-        <input type="range" min={0} max={127} value={track.controls.intensity}
-          onChange={handleNumber('intensity')} />
+        <KnobControl value={track.controls.intensity} onChange={handleNumber('intensity')} />
         <span className="control-display">{track.controls.intensity}</span>
       </div>
-      <div className="control-row">
+      <div className="control-row" onClick={handleMap('paramA')}>
         <label>{labels[0]}</label>
-        <input type="range" min={0} max={127} value={track.controls.paramA}
-          onChange={handleNumber('paramA')} />
+        <KnobControl value={track.controls.paramA} onChange={handleNumber('paramA')} />
         <span className="control-display">{track.controls.paramA}</span>
       </div>
-      <div className="control-row">
+      <div className="control-row" onClick={handleMap('paramB')}>
         <label>{labels[1]}</label>
-        <input type="range" min={0} max={127} value={track.controls.paramB}
-          onChange={handleNumber('paramB')} />
+        <KnobControl value={track.controls.paramB} onChange={handleNumber('paramB')} />
         <span className="control-display">{track.controls.paramB}</span>
       </div>
-      <div className="control-row">
+      <div className="control-row" onClick={handleMap('paramC')}>
         <label>{labels[2]}</label>
-        <input type="range" min={0} max={127} value={track.controls.paramC}
-          onChange={handleNumber('paramC')} />
+        <KnobControl value={track.controls.paramC} onChange={handleNumber('paramC')} />
         <span className="control-display">{track.controls.paramC}</span>
       </div>
     </div>

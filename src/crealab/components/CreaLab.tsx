@@ -80,6 +80,7 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
   const { inputDevices, outputDevices } = useMidiDevices();
   const [showMidiConfig, setShowMidiConfig] = useState(false);
   const [showProjectManager, setShowProjectManager] = useState(false);
+  const [midiMapping, setMidiMapping] = useState(false);
   const [project, setProject] = useState<CreaLabProject>({
     id: 'project-1',
     name: 'New Project',
@@ -309,6 +310,8 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
             transport: { ...p.transport, isPlaying: !p.transport.isPlaying }
           }))
         }
+        isMidiMapping={midiMapping}
+        onToggleMidiMapping={() => setMidiMapping(m => !m)}
       />
       <main className="crealab-workspace">
         <div className="tracks-grid">
@@ -430,6 +433,7 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
                 <GeneratorControls
                   track={track}
                   onChange={changes => updateTrackControls(track.trackNumber, changes)}
+                  mappingMode={midiMapping}
                 />
 
                 {track.trackType === 'bass' && (
