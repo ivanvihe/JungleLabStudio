@@ -7,6 +7,8 @@
   "tags": ["mandelbrot", "julia", "sierpinski", "mathematical", "audio-reactive"],
   "thumbnail": "fractal_lab_thumb.png",
   "defaultConfig": {
+    "width": 1920,
+    "height": 1080,
     "opacity": 1.0,
     "fractalType": "mandelbrot",
     "iterations": 50,

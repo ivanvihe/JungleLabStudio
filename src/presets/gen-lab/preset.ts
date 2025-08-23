@@ -75,8 +75,9 @@ class GenLabPreset extends BasePreset {
   public init(): void {
     this.renderer.setClearColor(0x000000, 0);
     this.currentConfig = JSON.parse(JSON.stringify(this.config.defaultConfig));
-
-    const geometry = new THREE.PlaneGeometry(2, 2);
+    const width = (this.currentConfig.width || 1920) / 100;
+    const height = (this.currentConfig.height || 1080) / 100;
+    const geometry = new THREE.PlaneGeometry(width, height);
 
     const defaultFragmentShader = `
       uniform float uTime;
