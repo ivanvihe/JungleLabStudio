@@ -9,7 +9,8 @@ export type GeneratorType =
   | 'chaos'           // Sistemas caóticos
   | 'cellular'        // Autómatas celulares
   | 'lsystem'        // L-Systems fractales
-  | 'neural';        // Redes neuronales simples
+  | 'neural'        // Redes neuronales simples
+  | 'magenta';      // Generador basado en Magenta.js
 
 export interface MidiGenerator {
   id: string;

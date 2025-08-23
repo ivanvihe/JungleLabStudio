@@ -4,6 +4,7 @@ import { ProbabilisticGenerator } from '../generators/ProbabilisticGenerator';
 import { MarkovGenerator } from '../generators/MarkovGenerator';
 import { ArpeggiatorGenerator } from '../generators/ArpeggiatorGenerator';
 import { ChaosGenerator } from '../generators/ChaosGenerator';
+import { MagentaGenerator } from '../generators/MagentaGenerator';
 import { LSystemGenerator } from '../generators/advanced/LSystemGenerator';
 import { CellularAutomataGenerator } from '../generators/advanced/CellularAutomataGenerator';
 import { NeuralNetworkGenerator } from '../generators/advanced/NeuralNetworkGenerator';
@@ -47,6 +48,7 @@ export class GeneratorEngine {
     this.generators.set('markov', new MarkovGenerator());
     this.generators.set('arpeggiator', new ArpeggiatorGenerator());
     this.generators.set('chaos', new ChaosGenerator());
+    this.generators.set('magenta', new MagentaGenerator());
     this.generators.set('lsystem', new LSystemGenerator());
     this.generators.set('cellular', new CellularAutomataGenerator());
     this.generators.set('neural', new NeuralNetworkGenerator());
@@ -256,6 +258,9 @@ export class GeneratorEngine {
         break;
       case 'chaos':
         track.generator.parameters = { attractor: 'lorenz', sensitivity: 0.5, scaling: 1.0 };
+        break;
+      case 'magenta':
+        track.generator.parameters = { steps: 32, temperature: 1.0 };
         break;
       case 'lsystem':
         track.generator.parameters = { rules: { A: 'AB', B: 'A' } };
