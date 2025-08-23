@@ -222,6 +222,9 @@ export interface CreaLabProject {
   oldTracks?: Track[];
 }
 
+// Tipos de formato para exportar proyectos
+export type ProjectExportFormat = 'json' | 'preset' | 'ableton';
+
 
 // === MIDI SYSTEM TYPES ===
 export interface MidiDevice {
