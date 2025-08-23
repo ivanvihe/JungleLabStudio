@@ -292,10 +292,15 @@ class GenLabPreset extends BasePreset {
       this.renderer.compile(this.scene, this.camera);
       const gl = this.renderer.getContext();
       const program = (material as any).program?.program;
-      if (program && !gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        console.error('Shader program failed to link:', gl.getProgramInfoLog(program));
+      const isLinked = program ? gl.getProgramParameter(program, gl.LINK_STATUS) : false;
+      if (!isLinked) {
+        console.error(
+          'Shader program failed to link:',
+          program ? gl.getProgramInfoLog(program) : 'No program generated'
+        );
         material.fragmentShader = defaultFragmentShader;
         material.needsUpdate = true;
+        material.dispose();
         this.renderer.compile(this.scene, this.camera);
       }
     }
