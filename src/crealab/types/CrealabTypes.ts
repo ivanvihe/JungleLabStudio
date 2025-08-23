@@ -1,3 +1,5 @@
+import { SlotContent, SessionMidiController } from './GeneratorTypes';
+
 export type TrackType = 'kick' | 'bass' | 'arp' | 'lead' | 'fx' | 'visual' | 'perc';
 
 export type MusicalContext = 'intro' | 'buildup' | 'drop' | 'breakdown' | 'outro';
@@ -22,9 +24,30 @@ export interface MidiClip {
 export interface Track {
   id: string;
   name: string;
-  midiDevice: string;
+  color?: string; // Hex color para UI
+  
+  // MIDI Input/Output devices
+  midiInputDevice: string;   // Para controladores como AKAI
+  midiInputDeviceName?: string;
+  midiOutputDevice: string;  // Para sintetizadores
+  midiOutputDeviceName?: string;
   midiChannel: number;
-  clips: (MidiClip | null)[];
+  
+  // Control settings
+  volume: number;     // 0-127
+  pan: number;        // -64 to +63
+  mute: boolean;
+  solo: boolean;
+  record: boolean;
+  
+  // Clips híbridos (MIDI clips + generators)
+  slots: SlotContent[];
+  
+  // Track type específico
+  trackType: TrackType;
+  
+  // Mapping a controlador de sesión
+  sessionControllerStrip?: number; // 1-8 for Launch Control XL
 }
 
 export interface VisualClip {
@@ -59,9 +82,15 @@ export interface VisualSceneConfig {
 export interface CreaLabProject {
   id: string;
   name: string;
+  description?: string;
+
   scenes?: Scene[];
   tracks?: Track[];
+
   globalTempo: number;
   key: string;
   scale: string;
+
+  // Session MIDI controller
+  sessionController?: SessionMidiController;
 }
