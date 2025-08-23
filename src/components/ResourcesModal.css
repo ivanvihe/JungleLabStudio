@@ -670,6 +670,12 @@
   margin-left: 12px;
 }
 
+.tree-placeholder {
+  padding: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  font-style: italic;
+}
+
 
 @media (max-width: 768px) {
   .preset-gallery-content {
