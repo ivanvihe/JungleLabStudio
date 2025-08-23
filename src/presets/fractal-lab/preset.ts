@@ -56,11 +56,13 @@ class FractalLabPreset extends BasePreset {
 
   public init(): void {
     this.currentConfig = JSON.parse(JSON.stringify(this.config.defaultConfig));
-    const geometry = new THREE.PlaneGeometry(2, 2);
+    const width = (this.currentConfig.width || 1920) / 100;
+    const height = (this.currentConfig.height || 1080) / 100;
+    const geometry = new THREE.PlaneGeometry(width, height);
     const material = new THREE.ShaderMaterial({
       uniforms: {
         uTime: { value: 0.0 },
-        uResolution: { value: new THREE.Vector2(1920, 1080) },
+        uResolution: { value: new THREE.Vector2(this.currentConfig.width || 1920, this.currentConfig.height || 1080) },
         uOpacity: { value: this.opacity },
         uFractalType: { value: 0 },
         uIterations: { value: 50 },
@@ -238,6 +240,16 @@ class FractalLabPreset extends BasePreset {
     if (newConfig.brightness !== undefined) mat.uniforms.uBrightness.value = newConfig.brightness;
     if (newConfig.contrast !== undefined) mat.uniforms.uContrast.value = newConfig.contrast;
     if (newConfig.saturation !== undefined) mat.uniforms.uSaturation.value = newConfig.saturation;
+    if (newConfig.width !== undefined || newConfig.height !== undefined) {
+      const w = (this.currentConfig.width || 1920) / 100;
+      const h = (this.currentConfig.height || 1080) / 100;
+      this.mesh.geometry.dispose();
+      this.mesh.geometry = new THREE.PlaneGeometry(w, h);
+      mat.uniforms.uResolution.value = new THREE.Vector2(
+        this.currentConfig.width || 1920,
+        this.currentConfig.height || 1080
+      );
+    }
   }
 
   public dispose(): void {
