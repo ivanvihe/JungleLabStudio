@@ -878,27 +878,29 @@ const App: React.FC = () => {
         <LayerGrid
           presets={availablePresets}
           externalTrigger={midiTrigger}
-          onPresetActivate={async (layerId, presetId, velocity) => {
-            if (engineRef.current) {
-              await engineRef.current.activateLayerPreset(layerId, presetId);
-              setActiveLayers(prev => ({ ...prev, [layerId]: presetId }));
+          onPresetActivate={(layerId, presetId, velocity) => {
+            (async () => {
+              if (engineRef.current) {
+                await engineRef.current.activateLayerPreset(layerId, presetId);
+                setActiveLayers(prev => ({ ...prev, [layerId]: presetId }));
 
-              const preset = availablePresets.find(p => p.id === presetId);
-              if (preset) {
-                const existing = layerPresetConfigs[layerId]?.[presetId];
-                if (existing) {
-                  applyPresetConfig(engineRef.current, layerId, existing);
-                } else {
-                  const cfg = engineRef.current.getLayerPresetConfig(layerId, presetId);
-                  setLayerPresetConfigs(prev => ({
-                    ...prev,
-                    [layerId]: { ...(prev[layerId] || {}), [presetId]: cfg }
-                  }));
+                const preset = availablePresets.find(p => p.id === presetId);
+                if (preset) {
+                  const existing = layerPresetConfigs[layerId]?.[presetId];
+                  if (existing) {
+                    applyPresetConfig(engineRef.current, layerId, existing);
+                  } else {
+                    const cfg = await engineRef.current.getLayerPresetConfig(layerId, presetId);
+                    setLayerPresetConfigs(prev => ({
+                      ...prev,
+                      [layerId]: { ...(prev[layerId] || {}), [presetId]: cfg }
+                    }));
+                  }
+                  setSelectedPreset(preset);
+                  setSelectedLayer(layerId);
                 }
-                setSelectedPreset(preset);
-                setSelectedLayer(layerId);
               }
-            }
+            })();
           }}
           onLayerClear={(layerId) => {
             if (engineRef.current) {
@@ -921,26 +923,28 @@ const App: React.FC = () => {
             broadcastRef.current?.postMessage({ type: 'layerConfig', layerId, config });
           }}
           onPresetSelect={(layerId, presetId) => {
-            if (presetId) {
-              const preset = availablePresets.find(p => p.id === presetId);
-              if (preset) {
-                const existing = layerPresetConfigs[layerId]?.[presetId];
-                if (!existing) {
-                  const cfg = engineRef.current?.getLayerPresetConfig(layerId, presetId);
-                  if (cfg) {
-                    setLayerPresetConfigs(prev => ({
-                      ...prev,
-                      [layerId]: { ...(prev[layerId] || {}), [presetId]: cfg }
-                    }));
+            (async () => {
+              if (presetId) {
+                const preset = availablePresets.find(p => p.id === presetId);
+                if (preset) {
+                  const existing = layerPresetConfigs[layerId]?.[presetId];
+                  if (!existing) {
+                    const cfg = await engineRef.current?.getLayerPresetConfig(layerId, presetId);
+                    if (cfg) {
+                      setLayerPresetConfigs(prev => ({
+                        ...prev,
+                        [layerId]: { ...(prev[layerId] || {}), [presetId]: cfg }
+                      }));
+                    }
                   }
+                  setSelectedPreset(preset);
+                  setSelectedLayer(layerId);
                 }
-                setSelectedPreset(preset);
-                setSelectedLayer(layerId);
+              } else if (selectedLayer === layerId) {
+                setSelectedPreset(null);
+                setSelectedLayer(null);
               }
-            } else if (selectedLayer === layerId) {
-              setSelectedPreset(null);
-              setSelectedLayer(null);
-            }
+            })();
           }}
           clearAllSignal={clearSignal}
           layerChannels={layerChannels}

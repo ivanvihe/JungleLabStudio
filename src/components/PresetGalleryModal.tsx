@@ -206,21 +206,24 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
     });
   };
 
-  const persistDefaultConfig = async (path: string, value: any) => {
+  const handleDefaultControlChange = async (path: string, value: any) => {
+
     if (!selected) return;
 
     // Update in-memory default config
     setNestedValue(selected.config.defaultConfig, path, value);
 
-    // Persist to disk using Tauri fs if available
+    // Persist to disk using Tauri FS API when available
     try {
+      const cfgPath = `${selected.folderPath}/config.json`;
       if (typeof window !== 'undefined' && (window as any).__TAURI__) {
-        const cfgPath = `${selected.folderPath}/config.json`;
-        const { exists, readTextFile, writeTextFile } = await import('@tauri-apps/api/fs');
+        const { exists, readTextFile, writeFile } = await import(
+          /* @vite-ignore */ '@tauri-apps/api/fs'
+        );
         if (await exists(cfgPath)) {
           const json = JSON.parse(await readTextFile(cfgPath));
           setNestedValue(json.defaultConfig, path, value);
-          await writeTextFile(cfgPath, JSON.stringify(json, null, 2));
+          await writeFile({ path: cfgPath, contents: JSON.stringify(json, null, 2) });
         }
       }
     } catch (err) {

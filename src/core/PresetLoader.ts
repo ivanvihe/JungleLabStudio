@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+
 import fs from 'fs';
 import Ajv from 'ajv';
 import presetSchema from '../../presets/schema.json';
@@ -39,6 +40,29 @@ export interface AudioData {
   mid: number;
   high: number;
   fft: number[];
+}
+
+export function validateConfig(config: PresetConfig): boolean {
+  const required: (keyof PresetConfig)[] = [
+    'name',
+    'description',
+    'author',
+    'version',
+    'category',
+    'tags',
+    'defaultConfig',
+    'controls',
+    'audioMapping',
+    'performance'
+  ];
+
+  for (const field of required) {
+    if (config[field] === undefined || config[field] === null) {
+      console.warn(`Preset config missing required field: ${field}`);
+      return false;
+    }
+  }
+  return true;
 }
 
 export abstract class BasePreset {
@@ -161,11 +185,12 @@ export class PresetLoader {
 
       // Auto-configurar preset si es necesario
       cfg = this.autoConfigurePreset(cfg, presetId);
-      if (!validatePresetConfig(cfg)) {
-        console.error('Invalid preset config for custom text preset:', validatePresetConfig.errors);
+      if (!validateConfig(cfg)) {
+        console.warn(`Invalid config for ${presetId}, skipping reload`);
         return;
       }
-      
+
+
       let shaderCode: string | undefined;
       const shaderPath = `../presets/${presetId}/shader.wgsl`;
       const shaderLoader = this.shaderModules[shaderPath];
@@ -277,8 +302,9 @@ export class PresetLoader {
 
       // Auto-configurar preset si es necesario
       cfg = this.autoConfigurePreset(cfg, presetId);
-      if (!validatePresetConfig(cfg)) {
-        console.error(`Invalid preset config for ${presetId}:`, validatePresetConfig.errors);
+      if (!validateConfig(cfg)) {
+        console.warn(`Invalid config for ${presetId}, skipping`);
+
         continue;
       }
       if (typeof cfg.note !== 'number') {
@@ -404,15 +430,15 @@ export class PresetLoader {
   private async persistNote(presetId: string, note: number): Promise<void> {
     try {
       const path = `src/presets/${presetId}/config.json`;
-      if (
-        typeof fs?.existsSync === 'function' &&
-        typeof fs?.readFileSync === 'function' &&
-        typeof fs?.writeFileSync === 'function' &&
-        fs.existsSync(path)
-      ) {
-        const json = JSON.parse(fs.readFileSync(path, 'utf-8'));
-        json.note = note;
-        fs.writeFileSync(path, JSON.stringify(json, null, 2));
+      if (typeof window !== 'undefined' && (window as any).__TAURI__) {
+        const { exists, readTextFile, writeFile } = await import(
+          /* @vite-ignore */ '@tauri-apps/api/fs'
+        );
+        if (await exists(path)) {
+          const json = JSON.parse(await readTextFile(path));
+          json.note = note;
+          await writeFile({ path, contents: JSON.stringify(json, null, 2) });
+        }
       }
     } catch (err) {
       console.warn(`Could not persist note for ${presetId}:`, err);
