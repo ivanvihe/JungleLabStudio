@@ -2,6 +2,8 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { AudioVisualizerEngine } from './core/AudioVisualizerEngine';
+import { AppSelector, AppMode } from './components/AppSelector';
+import { CreaLab } from './crealab/components/CreaLab';
 import { LayerGrid } from './components/LayerGrid';
 import { StatusBar } from './components/StatusBar';
 import { PresetControls } from './components/PresetControls';
@@ -17,6 +19,7 @@ import { useMidi } from './hooks/useMidi';
 import { useLaunchpad } from './hooks/useLaunchpad';
 import './App.css';
 import './AppLayout.css';
+import './AppRouter.css';
 
 interface MonitorInfo {
   id: string;
@@ -31,7 +34,9 @@ const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<AudioVisualizerEngine | null>(null);
   const broadcastRef = useRef<BroadcastChannel | null>(null);
-  
+  // App routing state
+  const [currentApp, setCurrentApp] = useState<AppMode | null>(null);
+
   const [isInitialized, setIsInitialized] = useState(false);
   const [availablePresets, setAvailablePresets] = useState<LoadedPreset[]>([]);
   const [fps, setFps] = useState(60);
@@ -39,6 +44,13 @@ const App: React.FC = () => {
   const [activeLayers, setActiveLayers] = useState<Record<string, string>>({});
   const [selectedPreset, setSelectedPreset] = useState<LoadedPreset | null>(null);
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
+  // Check if user has a preference for app selection
+  useEffect(() => {
+    const savedApp = localStorage.getItem('jungle-lab-preferred-app') as AppMode;
+    if (savedApp && ['audiovisualizer', 'crealab'].includes(savedApp)) {
+      setCurrentApp(savedApp);
+    }
+    }, []);
   const [isControlsOpen, setIsControlsOpen] = useState(() => {
     const stored = localStorage.getItem('sidebarCollapsed');
     if (stored === null) return false;
@@ -884,13 +896,36 @@ const App: React.FC = () => {
     return `${selectedPreset.config.name} (${selectedLayer || 'N/A'})`;
   };
 
+  const handleSelectApp = (app: AppMode) => {
+    setCurrentApp(app);
+    localStorage.setItem('jungle-lab-preferred-app', app);
+  };
+
+  const handleSwitchApp = (app: AppMode) => {
+    setCurrentApp(app);
+  };
+
+  // Show app selector if no app is selected
+  if (!currentApp) {
+    return <AppSelector onSelectApp={handleSelectApp} />;
+  }
+
+  // Show Crea Lab
+  if (currentApp === 'crealab') {
+    return (
+      <div className="app-container crealab-app">
+        <CreaLab onSwitchToAudioVisualizer={() => handleSwitchApp('audiovisualizer')} />
+      </div>
+    );
+  }
+
   const midiDeviceName = midiDeviceId ? midiDevices.find((d: any) => d.id === midiDeviceId)?.name || null : null;
   const launchpadAvailable = launchpadOutputs.length > 0;
   const audioDeviceName = audioDeviceId ? audioDevices.find(d => d.deviceId === audioDeviceId)?.label || null : null;
   const audioLevel = Math.min((audioData.low + audioData.mid + audioData.high) / 3, 1);
 
   return (
-    <div className={`app ${isUiHidden ? 'ui-hidden' : ''}`}>
+    <div className={`app-container audiovisualizer-app ${isUiHidden ? 'ui-hidden' : ''}`}>
       <TopBar
         midiActive={midiActive}
         midiDeviceName={midiDeviceName}
@@ -911,6 +946,9 @@ const App: React.FC = () => {
         launchpadRunning={launchpadRunning}
         launchpadPreset={launchpadPreset}
         onToggleLaunchpad={() => setLaunchpadRunning(r => !r)}
+        launchpadText={launchpadText}
+        onLaunchpadTextChange={setLaunchpadText}
+        onSwitchToCreaLab={() => handleSwitchApp('crealab')}
         onLaunchpadPresetChange={setLaunchpadPreset}
       />
 
