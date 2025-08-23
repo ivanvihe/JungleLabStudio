@@ -6,7 +6,7 @@ import { LayerGrid } from './components/LayerGrid';
 import { StatusBar } from './components/StatusBar';
 import { PresetControls } from './components/PresetControls';
 import { TopBar } from './components/TopBar';
-import { PresetGalleryModal } from './components/PresetGalleryModal';
+import { ResourcesModal } from './components/ResourcesModal';
 import { GlobalSettingsModal } from './components/GlobalSettingsModal';
 import { LoadedPreset } from './core/PresetLoader';
 import { setNestedValue } from './utils/objectPath';
@@ -163,7 +163,7 @@ const App: React.FC = () => {
     engineRef,
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isPresetGalleryOpen, setPresetGalleryOpen] = useState(false);
+  const [isResourcesOpen, setResourcesOpen] = useState(false);
   const [monitors, setMonitors] = useState<MonitorInfo[]>([]);
   const [monitorRoles, setMonitorRoles] = useState<Record<string, 'main' | 'secondary' | 'none'>>(() => {
     try {
@@ -874,7 +874,7 @@ const App: React.FC = () => {
         onFullScreen={handleFullScreen}
         onClearAll={handleClearAll}
         onOpenSettings={() => setIsSettingsOpen(true)}
-        onOpenPresetGallery={() => setPresetGalleryOpen(true)}
+        onOpenResources={() => setResourcesOpen(true)}
         launchpadAvailable={launchpadAvailable}
         launchpadRunning={launchpadRunning}
         launchpadPreset={launchpadPreset}
@@ -960,7 +960,7 @@ const App: React.FC = () => {
           layerEffects={layerEffects}
           onLayerEffectChange={handleLayerEffectChange}
           onLayerEffectToggle={handleLayerEffectToggle}
-          onOpenPresetGallery={() => setPresetGalleryOpen(true)}
+          onOpenResources={() => setResourcesOpen(true)}
           bpm={bpm}
         />
       </div>
@@ -979,7 +979,7 @@ const App: React.FC = () => {
             }}
           />
         </div>
-        {!isPresetGalleryOpen && (
+        {!isResourcesOpen && (
           <div className={`controls-panel ${isControlsOpen ? '' : 'collapsed'}`}>
             <button
               className="toggle-sidebar"
@@ -1126,9 +1126,9 @@ const App: React.FC = () => {
       />
 
       {/* Modal de galería de presets */}
-      <PresetGalleryModal
-        isOpen={isPresetGalleryOpen}
-        onClose={() => setPresetGalleryOpen(false)}
+      <ResourcesModal
+        isOpen={isResourcesOpen}
+        onClose={() => setResourcesOpen(false)}
         presets={availablePresets}
         onCustomTextTemplateChange={handleCustomTextTemplateChange}
         customTextTemplate={{ count: glitchTextPads, texts: customTextContents }}

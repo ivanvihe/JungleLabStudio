@@ -32,7 +32,7 @@ interface LayerGridProps {
   clearAllSignal: number;
   externalTrigger?: { layerId: string; presetId: string; velocity: number } | null;
   layerChannels: Record<string, number>;
-  onOpenPresetGallery: () => void;
+  onOpenResources: () => void;
   layerEffects: Record<string, { effect: string; alwaysOn: boolean; active: boolean }>;
   onLayerEffectChange: (layerId: string, effect: string) => void;
   onLayerEffectToggle: (layerId: string, alwaysOn: boolean) => void;
@@ -48,7 +48,7 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
   clearAllSignal,
   externalTrigger,
   layerChannels,
-  onOpenPresetGallery,
+  onOpenResources,
   layerEffects,
   onLayerEffectChange,
   onLayerEffectToggle,
@@ -376,7 +376,7 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
                   <div
                     key={`${layer.id}-empty-${idx}`}
                     className={`preset-cell empty-slot ${isDragOver ? 'drag-over' : ''}`}
-                    onClick={onOpenPresetGallery}
+                    onClick={onOpenResources}
                     onDragOver={handleDragOver}
                     onDragEnter={(e) => handleDragEnter(e, layer.id, idx)}
                     onDragLeave={handleDragLeave}
