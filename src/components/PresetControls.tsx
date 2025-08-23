@@ -1,6 +1,31 @@
 import React from 'react';
 import { LoadedPreset } from '../core/PresetLoader';
-import { getNestedValue, setNestedValue } from '../utils/objectPath';
+import { getNestedValue } from '../utils/objectPath';
+import {
+  SliderControl,
+  TextControl,
+  ColorControl,
+  CheckboxControl,
+  SelectControl,
+} from './controls';
+
+interface ControlRendererProps {
+  control: any;
+  value: any;
+  id: string;
+  onChange: (value: any) => void;
+  isReadOnly: boolean;
+  isCustomTextPreset?: boolean;
+}
+
+const CONTROL_RENDERERS: Record<string, React.FC<ControlRendererProps>> = {
+  slider: SliderControl,
+  text: TextControl,
+  color: ColorControl,
+  checkbox: CheckboxControl,
+  select: SelectControl,
+};
+
 
 interface PresetControlsProps {
   preset: LoadedPreset;
@@ -33,141 +58,19 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
   const renderControl = (control: any) => {
     const value = getControlValue(control.name, control.default);
     const controlId = `${preset.id}-${control.name}`;
-
-    switch (control.type) {
-      case 'slider':
-        return (
-          <div key={control.name} className="control-group">
-            <label htmlFor={controlId} className="control-label">
-              {control.label}
-              {isCustomTextPreset && control.name === 'text.content' && (
-                <span className="custom-text-indicator">✨</span>
-              )}
-            </label>
-            <div className="slider-container">
-              <input
-                id={controlId}
-                type="range"
-                min={control.min}
-                max={control.max}
-                step={control.step}
-                value={value}
-                onChange={(e) => handleControlChange(control.name, parseFloat(e.target.value))}
-                className="control-slider"
-                disabled={isReadOnly}
-              />
-              <input
-                type="number"
-                min={control.min}
-                max={control.max}
-                step={control.step}
-                value={value}
-                onChange={(e) => handleControlChange(control.name, parseFloat(e.target.value))}
-                className="slider-number"
-                disabled={isReadOnly}
-              />
-            </div>
-          </div>
-        );
-
-      case 'text':
-        return (
-          <div key={control.name} className="control-group">
-            <label htmlFor={controlId} className="control-label">
-              {control.label}
-              {isCustomTextPreset && control.name === 'text.content' && (
-                <span className="custom-text-indicator">✨</span>
-              )}
-            </label>
-            <div className="text-control-container">
-              <input
-                id={controlId}
-                type="text"
-                value={value || ''}
-                onChange={(e) => handleControlChange(control.name, e.target.value)}
-                className={`control-text ${isCustomTextPreset ? 'custom-text-input' : ''}`}
-                placeholder={control.placeholder || control.label}
-                disabled={isReadOnly}
-              />
-              {isCustomTextPreset && control.name === 'text.content' && !isReadOnly && (
-                <div className="text-control-hints">
-                  <small>Texto personalizado para esta instancia</small>
-                </div>
-              )}
-            </div>
-          </div>
-        );
-
-      case 'color':
-        return (
-          <div key={control.name} className="control-group">
-            <label htmlFor={controlId} className="control-label">
-              {control.label}
-            </label>
-            <div className="color-control-container">
-              <input
-                id={controlId}
-                type="color"
-                value={value || control.default}
-                onChange={(e) => handleControlChange(control.name, e.target.value)}
-                className="control-color"
-                disabled={isReadOnly}
-              />
-              <input
-                type="text"
-                value={value || control.default}
-                onChange={(e) => handleControlChange(control.name, e.target.value)}
-                className="control-color-text"
-                placeholder="#ffffff"
-                disabled={isReadOnly}
-              />
-            </div>
-          </div>
-        );
-
-      case 'checkbox':
-        return (
-          <div key={control.name} className="control-group">
-            <label htmlFor={controlId} className="control-checkbox-label">
-              <input
-                id={controlId}
-                type="checkbox"
-                checked={!!value}
-                onChange={(e) => handleControlChange(control.name, e.target.checked)}
-                className="control-checkbox"
-                disabled={isReadOnly}
-              />
-              <span className="checkbox-custom"></span>
-              {control.label}
-            </label>
-          </div>
-        );
-
-      case 'select':
-        return (
-          <div key={control.name} className="control-group">
-            <label htmlFor={controlId} className="control-label">
-              {control.label}
-            </label>
-            <select
-              id={controlId}
-              value={value || control.default}
-              onChange={(e) => handleControlChange(control.name, e.target.value)}
-              className="control-select"
-              disabled={isReadOnly}
-            >
-              {control.options?.map((option: string) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-        );
-
-      default:
-        return null;
-    }
+    const Renderer = CONTROL_RENDERERS[control.type];
+    if (!Renderer) return null;
+    return (
+      <Renderer
+        key={control.name}
+        control={control}
+        value={value}
+        id={controlId}
+        onChange={(val) => handleControlChange(control.name, val)}
+        isReadOnly={isReadOnly}
+        isCustomTextPreset={isCustomTextPreset}
+      />
+    );
   };
 
   if (!preset.config.controls || preset.config.controls.length === 0) {
