@@ -165,7 +165,6 @@ export class AudioVisualizerEngine {
   }
 
   public updateLayerConfig(layerId: string, config: any): void {
- codex/change-fs-import-to-platform-api
     const layer = this.layers.get(layerId);
     if (!layer) return;
 

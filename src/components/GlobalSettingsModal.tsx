@@ -23,6 +23,15 @@ interface MonitorInfo {
   scaleFactor: number;
 }
 
+interface MidiClockSettings {
+  resolution: number;
+  delay: number;
+  quantization: number;
+  jumpMode: boolean;
+  stability: number;
+  type: 'midi' | 'internal' | 'off';
+}
+
 interface GlobalSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -37,10 +46,13 @@ interface GlobalSettingsModalProps {
   onSelectLaunchpad: (id: string | null) => void;
   audioGain: number;
   onAudioGainChange: (value: number) => void;
-  midiClockDelay: number;
-  onMidiClockDelayChange: (value: number) => void;
-  midiClockType: string;
-  onMidiClockTypeChange: (value: string) => void;
+  midiClockSettings: MidiClockSettings;
+  onUpdateClockSettings: (updates: Partial<MidiClockSettings>) => void;
+  internalBpm: number;
+  onSetInternalBpm: (bpm: number) => void;
+  clockStable: boolean;
+  currentMeasure: number;
+  currentBeat: number;
   layerChannels: Record<string, number>;
   onLayerChannelChange: (layerId: string, channel: number) => void;
   effectMidiNotes: Record<string, number>;
@@ -92,10 +104,13 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   onSelectLaunchpad,
   audioGain,
   onAudioGainChange,
-  midiClockDelay,
-  onMidiClockDelayChange,
-  midiClockType,
-  onMidiClockTypeChange,
+  midiClockSettings,
+  onUpdateClockSettings,
+  internalBpm,
+  onSetInternalBpm,
+  clockStable,
+  currentMeasure,
+  currentBeat,
   layerChannels,
   onLayerChannelChange,
   effectMidiNotes,
@@ -182,10 +197,13 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                   midiDevices={midiDevices}
                   selectedMidiId={selectedMidiId}
                   onSelectMidi={onSelectMidi}
-                  midiClockDelay={midiClockDelay}
-                  onMidiClockDelayChange={onMidiClockDelayChange}
-                  midiClockType={midiClockType}
-                  onMidiClockTypeChange={onMidiClockTypeChange}
+                  midiClockSettings={midiClockSettings}
+                  onUpdateClockSettings={onUpdateClockSettings}
+                  internalBpm={internalBpm}
+                  onSetInternalBpm={onSetInternalBpm}
+                  clockStable={clockStable}
+                  currentMeasure={currentMeasure}
+                  currentBeat={currentBeat}
                   layerChannels={layerChannels}
                   onLayerChannelChange={onLayerChannelChange}
                   effectMidiNotes={effectMidiNotes}
