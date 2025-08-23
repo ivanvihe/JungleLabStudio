@@ -8,7 +8,7 @@ struct Uniforms {
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 
-// Función de ruido 3D para efectos orgánicos
+// Funcion de ruido 3D para efectos organicos
 fn noise3D(p: vec3<f32>) -> f32 {
     let K = vec3<f32>(23.14069263277926, 2.665144142690225, 12.9898);
     return fract(cos(dot(p, K)) * 43758.5453);
@@ -31,7 +31,7 @@ fn fractalNoise(p: vec3<f32>, octaves: i32) -> f32 {
     return value;
 }
 
-// Función para crear campos evolutivos
+// Funcion para crear campos evolutivos
 fn evolutionField(pos: vec3<f32>, time: f32, evolution_factor: f32) -> f32 {
     let slow_time = time * 0.3;
     let fast_time = time * 2.0;
@@ -39,7 +39,7 @@ fn evolutionField(pos: vec3<f32>, time: f32, evolution_factor: f32) -> f32 {
     // Campo base que evoluciona lentamente
     let base_field = fractalNoise(pos + vec3<f32>(slow_time * 0.1), 4);
     
-    // Mutaciones rápidas
+    // Mutaciones rapidas
     let mutation_field = noise3D(pos * 3.0 + vec3<f32>(fast_time * 0.5)) * evolution_factor;
     
     // Patrones emergentes
@@ -48,11 +48,11 @@ fn evolutionField(pos: vec3<f32>, time: f32, evolution_factor: f32) -> f32 {
     return base_field + mutation_field * 0.3 + emergence * 0.2;
 }
 
-// Sistema de atractores dinámicos
+// Sistema de atractores dinamicos
 fn calculateAttractors(pos: vec2<f32>, time: f32) -> f32 {
     var attraction = 0.0;
     
-    // Múltiples atractores que se mueven
+    // Multiples atractores que se mueven
     for (var i = 0; i < 5; i++) {
         let offset = f32(i) * 2.1;
         let attractor_pos = vec2<f32>(
@@ -68,7 +68,7 @@ fn calculateAttractors(pos: vec2<f32>, time: f32) -> f32 {
     return attraction;
 }
 
-// Patrón de conexiones dinámicas
+// Patron de conexiones dinamicas
 fn connectionPattern(uv: vec2<f32>, time: f32, audio_intensity: f32) -> f32 {
     let grid_size = 8.0 + audio_intensity * 4.0;
     let grid_uv = uv * grid_size;
@@ -78,7 +78,7 @@ fn connectionPattern(uv: vec2<f32>, time: f32, audio_intensity: f32) -> f32 {
     // Crear conexiones entre puntos de la grilla
     let connection_strength = noise3D(vec3<f32>(grid_id, time * 0.5));
     
-    // Líneas dinámicas que conectan celdas
+    // Lineas dinamicas que conectan celdas
     let line_x = smoothstep(0.45, 0.55, grid_local.x) * (1.0 - smoothstep(0.45, 0.55, grid_local.y));
     let line_y = smoothstep(0.45, 0.55, grid_local.y) * (1.0 - smoothstep(0.45, 0.55, grid_local.x));
     
@@ -87,11 +87,11 @@ fn connectionPattern(uv: vec2<f32>, time: f32, audio_intensity: f32) -> f32 {
     return lines * audio_intensity;
 }
 
-// Efecto de estelas de partículas
+// Efecto de estelas de particulas
 fn particleTrails(uv: vec2<f32>, time: f32) -> f32 {
     var trails = 0.0;
     
-    // Múltiples estelas que se mueven por el espacio
+    // Multiples estelas que se mueven por el espacio
     for (var i = 0; i < 8; i++) {
         let trail_offset = f32(i) * 0.8;
         let trail_time = time + trail_offset;
@@ -140,16 +140,16 @@ fn fs_main(@builtin(position) frag_coord: vec4<f32>) -> @location(0) vec4<f32> {
         0.12 + bg_field * 0.2
     );
     
-    // Atractores dinámicos
+    // Atractores dinamicos
     let attractors = calculateAttractors(uv, time);
     background_color += vec3<f32>(0.1, 0.05, 0.15) * attractors * uniforms.audio_low;
     
-    // Patrón de conexiones
+    // Patron de conexiones
     let connections = connectionPattern(uv, time, audio_avg);
     let connection_color = vec3<f32>(0.4, 0.8, 0.6); // Verde suave para conexiones
     background_color = mix(background_color, connection_color, connections * 0.3);
     
-    // Estelas de partículas
+    // Estelas de particulas
     let trails = particleTrails(uv, time);
     let trail_colors = vec3<f32>(
         0.8 + sin(time * 2.0) * 0.2,
@@ -169,11 +169,11 @@ fn fs_main(@builtin(position) frag_coord: vec4<f32>) -> @location(0) vec4<f32> {
     let global_pulse = 0.8 + audio_avg * 0.4;
     background_color *= global_pulse;
     
-    // Viñeta sutil
+    // Vineta sutil
     let vignette = 1.0 - length(uv * 0.6);
     background_color *= vignette * 0.5 + 0.5;
     
-    // Gradiente de edad/evolución
+    // Gradiente de edad/evolucion
     let age_gradient = length(uv) * 0.3;
     let age_colors = mix(
         vec3<f32>(1.0, 0.4, 0.6), // Rosa nacimiento

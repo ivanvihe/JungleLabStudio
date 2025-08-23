@@ -73,12 +73,12 @@ async fn run(app: AppHandle, mut stop_rx: watch::Receiver<bool>) -> anyhow::Resu
             let nyquist = sample_rate / 2.0;
             let freq_per_bin = nyquist / (fft_size as f32 / 2.0);
 
-            // Índices para las bandas
+            // Indices for the bands
             let low_end = (250.0 / freq_per_bin) as usize;
             let mid_end = (4000.0 / freq_per_bin) as usize;
             let high_end = fft_size / 2;
 
-            // Calcular energía promedio por banda
+            // Calculate average energy per band
             let low_energy: f32 = mags[1..low_end.min(mags.len())].iter().sum();
             let mid_energy: f32 = mags[low_end..mid_end.min(mags.len())].iter().sum();
             let high_energy: f32 = mags[mid_end..high_end.min(mags.len())].iter().sum();

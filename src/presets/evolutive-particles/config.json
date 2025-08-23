@@ -1,6 +1,6 @@
 {
   "name": "Evolutive Particles",
-  "description": "Sistema de partículas evolutivo que forma estructuras complejas y se adapta al audio",
+  "description": "Sistema de particulas evolutivo que forma estructuras complejas y se adapta al audio",
   "author": "AudioVisualizer",
   "version": "1.0.0",
   "category": "particles",
@@ -65,7 +65,7 @@
     {
       "name": "particleCount.initial",
       "type": "slider",
-      "label": "Partículas Iniciales",
+      "label": "Particulas Iniciales",
       "min": 0,
       "max": 1000,
       "step": 50,
@@ -74,7 +74,7 @@
     {
       "name": "evolution.lifespanBase",
       "type": "slider",
-      "label": "Vida Base de Partículas",
+      "label": "Vida Base de Particulas",
       "min": 2.0,
       "max": 20.0,
       "step": 0.5,
@@ -83,7 +83,7 @@
     {
       "name": "evolution.mutationRate",
       "type": "slider",
-      "label": "Tasa de Mutación",
+      "label": "Tasa de Mutacion",
       "min": 0.0,
       "max": 1.0,
       "step": 0.1,
@@ -92,7 +92,7 @@
     {
       "name": "evolution.adaptationSpeed",
       "type": "slider",
-      "label": "Velocidad de Adaptación",
+      "label": "Velocidad de Adaptacion",
       "min": 0.1,
       "max": 3.0,
       "step": 0.1,
@@ -110,7 +110,7 @@
     {
       "name": "behavior.attraction",
       "type": "slider",
-      "label": "Fuerza de Atracción",
+      "label": "Fuerza de Atraccion",
       "min": 0.0,
       "max": 1.0,
       "step": 0.1,
@@ -137,19 +137,19 @@
     {
       "name": "effects.enableTrails",
       "type": "checkbox",
-      "label": "Estelas de Partículas",
+      "label": "Estelas de Particulas",
       "default": true
     },
     {
       "name": "effects.enableConnections",
       "type": "checkbox",
-      "label": "Conexiones Dinámicas",
+      "label": "Conexiones Dinamicas",
       "default": true
     },
     {
       "name": "effects.enableEvolution",
       "type": "checkbox",
-      "label": "Evolución Activa",
+      "label": "Evolucion Activa",
       "default": true
     },
     {
@@ -185,12 +185,12 @@
   ],
   "audioMapping": {
     "low": {
-      "description": "Controla el nacimiento y comportamiento básico de partículas",
+      "description": "Controla el nacimiento y comportamiento basico de particulas",
       "frequency": "20-250 Hz",
-      "effect": "Generación de nuevas partículas y movimientos fundamentales"
+      "effect": "Generacion de nuevas particulas y movimientos fundamentales"
     },
     "mid": {
-      "description": "Influye en la evolución y complejidad del sistema",
+      "description": "Influye en la evolucion y complejidad del sistema",
       "frequency": "250-4000 Hz",
       "effect": "Mutaciones, adaptaciones y comportamientos sociales"
     },

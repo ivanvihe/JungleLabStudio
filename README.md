@@ -1,10 +1,10 @@
 # AudioVisualizer
 
-## Agregar nuevos presets
+## Adding new presets
 
-1. Crea una carpeta dentro de `src/presets/<nombre-del-preset>`.
-2. Incluye un archivo `config.json` que siga el esquema definido en [`presets/schema.json`](presets/schema.json).
-3. Crea un archivo `preset.ts` que exporte `config` y `createPreset`.
-4. Opcionalmente añade `shader.wgsl` si el preset usa shaders personalizados.
+1. Create a folder inside `src/presets/<preset-name>`.
+2. Include a `config.json` file that follows the schema defined in [`presets/schema.json`](presets/schema.json).
+3. Create a `preset.ts` file that exports `config` and `createPreset`.
+4. Optionally add `shader.wgsl` if the preset uses custom shaders.
 
-La configuración se valida automáticamente al cargar la aplicación utilizando [Ajv](https://ajv.js.org/). Si el archivo `config.json` no cumple el esquema, el preset será omitido y se mostrará un error en la consola.
+The configuration is automatically validated when the application loads using [Ajv](https://ajv.js.org/). If the `config.json` file does not match the schema, the preset will be skipped and an error will be shown in the console.

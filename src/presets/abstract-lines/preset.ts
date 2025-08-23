@@ -3,7 +3,7 @@ import { BasePreset, PresetConfig } from '../../core/PresetLoader';
 
 export const config: PresetConfig = {
   name: "Abstract Lines Pro",
-  description: "Líneas abstractas generativas con matemática procedural y shaders optimizados",
+  description: "Lineas abstractas generativas con matematica procedural y shaders optimizados",
   author: "AudioVisualizer Pro",
   version: "2.0.0",
   category: "abstract",
@@ -51,7 +51,7 @@ export const config: PresetConfig = {
     {
       name: "geometry.complexity",
       type: "slider", 
-      label: "Complejidad Geométrica",
+      label: "Complejidad Geometrica",
       min: 1,
       max: 6,
       step: 1,
@@ -69,14 +69,14 @@ export const config: PresetConfig = {
   ],
   audioMapping: {
     low: {
-      description: "Controla densidad y generación de líneas",
+      description: "Controla densidad y generacion de lineas",
       frequency: "20-250 Hz", 
       effect: "Spawning y densidad base"
     },
     mid: {
-      description: "Modula deformación y flujo",
+      description: "Modula deformacion y flujo",
       frequency: "250-4000 Hz",
-      effect: "Morphing y movimiento orgánico"
+      effect: "Morphing y movimiento organico"
     },
     high: {
       description: "Efectos de alta frecuencia y detalles",
@@ -91,7 +91,7 @@ export const config: PresetConfig = {
   }
 };
 
-// Clase optimizada para líneas procedurales
+// Clase optimizada para lineas procedurales
 class ProceduralLine {
   private geometry: THREE.BufferGeometry;
   private material: THREE.ShaderMaterial;
@@ -151,7 +151,7 @@ class ProceduralLine {
           
           vec3 pos = position;
           
-          // Efectos de grosor dinámico
+          // Efectos de grosor dinamico
           float thickness = uThickness * (1.0 + sin(uTime * 2.0 + position.x * 5.0) * 0.2);
           
           gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
@@ -166,13 +166,13 @@ class ProceduralLine {
         uniform float uEnergy;
         
         void main() {
-          // Gradiente a lo largo de la línea
+          // Gradiente a lo largo de la linea
           float alpha = 1.0 - pow(abs(vUv.x - 0.5) * 2.0, 2.0);
           
-          // Pulso energético
+          // Pulso energetico
           float pulse = sin(uTime * 8.0 + vUv.x * 10.0) * 0.3 + 0.7;
           
-          // Color con energía
+          // Color con energia
           vec3 finalColor = vColor * uEnergy * pulse;
           
           gl_FragColor = vec4(finalColor, alpha * uOpacity);
@@ -193,7 +193,7 @@ class ProceduralLine {
     for (let i = 0; i < segments; i++) {
       const t = i / (segments - 1);
       
-      // Matemática procedural para paths orgánicos
+      // Matematica procedural para paths organicos
       const x = (t - 0.5) * 4 + Math.sin(t * Math.PI * 3 + this.evolutionPhase) * 0.8;
       const y = Math.sin(t * Math.PI * 2 + this.noiseOffset) * 1.5 + 
                 Math.cos(t * Math.PI * 5 + this.evolutionPhase) * 0.3;
@@ -218,11 +218,11 @@ class ProceduralLine {
   public update(deltaTime: number, time: number, audioData: any, config: any): void {
     this.age += deltaTime;
     
-    // Actualizar energía basada en audio
+    // Actualizar energia basada en audio
     const targetEnergy = 0.5 + (audioData.low + audioData.mid + audioData.high) / 3;
     this.energy += (targetEnergy - this.energy) * deltaTime * 3;
     
-    // Evolución del path
+    // Evolucion del path
     this.evolutionPhase += deltaTime * config.flow.evolution;
     this.regeneratePath(time, audioData, config);
     
@@ -231,7 +231,7 @@ class ProceduralLine {
     this.material.uniforms.uEnergy.value = this.energy;
     this.material.uniforms.uOpacity.value = Math.max(0, 1 - this.age / this.lifespan);
     
-    // Actualizar geometría
+    // Actualizar geometria
     this.geometry.attributes.position.needsUpdate = true;
     this.geometry.attributes.color.needsUpdate = true;
   }
@@ -243,7 +243,7 @@ class ProceduralLine {
     for (let i = 0; i < segments; i++) {
       const t = i / (segments - 1);
       
-      // Flow field matemático
+      // Flow field matematico
       const flowX = Math.sin(t * Math.PI * 2 + time * config.flow.speed + this.noiseOffset) * turbulence;
       const flowY = Math.cos(t * Math.PI * 3 + time * config.flow.speed * 0.7) * turbulence;
       
@@ -270,7 +270,7 @@ class ProceduralLine {
   }
 }
 
-// Object Pool para optimización de memoria
+// Object Pool para optimizacion de memoria
 class LinePool {
   private available: ProceduralLine[] = [];
   private active: ProceduralLine[] = [];
@@ -338,7 +338,7 @@ class AbstractLinesPreset extends BasePreset {
     // Sin fondo - completamente transparente
     this.renderer.setClearColor(0x000000, 0);
     
-    // Crear líneas iniciales
+    // Crear lineas iniciales
     for (let i = 0; i < 20; i++) {
       this.spawnLine();
     }
@@ -360,7 +360,7 @@ class AbstractLinesPreset extends BasePreset {
     const time = this.clock.getElapsedTime();
     this.frameCount++;
 
-    // Optimización: update solo cada N frames en performance mode
+    // Optimizacion: update solo cada N frames en performance mode
     const shouldUpdate = this.frameCount % Math.max(1, Math.floor(60 / this.currentConfig.performance.updateFrequency)) === 0;
     
     if (shouldUpdate) {

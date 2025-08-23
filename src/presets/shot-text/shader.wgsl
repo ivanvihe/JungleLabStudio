@@ -54,7 +54,7 @@ fn fs_main(@builtin(position) frag_coord: vec4<f32>) -> @location(0) vec4<f32> {
         alpha = max(alpha, glow_intensity * 0.2);
     }
     
-    // Efecto de partículas de fondo para crear atmósfera
+    // Efecto de particulas de fondo para crear atmosfera
     let particle_uv = uv * 5.0 + uniforms.time * 0.1;
     let noise = fract(sin(dot(particle_uv, vec2<f32>(12.9898, 78.233))) * 43758.5453);
     

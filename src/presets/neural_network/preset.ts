@@ -138,7 +138,7 @@ export class InfiniteNeuralNetwork extends BasePreset {
   }
 
   init(): void {
-    // Guardar estado inicial de la escena y cámara
+    // Guardar estado inicial de la escena y camara
     this.originalBackground = this.scene.background;
     this.originalOverrideMaterial = this.scene.overrideMaterial;
     this.initialCameraPosition.copy(this.camera.position);
@@ -148,7 +148,7 @@ export class InfiniteNeuralNetwork extends BasePreset {
     this.scene.background = null;
     this.scene.overrideMaterial = null;
 
-    // Colocar cámara en origen mirando al eje X
+    // Colocar camara en origen mirando al eje X
     this.camera.position.set(0, 0, 0);
     this.camera.lookAt(1, 0, 0);
 
@@ -190,7 +190,7 @@ export class InfiniteNeuralNetwork extends BasePreset {
     this.nextSpawnX = x;
   }
 
-  // CORRECCIÓN: Métodos para crear materiales con configuración correcta
+  // CORRECCION: Metodos para crear materiales con configuracion correcta
   private createNodeMaterial(): THREE.MeshBasicMaterial {
     return new THREE.MeshBasicMaterial({
       color: new THREE.Color(this.currentConfig.colors.node),
@@ -250,7 +250,7 @@ export class InfiniteNeuralNetwork extends BasePreset {
   updateConfig(newConfig: any): void {
     this.currentConfig = this.deepMerge(this.currentConfig, newConfig);
     
-    // Recrear materiales con nueva configuración
+    // Recrear materiales con nueva configuracion
     const nodeMaterial = this.createNodeMaterial();
     const connMaterial = this.createConnectionMaterial();
     const nodeColor = new THREE.Color(this.currentConfig.colors.node);
@@ -283,7 +283,7 @@ export class InfiniteNeuralNetwork extends BasePreset {
     this.nodes = [];
     this.connections = [];
 
-    // Restaurar estado original de escena y cámara
+    // Restaurar estado original de escena y camara
     this.scene.background = this.originalBackground;
     this.scene.overrideMaterial = this.originalOverrideMaterial;
     this.camera.position.copy(this.initialCameraPosition);

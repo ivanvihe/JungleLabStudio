@@ -79,7 +79,7 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
   const jumpPositions = React.useRef<Record<string, number>>({});
 
   const handlePresetClick = (layerId: string, presetId: string, velocity?: number) => {
-    if (!presetId) return; // No hacer nada si es un slot vacío
+    if (!presetId) return; // No hacer nada si es un slot vacio
     
     const cellKey = `${layerId}-${presetId}`;
     const layer = layers.find(l => l.id === layerId);
@@ -372,7 +372,7 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
             {/* Preset Grid con slots fijos */}
             <div className="preset-grid">
               {layerPresets[layer.id].map((presetId, idx) => {
-              // Slot vacío
+              // Slot vacio
               if (!presetId) {
                 const isDragOver = dragTarget?.layerId === layer.id && dragTarget.index === idx;
                 return (

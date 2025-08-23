@@ -43,7 +43,7 @@ function createWindow() {
     mainWindow.loadFile(startUrl);
   }
 
-  // Log cuando la página esté lista
+  // Log when the page is ready
   mainWindow.webContents.once('did-finish-load', () => {
     console.log('✅ Page loaded successfully');
   });
@@ -53,7 +53,7 @@ function createWindow() {
     console.error('❌ Failed to load page:', errorCode, errorDescription);
   });
 
-  // Log errores de consola de la página
+  // Log console errors from the page
   mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
     console.log(`Console [${level}]:`, message);
   });

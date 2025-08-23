@@ -22,7 +22,7 @@ export const FullscreenSettings: React.FC<FullscreenSettingsProps> = ({
 }) => {
   return (
     <div className="settings-section">
-      <h3>🖥️ Configuración de Monitores</h3>
+      <h3>🖥️ Monitor Settings</h3>
 
       <div className="monitors-grid">
         {monitors.map((monitor) => (
@@ -39,7 +39,7 @@ export const FullscreenSettings: React.FC<FullscreenSettingsProps> = ({
             <div className="monitor-info">
               <h4>{monitor.label}</h4>
               <div className="monitor-details">
-                <span>Posición: {monitor.position.x}, {monitor.position.y}</span>
+                <span>Position: {monitor.position.x}, {monitor.position.y}</span>
                 <span>Escala: {monitor.scaleFactor}x</span>
               </div>
 

@@ -4,7 +4,7 @@ import { BasePreset, PresetConfig } from '../../core/PresetLoader';
 // Config embebido para ROBOTICA
 export const config: PresetConfig = {
   name: "ROBOTICA Text Intro",
-  description: "Visualización de texto 'R O B O T I C A' con animación cinematográfica de aparición letra por letra",
+  description: "Visualizacion de texto 'R O B O T I C A' con animacion cinematografica de aparicion letra por letra",
   author: "AudioVisualizer",
   version: "1.0.0",
   category: "text",
@@ -50,7 +50,7 @@ export const config: PresetConfig = {
     {
       name: "animation.fadeDuration",
       type: "slider",
-      label: "Duración de Fade",
+      label: "Duracion de Fade",
       min: 2.0,
       max: 10.0,
       step: 0.5,
@@ -59,7 +59,7 @@ export const config: PresetConfig = {
     {
       name: "animation.letterDelay",
       type: "slider",
-      label: "Velocidad de Animación",
+      label: "Velocidad de Animacion",
       min: 0.1,
       max: 1.0,
       step: 0.05,
@@ -89,9 +89,9 @@ export const config: PresetConfig = {
   ],
   audioMapping: {
     low: {
-      description: "Controla la velocidad de animación",
+      description: "Controla la velocidad de animacion",
       frequency: "20-250 Hz",
-      effect: "Velocidad de aparición de letras"
+      effect: "Velocidad de aparicion de letras"
     },
     mid: {
       description: "Controla el pulso y brillo",
@@ -242,14 +242,14 @@ class RoboticaLetter {
     globalOpacity: number,
     config: any
   ) {
-    // Animación de fade
+    // Animacion de fade
     if (this.startTime !== null && currentTime >= this.startTime) {
       const fadeProgress = Math.min(1.0, (currentTime - this.startTime) / fadeDuration);
       // Curva suave de fade
       this.targetAlpha = 1.0 - Math.pow(1.0 - fadeProgress, 2);
     }
 
-    // Interpolación suave del alpha
+    // Interpolacion suave del alpha
     this.alpha += (this.targetAlpha - this.alpha) * deltaTime * 5;
 
     // Efectos de pulso
@@ -395,13 +395,13 @@ class RoboticaTextPreset extends BasePreset {
     if (this.animationStartTime === null) {
       this.animationStartTime = this.clock.getElapsedTime();
       
-      // Configurar tiempos de inicio según el orden de animación
+      // Configurar tiempos de inicio segun el orden de animacion
       const animationOrder = this.currentConfig.animation.animationOrder;
       const letterDelay = this.currentConfig.animation.letterDelay;
 
       animationOrder.forEach((letterIdx: number, orderIdx: number) => {
-        // letterIdx se refiere al índice en el string completo incluyendo espacios
-        // Necesitamos mapearlo al índice en el array de letters (sin espacios)
+        // letterIdx se refiere al indice en el string completo incluyendo espacios
+        // Necesitamos mapearlo al indice en el array de letters (sin espacios)
         let actualLetterIndex = 0;
         let stringIndex = 0;
         
@@ -511,7 +511,7 @@ class RoboticaTextPreset extends BasePreset {
   }
 }
 
-// Exportar la función factory requerida
+// Exportar la funcion factory requerida
 export function createPreset(
   scene: THREE.Scene,
   camera: THREE.Camera,

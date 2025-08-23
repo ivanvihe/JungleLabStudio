@@ -142,7 +142,7 @@ class AnalysisSpectrum extends BasePreset {
       band6: { particles: [], color: this.currentConfig.colors.band6, centerX: 3.2, targetCount: 0, currentCount: 0, audioLevel: 0, smoothedLevel: 0 }
     };
 
-    // Crear campo de estrellas para un fondo más espectacular
+    // Crear campo de estrellas para un fondo mas espectacular
     const starCount = 500;
     const starGeometry = new THREE.BufferGeometry();
     const starPositions = new Float32Array(starCount * 3);

@@ -91,7 +91,7 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({
   };
 
   const handleResetSettings = () => {
-    if (confirm('¿Estás seguro de que quieres restablecer todas las configuraciones?')) {
+    if (confirm('Are you sure you want to reset all settings?')) {
       localStorage.clear();
       window.location.reload();
     }
@@ -172,7 +172,7 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({
 
       <div className="setting-group">
         <label className="setting-label">
-          <span>Límite de Memoria (MB): {memoryLimit}</span>
+          <span>Memory Limit (MB): {memoryLimit}</span>
           <input
             type="range"
             min={256}
@@ -184,7 +184,7 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({
           />
         </label>
         <small className="setting-hint">
-          La aplicación intentará mantenerse bajo este límite
+          The application will try to stay below this limit
         </small>
       </div>
 
@@ -195,9 +195,9 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({
             checked={autoCleanCache}
             onChange={(e) => setAutoCleanCache(e.target.checked)}
           />
-          <span>Limpieza Automática de Cache</span>
+          <span>Automatic Cache Cleanup</span>
         </label>
-        <small className="setting-hint">Limpia automáticamente recursos no utilizados</small>
+        <small className="setting-hint">Automatically clears unused resources</small>
       </div>
 
       <div className="action-buttons">
@@ -217,7 +217,7 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({
       </div>
 
       <div className="system-details">
-        <h4>Información Técnica</h4>
+        <h4>Technical Information</h4>
         <div className="tech-info">
           <div className="tech-item">
             <span>User Agent:</span>

@@ -1,6 +1,6 @@
 {
   "name": "ROBOTICA Text Intro",
-  "description": "Visualización de texto 'R O B O T I C A' con animación cinematográfica de aparición letra por letra con efectos de brillo",
+  "description": "Visualizacion de texto 'R O B O T I C A' con animacion cinematografica de aparicion letra por letra con efectos de brillo",
   "author": "AudioVisualizer",
   "version": "1.0.0",
   "category": "text",
@@ -53,7 +53,7 @@
     {
       "name": "animation.fadeDuration",
       "type": "slider",
-      "label": "Duración de Fade",
+      "label": "Duracion de Fade",
       "min": 2.0,
       "max": 10.0,
       "step": 0.5,
@@ -62,7 +62,7 @@
     {
       "name": "animation.letterDelay",
       "type": "slider",
-      "label": "Velocidad de Animación",
+      "label": "Velocidad de Animacion",
       "min": 0.1,
       "max": 1.0,
       "step": 0.05,
@@ -119,9 +119,9 @@
   ],
   "audioMapping": {
     "low": {
-      "description": "Controla la velocidad de animación y aparición de letras",
+      "description": "Controla la velocidad de animacion y aparicion de letras",
       "frequency": "20-250 Hz",
-      "effect": "Velocidad de aparición de letras"
+      "effect": "Velocidad de aparicion de letras"
     },
     "mid": {
       "description": "Controla el pulso y efectos de brillo",

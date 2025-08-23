@@ -49,7 +49,7 @@ export const VideoSettings: React.FC = () => {
       if (debugInfo) {
         setGpuInfo(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL));
       } else {
-        setGpuInfo('Información no disponible');
+        setGpuInfo('Information not available');
       }
       const loseContext = gl.getExtension('WEBGL_lose_context');
       if (loseContext) {
@@ -76,10 +76,10 @@ export const VideoSettings: React.FC = () => {
 
   return (
     <div className="settings-section">
-      <h3>🎮 Rendimiento y Gráficos</h3>
+      <h3>🎮 Performance and Graphics</h3>
 
       <div className="system-info">
-        <h4>Información del Sistema</h4>
+        <h4>System Information</h4>
         <div className="info-grid">
           <div className="info-item">
             <span className="info-label">GPU:</span>
@@ -128,7 +128,7 @@ export const VideoSettings: React.FC = () => {
 
       <div className="setting-group">
         <label className="setting-label">
-          <span>Ratio de Píxeles: {pixelRatio}x</span>
+          <span>Pixel Ratio: {pixelRatio}x</span>
           <input
             type="range"
             min={0.5}
@@ -155,7 +155,7 @@ export const VideoSettings: React.FC = () => {
             className="setting-slider"
           />
         </label>
-        <small className="setting-hint">Ajusta cuánto de la pantalla ocupa el lienzo</small>
+        <small className="setting-hint">Adjusts how much of the screen the canvas occupies</small>
       </div>
 
       <div className="setting-group">

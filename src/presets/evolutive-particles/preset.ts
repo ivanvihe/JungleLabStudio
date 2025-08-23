@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { BasePreset, PresetConfig } from '../../core/PresetLoader';
 
-// Configuración del preset Evolutive Particles
+// Configuracion del preset Evolutive Particles
 export const config: PresetConfig = {
   name: "Evolutive Particles",
-  description: "Sistema de partículas evolutivo que forma estructuras complejas y se adapta al audio",
+  description: "Sistema de particulas evolutivo que forma estructuras complejas y se adapta al audio",
   author: "AudioVisualizer",
   version: "1.0.0",
   category: "particles",
@@ -62,7 +62,7 @@ export const config: PresetConfig = {
     {
       name: "particleCount.initial",
       type: "slider",
-      label: "Partículas Iniciales",
+      label: "Particulas Iniciales",
       min: 0,
       max: 1000,
       step: 50,
@@ -71,7 +71,7 @@ export const config: PresetConfig = {
     {
       name: "evolution.lifespanBase",
       type: "slider",
-      label: "Vida Base de Partículas",
+      label: "Vida Base de Particulas",
       min: 2.0,
       max: 20.0,
       step: 0.5,
@@ -80,7 +80,7 @@ export const config: PresetConfig = {
     {
       name: "evolution.mutationRate",
       type: "slider",
-      label: "Tasa de Mutación",
+      label: "Tasa de Mutacion",
       min: 0.0,
       max: 1.0,
       step: 0.1,
@@ -89,7 +89,7 @@ export const config: PresetConfig = {
     {
       name: "evolution.adaptationSpeed",
       type: "slider",
-      label: "Velocidad de Adaptación",
+      label: "Velocidad de Adaptacion",
       min: 0.1,
       max: 3.0,
       step: 0.1,
@@ -107,7 +107,7 @@ export const config: PresetConfig = {
     {
       name: "behavior.attraction",
       type: "slider",
-      label: "Fuerza de Atracción",
+      label: "Fuerza de Atraccion",
       min: 0.0,
       max: 1.0,
       step: 0.1,
@@ -134,19 +134,19 @@ export const config: PresetConfig = {
     {
       name: "effects.enableTrails",
       type: "checkbox",
-      label: "Estelas de Partículas",
+      label: "Estelas de Particulas",
       default: true
     },
     {
       name: "effects.enableConnections",
       type: "checkbox",
-      label: "Conexiones Dinámicas",
+      label: "Conexiones Dinamicas",
       default: true
     },
     {
       name: "effects.enableEvolution",
       type: "checkbox",
-      label: "Evolución Activa",
+      label: "Evolucion Activa",
       default: true
     },
     {
@@ -182,12 +182,12 @@ export const config: PresetConfig = {
   ],
   audioMapping: {
     low: {
-      description: "Controla el nacimiento y comportamiento básico de partículas",
+      description: "Controla el nacimiento y comportamiento basico de particulas",
       frequency: "20-250 Hz",
-      effect: "Generación de nuevas partículas y movimientos fundamentales"
+      effect: "Generacion de nuevas particulas y movimientos fundamentales"
     },
     mid: {
-      description: "Influye en la evolución y complejidad del sistema",
+      description: "Influye en la evolucion y complejidad del sistema",
       frequency: "250-4000 Hz",
       effect: "Mutaciones, adaptaciones y comportamientos sociales"
     },
@@ -234,7 +234,7 @@ class EvolutiveParticle {
   trailPositions: THREE.Vector3[] = [];
   maxTrailLength: number = 20;
   
-  // Conexiones con otras partículas
+  // Conexiones con otras particulas
   connections: EvolutiveParticle[] = [];
   connectionStrength: number[] = [];
   
@@ -306,7 +306,7 @@ class EvolutiveParticle {
     else if (ageRatio < 0.9) this.state = ParticleState.ELDER;
     else this.state = ParticleState.DEATH;
     
-    // Evolución de propiedades
+    // Evolucion de propiedades
     if (config.effects?.enableEvolution) {
       this.adaptability += (Math.random() - 0.5) * config.evolution.mutationRate * deltaTime;
       this.complexity += config.evolution.complexityGrowth * deltaTime * 0.1;
@@ -317,13 +317,13 @@ class EvolutiveParticle {
     const material = this.mesh.material as THREE.MeshBasicMaterial;
     material.color.copy(this.getStateColor());
     
-    // Actualizar tamaño basado en complejidad
+    // Actualizar tamano basado en complejidad
     const scale = 0.5 + this.complexity * 1.5 + this.energyLevel * 0.5;
     this.mesh.scale.setScalar(scale);
   }
   
   applyForces(forces: THREE.Vector3, config: any): void {
-    // Aplicar fuerzas físicas
+    // Aplicar fuerzas fisicas
     this.acceleration.copy(forces);
     
     // Turbulencia
@@ -334,12 +334,12 @@ class EvolutiveParticle {
     );
     this.acceleration.add(turbulence);
     
-    // Integración de movimiento
+    // Integracion de movimiento
     this.velocity.add(this.acceleration.clone().multiplyScalar(1/60));
     this.velocity.multiplyScalar(config.physics.friction);
     this.position.add(this.velocity);
     
-    // Actualizar posición del mesh
+    // Actualizar posicion del mesh
     this.mesh.position.copy(this.position);
     
     // Actualizar estela
@@ -376,7 +376,7 @@ class EvolutiveParticle {
       const distance = this.position.distanceTo(other.position);
       const direction = new THREE.Vector3().subVectors(other.position, this.position).normalize();
       
-      // Atracción social
+      // Atraccion social
       if (distance < 1.0 && this.socialTendency > 0.5) {
         const attraction = direction.clone().multiplyScalar(
           config.behavior.attraction * this.socialTendency * (1 / distance)
@@ -384,7 +384,7 @@ class EvolutiveParticle {
         force.add(attraction);
       }
       
-      // Repulsión para evitar aglomeraciones
+      // Repulsion para evitar aglomeraciones
       if (distance < 0.5) {
         const repulsion = direction.clone().multiplyScalar(
           -config.behavior.repulsion * (0.5 / distance)
@@ -437,7 +437,7 @@ class ParticleConnectionSystem {
         const p2 = particles[j];
         const distance = p1.position.distanceTo(p2.position);
         
-        // Conectar partículas cercanas con alta afinidad social
+        // Conectar particulas cercanas con alta afinidad social
         if (distance < 0.8 && p1.socialTendency > 0.6 && p2.socialTendency > 0.6) {
           const geometry = new THREE.BufferGeometry().setFromPoints([
             p1.position,
@@ -492,7 +492,7 @@ class EvolutiveParticlesPreset extends BasePreset {
   }
   
   private initializeAttractors(): void {
-    // Crear puntos de atracción dinámicos
+    // Crear puntos de atraccion dinamicos
     for (let i = 0; i < 5; i++) {
       this.attractors.push(new THREE.Vector3(
         (Math.random() - 0.5) * 4,
@@ -533,10 +533,10 @@ class EvolutiveParticlesPreset extends BasePreset {
     const deltaTime = this.clock.getDelta();
     const time = this.clock.getElapsedTime();
     
-    // Actualizar atractores dinámicos
+    // Actualizar atractores dinamicos
     this.updateAttractors(time);
     
-    // Spawn dinámico basado en audio con suavizado
+    // Spawn dinamico basado en audio con suavizado
     const targetCount = Math.floor(
       THREE.MathUtils.lerp(
         this.currentConfig.particleCount.base,
@@ -563,9 +563,9 @@ class EvolutiveParticlesPreset extends BasePreset {
       this.emergenceTimer = 0;
     }
     
-    // Actualizar partículas
+    // Actualizar particulas
     this.particles.forEach(particle => {
-      // Evolución
+      // Evolucion
       particle.evolve(deltaTime, this.currentConfig);
       
       // Fuerzas
@@ -573,7 +573,7 @@ class EvolutiveParticlesPreset extends BasePreset {
       particle.applyForces(forces, this.currentConfig);
     });
     
-    // Remover partículas muertas
+    // Remover particulas muertas
     this.particles = this.particles.filter(particle => {
       if (particle.isDead()) {
         this.scene.remove(particle.mesh);
@@ -600,7 +600,7 @@ class EvolutiveParticlesPreset extends BasePreset {
   private calculateForces(particle: EvolutiveParticle): THREE.Vector3 {
     const totalForce = new THREE.Vector3();
     
-    // Atracción hacia puntos dinámicos
+    // Atraccion hacia puntos dinamicos
     this.attractors.forEach(attractor => {
       const distance = particle.position.distanceTo(attractor);
       if (distance > 0.1) {
@@ -633,7 +633,7 @@ class EvolutiveParticlesPreset extends BasePreset {
   private triggerEmergenceEvent(): void {
     if (!this.currentConfig.effects?.enableEmergence) return;
     
-    // Aumentar energía de todas las partículas
+    // Aumentar energia de todas las particulas
     this.particles.forEach(particle => {
       particle.energyLevel = Math.min(1.0, particle.energyLevel + 0.3);
       particle.complexity += 0.1;

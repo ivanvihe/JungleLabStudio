@@ -39,7 +39,7 @@ export const VisualSettings: React.FC<VisualSettingsProps> = ({
 }) => {
   return (
     <div className="settings-section">
-      <h3>🎨 Configuración Visual</h3>
+      <h3>🎨 Visual Settings</h3>
       <div className="setting-group">
         <label className="setting-label">
           <span>Tecla para ocultar UI</span>
@@ -131,7 +131,7 @@ export const VisualSettings: React.FC<VisualSettingsProps> = ({
             className="setting-slider"
           />
         </label>
-        <small className="setting-hint">Acentúa los valores de brillo</small>
+        <small className="setting-hint">Accentuates brightness values</small>
       </div>
 
       <div className="setting-group">
@@ -160,11 +160,11 @@ export const VisualSettings: React.FC<VisualSettingsProps> = ({
             className="setting-slider"
           />
         </label>
-        <small className="setting-hint">Número de pads de texto disponibles en presets de glitch</small>
+        <small className="setting-hint">Number of text pads available in glitch presets</small>
       </div>
 
       <div className="setting-group">
-        <h4>Configuración de Layers</h4>
+        <h4>Layer Settings</h4>
         <div className="layers-info">
           <div className="layer-info">
             <span className="layer-badge layer-c">C</span>
@@ -180,7 +180,7 @@ export const VisualSettings: React.FC<VisualSettingsProps> = ({
           </div>
         </div>
         <small className="setting-hint">
-          Todos los layers se mezclan con transparencia automática. Los presets mantienen fondos transparentes para permitir la composición correcta.
+          All layers are blended with automatic transparency. Presets keep transparent backgrounds to allow correct compositing.
         </small>
       </div>
 

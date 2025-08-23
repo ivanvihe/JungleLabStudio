@@ -1,6 +1,6 @@
 {
   "name": "Abstract Lines",
-  "description": "Líneas abstractas que aparecen y desaparecen creando formas orgánicas con colores tenues",
+  "description": "Lineas abstractas que aparecen y desaparecen creando formas organicas con colores tenues",
   "author": "AudioVisualizer",
   "version": "1.0.0",
   "category": "abstract",
@@ -55,7 +55,7 @@
     {
       "name": "animation.appearanceSpeed",
       "type": "slider",
-      "label": "Velocidad de Aparición",
+      "label": "Velocidad de Aparicion",
       "min": 0.1,
       "max": 3.0,
       "step": 0.1,
@@ -73,7 +73,7 @@
     {
       "name": "animation.formationSpeed",
       "type": "slider",
-      "label": "Velocidad de Formación",
+      "label": "Velocidad de Formacion",
       "min": 0.2,
       "max": 4.0,
       "step": 0.1,
@@ -91,7 +91,7 @@
     {
       "name": "animation.morphingRate",
       "type": "slider",
-      "label": "Velocidad de Transformación",
+      "label": "Velocidad de Transformacion",
       "min": 0.1,
       "max": 2.0,
       "step": 0.1,
@@ -100,7 +100,7 @@
     {
       "name": "geometry.curvature",
       "type": "slider",
-      "label": "Curvatura de Líneas",
+      "label": "Curvatura de Lineas",
       "min": 0.0,
       "max": 1.0,
       "step": 0.1,
@@ -109,7 +109,7 @@
     {
       "name": "geometry.thickness",
       "type": "slider",
-      "label": "Grosor de Líneas",
+      "label": "Grosor de Lineas",
       "min": 0.1,
       "max": 2.0,
       "step": 0.1,
@@ -124,13 +124,13 @@
     {
       "name": "effects.enableMorphing",
       "type": "checkbox",
-      "label": "Transformación Continua",
+      "label": "Transformacion Continua",
       "default": true
     },
     {
       "name": "effects.enableFormation",
       "type": "checkbox",
-      "label": "Formación de Patrones",
+      "label": "Formacion de Patrones",
       "default": true
     },
     {
@@ -160,19 +160,19 @@
   ],
   "audioMapping": {
     "low": {
-      "description": "Controla la aparición y movimiento de líneas primarias",
+      "description": "Controla la aparicion y movimiento de lineas primarias",
       "frequency": "20-250 Hz",
-      "effect": "Generación de líneas principales y formaciones básicas"
+      "effect": "Generacion de lineas principales y formaciones basicas"
     },
     "mid": {
-      "description": "Controla las líneas secundarias y transformaciones",
+      "description": "Controla las lineas secundarias y transformaciones",
       "frequency": "250-4000 Hz",
-      "effect": "Morfología y patrones intermedios"
+      "effect": "Morfologia y patrones intermedios"
     },
     "high": {
       "description": "Controla los detalles finos y efectos de parpadeo",
       "frequency": "4000+ Hz",
-      "effect": "Líneas de detalle y efectos sutiles"
+      "effect": "Lineas de detalle y efectos sutiles"
     }
   },
   "performance": {

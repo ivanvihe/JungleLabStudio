@@ -498,12 +498,12 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handler);
   }, [hideUiHotkey]);
 
-  // Recalcular el tamaño del canvas al mostrar/ocultar la UI
+  // Recalcular el tamano del canvas al mostrar/ocultar la UI
   useEffect(() => {
     window.dispatchEvent(new Event('resize'));
   }, [isUiHidden]);
 
-  // Función de debug para verificar el grid completo
+  // Funcion de debug para verificar el grid completo
   const debugLaunchpadGrid = () => {
     if (!launchpadOutput) {
       console.log('No hay Launchpad conectado');
@@ -530,7 +530,7 @@ const App: React.FC = () => {
     }
   };
 
-  // Exponer función de debug globalmente
+  // Exponer funcion de debug globalmente
   (window as any).debugLaunchpadGrid = debugLaunchpadGrid;
 
   // Handlers
@@ -821,7 +821,7 @@ const App: React.FC = () => {
     }
   };
 
-  // Handler para añadir preset a layer desde la galería sin activarlo
+  // Handler para anadir preset a layer desde la galeria sin activarlo
   const handleAddPresetToLayer = (presetId: string, layerId: string) => {
     const addFn = (window as any).addPresetToLayer as
       | ((layerId: string, presetId: string) => void)
@@ -970,7 +970,7 @@ const App: React.FC = () => {
         />
       </div>
 
-      {/* Sección inferior con visuales y controles */}
+      {/* Seccion inferior con visuales y controles */}
       <div className="bottom-section">
         <div
           className="visual-wrapper"
@@ -1031,7 +1031,7 @@ const App: React.FC = () => {
         audioData={audioData}
       />
 
-      {/* Modal de configuración global */}
+      {/* Modal de configuracion global */}
       <GlobalSettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
@@ -1130,7 +1130,7 @@ const App: React.FC = () => {
         onCanvasBackgroundChange={setCanvasBackground}
       />
 
-      {/* Modal de galería de presets */}
+      {/* Modal de galeria de presets */}
       <ResourcesModal
         isOpen={isResourcesOpen}
         onClose={() => setResourcesOpen(false)}

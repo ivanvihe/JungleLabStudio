@@ -4,7 +4,7 @@ import { BasePreset, PresetConfig } from '../../core/PresetLoader';
 // Config para ROBOTICA Cinematic Intro
 export const config: PresetConfig = {
   name: "ROBOTICA Cinematic Intro",
-  description: "Título cinematográfico 'ROBOTICA' con aparición letra por letra y efectos de brillo",
+  description: "Titulo cinematografico 'ROBOTICA' con aparicion letra por letra y efectos de brillo",
   author: "AudioVisualizer Pro",
   version: "1.0.0",
   category: "text",
@@ -27,8 +27,8 @@ export const config: PresetConfig = {
       fadeInDuration: 2.0,
       glowIntensity: 2.5,
       pulseSpeed: 1.5,
-      // Orden de aparición: R-O-B-O-T-I-C-A (índices 0-7)
-      // Aparición desordenada: O(1), A(7), B(2), T(4), R(0), I(5), C(6), O(3)
+      // Orden de aparicion: R-O-B-O-T-I-C-A (indices 0-7)
+      // Aparicion desordenada: O(1), A(7), B(2), T(4), R(0), I(5), C(6), O(3)
       animationOrder: [1, 7, 2, 4, 0, 5, 6, 3]
     },
     colors: {
@@ -80,7 +80,7 @@ class CinematicLetter {
 
   private createCanvas(fontSize: number, fontFamily: string): void {
     this.canvas = document.createElement('canvas');
-    // Canvas más grande para mejor calidad
+    // Canvas mas grande para mejor calidad
     this.canvas.width = fontSize * 1.5;
     this.canvas.height = fontSize * 1.5;
     
@@ -100,7 +100,7 @@ class CinematicLetter {
   private updateCanvasContent(): void {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     
-    // Dibujar letra en blanco sólido
+    // Dibujar letra en blanco solido
     this.context.fillStyle = '#FFFFFF';
     this.context.fillText(
       this.letter,
@@ -192,7 +192,7 @@ class CinematicLetter {
   }
 
   private createMesh(): void {
-    // Tamaño basado en el canvas
+    // Tamano basado en el canvas
     const width = this.canvas.width / 100; // Escalar para Three.js
     const height = this.canvas.height / 100;
     
@@ -201,19 +201,19 @@ class CinematicLetter {
   }
 
   public update(deltaTime: number, currentTime: number, config: any, audioData: any): void {
-    // Controlar aparición
+    // Controlar aparicion
     if (this.startTime !== null && currentTime >= this.startTime && !this.isVisible) {
       this.isVisible = true;
     }
     
     if (this.isVisible && this.startTime !== null) {
-      // Fade in cinematográfico
+      // Fade in cinematografico
       const fadeProgress = Math.min(1.0, (currentTime - this.startTime) / config.animation.fadeInDuration);
       // Curva de easing suave
       this.targetAlpha = this.easeOutCubic(fadeProgress);
     }
 
-    // Interpolación suave del alpha
+    // Interpolacion suave del alpha
     this.alpha += (this.targetAlpha - this.alpha) * deltaTime * 4;
 
     // Efectos basados en audio y config
@@ -310,7 +310,7 @@ class RoboticaCinematicPreset extends BasePreset {
     const fontFamily = this.currentConfig.text.fontFamily;
     const scale = this.currentConfig.text.scale;
 
-    const letterWidth = fontSize * 0.8; // Aproximación del ancho de cada letra en px
+    const letterWidth = fontSize * 0.8; // Aproximacion del ancho de cada letra en px
     const availableWidth = (this.currentConfig.width || 1920) * 0.9375; // Usar el 94% del ancho
     const spacing = (availableWidth - letterWidth) / Math.max(letters.length - 1, 1);
     const startX = -availableWidth / 2 + letterWidth / 2;
@@ -318,7 +318,7 @@ class RoboticaCinematicPreset extends BasePreset {
     for (let i = 0; i < letters.length; i++) {
       const char = letters[i];
       const x = startX + i * spacing;
-      // Escalar coordenadas desde píxeles a unidades de Three.js
+      // Escalar coordenadas desde pixeles a unidades de Three.js
       const position = new THREE.Vector3((x / 100) * scale, 0, 0);
 
       const letter = new CinematicLetter(char, fontSize, fontFamily, position);
@@ -334,7 +334,7 @@ class RoboticaCinematicPreset extends BasePreset {
     if (this.animationStartTime === null) {
       this.animationStartTime = this.clock.getElapsedTime();
       
-      // Configurar tiempos de inicio según el orden de animación
+      // Configurar tiempos de inicio segun el orden de animacion
       const animationOrder = this.currentConfig.animation.animationOrder;
       const letterDelay = this.currentConfig.animation.letterDelay;
 
@@ -376,7 +376,7 @@ class RoboticaCinematicPreset extends BasePreset {
   public updateConfig(newConfig: any): void {
     this.currentConfig = this.deepMerge(this.currentConfig, newConfig);
     
-    // Si cambió configuración importante, recrear
+    // Si cambio configuracion importante, recrear
     if (newConfig.text) {
       this.recreateText();
     }

@@ -26,7 +26,7 @@ export const config: PresetConfig = {
       hot: "#FF6B35",     // Naranja caliente
       warm: "#FF8E53",    // Naranja medio
       cool: "#4FC3F7",    // Azul cyan
-      cold: "#29B6F6"     // Azul frío
+      cold: "#29B6F6"     // Azul frio
     },
     flow: {
       turbulence: 0.3,
@@ -57,7 +57,7 @@ export const config: PresetConfig = {
     {
       name: "wave.direction",
       type: "slider",
-      label: "Dirección (-1=Der→Izq, 1=Izq→Der)",
+      label: "Direccion (-1=Der→Izq, 1=Izq→Der)",
       min: -1.0,
       max: 1.0,
       step: 2.0,
@@ -82,7 +82,7 @@ export const config: PresetConfig = {
     mid: {
       description: "Modula la turbulencia y flujo",
       frequency: "250-4000 Hz",
-      effect: "Variaciones en el patrón de ondas"
+      effect: "Variaciones en el patron de ondas"
     },
     high: {
       description: "Controla colores calientes y efectos",
@@ -120,7 +120,7 @@ class EnergyWaveRay {
     const segments = this.config.wave.segments;
     const width = this.config.wave.width;
     
-    // Crear geometría
+    // Crear geometria
     const positions = new Float32Array((segments + 1) * 3);
     const uvs = new Float32Array((segments + 1) * 2);
     
@@ -129,8 +129,8 @@ class EnergyWaveRay {
       const x = (t - 0.5) * width;
       
       positions[i * 3] = x;
-      positions[i * 3 + 1] = 0; // Se actualizará en el shader/update
-      positions[i * 3 + 2] = layerIndex * 0.01; // Separación mínima entre layers
+      positions[i * 3 + 1] = 0; // Se actualizara en el shader/update
+      positions[i * 3 + 2] = layerIndex * 0.01; // Separacion minima entre layers
       
       uvs[i * 2] = t;
       uvs[i * 2 + 1] = layerIndex / (this.config.wave.layers - 1);
@@ -157,7 +157,7 @@ class EnergyWaveRay {
         uniform float uAudioMid;
         uniform float uAudioHigh;
         
-        // Función de ruido suave
+        // Funcion de ruido suave
         float noise(vec2 p) {
           return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
         }
@@ -183,7 +183,7 @@ class EnergyWaveRay {
           // Desplazamiento simple y lineal para crear el efecto de flujo
           float flowOffset = mod(uTime * uSpeed * uDirection * 0.1, 2.0);
           
-          // Ondas FIJAS en el espacio que crean el patrón
+          // Ondas FIJAS en el espacio que crean el patron
           float wave1 = sin(t * 6.28 * 1.2 + flowOffset + uLayerIndex * 0.3) * uAmplitude;
           float wave2 = sin(t * 6.28 * 0.8 + flowOffset * 0.7 + uLayerIndex * 0.2) * uAmplitude * 0.6;
           float wave3 = cos(t * 6.28 * 1.5 + flowOffset * 1.2 + uLayerIndex * 0.4) * uAmplitude * 0.3;
@@ -239,13 +239,13 @@ class EnergyWaveRay {
             color = mix(uWarmColor, uHotColor, (temperature - 0.6) * 2.5);
           }
           
-          // Intensidad basada en la posición del layer
+          // Intensidad basada en la posicion del layer
           float layerIntensity = 1.0 - uLayerIndex * 0.12;
           
           // Suavizado en los bordes
           float edgeFade = 1.0 - smoothstep(0.0, 0.15, abs(t - 0.5) * 2.0 - 0.7);
           
-          // Pulsación muy sutil y constante
+          // Pulsacion muy sutil y constante
           float pulse = sin(uTime * 2.0) * 0.1 + 0.9;
           
           float finalIntensity = layerIntensity * edgeFade * pulse;
@@ -303,7 +303,7 @@ class EnergyWaveRay {
       material.uniforms.uAudioHigh.value = audioData.high;
     });
 
-    // Ajustar la intensidad de las líneas de brillo
+    // Ajustar la intensidad de las lineas de brillo
     this.glowMaterials.forEach(mat => {
       mat.opacity = 0.1 + audioData.high * 0.3;
     });
