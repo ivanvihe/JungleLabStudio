@@ -29,6 +29,7 @@ export class GeneratorEngine {
   private isRunning: boolean = false;
   private currentTime: number = 0;
   private intervalId: NodeJS.Timeout | null = null;
+  private tracks: GenerativeTrack[] = [];
 
   static getInstance(): GeneratorEngine {
     if (!this.instance) {
@@ -58,6 +59,7 @@ export class GeneratorEngine {
   start(tracks: GenerativeTrack[], globalTempo: number, key: string, scale: string) {
     if (this.isRunning) return;
 
+    this.tracks = tracks;
     this.isRunning = true;
     this.currentTime = 0;
 
@@ -65,11 +67,11 @@ export class GeneratorEngine {
     const interval = (60 / globalTempo / 4) * 1000; // milliseconds
 
     this.intervalId = setInterval(() => {
-      this.tick(tracks, globalTempo, key, scale);
+      this.tick(globalTempo, key, scale);
     }, interval);
 
     // Enviar mensajes de inicio de clock si están habilitados
-    tracks.forEach(t => {
+    this.tracks.forEach(t => {
       if (t.sendClock) {
         this.sendMidiStart(t);
         if (!this.tracksWithClock.includes(t)) {
@@ -103,11 +105,15 @@ export class GeneratorEngine {
   // Tick principal - ejecuta cada 16th note
   private tracksWithClock: GenerativeTrack[] = [];
 
-  private tick(tracks: GenerativeTrack[], globalTempo: number, key: string, scale: string) {
-    MusicalIntelligence.applyCrossTrackInfluence(tracks);
-    MusicalIntelligence.analyzeHarmony(tracks);
+  updateTracks(tracks: GenerativeTrack[]) {
+    this.tracks = tracks;
+  }
 
-    tracks.forEach(track => {
+  private tick(globalTempo: number, key: string, scale: string) {
+    MusicalIntelligence.applyCrossTrackInfluence(this.tracks);
+    MusicalIntelligence.analyzeHarmony(this.tracks);
+
+    this.tracks.forEach(track => {
       if (track.sendClock && !this.tracksWithClock.includes(track)) {
         this.tracksWithClock.push(track);
       }

@@ -25,9 +25,9 @@ export class MagentaGenerator implements GeneratorInstance {
   ): MidiNote[] {
     if (!track.controls.playStop || !this.loaded) return [];
 
-    const params = track.generator.parameters;
-    const steps = (params.steps as number) || 32;
-    const temperature = (params.temperature as number) || 1.0;
+    const steps = Math.max(1, Math.floor((track.controls.paramA / 127) * 64));
+    const temperature = 0.1 + (track.controls.paramB / 127) * 1.9;
+    const density = track.controls.paramC / 127;
 
     if (!this.sequence && !this.generating) {
       this.generating = true;
@@ -51,12 +51,16 @@ export class MagentaGenerator implements GeneratorInstance {
     const quantStep = this.step;
 
     this.sequence.notes.forEach(n => {
-      if (n.quantizedStartStep === quantStep) {
+      if (n.quantizedStartStep === quantStep && Math.random() < density) {
         const durationSteps = n.quantizedEndStep - n.quantizedStartStep;
+        const velocity = Math.max(
+          1,
+          Math.floor((n.velocity || 80) * (track.controls.intensity / 127))
+        );
         notes.push({
           note: n.pitch!,
           time: currentTime,
-          velocity: n.velocity || 80,
+          velocity,
           duration: durationSteps * 0.25,
         });
       }

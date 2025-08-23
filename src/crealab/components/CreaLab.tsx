@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CreaLabProject, GenerativeTrack, TrackType } from '../types/CrealabTypes';
+import { CreaLabProject, GenerativeTrack, TrackType, GeneratorType } from '../types/CrealabTypes';
 import { TopBar } from './TopBar';
 import LaunchControlStrip from './LaunchControlStrip';
 import useLaunchControlXL from '../hooks/useLaunchControlXL';
@@ -9,6 +9,7 @@ import BassGeneratorControls from './BassGeneratorControls';
 import MidiConfiguration from './MidiConfiguration';
 import ProjectManager from './ProjectManager';
 import './CreaLab.css';
+import { GeneratorEngine } from '../core/GeneratorEngine';
 
 interface CreaLabProps {
   onSwitchToAudioVisualizer: () => void;
@@ -35,6 +36,16 @@ const DEFAULT_TRACK_TYPES: TrackType[] = [
   'visual',
   'lead'
 ];
+
+const KNOB_LABELS: Record<GeneratorType, [string, string, string]> = {
+  off: ['Param A', 'Param B', 'Param C'],
+  euclidean: ['Pulses', 'Steps', 'Offset'],
+  probabilistic: ['Density', 'Variation', 'Swing'],
+  markov: ['Order', 'Creativity', 'Density'],
+  arpeggiator: ['Pattern', 'Octaves', 'Length'],
+  chaos: ['Sensitivity', 'Scaling', 'Attractor'],
+  magenta: ['Steps', 'Temp', 'Density']
+};
 
 const createDefaultTrack = (n: number): GenerativeTrack => ({
   id: `track-${n}`,
@@ -133,10 +144,22 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
   }, [project.tracks]);
 
   useEffect(() => {
+    GeneratorEngine.getInstance().updateTracks(project.tracks);
+  }, [project.tracks]);
+
+  useEffect(() => {
+    const engine = GeneratorEngine.getInstance();
+    if (project.transport.isPlaying) {
+      engine.start(project.tracks, project.globalTempo, project.key, project.scale);
+    } else {
+      engine.stop();
+    }
+  }, [project.transport.isPlaying, project.globalTempo, project.key, project.scale, project.tracks]);
+
+  useEffect(() => {
     if (!controller) return;
-    setProject(prev => ({
-      ...prev,
-      tracks: prev.tracks.map(t => {
+    setProject(prev => {
+      const newTracks = prev.tracks.map(t => {
         const strip = controller.channelStrips[t.trackNumber - 1];
         if (!strip) return t;
         return {
@@ -151,8 +174,11 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
             mode: strip.values.button2 ? 1 : 0
           }
         };
-      }) as any
-    }));
+      }) as any;
+      const engine = GeneratorEngine.getInstance();
+      newTracks.forEach(t => engine.updateTrackParameters(t));
+      return { ...prev, tracks: newTracks };
+    });
   }, [controller]);
 
   const updateTrackName = (trackNumber: number, name: string) => {
@@ -210,39 +236,46 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
     trackNumber: number,
     changes: Partial<GenerativeTrack['controls']>
   ) => {
-    setProject(prev => ({
-      ...prev,
-      tracks: prev.tracks.map(t =>
+    setProject(prev => {
+      const newTracks = prev.tracks.map(t =>
         t.trackNumber === trackNumber
           ? { ...t, controls: { ...t.controls, ...changes } }
           : t
-      ) as any
-    }));
+      ) as any;
+      const engine = GeneratorEngine.getInstance();
+      const track = newTracks[trackNumber - 1];
+      engine.updateTrackParameters(track);
+      return { ...prev, tracks: newTracks };
+    });
   };
 
   const updateGeneratorParameters = (
     trackNumber: number,
     params: Record<string, any>
   ) => {
-    setProject(prev => ({
-      ...prev,
-      tracks: prev.tracks.map(t =>
+    setProject(prev => {
+      const newTracks = prev.tracks.map(t =>
         t.trackNumber === trackNumber
           ? { ...t, generator: { ...t.generator, parameters: params } }
           : t
-      ) as any
-    }));
+      ) as any;
+      const engine = GeneratorEngine.getInstance();
+      engine.updateTrackParameters(newTracks[trackNumber - 1]);
+      return { ...prev, tracks: newTracks };
+    });
   };
 
   const updateGeneratorType = (trackNumber: number, type: string) => {
-    setProject(prev => ({
-      ...prev,
-      tracks: prev.tracks.map(t =>
+    setProject(prev => {
+      const newTracks = prev.tracks.map(t =>
         t.trackNumber === trackNumber
-          ? { ...t, generator: { ...t.generator, type: type as any } }
+          ? { ...t, generator: { ...t.generator, type: type as any, enabled: type !== 'off' } }
           : t
-      ) as any
-    }));
+      ) as any;
+      const engine = GeneratorEngine.getInstance();
+      engine.changeGeneratorType(newTracks[trackNumber - 1], type as GeneratorType);
+      return { ...prev, tracks: newTracks };
+    });
   };
 
   return (
@@ -321,6 +354,7 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
                 <div className="section-title">Controles MIDI</div>
                 <LaunchControlStrip
                   strip={controller?.channelStrips[track.trackNumber - 1] || null}
+                  labels={KNOB_LABELS[track.generator.type]}
                 />
 
                 <div className="section-divider" />

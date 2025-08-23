@@ -4,9 +4,10 @@ import './LaunchControlVisualizer.css';
 
 interface Props {
   strip: ChannelStrip | null;
+  labels?: [string, string, string];
 }
 
-const LaunchControlStrip: React.FC<Props> = ({ strip }) => {
+const LaunchControlStrip: React.FC<Props> = ({ strip, labels }) => {
   if (!strip) {
     return <div className="lcx-strip lcx-disconnected">No strip</div>;
   }
@@ -14,9 +15,18 @@ const LaunchControlStrip: React.FC<Props> = ({ strip }) => {
   return (
     <div className="lcx-strip">
       <div className="lcx-knobs">
-        <div className="lcx-knob" style={{ ['--value' as any]: strip.values.knob1 }} />
-        <div className="lcx-knob" style={{ ['--value' as any]: strip.values.knob2 }} />
-        <div className="lcx-knob" style={{ ['--value' as any]: strip.values.knob3 }} />
+        <div className="lcx-knob-wrapper">
+          <div className="lcx-knob" style={{ ['--value' as any]: strip.values.knob1 }} />
+          <div className="lcx-knob-label">{labels?.[0]}</div>
+        </div>
+        <div className="lcx-knob-wrapper">
+          <div className="lcx-knob" style={{ ['--value' as any]: strip.values.knob2 }} />
+          <div className="lcx-knob-label">{labels?.[1]}</div>
+        </div>
+        <div className="lcx-knob-wrapper">
+          <div className="lcx-knob" style={{ ['--value' as any]: strip.values.knob3 }} />
+          <div className="lcx-knob-label">{labels?.[2]}</div>
+        </div>
       </div>
       <div className="lcx-fader">
         <div
