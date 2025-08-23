@@ -673,6 +673,10 @@ const App: React.FC = () => {
     }));
   };
 
+  const handleToggleUi = () => {
+    setIsUiHidden(prev => !prev);
+  };
+
   const handleLayerEffectChange = (layerId: string, effect: string) => {
     setLayerEffects(prev => ({
       ...prev,
@@ -872,6 +876,7 @@ const App: React.FC = () => {
         onAudioGainChange={setAudioGain}
         audioLevel={audioLevel}
         onFullScreen={handleFullScreen}
+        onToggleUi={handleToggleUi}
         onClearAll={handleClearAll}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenResources={() => setResourcesOpen(true)}
