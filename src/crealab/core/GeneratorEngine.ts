@@ -9,6 +9,7 @@ import { LSystemGenerator } from '../generators/advanced/LSystemGenerator';
 import { CellularAutomataGenerator } from '../generators/advanced/CellularAutomataGenerator';
 import { NeuralNetworkGenerator } from '../generators/advanced/NeuralNetworkGenerator';
 import { BasslineGenerator } from '../generators/BasslineGenerator';
+import { PatternGenerator } from '../generators/PatternGenerator';
 import { MusicalIntelligence } from '../ai/MusicalIntelligence';
 import { MidiManager } from './MidiManager';
 
@@ -62,6 +63,7 @@ export class GeneratorEngine {
       this.generators.set('cellular', new CellularAutomataGenerator());
       this.generators.set('neural', new NeuralNetworkGenerator());
       this.generators.set('bassline', new BasslineGenerator());
+      this.generators.set('pattern', new PatternGenerator());
     }
 
   // Iniciar el motor generativo
@@ -308,6 +310,9 @@ export class GeneratorEngine {
         break;
       case 'bassline':
         track.generator.parameters = { pattern: 'dub', variation: 0 };
+        break;
+      case 'pattern':
+        track.generator.parameters = {};
         break;
       default:
         track.generator.parameters = {};

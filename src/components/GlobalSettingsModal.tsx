@@ -8,6 +8,7 @@ import { VideoSettings } from './settings/VideoSettings';
 import { FullscreenSettings } from './settings/FullscreenSettings';
 import { VisualSettings } from './settings/VisualSettings';
 import { SystemSettings } from './settings/SystemSettings';
+import { PatternSettings } from './settings/PatternSettings';
 
 interface DeviceOption {
   id: string;
@@ -172,6 +173,7 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
               { id: 'fullscreen', label: 'Monitors', icon: '🖥️' },
               { id: 'visual', label: 'Visuals', icon: '🎨' },
               { id: 'system', label: 'System', icon: '🔧' },
+              { id: 'pattern', label: 'Patterns', icon: '🎹' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -257,6 +259,8 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                 onGlitchPadChange={onGlitchPadChange}
               />
             )}
+
+            {activeTab === 'pattern' && <PatternSettings />}
 
             {activeTab === 'system' && (
               <SystemSettings
