@@ -60,7 +60,7 @@ export const TopBar: React.FC<TopBarProps> = ({
       <div className="midi-section">
         <div className={`midi-led ${midiActive ? 'active' : ''}`}></div>
         <span className="midi-device">
-          {midiDeviceName || `${midiDeviceCount} MIDI dispositivos`}
+          {midiDeviceName || `${midiDeviceCount} MIDI devices`}
         </span>
       </div>
 
@@ -78,7 +78,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
       <div className="audio-section">
         <span className="audio-device">
-          {audioDeviceName || `${audioDeviceCount} audio dispositivos`}
+          {audioDeviceName || `${audioDeviceCount} audio devices`}
         </span>
         <input
           type="range"
@@ -97,10 +97,10 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
       </div>
 
-        {/* Espaciador flexible para centrar la sección de acciones */}
+        {/* Flexible spacer to center the actions section */}
         <div className="top-bar-spacer"></div>
 
-        {/* Sección central - Acciones y recursos */}
+        {/* Center section - Actions and resources */}
         <div className="actions-section">
           <button
             onClick={onOpenResources}
@@ -134,10 +134,10 @@ export const TopBar: React.FC<TopBarProps> = ({
           >⚙️</button>
         </div>
 
-        {/* Espaciador flexible para empujar Launchpad a la derecha */}
+        {/* Flexible spacer to push Launchpad controls to the right */}
         <div className="top-bar-spacer"></div>
 
-        {/* Sección derecha - Controles de Launchpad */}
+        {/* Right section - Launchpad controls */}
         {launchpadAvailable && (
           <>
             <div className="separator" />

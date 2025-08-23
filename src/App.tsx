@@ -35,7 +35,7 @@ const App: React.FC = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [availablePresets, setAvailablePresets] = useState<LoadedPreset[]>([]);
   const [fps, setFps] = useState(60);
-  const [status, setStatus] = useState('Inicializando...');
+  const [status, setStatus] = useState('Initializing...');
   const [activeLayers, setActiveLayers] = useState<Record<string, string>>({});
   const [selectedPreset, setSelectedPreset] = useState<LoadedPreset | null>(null);
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
@@ -833,7 +833,7 @@ const App: React.FC = () => {
 
     const preset = availablePresets.find(p => p.id === presetId);
     if (preset) {
-      setStatus(`${preset.config.name} añadido a Layer ${layerId}`);
+      setStatus(`${preset.config.name} added to Layer ${layerId}`);
     }
   };
 
@@ -848,12 +848,12 @@ const App: React.FC = () => {
 
     const preset = availablePresets.find(p => p.id === presetId);
     if (preset) {
-      setStatus(`${preset.config.name} eliminado de Layer ${layerId}`);
+      setStatus(`${preset.config.name} removed from Layer ${layerId}`);
     }
   };
 
   const getCurrentPresetName = (): string => {
-    if (!selectedPreset) return 'Ninguno';
+    if (!selectedPreset) return 'None';
     return `${selectedPreset.config.name} (${selectedLayer || 'N/A'})`;
   };
 

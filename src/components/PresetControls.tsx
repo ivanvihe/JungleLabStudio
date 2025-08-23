@@ -101,7 +101,7 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
 
       {preset.config.audioMapping && (
         <div className="audio-mapping">
-          <h4>Mapeo de Audio</h4>
+          <h4>Audio Mapping</h4>
           <div className="audio-mapping-grid">
             {Object.entries(preset.config.audioMapping).map(([band, mapping]: [string, any]) => (
               <div key={band} className="audio-band">
@@ -116,7 +116,7 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
 
       {isReadOnly && (
         <div className="read-only-notice">
-          <small>👁️ Vista previa - Los valores se aplicarán al añadir a una layer</small>
+          <small>👁️ Preview - Values will apply when added to a layer</small>
         </div>
       )}
     </div>

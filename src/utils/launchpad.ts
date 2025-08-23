@@ -90,7 +90,7 @@ export function canvasToLaunchpadFrame(canvas: HTMLCanvasElement): number[] {
 /**
  * Build a frame of 64 color values for the Launchpad grid based on audio data.
  * Colors use the built-in palette (0-127).
- * ¡IMPORTANTE! Esta función SIEMPRE debe devolver exactamente 64 valores para el grid 8x8
+ * IMPORTANT: This function MUST always return exactly 64 values for the 8x8 grid
  */
 export function buildLaunchpadFrame(
   preset: LaunchpadPreset,
@@ -100,10 +100,10 @@ export function buildLaunchpadFrame(
   // 🔥 CRÍTICO: Siempre inicializar con exactamente 64 elementos (8x8 grid)
   const colors = new Array(GRID_LEN).fill(0);
 
-  // Debug: verificar que tenemos datos válidos
+  // Debug: verify that we have valid data
   if (!data.fft || data.fft.length === 0) {
-    console.log('⚠️ buildLaunchpadFrame: No hay datos FFT, devolviendo grid vacío');
-    return colors; // retornar todo apagado si no hay datos
+    console.log('⚠️ buildLaunchpadFrame: No FFT data, returning empty grid');
+    return colors; // return all off if no data
   }
 
   switch (preset) {

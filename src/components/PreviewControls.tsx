@@ -6,7 +6,7 @@ export default function PreviewControls() {
 
   const fullscreenAll = async () => {
     try {
-      // Importar dinámicamente para evitar errores cuando la API de Tauri no esté disponible.
+      // Dynamically import to avoid errors when the Tauri API isn't available.
       const { invoke } = await import(/* @vite-ignore */ '@tauri-apps/api');
       await invoke('fullscreen_all');
     } catch (e) {
@@ -28,10 +28,10 @@ export default function PreviewControls() {
           color: '#fff',
         }}
       >
-        Ventana Visuales
+        Visuals Window
       </div>
       <div style={{ width: 250, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <h3>Controles Visuales activos</h3>
+        <h3>Active Visual Controls</h3>
         <label>
           Sensitivity
           <input
