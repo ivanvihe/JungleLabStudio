@@ -67,13 +67,19 @@ export class InstrumentProfileManager {
           memory: 8
         };
         
-      case 'arpeggiator':
-        return {
-          pattern: baseParams.pattern || 'up',
-          octaves: baseParams.octaves || 2,
-          noteLength: 0.25,
-          swing: 0.1
-        };
+        case 'arpeggiator':
+          return {
+            pattern: baseParams.pattern || 'up',
+            octaves: baseParams.octaves || 2,
+            noteLength: 0.25,
+            swing: 0.1
+          };
+
+        case 'bassline':
+          return {
+            pattern: baseParams.pattern || 'dub',
+            variation: baseParams.variation || 0
+          };
         
       case 'chaos':
         return {
