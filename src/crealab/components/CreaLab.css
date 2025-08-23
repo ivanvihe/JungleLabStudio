@@ -1,0 +1,226 @@
+.crealab-container {
+  width: 100vw;
+  height: 100vh;
+  background: #1a1a1a;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.crealab-header {
+  background: #2d2d2d;
+  border-bottom: 1px solid #444;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 60px;
+}
+
+.crealab-title {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.crealab-title h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  background: linear-gradient(45deg, #4CAF50, #8BC34A);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.project-name {
+  color: #ccc;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.crealab-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.global-settings {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.global-settings label {
+  color: #ccc;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.global-settings input,
+.global-settings select {
+  background: #3a3a3a;
+  border: 1px solid #555;
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  width: 60px;
+}
+
+.switch-app-btn {
+  background: linear-gradient(45deg, #2196F3, #21CBF3);
+  border: none;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.switch-app-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+.crealab-workspace {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.scenes-panel {
+  width: 280px;
+  background: #252525;
+  border-right: 1px solid #444;
+  display: flex;
+  flex-direction: column;
+}
+
+.scenes-header {
+  padding: 20px;
+  border-bottom: 1px solid #444;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.scenes-header h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.1rem;
+}
+
+.add-scene-btn {
+  background: #4CAF50;
+  border: none;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: background 0.2s ease;
+}
+
+.add-scene-btn:hover {
+  background: #5CBF60;
+}
+
+.scenes-list {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+.scene-item {
+  background: #333;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.scene-item:hover {
+  background: #3a3a3a;
+  border-color: #666;
+}
+
+.scene-item.selected {
+  background: #4CAF50;
+  border-color: #4CAF50;
+  color: #000;
+}
+
+.scene-name {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.scene-info {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.no-scenes {
+  text-align: center;
+  padding: 40px 20px;
+  color: #777;
+}
+
+.main-workspace {
+  flex: 1;
+  background: #1e1e1e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.no-scene-selected {
+  text-align: center;
+}
+
+.welcome-message h2 {
+  color: #fff;
+  margin-bottom: 10px;
+}
+
+.welcome-message p {
+  color: #bbb;
+  margin-bottom: 30px;
+}
+
+.primary-btn {
+  background: linear-gradient(45deg, #4CAF50, #8BC34A);
+  border: none;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.primary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.3);
+}
+
+.scene-editor {
+  padding: 40px;
+  text-align: center;
+}
+
+.coming-soon {
+  color: #888;
+  font-style: italic;
+  margin-top: 20px;
+}
