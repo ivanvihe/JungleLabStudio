@@ -16,13 +16,14 @@ export type GeneratorType =
   | 'euclidean'      // Ritmos euclidianos
   | 'probabilistic'  // Notas por probabilidad
   | 'markov'        // Cadenas de Markov
-  | 'arpeggiator'   // Arpegiador generativo
-  | 'chaos'         // Sistemas caóticos
-  | 'cellular'      // Autómatas celulares
-  | 'lsystem'       // L-Systems fractales
-  | 'neural'        // Redes neuronales simples
-  | 'magenta'       // Generador basado en Magenta.js
-  | 'off';          // Desactivado
+    | 'arpeggiator'   // Arpegiador generativo
+    | 'chaos'         // Sistemas caóticos
+    | 'cellular'      // Autómatas celulares
+    | 'lsystem'       // L-Systems fractales
+    | 'neural'        // Redes neuronales simples
+    | 'magenta'       // Generador basado en Magenta.js
+    | 'bassline'      // Generador específico de bajos
+    | 'off';          // Desactivado
 
 // Parámetros base para generadores
 export interface GeneratorParameters {

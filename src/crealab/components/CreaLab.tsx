@@ -56,14 +56,14 @@ const createDefaultTrack = (n: number): GenerativeTrack => ({
     lastNoteTime: 0,
     currentStep: 0
   },
-  controls: {
-    intensity: 64,
-    paramA: 64,
-    paramB: 64,
-    paramC: 64,
-    playStop: false,
-    mode: 0
-  },
+    controls: {
+      intensity: 64,
+      paramA: 64,
+      paramB: 64,
+      paramC: 64,
+      playStop: true,
+      mode: 0
+    },
   launchControlMapping: {
     stripNumber: n,
     faderCC: 0,
@@ -441,7 +441,7 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
                 <div className="section-title">Controles MIDI</div>
                 <LaunchControlStrip
                   strip={controller?.channelStrips[track.trackNumber - 1] || null}
-                  labels={MODULE_KNOB_LABELS[track.trackType]}
+                  labels={MODULE_KNOB_LABELS[track.trackType].slice(1) as [string, string, string]}
                 />
 
                 <div className="section-divider" />
@@ -465,12 +465,13 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
                 >
                   <option value="off">Off</option>
                   <option value="euclidean">Euclidean</option>
-                  <option value="probabilistic">Probabilistic</option>
-                  <option value="markov">Markov</option>
-                  <option value="arpeggiator">Arpeggiator</option>
-                  <option value="chaos">Chaos</option>
-                  <option value="magenta">Magenta</option>
-                </select>
+                <option value="probabilistic">Probabilistic</option>
+                <option value="markov">Markov</option>
+                <option value="arpeggiator">Arpeggiator</option>
+                <option value="bassline">Bassline</option>
+                <option value="chaos">Chaos</option>
+                <option value="magenta">Magenta</option>
+              </select>
 
                 <GeneratorControls
                   track={track}

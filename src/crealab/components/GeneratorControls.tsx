@@ -22,7 +22,7 @@ export const GeneratorControls: React.FC<Props> = ({ track, onChange, mappingMod
     console.log(`MIDI mapping for ${field} not implemented`);
   };
 
-  const labels = MODULE_KNOB_LABELS[track.trackType] || ['Param A', 'Param B', 'Param C'];
+    const labels = MODULE_KNOB_LABELS[track.trackType] || ['Intensity', 'Param A', 'Param B', 'Param C'];
 
   const [noteActive, setNoteActive] = useState(false);
 
@@ -43,22 +43,22 @@ export const GeneratorControls: React.FC<Props> = ({ track, onChange, mappingMod
         <span>{track.trackType.toUpperCase()} Module</span>
         <span className={`activity-led ${noteActive ? 'on' : ''}`} />
       </div>
-      <div className="control-row" onClick={handleMap('intensity')}>
-        <label>Intensity</label>
-        <KnobControl value={track.controls.intensity} onChange={handleNumber('intensity')} />
-      </div>
-      <div className="control-row" onClick={handleMap('paramA')}>
-        <label>{labels[0]}</label>
-        <KnobControl value={track.controls.paramA} onChange={handleNumber('paramA')} />
-      </div>
-      <div className="control-row" onClick={handleMap('paramB')}>
-        <label>{labels[1]}</label>
-        <KnobControl value={track.controls.paramB} onChange={handleNumber('paramB')} />
-      </div>
-      <div className="control-row" onClick={handleMap('paramC')}>
-        <label>{labels[2]}</label>
-        <KnobControl value={track.controls.paramC} onChange={handleNumber('paramC')} />
-      </div>
+        <div className="control-row" onClick={handleMap('intensity')}>
+          <label>{labels[0]}</label>
+          <KnobControl value={track.controls.intensity} onChange={handleNumber('intensity')} />
+        </div>
+        <div className="control-row" onClick={handleMap('paramA')}>
+          <label>{labels[1]}</label>
+          <KnobControl value={track.controls.paramA} onChange={handleNumber('paramA')} />
+        </div>
+        <div className="control-row" onClick={handleMap('paramB')}>
+          <label>{labels[2]}</label>
+          <KnobControl value={track.controls.paramB} onChange={handleNumber('paramB')} />
+        </div>
+        <div className="control-row" onClick={handleMap('paramC')}>
+          <label>{labels[3]}</label>
+          <KnobControl value={track.controls.paramC} onChange={handleNumber('paramC')} />
+        </div>
     </div>
   );
 };

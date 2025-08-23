@@ -13,23 +13,22 @@ export class ArpeggiatorGenerator implements GeneratorInstance {
     scale: string
   ): MidiNote[] {
     // Map real-time controls to parameters
-    const patternIndex = Math.floor((track.controls.paramA / 127) * 4);
-    const pattern = ['up', 'down', 'upDown', 'random'][patternIndex] || 'up';
-    const octaves = Math.max(1, Math.floor((track.controls.paramB / 127) * 4));
-    const noteLength = 0.1 + (track.controls.paramC / 127) * 0.9;
+      const transpose = Math.round((track.controls.paramA - 64) / 64 * 12); // -12..+12
+      const octaves = Math.max(1, Math.floor((track.controls.paramB / 127) * 4));
+      const swing = (track.controls.paramC / 127) * 0.5; // 0..0.5 beat delay on off steps
+      const noteLength = 0.1 + (track.controls.intensity / 127) * 0.4; // use fader as time
 
-    const scaleNotes = getScaleNotes(key, scale);
-    const sequence = this.buildSequence(scaleNotes, pattern, octaves);
+      const scaleNotes = getScaleNotes(key, scale).map(n => n + transpose);
+      const sequence = this.buildSequence(scaleNotes, 'up', octaves);
 
-    if (!track.controls.playStop) return [];
+      const note = sequence[this.step % sequence.length];
+      const velocity = 80;
+      const duration = noteLength;
 
-    const note = sequence[this.step % sequence.length];
-    const velocity = Math.floor(50 + (track.controls.intensity / 127) * 77);
-    const duration = noteLength;
+      const noteTime = currentTime + (this.step % 2 === 1 ? swing : 0);
+      this.step++;
 
-    this.step++;
-
-    return [{ note, time: currentTime, velocity, duration }];
+      return [{ note, time: noteTime, velocity, duration }];
   }
 
   updateParameters(track: GenerativeTrack): void {

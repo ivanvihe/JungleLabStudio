@@ -8,6 +8,7 @@ import { MagentaGenerator } from '../generators/MagentaGenerator';
 import { LSystemGenerator } from '../generators/advanced/LSystemGenerator';
 import { CellularAutomataGenerator } from '../generators/advanced/CellularAutomataGenerator';
 import { NeuralNetworkGenerator } from '../generators/advanced/NeuralNetworkGenerator';
+import { BasslineGenerator } from '../generators/BasslineGenerator';
 import { MusicalIntelligence } from '../ai/MusicalIntelligence';
 import { MidiManager } from './MidiManager';
 
@@ -56,11 +57,12 @@ export class GeneratorEngine {
     this.generators.set('markov', new MarkovGenerator());
     this.generators.set('arpeggiator', new ArpeggiatorGenerator());
     this.generators.set('chaos', new ChaosGenerator());
-    this.generators.set('magenta', new MagentaGenerator());
-    this.generators.set('lsystem', new LSystemGenerator());
-    this.generators.set('cellular', new CellularAutomataGenerator());
-    this.generators.set('neural', new NeuralNetworkGenerator());
-  }
+      this.generators.set('magenta', new MagentaGenerator());
+      this.generators.set('lsystem', new LSystemGenerator());
+      this.generators.set('cellular', new CellularAutomataGenerator());
+      this.generators.set('neural', new NeuralNetworkGenerator());
+      this.generators.set('bassline', new BasslineGenerator());
+    }
 
   // Iniciar el motor generativo
   start(tracks: GenerativeTrack[], globalTempo: number, key: string, scale: string) {
@@ -129,7 +131,7 @@ export class GeneratorEngine {
         this.sendMidiClock(track, 6);
       }
 
-      if (track.generator.enabled && track.controls.playStop) {
+      if (track.generator.enabled) {
         this.processTrack(track, globalTempo, key, scale);
       }
     });
@@ -303,6 +305,9 @@ export class GeneratorEngine {
         break;
       case 'neural':
         track.generator.parameters = {};
+        break;
+      case 'bassline':
+        track.generator.parameters = { pattern: 'dub', variation: 0 };
         break;
       default:
         track.generator.parameters = {};

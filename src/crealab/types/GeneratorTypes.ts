@@ -6,11 +6,12 @@ export type GeneratorType =
   | 'probabilistic'   // Notas por probabilidad
   | 'arpeggiator'     // Arpegiador generativo
   | 'sequencer'       // Secuenciador con variaciones
-  | 'chaos'           // Sistemas caóticos
-  | 'cellular'        // Autómatas celulares
-  | 'lsystem'        // L-Systems fractales
-  | 'neural'        // Redes neuronales simples
-  | 'magenta';      // Generador basado en Magenta.js
+    | 'chaos'           // Sistemas caóticos
+    | 'cellular'        // Autómatas celulares
+    | 'lsystem'        // L-Systems fractales
+    | 'neural'        // Redes neuronales simples
+    | 'magenta'       // Generador basado en Magenta.js
+    | 'bassline';     // Generador específico de bajos
 
 export interface MidiGenerator {
   id: string;
