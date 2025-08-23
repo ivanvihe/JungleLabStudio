@@ -1,0 +1,254 @@
+.midi-configuration-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.midi-configuration-modal {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  border: 2px solid #444;
+  border-radius: 12px;
+  width: 90vw;
+  max-width: 700px;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 25px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #333;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: white;
+  font-size: 18px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 20px;
+  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 15px;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+/* Config Sections */
+.config-section {
+  margin-bottom: 25px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid #333;
+}
+
+.config-section h4 {
+  margin: 0 0 15px 0;
+  color: #00ff88;
+  font-size: 16px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.refresh-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid #444;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.refresh-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Clock Controls */
+.clock-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+
+.clock-source,
+.clock-output {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.clock-source label,
+.clock-output label {
+  font-size: 14px;
+  color: #ccc;
+  min-width: 120px;
+}
+
+.clock-source select,
+.clock-output select {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid #444;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.clock-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #ccc;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #666;
+}
+
+.status-indicator.running {
+  background: #00ff88;
+  animation: pulse 1.5s infinite;
+}
+
+.status-indicator.stopped {
+  background: #888;
+}
+
+/* Devices List */
+.devices-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.no-devices {
+  text-align: center;
+  color: #888;
+  font-style: italic;
+  padding: 20px;
+}
+
+.device-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid #444;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.device-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.device-info {
+  flex: 1;
+}
+
+.device-name {
+  font-weight: bold;
+  font-size: 14px;
+  color: white;
+  margin-bottom: 2px;
+}
+
+.device-manufacturer {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 3px;
+}
+
+.device-status {
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.device-status.connected {
+  color: #00ff88;
+}
+
+.device-status.disconnected {
+  color: #ff4444;
+}
+
+.test-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid #444;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+  min-width: 60px;
+}
+
+.test-btn:hover:not(:disabled) {
+  background: #00ff88;
+  color: black;
+}
+
+.test-btn.testing {
+  background: #ffa500;
+  color: black;
+  animation: pulse 1s infinite;
+}
+
+.test-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+

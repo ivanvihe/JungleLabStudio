@@ -222,3 +222,27 @@ export interface CreaLabProject {
   oldTracks?: Track[];
 }
 
+
+// === MIDI SYSTEM TYPES ===
+export interface MidiDevice {
+  id: string;
+  name: string;
+  manufacturer?: string;
+  type: 'input' | 'output';
+  state: 'connected' | 'disconnected';
+  connection: string;
+}
+
+export interface MidiMessage {
+  data: Uint8Array;
+  timestamp: number;
+  deviceId: string;
+}
+
+export interface MidiClockState {
+  isRunning: boolean;
+  bpm: number;
+  currentBeat: number;
+  currentStep: number;
+  source: 'internal' | 'external';
+}
