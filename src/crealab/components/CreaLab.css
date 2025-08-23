@@ -11,6 +11,11 @@
   flex: 1;
   padding: 10px;
   overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.crealab-workspace::-webkit-scrollbar {
+  display: none;
 }
 
 /* TRACKS GRID - 8 tracks fijos */
@@ -18,7 +23,7 @@
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   gap: 1px;
-  height: calc(100vh - 140px); /* Ajustar según TopBar + Footer */
+  height: 100%;
 }
 
 .track-strip {
@@ -34,6 +39,7 @@
   box-sizing: border-box;
   box-shadow: 0 2px 4px rgba(0,0,0,0.5);
   color: #eee;
+  height: 100%;
 }
 
 .track-strip::before {
@@ -228,18 +234,9 @@
 }
 
 .generator-module .control-row .knob-control {
-  flex: 2;
+  flex: none;
 }
 
-.generator-module .control-display {
-  width: 32px;
-  text-align: right;
-  font-size: 10px;
-  padding: 2px 4px;
-  border-radius: 3px;
-  background: #111;
-  border: 1px solid #333;
-}
 
 /* FOOTER */
 .crealab-footer {

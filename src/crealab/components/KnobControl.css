@@ -1,7 +1,7 @@
 .knob-control {
   position: relative;
-  width: 40px;
-  height: 40px;
+  width: 24px;
+  height: 24px;
 }
 
 .knob-range {
@@ -16,9 +16,9 @@
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #fafafa, #b5b5b5);
+  border: 2px solid #bbb;
+  background: transparent;
   position: relative;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
 }
 
 .knob-display::after {
@@ -26,9 +26,9 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 3px;
-  height: 12px;
-  background: #333;
+  width: 2px;
+  height: 8px;
+  background: #bbb;
   transform-origin: bottom center;
   transform: translate(-50%, -100%) rotate(calc((var(--value, 0) / 127) * 270deg - 135deg));
 }

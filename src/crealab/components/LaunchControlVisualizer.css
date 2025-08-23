@@ -21,23 +21,22 @@
   position: relative;
 }
 
-.lcx-controls {
+.lcx-left {
   display: flex;
   flex-direction: column;
-  gap: 8px;
   align-items: center;
+  gap: 8px;
 }
 
 .lcx-knobs {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .lcx-knob-wrapper {
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 4px;
 }
@@ -45,16 +44,15 @@
 .lcx-knob-label {
   font-size: 10px;
   color: #111;
-  text-align: center;
 }
 
 .lcx-knob {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #fafafa, #b5b5b5);
+  border: 2px solid #bbb;
+  background: transparent;
   position: relative;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
 }
 
 .lcx-knob::after {
@@ -62,16 +60,16 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 3px;
-  height: 12px;
-  background: #333;
+  width: 2px;
+  height: 8px;
+  background: #bbb;
   transform-origin: bottom center;
   transform: translate(-50%, -100%) rotate(calc((var(--value, 0) / 127) * 270deg - 135deg));
 }
 
 .lcx-fader {
   width: 20px;
-  height: 60px;
+  height: 64px;
   background: #333;
   position: relative;
   border-radius: 2px;
@@ -84,7 +82,7 @@
   height: 10px;
   background: #ddd;
   border-radius: 2px;
-  bottom: calc((var(--value, 0) / 127) * 50px);
+  bottom: calc((var(--value, 0) / 127) * 54px);
 }
 
 .lcx-buttons {

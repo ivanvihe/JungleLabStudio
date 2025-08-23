@@ -33,22 +33,18 @@ export const GeneratorControls: React.FC<Props> = ({ track, onChange, mappingMod
       <div className="control-row" onClick={handleMap('intensity')}>
         <label>Intensity</label>
         <KnobControl value={track.controls.intensity} onChange={handleNumber('intensity')} />
-        <span className="control-display">{track.controls.intensity}</span>
       </div>
       <div className="control-row" onClick={handleMap('paramA')}>
         <label>{labels[0]}</label>
         <KnobControl value={track.controls.paramA} onChange={handleNumber('paramA')} />
-        <span className="control-display">{track.controls.paramA}</span>
       </div>
       <div className="control-row" onClick={handleMap('paramB')}>
         <label>{labels[1]}</label>
         <KnobControl value={track.controls.paramB} onChange={handleNumber('paramB')} />
-        <span className="control-display">{track.controls.paramB}</span>
       </div>
       <div className="control-row" onClick={handleMap('paramC')}>
         <label>{labels[2]}</label>
         <KnobControl value={track.controls.paramC} onChange={handleNumber('paramC')} />
-        <span className="control-display">{track.controls.paramC}</span>
       </div>
     </div>
   );
