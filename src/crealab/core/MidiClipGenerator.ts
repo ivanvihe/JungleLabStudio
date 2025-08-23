@@ -124,6 +124,30 @@ export class MidiClipGenerator {
     };
   }
 
+  generateMelody(
+    key: string = 'C',
+    scale: string = 'minor',
+    style: 'melody' | 'ambient' | 'experimental' | 'hypnotic' = 'melody',
+    measures: number = 4,
+    channel: number = 3
+  ): MidiClip {
+    const styleMap: Record<string, 'floating' | 'ambient' | 'maxCooper'> = {
+      melody: 'floating',
+      ambient: 'ambient',
+      experimental: 'maxCooper',
+      hypnotic: 'floating'
+    };
+
+    const arpStyle = styleMap[style] ?? 'floating';
+    const arpClip = this.generateArpeggio(key, scale, arpStyle, measures, channel);
+    return {
+      ...arpClip,
+      id: `melody-${Date.now()}`,
+      name: `Melody ${style}`,
+      trackType: 'lead'
+    };
+  }
+
   generateChordProgression(
     key: string = 'C',
     progression: keyof typeof HARMONIC_PROGRESSIONS = 'dubClassic',

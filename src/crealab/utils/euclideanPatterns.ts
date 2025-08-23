@@ -69,11 +69,58 @@ export const EUCLIDEAN_PATTERNS = {
 };
 
 export function generateEuclideanPattern(
-  trackType: keyof typeof EUCLIDEAN_PATTERNS, 
+  trackType: keyof typeof EUCLIDEAN_PATTERNS,
   style: string
 ): boolean[] {
-  const pattern = EUCLIDEAN_PATTERNS[trackType]?.[style as keyof typeof EUCLIDEAN_PATTERNS[typeof trackType]];
-  if (!pattern) return [true, false, false, false]; // Default 4/4
-  
+  const patterns = EUCLIDEAN_PATTERNS[trackType];
+  if (!patterns) {
+    return [true, false, false, false];
+  }
+
+  const pattern = patterns[style as keyof typeof patterns];
+  if (!pattern) {
+    const firstStyle = Object.keys(patterns)[0];
+    const firstPattern = patterns[firstStyle as keyof typeof patterns];
+    return euclideanRhythm(firstPattern.pulses, firstPattern.steps, firstPattern.offset);
+  }
+
   return euclideanRhythm(pattern.pulses, pattern.steps, pattern.offset);
+}
+
+export function generateIntelligentPattern(
+  trackType: keyof typeof EUCLIDEAN_PATTERNS,
+  genre: 'dubTechno' | 'ambient' | 'experimental' | 'hypnotic' = 'dubTechno'
+): { pattern: boolean[]; style: string } {
+  const genreStyleMappings = {
+    dubTechno: {
+      kick: 'dub',
+      bass: 'dub',
+      hihat: 'floating',
+      perc: 'subtle'
+    },
+    ambient: {
+      kick: 'minimal',
+      bass: 'minimal',
+      hihat: 'ambient',
+      perc: 'subtle'
+    },
+    experimental: {
+      kick: 'hypnotic',
+      bass: 'syncopated',
+      hihat: 'maxCooper',
+      perc: 'complex'
+    },
+    hypnotic: {
+      kick: 'hypnotic',
+      bass: 'hypnotic',
+      hihat: 'floating',
+      perc: 'driving'
+    }
+  } as const;
+
+  const style =
+    genreStyleMappings[genre][trackType] ||
+    Object.keys(EUCLIDEAN_PATTERNS[trackType])[0];
+  const pattern = generateEuclideanPattern(trackType, style);
+  return { pattern, style };
 }
