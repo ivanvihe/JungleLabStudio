@@ -62,6 +62,10 @@ export class JsonValidator {
       errors.push(`${prefix} Track number should be ${trackNumber}`);
     }
 
+    if (!track.trackType) {
+      errors.push(`${prefix} Track type is required`);
+    }
+
     // Validar canal MIDI
     if (typeof track.midiChannel !== 'number' || track.midiChannel < 1 || track.midiChannel > 16) {
       errors.push(`${prefix} MIDI channel must be between 1-16`);
