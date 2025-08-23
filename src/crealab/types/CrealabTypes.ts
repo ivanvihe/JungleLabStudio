@@ -45,6 +45,7 @@ export interface GenerativeTrack {
   name: string;
   trackNumber: number; // 1-8 (fijo)
   color: string; // Para UI (#hex)
+  trackType: TrackType; // Tipo de pista generativa
   
   // MIDI Configuration
   outputDevice: string;     // Instrumento externo (ID del device)

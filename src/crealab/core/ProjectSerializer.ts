@@ -1,4 +1,4 @@
-import { CreaLabProject, GenerativeTrack, ProjectExportFormat } from '../types/CrealabTypes';
+import { CreaLabProject, GenerativeTrack, ProjectExportFormat, TrackType } from '../types/CrealabTypes';
 import { JsonValidator } from '../utils/JsonValidator';
 
 export interface SerializedProject {
@@ -176,6 +176,7 @@ export class ProjectSerializer {
         name: legacyTrack?.name || `Track ${i}`,
         trackNumber: i,
         color: `hsl(${(i - 1) * 45}, 70%, 60%)`,
+        trackType: (legacyTrack?.trackType || 'bass') as TrackType,
 
         outputDevice: legacyTrack?.midiDevice || '',
         midiChannel: legacyTrack?.midiChannel || i,

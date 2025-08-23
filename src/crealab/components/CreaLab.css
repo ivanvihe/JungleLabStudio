@@ -16,8 +16,7 @@
 /* TRACKS GRID - 8 tracks fijos */
 .tracks-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(2, 1fr);
+  grid-template-columns: repeat(8, 1fr);
   gap: 20px;
   height: calc(100vh - 140px); /* Ajustar según TopBar + Footer */
 }
@@ -103,7 +102,8 @@
 
 .device-selector,
 .channel-selector,
-.generator-selector {
+.generator-selector,
+.track-type-selector {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid #444;
   color: white;
@@ -127,6 +127,13 @@
 
 .generator-selector {
   width: 100%;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.track-type-selector {
+  width: 100%;
+  margin-bottom: 6px;
   padding: 6px 10px;
   font-size: 13px;
 }
