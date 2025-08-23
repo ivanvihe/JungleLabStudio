@@ -42,8 +42,15 @@ fn main() {
     let cfg = Config::load(&config_path);
 
     tauri::Builder::default()
-        .manage(ConfigState { path: config_path, inner: std::sync::RwLock::new(cfg) })
-        .invoke_handler(tauri::generate_handler![set_layer_opacity, get_config, save_config])
+        .manage(ConfigState { path: config_path, inner: std::sync::Mutex::new(cfg) })
+        .manage(midi::MidiState::default())
+        .invoke_handler(tauri::generate_handler![
+            set_layer_opacity,
+            get_config,
+            save_config,
+            midi::list_midi_ports,
+            midi::select_midi_port
+        ])
 
         .setup(|app| {
             if let Err(e) = midi::start(app.handle().clone()) {
