@@ -143,6 +143,11 @@
   flex-direction: column;
 }
 
+.midi-selectors {
+  display: flex;
+  gap: 3px;
+}
+
 .clip-slot {
   height: 35px;
   border-bottom: 1px solid #333;
