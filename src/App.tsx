@@ -404,12 +404,17 @@ const App: React.FC = () => {
 
   // Inicializar el engine
   useEffect(() => {
+    // Solo inicializar el engine cuando el usuario esté en el modo Audiovisualizer
+    if (currentApp !== 'audiovisualizer') {
+      return;
+    }
+
     const initEngine = async () => {
       if (!canvasRef.current) {
         console.error('❌ Canvas ref is null');
         return;
       }
-      
+
       console.log('🔧 Canvas found, initializing engine...');
       try {
         setStatus('Loading presets...');
@@ -450,7 +455,7 @@ const App: React.FC = () => {
         engineRef.current.dispose();
       }
     };
-  }, [glitchTextPads, visualsPath]);
+  }, [currentApp, glitchTextPads, visualsPath]);
 
 
   // Activar capas almacenadas en modo fullscreen
