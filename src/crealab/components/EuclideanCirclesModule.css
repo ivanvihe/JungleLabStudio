@@ -1,0 +1,44 @@
+.euclidean-circles-module {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.euclidean-circles-module .circle {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin-bottom: 8px;
+}
+
+.euclidean-circles-module .step {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px;
+  border-radius: 50%;
+  background: #555;
+}
+
+.euclidean-circles-module .step.hit {
+  background: #2ecc71;
+}
+
+.euclidean-circles-module .controls {
+  display: flex;
+  gap: 8px;
+}
+
+.euclidean-circles-module .controls label {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  align-items: center;
+}
+
+.euclidean-circles-module .controls input {
+  width: 50px;
+}

@@ -103,7 +103,7 @@ export class JsonValidator {
     const warnings: string[] = [];
     const prefix = `Track ${trackNumber} Generator:`;
 
-    const validTypes = ['off', 'euclidean', 'probabilistic', 'markov', 'arpeggiator', 'chaos'];
+    const validTypes = ['off', 'euclidean', 'euclidean-circles', 'probabilistic', 'markov', 'arpeggiator', 'chaos'];
     if (!validTypes.includes(generator.type)) {
       errors.push(`${prefix} Invalid generator type '${generator.type}'`);
     }

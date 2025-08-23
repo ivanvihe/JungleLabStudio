@@ -1,7 +1,8 @@
 import { MidiNote } from './CrealabTypes';
 
-export type GeneratorType = 
+export type GeneratorType =
   | 'euclidean'        // Patrones euclidianos dinámicos
+  | 'euclidean-circles' // Euclidean Circles v2
   | 'markov'          // Cadenas de Markov
   | 'probabilistic'   // Notas por probabilidad
   | 'arpeggiator'     // Arpegiador generativo

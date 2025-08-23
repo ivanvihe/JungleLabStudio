@@ -14,6 +14,7 @@ export interface MidiNote {
 // Tipos de generadores disponibles
 export type GeneratorType =
   | 'euclidean'      // Ritmos euclidianos
+  | 'euclidean-circles' // Euclidean Circles v2
   | 'probabilistic'  // Notas por probabilidad
   | 'markov'        // Cadenas de Markov
     | 'arpeggiator'   // Arpegiador generativo
