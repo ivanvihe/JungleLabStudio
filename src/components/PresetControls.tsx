@@ -1,6 +1,7 @@
 import React from 'react';
 import { LoadedPreset } from '../core/PresetLoader';
 import { getNestedValue, setNestedValue } from '../utils/objectPath';
+import './PresetControls.css';
 
 interface PresetControlsProps {
   preset: LoadedPreset;

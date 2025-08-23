@@ -3,6 +3,7 @@ import { LoadedPreset } from '../core/PresetLoader';
 import { AVAILABLE_EFFECTS } from '../utils/effects';
 import { usePresetGrid } from '../hooks/usePresetGrid';
 
+
 interface LayerConfig {
   id: string;
   name: string;
