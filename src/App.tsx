@@ -143,10 +143,13 @@ const App: React.FC = () => {
     beatActive,
     midiTrigger,
     setMidiTrigger,
-    midiClockDelay,
-    setMidiClockDelay,
-    midiClockType,
-    setMidiClockType,
+    midiClockSettings,
+    updateClockSettings,
+    setInternalBpm,
+    internalBpm,
+    clockStable,
+    currentMeasure,
+    currentBeat,
   } = useMidi({
     isFullscreenMode,
     availablePresets,
@@ -1053,16 +1056,13 @@ const App: React.FC = () => {
         }}
         audioGain={audioGain}
         onAudioGainChange={setAudioGain}
-        midiClockDelay={midiClockDelay}
-        onMidiClockDelayChange={(v) => {
-          setMidiClockDelay(v);
-          localStorage.setItem('midiClockDelay', v.toString());
-        }}
-        midiClockType={midiClockType}
-        onMidiClockTypeChange={(t) => {
-          setMidiClockType(t);
-          localStorage.setItem('midiClockType', t);
-        }}
+        midiClockSettings={midiClockSettings}
+        onUpdateClockSettings={updateClockSettings}
+        internalBpm={internalBpm}
+        onSetInternalBpm={setInternalBpm}
+        clockStable={clockStable}
+        currentMeasure={currentMeasure}
+        currentBeat={currentBeat}
         layerChannels={layerChannels}
         onLayerChannelChange={(layerId, channel) => {
           const updated = { ...layerChannels, [layerId]: channel };
