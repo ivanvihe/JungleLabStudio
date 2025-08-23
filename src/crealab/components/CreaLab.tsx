@@ -57,10 +57,10 @@ const createDefaultTrack = (n: number): GenerativeTrack => ({
     currentStep: 0
   },
   controls: {
-    intensity: 0,
-    paramA: 0,
-    paramB: 0,
-    paramC: 0,
+    intensity: 64,
+    paramA: 64,
+    paramB: 64,
+    paramC: 64,
     playStop: false,
     mode: 0
   },
