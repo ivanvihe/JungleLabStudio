@@ -1,5 +1,6 @@
 import React from 'react';
 import { LoadedPreset } from '../core/PresetLoader';
+import './PresetSelector.css';
 
 interface PresetSelectorProps {
   presets: LoadedPreset[];

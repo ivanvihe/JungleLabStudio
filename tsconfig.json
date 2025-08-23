@@ -7,7 +7,8 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "resolveJsonModule": true
   },
-  "include": ["src", "visuals", "types"]
+  "include": ["src", "types"]
 }

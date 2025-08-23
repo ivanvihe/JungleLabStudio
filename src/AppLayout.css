@@ -1,0 +1,185 @@
+.app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app.ui-hidden .top-bar,
+.app.ui-hidden .layer-grid-container,
+.app.ui-hidden .controls-panel,
+.app.ui-hidden .status-bar {
+  display: none;
+}
+
+.layer-grid-container {
+  overflow: visible;
+  background: #0A0A0A;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  position: absolute;
+  top: 40px;
+  left: 0;
+  width: 100%;
+  height: auto;
+  z-index: 5;
+}
+
+.bottom-section {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.visual-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.main-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  z-index: 0;
+}
+
+/* Controls Panel */
+.controls-panel {
+  position: fixed;
+  top: 10px;
+  right: 0;
+  width: 380px;
+  height: calc(100vh - 40px);
+  margin: 20px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.85);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 1000;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  opacity: 1;
+}
+
+.controls-panel.collapsed {
+  width: 60px;
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.controls-panel.visible {
+  transform: translateX(0);
+}
+
+.controls-panel.collapsed .controls-panel-content,
+.controls-panel.collapsed .controls-panel-header {
+  display: none;
+}
+
+.controls-panel.collapsed .toggle-sidebar {
+  position: relative;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.controls-panel-header {
+  padding: 20px 20px 10px 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.controls-panel-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
+}
+
+.controls-panel-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.controls-panel-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.controls-panel-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.controls-panel-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.controls-panel-content::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.controls-panel-content::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 8px;
+  height: 20px;
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.8));
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.controls-panel-content.has-overflow::after {
+  opacity: 1;
+}
+
+.toggle-sidebar {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 30px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  z-index: 1001;
+}
+
+.toggle-sidebar:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.no-preset-selected {
+  color: #ffaa44;
+  font-size: 14px;
+  text-align: center;
+  margin-top: 20px;
+}

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { PresetLoader, LoadedPreset, AudioData } from './PresetLoader';
+import { PresetLoader, LoadedPreset, AudioData } from './src/core/PresetLoader';
 
 export class AudioVisualizerApp {
   private scene: THREE.Scene;
