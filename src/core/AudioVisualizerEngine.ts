@@ -25,6 +25,7 @@ export class AudioVisualizerEngine {
   private renderer: THREE.WebGLRenderer;
   private presetLoader: PresetLoader;
   private layerManager: LayerManager;
+  private layers: Map<string, LayerState>;
   private compositor: Compositor;
   private animationId: number | null = null;
   private isRunning = false;
@@ -47,6 +48,7 @@ export class AudioVisualizerEngine {
 
     this.presetLoader = new PresetLoader(this.camera, this.renderer, options.glitchTextPads ?? 1);
     this.layerManager = new LayerManager(this.renderer, this.camera, this.presetLoader);
+    this.layers = this.layerManager.getLayers();
     this.compositor = new Compositor(this.renderer);
 
     this.setupScene();
