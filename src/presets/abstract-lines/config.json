@@ -1,178 +1,84 @@
 {
-  "name": "Abstract Lines",
-  "description": "Abstract lines that appear and disappear creating organic shapes with soft colors",
-  "author": "AudioVisualizer",
-  "version": "1.0.0",
+  "name": "Abstract Lines Pro",
+  "description": "Generative abstract lines with procedural math and optimized shaders",
+  "author": "AudioVisualizer Pro",
+  "version": "2.0.0",
   "category": "abstract",
-  "tags": ["abstract", "lines", "organic", "fluid", "minimal", "geometric"],
-  "thumbnail": "abstract_lines_thumb.png",
+  "tags": ["abstract", "lines", "procedural", "performance", "generative"],
+  "thumbnail": "abstract_lines_pro_thumb.png",
   "note": 55,
   "defaultConfig": {
-    "width": 1920,
-    "height": 1080,
-    "zoom": 1.0,
-    "audioSensitivity": 1.0,
-    "audioSmoothness": 0.5,
-    "audioReactivity": 1.0,
-    "paletteColor": "#ffffff",
     "opacity": 1.0,
-    "fadeMs": 300,
-    "lineCount": {
-      "primary": 20,
-      "secondary": 35,
-      "detail": 50
+    "fadeMs": 200,
+    "geometry": {
+      "segments": 64,
+      "thickness": 0.8,
+      "length": 2.5,
+      "curvature": 0.4,
+      "complexity": 3
+    },
+    "flow": {
+      "speed": 0.5,
+      "turbulence": 0.3,
+      "coherence": 0.7,
+      "evolution": 1.2
     },
     "colors": {
       "primary": "#E8F4F8",
       "secondary": "#F0F8E8",
       "detail": "#F8F0E8",
-      "accent": "#F8E8F0",
-      "background": "#0A0F14"
+      "accent": "#F8E8F0"
     },
-    "animation": {
-      "appearanceSpeed": 0.8,
-      "movementSpeed": 0.3,
-      "formationSpeed": 1.2,
-      "flickerIntensity": 0.4,
-      "morphingRate": 0.6,
-      "flowComplexity": 2.0
-    },
-    "effects": {
-      "enableFlicker": true,
-      "enableMorphing": true,
-      "enableFormation": true,
-      "enableFlow": true,
-      "enableDepth": true
-    },
-    "geometry": {
-      "maxLength": 2.5,
-      "minLength": 0.3,
-      "curvature": 0.4,
-      "thickness": 0.8
+    "performance": {
+      "maxLines": 100,
+      "cullingDistance": 10.0,
+      "updateFrequency": 60
     }
   },
   "controls": [
     {
-      "name": "animation.appearanceSpeed",
+      "name": "flow.speed",
       "type": "slider",
-      "label": "Appearance Speed",
+      "label": "Flow Speed",
       "min": 0.1,
       "max": 3.0,
       "step": 0.1,
-      "default": 0.8
+      "default": 0.5
     },
     {
-      "name": "animation.movementSpeed",
+      "name": "geometry.complexity",
       "type": "slider",
-      "label": "Movement Speed",
-      "min": 0.1,
-      "max": 2.0,
+      "label": "Geometric Complexity",
+      "min": 1,
+      "max": 6,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "name": "flow.turbulence",
+      "type": "slider",
+      "label": "Turbulence",
+      "min": 0.0,
+      "max": 1.0,
       "step": 0.1,
       "default": 0.3
-    },
-    {
-      "name": "animation.formationSpeed",
-      "type": "slider",
-      "label": "Formation Speed",
-      "min": 0.2,
-      "max": 4.0,
-      "step": 0.1,
-      "default": 1.2
-    },
-    {
-      "name": "animation.flickerIntensity",
-      "type": "slider",
-      "label": "Flicker Intensity",
-      "min": 0.0,
-      "max": 1.0,
-      "step": 0.1,
-      "default": 0.4
-    },
-    {
-      "name": "animation.morphingRate",
-      "type": "slider",
-      "label": "Morphing Speed",
-      "min": 0.1,
-      "max": 2.0,
-      "step": 0.1,
-      "default": 0.6
-    },
-    {
-      "name": "geometry.curvature",
-      "type": "slider",
-      "label": "Line Curvature",
-      "min": 0.0,
-      "max": 1.0,
-      "step": 0.1,
-      "default": 0.4
-    },
-    {
-      "name": "geometry.thickness",
-      "type": "slider",
-      "label": "Line Thickness",
-      "min": 0.1,
-      "max": 2.0,
-      "step": 0.1,
-      "default": 0.8
-    },
-    {
-      "name": "effects.enableFlicker",
-      "type": "checkbox",
-      "label": "Flicker Effect",
-      "default": true
-    },
-    {
-      "name": "effects.enableMorphing",
-      "type": "checkbox",
-      "label": "Continuous Morphing",
-      "default": true
-    },
-    {
-      "name": "effects.enableFormation",
-      "type": "checkbox",
-      "label": "Pattern Formation",
-      "default": true
-    },
-    {
-      "name": "colors.primary",
-      "type": "color",
-      "label": "Primary Color",
-      "default": "#E8F4F8"
-    },
-    {
-      "name": "colors.secondary",
-      "type": "color",
-      "label": "Secondary Color",
-      "default": "#F0F8E8"
-    },
-    {
-      "name": "colors.detail",
-      "type": "color",
-      "label": "Detail Color",
-      "default": "#F8F0E8"
-    },
-    {
-      "name": "colors.accent",
-      "type": "color",
-      "label": "Accent Color",
-      "default": "#F8E8F0"
     }
   ],
   "audioMapping": {
     "low": {
-      "description": "Controls appearance and movement of primary lines",
+      "description": "Controls line density and generation",
       "frequency": "20-250 Hz",
-      "effect": "Generation of primary lines and basic formations"
+      "effect": "Spawning and base density"
     },
     "mid": {
-      "description": "Controls secondary lines and transformations",
+      "description": "Modulates deformation and flow",
       "frequency": "250-4000 Hz",
-      "effect": "Morphology and intermediate patterns"
+      "effect": "Morphing and organic movement"
     },
     "high": {
-      "description": "Controls fine details and flicker effects",
+      "description": "High-frequency effects and details",
       "frequency": "4000+ Hz",
-      "effect": "Detail lines and subtle effects"
+      "effect": "Fine details and special effects"
     }
   },
   "performance": {

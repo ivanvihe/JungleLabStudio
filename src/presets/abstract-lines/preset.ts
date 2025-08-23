@@ -3,7 +3,7 @@ import { BasePreset, PresetConfig } from '../../core/PresetLoader';
 
 export const config: PresetConfig = {
   name: "Abstract Lines Pro",
-  description: "Lineas abstractas generativas con matematica procedural y shaders optimizados",
+  description: "Generative abstract lines with procedural math and optimized shaders",
   author: "AudioVisualizer Pro",
   version: "2.0.0",
   category: "abstract",
@@ -50,8 +50,8 @@ export const config: PresetConfig = {
     },
     {
       name: "geometry.complexity",
-      type: "slider", 
-      label: "Complejidad Geometrica",
+      type: "slider",
+      label: "Geometric Complexity",
       min: 1,
       max: 6,
       step: 1,
@@ -60,7 +60,7 @@ export const config: PresetConfig = {
     {
       name: "flow.turbulence",
       type: "slider",
-      label: "Turbulencia",
+      label: "Turbulence",
       min: 0.0,
       max: 1.0,
       step: 0.1,
@@ -71,17 +71,17 @@ export const config: PresetConfig = {
     low: {
       description: "Controls line density and generation",
       frequency: "20-250 Hz", 
-      effect: "Spawning y densidad base"
+      effect: "Spawning and base density"
     },
     mid: {
-      description: "Modula deformacion y flujo",
+      description: "Modulates deformation and flow",
       frequency: "250-4000 Hz",
-      effect: "Morphing y movimiento organico"
+      effect: "Morphing and organic movement"
     },
     high: {
-      description: "Efectos de alta frecuencia y detalles",
+      description: "High-frequency effects and details",
       frequency: "4000+ Hz",
-      effect: "Detalles finos y efectos especiales"
+      effect: "Fine details and special effects"
     }
   },
   performance: {
