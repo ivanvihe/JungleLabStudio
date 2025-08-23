@@ -6,3 +6,4 @@ src-tauri/Cargo.lock
 dist
 *.log
 package-lock.json
+package-lock.json
