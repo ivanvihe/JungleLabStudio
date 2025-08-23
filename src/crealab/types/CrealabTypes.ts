@@ -53,11 +53,15 @@ export interface GenerativeTrack {
   outputDeviceName?: string; // Nombre legible
   midiChannel: number;      // 1-16
   sendClock?: boolean;      // Enviar MIDI clock/start/stop
-  
+
   inputDevice?: string;     // Controlador adicional opcional
   inputDeviceName?: string;
   inputChannel?: number;
-  
+
+  // Visual Output for AudioVisualizer
+  visualLayer?: 'A' | 'B' | 'C'; // Target layer (A, B or C)
+  visualPad?: number;            // MIDI note of the visual pad
+
   // Configuración del instrumento
   instrumentProfile?: string; // 'Neutron', 'Microfreak', etc.
   

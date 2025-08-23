@@ -780,7 +780,19 @@ const App: React.FC = () => {
           break;
         }
         case 'midiTrigger': {
-          setMidiTrigger(msg.data);
+          const data = msg.data;
+          if (data.presetId) {
+            setMidiTrigger(data);
+          } else if (data.note !== undefined) {
+            const preset = availablePresets.find(p => p.config.note === data.note);
+            if (preset) {
+              setMidiTrigger({
+                layerId: data.layerId,
+                presetId: preset.id,
+                velocity: data.velocity
+              });
+            }
+          }
           break;
         }
         case 'layerConfig': {
@@ -801,7 +813,7 @@ const App: React.FC = () => {
 
     channel.addEventListener('message', handler);
     return () => channel.removeEventListener('message', handler);
-  }, [isFullscreenMode, activeLayers, layerPresetConfigs]);
+  }, [isFullscreenMode, activeLayers, layerPresetConfigs, availablePresets]);
 
   const handleMonitorRoleChange = (id: string, role: 'main' | 'secondary' | 'none') => {
     setMonitorRoles(prev => {
