@@ -572,20 +572,6 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
                 </li>
               ))}
             </ul>
-            {genLabBasePreset && (
-              <GenLabPresetModal
-                isOpen={isGenLabModalOpen}
-                onClose={() => {
-                  setGenLabModalOpen(false);
-                  setEditingGenLabIndex(null);
-                }}
-                basePreset={genLabBasePreset}
-                initial={
-                  editingGenLabIndex !== null ? genLabPresets[editingGenLabIndex] : undefined
-                }
-                onSave={handleSaveGenLabPreset}
-              />
-            )}
           </div>
         );
       }
@@ -607,20 +593,6 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
               <button onClick={() => handleDuplicateGenLabPreset(idx)}>Duplicate</button>
               <button onClick={() => handleDeleteGenLabPreset(idx)}>Delete</button>
             </div>
-            {genLabBasePreset && (
-              <GenLabPresetModal
-                isOpen={isGenLabModalOpen}
-                onClose={() => {
-                  setGenLabModalOpen(false);
-                  setEditingGenLabIndex(null);
-                }}
-                basePreset={genLabBasePreset}
-                initial={
-                  editingGenLabIndex !== null ? genLabPresets[editingGenLabIndex] : undefined
-                }
-                onSave={handleSaveGenLabPreset}
-              />
-            )}
           </div>
         );
       }
@@ -680,22 +652,6 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
                 </li>
               ))}
             </ul>
-            {fractalLabBasePreset && (
-              <FractalLabPresetModal
-                isOpen={isFractalLabModalOpen}
-                onClose={() => {
-                  setFractalLabModalOpen(false);
-                  setEditingFractalLabIndex(null);
-                }}
-                basePreset={fractalLabBasePreset}
-                initial={
-                  editingFractalLabIndex !== null
-                    ? fractalLabPresets[editingFractalLabIndex]
-                    : undefined
-                }
-                onSave={handleSaveFractalLabPreset}
-              />
-            )}
           </div>
         );
       }
@@ -721,22 +677,6 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
                 Delete
               </button>
             </div>
-            {fractalLabBasePreset && (
-              <FractalLabPresetModal
-                isOpen={isFractalLabModalOpen}
-                onClose={() => {
-                  setFractalLabModalOpen(false);
-                  setEditingFractalLabIndex(null);
-                }}
-                basePreset={fractalLabBasePreset}
-                initial={
-                  editingFractalLabIndex !== null
-                    ? fractalLabPresets[editingFractalLabIndex]
-                    : undefined
-                }
-                onSave={handleSaveFractalLabPreset}
-              />
-            )}
           </div>
         );
       }
@@ -773,31 +713,67 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
   };
 
   return (
-    <div className="preset-gallery-overlay" onClick={onClose}>
-      <div
-        className="preset-gallery-modal"
-        onClick={e => e.stopPropagation()}
-        ref={modalRef}
-        style={{ ['--sidebar-width' as any]: `${sidebarWidth}px` }}
-      >
-        <div className="preset-gallery-header">
-          <h2>📁 Resources</h2>
-          <button className="close-button" onClick={onClose}>
-            ✕
-          </button>
-        </div>
-        <div className="resources-layout">
-          <div className="resources-tree">
-            {tree.map(node => renderNode(node))}
+    <>
+      <div className="preset-gallery-overlay" onClick={onClose}>
+        <div
+          className="preset-gallery-modal"
+          onClick={e => e.stopPropagation()}
+          ref={modalRef}
+          style={{ ['--sidebar-width' as any]: `${sidebarWidth}px` }}
+        >
+          <div className="preset-gallery-header">
+            <h2>📁 Resources</h2>
+            <button className="close-button" onClick={onClose}>
+              ✕
+            </button>
           </div>
-          <div
-            className="resources-resizer"
-            onMouseDown={() => setIsResizing(true)}
-          ></div>
-          <div className="resources-details">{renderDetails()}</div>
+          <div className="resources-layout">
+            <div className="resources-tree">
+              {presets.length === 0 ? (
+                <div className="tree-placeholder">No presets available</div>
+              ) : (
+                tree.map(node => renderNode(node))
+              )}
+            </div>
+            <div
+              className="resources-resizer"
+              onMouseDown={() => setIsResizing(true)}
+            ></div>
+            <div className="resources-details">{renderDetails()}</div>
+          </div>
         </div>
       </div>
-    </div>
+      {genLabBasePreset && (
+        <GenLabPresetModal
+          isOpen={isGenLabModalOpen}
+          onClose={() => {
+            setGenLabModalOpen(false);
+            setEditingGenLabIndex(null);
+          }}
+          basePreset={genLabBasePreset}
+          initial={
+            editingGenLabIndex !== null ? genLabPresets[editingGenLabIndex] : undefined
+          }
+          onSave={handleSaveGenLabPreset}
+        />
+      )}
+      {fractalLabBasePreset && (
+        <FractalLabPresetModal
+          isOpen={isFractalLabModalOpen}
+          onClose={() => {
+            setFractalLabModalOpen(false);
+            setEditingFractalLabIndex(null);
+          }}
+          basePreset={fractalLabBasePreset}
+          initial={
+            editingFractalLabIndex !== null
+              ? fractalLabPresets[editingFractalLabIndex]
+              : undefined
+          }
+          onSave={handleSaveFractalLabPreset}
+        />
+      )}
+    </>
   );
 };
 
