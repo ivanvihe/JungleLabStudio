@@ -6,6 +6,7 @@ export class SessionMidiManager {
   private midiAccess: any = null;
   private activeController: SessionMidiController | null = null;
   private trackMapping: Map<number, string> = new Map(); // strip -> trackId
+  private listeners: Array<(ctrl: SessionMidiController) => void> = [];
   
   static getInstance(): SessionMidiManager {
     if (!this.instance) {
@@ -51,6 +52,7 @@ export class SessionMidiManager {
     
     this.activeController = controller;
     console.log('🎮 Launch Control XL detected and configured');
+    this.emitUpdate();
     return controller;
   }
   
@@ -175,13 +177,15 @@ export class SessionMidiManager {
         strip.values.button2 = value > 0;
         break;
     }
+    this.emitUpdate();
   }
-  
+
   private handleGlobalControl(cc: number, value: number) {
     if (!this.activeController) return;
     const control = this.activeController.globalControls.find(c => c.ccNumber === cc);
     if (!control) return;
     control.value = value;
+    this.emitUpdate();
   }
   
   private updateGenerator(strip: ChannelStrip, control: string, value: number) {
@@ -193,11 +197,29 @@ export class SessionMidiManager {
   // Mapear un track a un strip específico
   mapTrackToStrip(stripIndex: number, trackId: string) {
     this.trackMapping.set(stripIndex, trackId);
+    this.emitUpdate();
   }
   
   // Desmapear track de strip
   unmapTrack(stripIndex: number) {
     this.trackMapping.delete(stripIndex);
+    this.emitUpdate();
+  }
+
+  // Subscribe to controller updates
+  onUpdate(callback: (ctrl: SessionMidiController) => void): () => void {
+    this.listeners.push(callback);
+    if (this.activeController) {
+      callback(this.activeController);
+    }
+    return () => {
+      this.listeners = this.listeners.filter(l => l !== callback);
+    };
+  }
+
+  private emitUpdate() {
+    if (!this.activeController) return;
+    this.listeners.forEach(cb => cb(this.activeController!));
   }
 }
 
