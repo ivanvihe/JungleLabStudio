@@ -1,14 +1,14 @@
-.app {
+.app-container {
   position: relative;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
 }
 
-.app.ui-hidden .top-bar,
-.app.ui-hidden .layer-grid-container,
-.app.ui-hidden .controls-panel,
-.app.ui-hidden .status-bar {
+.app-container.ui-hidden .top-bar,
+.app-container.ui-hidden .layer-grid-container,
+.app-container.ui-hidden .controls-panel,
+.app-container.ui-hidden .status-bar {
   display: none;
 }
 
