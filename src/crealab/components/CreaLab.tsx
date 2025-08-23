@@ -152,23 +152,25 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
                   value={track.name}
                   onChange={(e) => renameTrack(track.id, e.target.value)}
                 />
-                <select
-                  value={track.midiDevice}
-                  onChange={(e) => assignMidiDevice(track.id, e.target.value)}
-                >
-                  <option value="">Select MIDI</option>
-                  {midiDevices.map(dev => (
-                    <option key={dev.id} value={dev.id}>{dev.name}</option>
-                  ))}
-                </select>
-                <select
-                  value={track.midiChannel}
-                  onChange={(e) => assignMidiChannel(track.id, parseInt(e.target.value))}
-                >
-                  {Array.from({ length: 16 }, (_, i) => i + 1).map(ch => (
-                    <option key={ch} value={ch}>Ch {ch}</option>
-                  ))}
-                </select>
+                <div className="midi-selectors">
+                  <select
+                    value={track.midiDevice}
+                    onChange={(e) => assignMidiDevice(track.id, e.target.value)}
+                  >
+                    <option value="">MIDI Dev</option>
+                    {midiDevices.map(dev => (
+                      <option key={dev.id} value={dev.id}>{dev.name.substring(0, 8)}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={track.midiChannel}
+                    onChange={(e) => assignMidiChannel(track.id, parseInt(e.target.value))}
+                  >
+                    {Array.from({ length: 16 }, (_, i) => i + 1).map(ch => (
+                      <option key={ch} value={ch}>Ch {ch}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
               {track.clips.map((clip, slotIndex) => (
                 <div
@@ -179,7 +181,7 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
                   onDragOver={handleDragOver}
                   onDrop={() => handleDrop(trackIndex, slotIndex)}
                 >
-                  {clip?.name || ''}
+                  {clip?.name || '+'}
                 </div>
               ))}
             </div>

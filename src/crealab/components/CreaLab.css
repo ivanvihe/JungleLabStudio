@@ -131,6 +131,11 @@
   font-size: 0.7rem;
 }
 
+.midi-selectors {
+  display: flex;
+  gap: 3px;
+}
+
 .clip-slot {
   height: 35px;
   border-bottom: 1px solid #333;
