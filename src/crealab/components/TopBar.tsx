@@ -12,6 +12,8 @@ interface TopBarProps {
   onOpenProjectManager: () => void;
   isPlaying: boolean;
   onPlayToggle: () => void;
+  isMidiMapping: boolean;
+  onToggleMidiMapping: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -24,7 +26,9 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenMidiConfig,
   onOpenProjectManager,
   isPlaying,
-  onPlayToggle
+  onPlayToggle,
+  isMidiMapping,
+  onToggleMidiMapping
 }) => {
   return (
     <header className="topbar-container">
@@ -34,6 +38,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           <span className="project-name">{projectName}</span>
         </div>
         <button className="icon-btn" onClick={onOpenMidiConfig} title="MIDI Config">🎛️</button>
+        <button className={"icon-btn" + (isMidiMapping ? ' active' : '')} onClick={onToggleMidiMapping} title="MIDI Mapping">MIDI</button>
         <button className="icon-btn" onClick={onOpenProjectManager} title="Projects">📁</button>
       </div>
 

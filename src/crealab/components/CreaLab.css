@@ -186,6 +186,14 @@
   margin-top: 8px;
 }
 
+.generator-module.mapping-mode {
+  outline: 1px dashed #4caf50;
+}
+
+.generator-module.mapping-mode .control-row {
+  cursor: pointer;
+}
+
 .generator-module .module-header {
   display: flex;
   align-items: center;
@@ -219,7 +227,7 @@
   font-size: 10px;
 }
 
-.generator-module .control-row input[type='range'] {
+.generator-module .control-row .knob-control {
   flex: 2;
 }
 
