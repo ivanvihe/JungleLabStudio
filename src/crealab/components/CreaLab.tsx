@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { CreaLabProject, GenerativeTrack, TrackType } from '../types/CrealabTypes';
 import { TopBar } from './TopBar';
-import LaunchControlPreview from './LaunchControlPreview';
 import LaunchControlStrip from './LaunchControlStrip';
 import useLaunchControlXL from '../hooks/useLaunchControlXL';
+import { SessionMidiManager } from '../core/SessionMidiController';
 import { useMidiDevices } from '../hooks/useMidiDevices';
 import BassGeneratorControls from './BassGeneratorControls';
 import MidiConfiguration from './MidiConfiguration';
@@ -125,6 +125,36 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
     localStorage.setItem('crealab_project', JSON.stringify(project));
   }, [project]);
 
+  useEffect(() => {
+    const manager = SessionMidiManager.getInstance();
+    project.tracks.forEach(track => {
+      manager.mapTrackToStrip(track.trackNumber, track.id);
+    });
+  }, [project.tracks]);
+
+  useEffect(() => {
+    if (!controller) return;
+    setProject(prev => ({
+      ...prev,
+      tracks: prev.tracks.map(t => {
+        const strip = controller.channelStrips[t.trackNumber - 1];
+        if (!strip) return t;
+        return {
+          ...t,
+          controls: {
+            ...t.controls,
+            intensity: strip.values.fader,
+            paramA: strip.values.knob1,
+            paramB: strip.values.knob2,
+            paramC: strip.values.knob3,
+            playStop: strip.values.button1,
+            mode: strip.values.button2 ? 1 : 0
+          }
+        };
+      }) as any
+    }));
+  }, [controller]);
+
   const updateTrackName = (trackNumber: number, name: string) => {
     setProject(prev => ({
       ...prev,
@@ -215,18 +245,6 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
     }));
   };
 
-  const handleKnobWheel = (
-    track: GenerativeTrack,
-    field: keyof GenerativeTrack['controls'],
-    e: React.WheelEvent
-  ) => {
-    e.preventDefault();
-    const delta = e.deltaY < 0 ? 1 : -1;
-    const current = track.controls[field] as number;
-    const value = Math.min(127, Math.max(0, current + delta));
-    updateTrackControls(track.trackNumber, { [field]: value } as any);
-  };
-
   return (
     <div className="crealab-container">
       <TopBar
@@ -246,13 +264,6 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
           }))
         }
       />
-      <LaunchControlPreview
-        track={project.tracks[0]}
-        onKnobWheel={(field, e) =>
-          handleKnobWheel(project.tracks[0], field, e)
-        }
-      />
-
       <main className="crealab-workspace">
         <div className="tracks-grid">
           {project.tracks.map(track => (
