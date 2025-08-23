@@ -351,10 +351,15 @@ const App: React.FC = () => {
     const handler = () => {
       const param = new URLSearchParams(window.location.search).get('fullscreen') === 'true';
       setIsFullscreenMode(param || !!document.fullscreenElement);
+      window.dispatchEvent(new Event('resize'));
     };
     document.addEventListener('fullscreenchange', handler);
     return () => document.removeEventListener('fullscreenchange', handler);
   }, []);
+
+  useEffect(() => {
+    window.dispatchEvent(new Event('resize'));
+  }, [isFullscreenMode]);
 
   useEffect(() => {
     const api = (window as any).electronAPI;
