@@ -303,3 +303,63 @@
   }
 }
 
+/* TRACK VISUALIZER */
+.track-visualizer {
+  position: relative;
+  height: 40px;
+  margin-top: 8px;
+}
+
+.activity-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--track-color, #666);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.pattern-preview {
+  display: flex;
+  height: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+.pattern-step {
+  flex: 1;
+  margin: 0 1px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  transition: background 0.2s ease;
+}
+
+.pattern-step.active {
+  background: var(--track-color, #fff);
+}
+
+/* GENERATOR CONTROLS */
+.generator-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.generator-controls .control-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.generator-controls .control-row label {
+  width: 70px;
+  font-size: 12px;
+}
+
+.generator-controls .buttons {
+  justify-content: space-between;
+}
+

@@ -12,12 +12,15 @@ export interface MidiNote {
 }
 
 // Tipos de generadores disponibles
-export type GeneratorType = 
+export type GeneratorType =
   | 'euclidean'      // Ritmos euclidianos
   | 'probabilistic'  // Notas por probabilidad
   | 'markov'        // Cadenas de Markov
   | 'arpeggiator'   // Arpegiador generativo
   | 'chaos'         // Sistemas caóticos
+  | 'cellular'      // Autómatas celulares
+  | 'lsystem'       // L-Systems fractales
+  | 'neural'        // Redes neuronales simples
   | 'off';          // Desactivado
 
 // Parámetros base para generadores
@@ -47,6 +50,7 @@ export interface GenerativeTrack {
   outputDevice: string;     // Instrumento externo (ID del device)
   outputDeviceName?: string; // Nombre legible
   midiChannel: number;      // 1-16
+  sendClock?: boolean;      // Enviar MIDI clock/start/stop
   
   inputDevice?: string;     // Controlador adicional opcional
   inputDeviceName?: string;
