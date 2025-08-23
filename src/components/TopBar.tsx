@@ -21,8 +21,11 @@ interface TopBarProps {
   launchpadAvailable: boolean;
   launchpadRunning: boolean;
   launchpadPreset: string;
-  onToggleLaunchpad: () => void;
-  onLaunchpadPresetChange: (preset: string) => void;
+  onToggleLaunchpad?: () => void;
+  launchpadText?: string;
+  onLaunchpadTextChange?: (text: string) => void;
+  onSwitchToCreaLab?: () => void;
+  onLaunchpadPresetChange?: (preset: string) => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -45,7 +48,10 @@ export const TopBar: React.FC<TopBarProps> = ({
   launchpadRunning,
   launchpadPreset,
   onToggleLaunchpad,
-  onLaunchpadPresetChange
+  onLaunchpadPresetChange,
+  launchpadText,
+  onLaunchpadTextChange,
+  onSwitchToCreaLab
 }) => {
   const [activeLed, setActiveLed] = useState(0);
 
@@ -132,6 +138,11 @@ export const TopBar: React.FC<TopBarProps> = ({
             title="Settings"
             aria-label="Settings"
           >⚙️</button>
+          {onSwitchToCreaLab && (
+            <button onClick={onSwitchToCreaLab} className="action-button switch-app" title="Switch to Crea Lab">
+              🎼
+            </button>
+          )}
         </div>
 
         {/* Flexible spacer to push Launchpad controls to the right */}
@@ -144,13 +155,20 @@ export const TopBar: React.FC<TopBarProps> = ({
             <div className="launchpad-controls">
               <select
                 value={launchpadPreset}
-                onChange={(e) => onLaunchpadPresetChange(e.target.value)}
+                onChange={(e) => onLaunchpadPresetChange?.(e.target.value)}
                 className="launchpad-preset-select"
               >
                 {LAUNCHPAD_PRESETS.map(p => (
                   <option key={p.id} value={p.id}>{p.label}</option>
                 ))}
               </select>
+              {launchpadPreset === 'custom-text' && (
+                <input
+                  type="text"
+                  value={launchpadText || ''}
+                  onChange={(e) => onLaunchpadTextChange?.(e.target.value)}
+                />
+              )}
               <button
                 onClick={onToggleLaunchpad}
                 className={`launchpad-button ${launchpadRunning ? 'running' : ''}`}
