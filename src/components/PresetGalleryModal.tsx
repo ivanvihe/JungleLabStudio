@@ -4,7 +4,6 @@ import { LoadedPreset } from '../core/PresetLoader';
 import { PresetControls } from './PresetControls';
 import { setNestedValue } from '../utils/objectPath';
 import { GenLabPresetModal } from './GenLabPresetModal';
-import fs from 'fs';
 import './PresetGalleryModal.css';
 
 interface PresetGalleryModalProps {
@@ -207,24 +206,22 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
     });
   };
 
-  const handleDefaultControlChange = (path: string, value: any) => {
+  const persistDefaultConfig = async (path: string, value: any) => {
     if (!selected) return;
 
     // Update in-memory default config
     setNestedValue(selected.config.defaultConfig, path, value);
 
-    // Persist to disk
+    // Persist to disk using Tauri fs if available
     try {
-      const cfgPath = `${selected.folderPath}/config.json`;
-      if (
-        typeof fs?.existsSync === 'function' &&
-        typeof fs?.readFileSync === 'function' &&
-        typeof fs?.writeFileSync === 'function' &&
-        fs.existsSync(cfgPath)
-      ) {
-        const json = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
-        setNestedValue(json.defaultConfig, path, value);
-        fs.writeFileSync(cfgPath, JSON.stringify(json, null, 2));
+      if (typeof window !== 'undefined' && (window as any).__TAURI__) {
+        const cfgPath = `${selected.folderPath}/config.json`;
+        const { exists, readTextFile, writeTextFile } = await import('@tauri-apps/api/fs');
+        if (await exists(cfgPath)) {
+          const json = JSON.parse(await readTextFile(cfgPath));
+          setNestedValue(json.defaultConfig, path, value);
+          await writeTextFile(cfgPath, JSON.stringify(json, null, 2));
+        }
       }
     } catch (err) {
       console.warn('Could not save default config for', selected.id, err);
@@ -232,6 +229,10 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
 
     // Force re-render
     setSelected({ ...selected });
+  };
+
+  const handleDefaultControlChange = (path: string, value: any) => {
+    void persistDefaultConfig(path, value);
   };
 
   if (!isOpen) return null;
