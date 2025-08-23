@@ -1,19 +1,23 @@
 import { GeneratorInstance } from '../core/GeneratorEngine';
 import { GenerativeTrack, MidiNote } from '../types/CrealabTypes';
-import * as mm from '@magenta/music';
+import type * as mm from '@magenta/music';
 
 export class MagentaGenerator implements GeneratorInstance {
-  private rnn: mm.MusicRNN;
+  private mm: typeof import('@magenta/music') | null = null;
+  private rnn: mm.MusicRNN | null = null;
   private loaded = false;
   private sequence: mm.INoteSequence | null = null;
   private generating = false;
   private step = 0;
 
   constructor() {
-    this.rnn = new mm.MusicRNN(
-      'https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/basic_rnn'
-    );
-    this.rnn.initialize().then(() => (this.loaded = true));
+    import('@magenta/music').then(mod => {
+      this.mm = mod;
+      this.rnn = new mod.MusicRNN(
+        'https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/basic_rnn'
+      );
+      this.rnn.initialize().then(() => (this.loaded = true));
+    });
   }
 
   generate(
@@ -23,7 +27,8 @@ export class MagentaGenerator implements GeneratorInstance {
     key: string,
     scale: string
   ): MidiNote[] {
-    if (!track.controls.playStop || !this.loaded) return [];
+    if (!track.controls.playStop || !this.loaded || !this.rnn || !this.mm)
+      return [];
 
     const steps = Math.max(1, Math.floor((track.controls.paramA / 127) * 64));
     const temperature = 0.1 + (track.controls.paramB / 127) * 1.9;
@@ -35,7 +40,7 @@ export class MagentaGenerator implements GeneratorInstance {
       this.rnn
         .continueSequence(seed, steps, temperature)
         .then(seq => {
-          this.sequence = mm.sequences.quantizeNoteSequence(seq, 4);
+          this.sequence = this.mm!.sequences.quantizeNoteSequence(seq, 4);
           this.generating = false;
           this.step = 0;
         })
