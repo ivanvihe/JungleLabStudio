@@ -23,7 +23,9 @@ export default defineConfig({
         '@tauri-apps/api/shell',
         '@tauri-apps/api/app',
         '@tauri-apps/api/os',
-        '@tauri-apps/api'
+        '@tauri-apps/api',
+        // Magenta relies on heavy Node-specific modules; exclude it from Vite bundling
+        '@magenta/music'
       ]
     }
   },
@@ -47,7 +49,9 @@ export default defineConfig({
       '@tauri-apps/api/dialog',
       '@tauri-apps/api/shell',
       '@tauri-apps/api/app',
-      '@tauri-apps/api/os'
+      '@tauri-apps/api/os',
+      // Avoid pre-bundling the Magenta music library
+      '@magenta/music'
     ]
   }
 });
