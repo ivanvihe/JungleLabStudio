@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 
-import fs from 'fs';
 import Ajv from 'ajv';
 import presetSchema from '../../presets/schema.json';
 
@@ -130,6 +129,7 @@ export class PresetLoader {
   // Carga dinámica de presets desde el sistema de archivos
   private presetModules = import.meta.glob('../presets/*/preset.ts');
   private shaderModules = import.meta.glob('../presets/*/shader.wgsl', { as: 'raw' });
+  private configModules = import.meta.glob('../presets/*/config.json', { import: 'default' });
   private nextMidiNote: number = 36; // C2 como nota base
 
   // Listeners para cambios en presets
@@ -177,10 +177,19 @@ export class PresetLoader {
 
     const [path, loader] = customTextEntry;
     const presetId = path.split('/')[2];
-    
+
     try {
       const mod: any = await loader();
-      let cfg: PresetConfig = mod.config;
+      const configLoader = this.configModules[`../presets/${presetId}/config.json`];
+      if (!configLoader) {
+        console.warn(`Config file not found for ${presetId}, skipping reload`);
+        return;
+      }
+      let cfg: PresetConfig = await (configLoader as any)();
+      if (!validatePresetConfig(cfg)) {
+        console.warn(`Invalid config schema for ${presetId}, skipping reload`, validatePresetConfig.errors);
+        return;
+      }
       const createPreset = mod.createPreset;
 
       // Auto-configurar preset si es necesario
@@ -189,7 +198,6 @@ export class PresetLoader {
         console.warn(`Invalid config for ${presetId}, skipping reload`);
         return;
       }
-
 
       let shaderCode: string | undefined;
       const shaderPath = `../presets/${presetId}/shader.wgsl`;
@@ -285,9 +293,11 @@ export class PresetLoader {
 
     // Determinar la siguiente nota disponible
     let maxNote = 0;
-    for (const [, loader] of moduleEntries) {
-      const mod: any = await loader();
-      const cfg: PresetConfig = mod.config;
+    for (const [path] of moduleEntries) {
+      const presetId = path.split('/')[2];
+      const configLoader = this.configModules[`../presets/${presetId}/config.json`];
+      if (!configLoader) continue;
+      const cfg: PresetConfig = await (configLoader as any)();
       if (typeof cfg.note === 'number' && cfg.note > maxNote) {
         maxNote = cfg.note;
       }
@@ -298,7 +308,16 @@ export class PresetLoader {
     for (const [path, loader] of moduleEntries) {
       const presetId = path.split('/')[2];
       const mod: any = await loader();
-      let cfg: PresetConfig = mod.config;
+      const configLoader = this.configModules[`../presets/${presetId}/config.json`];
+      if (!configLoader) {
+        console.warn(`Config file not found for ${presetId}, skipping`);
+        continue;
+      }
+      let cfg: PresetConfig = await (configLoader as any)();
+      if (!validatePresetConfig(cfg)) {
+        console.warn(`Invalid config schema for ${presetId}, skipping`, validatePresetConfig.errors);
+        continue;
+      }
 
       // Auto-configurar preset si es necesario
       cfg = this.autoConfigurePreset(cfg, presetId);
