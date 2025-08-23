@@ -60,6 +60,7 @@ class GenLabPreset extends BasePreset {
   private mesh!: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
   private currentConfig: any;
   private shaderCode?: string;
+  private timeOffset = Math.random() * 10000;
 
   constructor(
     scene: THREE.Scene,
@@ -185,8 +186,8 @@ class GenLabPreset extends BasePreset {
       void main() {
         vec2 uv = vUv * 0.5 + 0.5;
 
-        // Time manipulation
-        float time = uTime * uSpeed + sin(uTime * uTimeWarp) * 0.5;
+        // Time manipulation without looping
+        float time = uTime * (uSpeed + uTimeWarp);
 
         // Variant-specific UV transformations
         if(uVariant == 0) { // fog
@@ -307,7 +308,7 @@ class GenLabPreset extends BasePreset {
   }
 
   public update(): void {
-    const t = this.clock.getElapsedTime();
+    const t = this.clock.getElapsedTime() + this.timeOffset;
     const mat = this.mesh.material as THREE.ShaderMaterial;
     mat.uniforms.uTime.value = t;
     mat.uniforms.uAudioLow.value = this.audioData.low;

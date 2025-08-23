@@ -389,6 +389,14 @@ const App: React.FC = () => {
   }, [isFullscreenMode]);
 
   useEffect(() => {
+    if (isFullscreenMode) {
+      setIsUiHidden(true);
+    } else {
+      setIsUiHidden(false);
+    }
+  }, [isFullscreenMode]);
+
+  useEffect(() => {
     const api = (window as any).electronAPI;
     if (!api?.onMainLeaveFullscreen) return;
     const handler = () => {
