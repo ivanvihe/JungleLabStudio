@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { PresetLoader, LoadedPreset, AudioData } from './PresetLoader';
+import { LayerManager } from './LayerManager';
+import { Compositor } from './Compositor';
 // Using simple path helpers instead of Node's `path` module which is not
 // available in the browser runtime. Node's `path.join` was causing errors
 // after bundling (e.g. `TypeError: Bi.join is not a function`).
