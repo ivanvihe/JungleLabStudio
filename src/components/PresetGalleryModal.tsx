@@ -234,10 +234,6 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
     setSelected({ ...selected });
   };
 
-  const handleDefaultControlChange = (path: string, value: any) => {
-    void persistDefaultConfig(path, value);
-  };
-
   if (!isOpen) return null;
 
   return (

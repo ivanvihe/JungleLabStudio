@@ -127,14 +127,8 @@
 /* Sections */
 .preset-gallery-section {
   flex: none;
-<<<<<<< HEAD
-  width: 140px;
-  padding: 10px 10px;
-  padding-lefT: 20px;
-=======
   width: 120px;
   padding: 15px 8px;
->>>>>>> 1a3ccc80086c67e24bb65521152b8798d5b7d7a2
   border-right: 1px solid #333;
   border-bottom: none;
   overflow-y: auto;
