@@ -21,6 +21,7 @@ export type GeneratorType =
   | 'cellular'      // Autómatas celulares
   | 'lsystem'       // L-Systems fractales
   | 'neural'        // Redes neuronales simples
+  | 'magenta'       // Generador basado en Magenta.js
   | 'off';          // Desactivado
 
 // Parámetros base para generadores

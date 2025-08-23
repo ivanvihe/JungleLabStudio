@@ -289,6 +289,7 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
                     <option value="markov">Markov</option>
                     <option value="arpeggiator">Arpeggiator</option>
                     <option value="chaos">Chaos</option>
+                    <option value="magenta">Magenta</option>
                   </select>
                 </div>
 
