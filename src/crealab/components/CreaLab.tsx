@@ -6,7 +6,6 @@ import useLaunchControlXL from '../hooks/useLaunchControlXL';
 import { useMidiDevices } from '../hooks/useMidiDevices';
 import GeneratorControls from './GeneratorControls';
 import BassGeneratorControls from './BassGeneratorControls';
-import { InstrumentSelector } from './InstrumentSelector';
 import MidiConfiguration from './MidiConfiguration';
 import ProjectManager from './ProjectManager';
 import './CreaLab.css';
@@ -43,6 +42,7 @@ const createDefaultTrack = (n: number): GenerativeTrack => ({
   trackNumber: n,
   color: TRACK_COLORS[(n - 1) % TRACK_COLORS.length],
   trackType: DEFAULT_TRACK_TYPES[(n - 1) % DEFAULT_TRACK_TYPES.length],
+  inputDevice: '',
   outputDevice: '',
   midiChannel: 1,
   generator: {
@@ -73,7 +73,7 @@ const createDefaultTrack = (n: number): GenerativeTrack => ({
 
 export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) => {
   const controller = useLaunchControlXL();
-  const { outputDevices } = useMidiDevices();
+  const { inputDevices, outputDevices } = useMidiDevices();
   const [showMidiConfig, setShowMidiConfig] = useState(false);
   const [showProjectManager, setShowProjectManager] = useState(false);
   const [project, setProject] = useState<CreaLabProject>({
@@ -124,6 +124,18 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
       ...prev,
       tracks: prev.tracks.map(t =>
         t.trackNumber === trackNumber ? { ...t, midiChannel: channel } : t
+      ) as any
+    }));
+  };
+
+  const updateInputDevice = (trackNumber: number, deviceId: string) => {
+    const device = inputDevices.find(d => d.id === deviceId);
+    setProject(prev => ({
+      ...prev,
+      tracks: prev.tracks.map(t =>
+        t.trackNumber === trackNumber
+          ? { ...t, inputDevice: deviceId, inputDeviceName: device?.name || '' }
+          : t
       ) as any
     }));
   };
@@ -206,11 +218,16 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
         keySignature={project.key}
         onKeyChange={key => setProject(p => ({ ...p, key }))}
         onSwitchToAudioVisualizer={onSwitchToAudioVisualizer}
+        onOpenMidiConfig={() => setShowMidiConfig(true)}
+        onOpenProjectManager={() => setShowProjectManager(true)}
+        isPlaying={project.transport.isPlaying}
+        onPlayToggle={() =>
+          setProject(p => ({
+            ...p,
+            transport: { ...p.transport, isPlaying: !p.transport.isPlaying }
+          }))
+        }
       />
-
-      <button className="open-midi-config" onClick={() => setShowMidiConfig(true)}>MIDI Config</button>
-      <button className="open-project-manager" onClick={() => setShowProjectManager(true)}>Projects</button>
-
       <LaunchControlVisualizer controller={controller} />
 
       <main className="crealab-workspace">
@@ -247,19 +264,23 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
                   <option value="visual">Visual</option>
                 </select>
 
-                <InstrumentSelector
-                  track={track}
-                  onTrackUpdate={updates => applyTrackUpdates(track.trackNumber, updates)}
-                  genre={project.genre}
-                  allTracks={project.tracks}
-                />
                 <div className="midi-config">
+                  <select
+                    className="device-selector"
+                    value={track.inputDevice || ''}
+                    onChange={e => updateInputDevice(track.trackNumber, e.target.value)}
+                  >
+                    <option value="">Input</option>
+                    {inputDevices.map(dev => (
+                      <option key={dev.id} value={dev.id}>{dev.name}</option>
+                    ))}
+                  </select>
                   <select
                     className="device-selector"
                     value={track.outputDevice}
                     onChange={e => updateOutputDevice(track.trackNumber, e.target.value)}
                   >
-                    <option value="">Device</option>
+                    <option value="">Output</option>
                     {outputDevices.map(dev => (
                       <option key={dev.id} value={dev.id}>{dev.name}</option>
                     ))}
@@ -326,7 +347,6 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
                       <div className="fader-value">{track.controls.intensity}</div>
                     </div>
                     <div className="lc-buttons">
-                      <button className={`lc-button ${track.controls.playStop ? 'active' : ''}`}>▶</button>
                       <button className={`lc-button ${track.controls.mode ? 'active' : ''}`}>M</button>
                     </div>
                   </div>

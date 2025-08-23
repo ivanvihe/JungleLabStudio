@@ -37,9 +37,6 @@ export const GeneratorControls: React.FC<Props> = ({ track, onChange }) => {
           onChange={handleNumber('paramC')} />
       </div>
       <div className="control-row buttons">
-        <button onClick={() => onChange({ playStop: !track.controls.playStop })}>
-          {track.controls.playStop ? 'Stop' : 'Play'}
-        </button>
         <button onClick={() => onChange({ mode: (track.controls.mode + 1) % 6 })}>
           Cycle Generator
         </button>

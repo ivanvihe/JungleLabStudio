@@ -3,9 +3,21 @@
   border-bottom: 1px solid #444;
   padding: 8px 12px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  min-height: 40px;
+  gap: 10px;
+}
+
+.topbar-left,
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
 }
 
 .topbar-title {
@@ -60,20 +72,22 @@
   width: 50px;
 }
 
-.switch-app-btn {
-  background: linear-gradient(45deg, #2196F3, #21CBF3);
-  border: none;
-  color: white;
-  padding: 4px 8px;
-  border-radius: 6px;
+.icon-btn,
+.switch-app-btn,
+.play-btn {
+  background: #3a3a3a;
+  border: 1px solid #555;
+  color: #fff;
+  padding: 4px 6px;
+  border-radius: 4px;
   cursor: pointer;
   font-size: 0.8rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
+  transition: background 0.2s;
 }
 
-.switch-app-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+.icon-btn:hover,
+.switch-app-btn:hover,
+.play-btn:hover {
+  background: #4a4a4a;
 }
 
