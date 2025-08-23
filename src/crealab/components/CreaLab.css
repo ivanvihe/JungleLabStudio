@@ -89,176 +89,92 @@
 
 .crealab-workspace {
   flex: 1;
-  display: flex;
-  overflow: hidden;
+  overflow: auto;
 }
 
-.scenes-panel {
-  width: 280px;
+.track-view {
+  display: flex;
+  height: 100%;
+}
+
+.section-column {
+  display: flex;
+  flex-direction: column;
   background: #252525;
   border-right: 1px solid #444;
+}
+
+.section-header {
+  padding: 8px;
+  border-bottom: 1px solid #444;
+  text-align: center;
+  font-weight: 500;
+}
+
+.section-label {
+  width: 120px;
+  height: 60px;
+  border-bottom: 1px solid #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+
+.add-section {
+  background: #333;
+  border: none;
+  color: #fff;
+  padding: 8px;
+  cursor: pointer;
+  border-top: 1px solid #444;
+}
+
+.track-column {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #444;
+  width: 180px;
+}
+
+.track-header {
+  background: #2d2d2d;
+  padding: 8px;
+  border-bottom: 1px solid #444;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.track-header input {
+  background: #3a3a3a;
+  border: 1px solid #555;
+  color: #fff;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.clip-slot {
+  height: 60px;
+  border-bottom: 1px solid #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+}
+
+.add-track-column {
   display: flex;
   flex-direction: column;
 }
 
-.scenes-header {
-  padding: 20px;
-  border-bottom: 1px solid #444;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.scenes-header h3 {
-  margin: 0;
-  color: #fff;
-  font-size: 1.1rem;
-}
-
-.scenes-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.add-scene-btn,
-.generate-scene-btn {
+.add-track-column button {
+  margin-top: 40px;
   background: #4CAF50;
   border: none;
-  color: white;
-  padding: 6px 12px;
+  color: #fff;
+  padding: 8px 12px;
+  cursor: pointer;
   border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.75rem;
-  font-weight: 500;
-  transition: background 0.2s ease;
-}
-
-.generate-scene-btn {
-  background: #FF9800;
-}
-
-.add-scene-btn:hover,
-.generate-scene-btn:hover {
-  background: #5CBF60;
-}
-
-.generate-scene-btn:hover {
-  background: #FFB74D;
-}
-
-.scenes-list {
-  flex: 1;
-  padding: 10px;
-  overflow-y: auto;
-}
-
-.scene-item {
-  background: #333;
-  border: 1px solid #555;
-  border-radius: 6px;
-  padding: 12px;
-  margin-bottom: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.scene-item:hover {
-  background: #3a3a3a;
-  border-color: #666;
-}
-
-.scene-item.selected {
-  background: #4CAF50;
-  border-color: #4CAF50;
-  color: #000;
-}
-
-.scene-name {
-  display: block;
-  font-weight: 500;
-  margin-bottom: 4px;
-}
-
-.scene-info {
-  font-size: 0.8rem;
-  opacity: 0.8;
-}
-
-.no-scenes {
-  text-align: center;
-  padding: 40px 20px;
-  color: #777;
-}
-
-.main-workspace {
-  flex: 1;
-  background: #1e1e1e;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.no-scene-selected {
-  text-align: center;
-}
-
-.welcome-message h2 {
-  color: #fff;
-  margin-bottom: 10px;
-}
-
-.welcome-message p {
-  color: #bbb;
-  margin-bottom: 30px;
-}
-
-.primary-btn {
-  background: linear-gradient(45deg, #4CAF50, #8BC34A);
-  border: none;
-  color: white;
-  padding: 12px 24px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 600;
-  transition: all 0.2s ease;
-}
-
-.primary-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.3);
-}
-
-.secondary-btn {
-  background: linear-gradient(45deg, #FF9800, #FFB74D);
-  border: none;
-  color: white;
-  padding: 12px 24px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  margin-left: 12px;
-}
-
-.secondary-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(255, 152, 0, 0.3);
-}
-
-.scene-editor {
-  padding: 40px;
-  text-align: center;
-}
-
-.coming-soon {
-  color: #888;
-  font-style: italic;
-  margin-top: 20px;
-}
-
-.quick-actions {
-  display: flex;
-  justify-content: center;
 }
