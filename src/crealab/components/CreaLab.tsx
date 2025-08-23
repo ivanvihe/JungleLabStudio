@@ -3,6 +3,7 @@ import { CreaLabProject, GenerativeTrack } from '../types/CrealabTypes';
 import { TopBar } from './TopBar';
 import LaunchControlVisualizer from './LaunchControlVisualizer';
 import useLaunchControlXL from '../hooks/useLaunchControlXL';
+import { InstrumentSelector } from './InstrumentSelector';
 import './CreaLab.css';
 
 interface CreaLabProps {
@@ -118,6 +119,15 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
     }));
   };
 
+  const applyTrackUpdates = (trackNumber: number, updates: Partial<GenerativeTrack>) => {
+    setProject(prev => ({
+      ...prev,
+      tracks: prev.tracks.map(t =>
+        t.trackNumber === trackNumber ? { ...t, ...updates } : t
+      ) as any
+    }));
+  };
+
   return (
     <div className="crealab-container">
       <TopBar
@@ -149,6 +159,12 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
               </div>
 
               <div className="track-controls">
+                <InstrumentSelector
+                  track={track}
+                  onTrackUpdate={updates => applyTrackUpdates(track.trackNumber, updates)}
+                  genre={project.genre}
+                  allTracks={project.tracks}
+                />
                 <div className="midi-config">
                   <select className="device-selector">
                     <option>Device</option>
