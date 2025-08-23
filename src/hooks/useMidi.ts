@@ -232,7 +232,9 @@ export function useMidi(options: MidiOptions) {
 
       // MIDI Clock messages
       if (statusByte === 0xf8 && midiClockSettings.type === 'midi') {
-        handleClockTick(performance.now(), false);
+        const timestamp =
+          event.timeStamp ?? event.receivedTime ?? performance.now();
+        handleClockTick(timestamp, false);
         return;
       }
 
