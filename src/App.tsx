@@ -1298,7 +1298,7 @@ const App: React.FC = () => {
                 if (existing) {
                   applyPresetConfig(engineRef.current, layerId, existing);
                 } else {
-                  const cfg = engineRef.current.getLayerPresetConfig(layerId, presetId);
+                  const cfg = await engineRef.current.getLayerPresetConfig(layerId, presetId);
                   setLayerPresetConfigs(prev => ({
                     ...prev,
                     [layerId]: { ...(prev[layerId] || {}), [presetId]: cfg }
@@ -1329,13 +1329,13 @@ const App: React.FC = () => {
             }
             broadcastRef.current?.postMessage({ type: 'layerConfig', layerId, config });
           }}
-          onPresetSelect={(layerId, presetId) => {
+          onPresetSelect={async (layerId, presetId) => {
             if (presetId) {
               const preset = availablePresets.find(p => p.id === presetId);
               if (preset) {
                 const existing = layerPresetConfigs[layerId]?.[presetId];
                 if (!existing) {
-                  const cfg = engineRef.current?.getLayerPresetConfig(layerId, presetId);
+                  const cfg = await engineRef.current?.getLayerPresetConfig(layerId, presetId);
                   if (cfg) {
                     setLayerPresetConfigs(prev => ({
                       ...prev,

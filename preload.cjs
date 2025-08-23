@@ -1,4 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
+const fs = require('fs');
+const path = require('path');
 
 contextBridge.exposeInMainWorld('electronAPI', {
   applySettings: (settings) => ipcRenderer.send('apply-settings', settings),
@@ -10,5 +12,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Notificación cuando la ventana principal sale de fullscreen
   onMainLeaveFullscreen: (callback) => ipcRenderer.on('main-leave-fullscreen', callback),
-  removeMainLeaveFullscreenListener: () => ipcRenderer.removeAllListeners('main-leave-fullscreen')
+  removeMainLeaveFullscreenListener: () => ipcRenderer.removeAllListeners('main-leave-fullscreen'),
+
+  // File system helpers
+  readTextFile: (filePath) => fs.promises.readFile(filePath, 'utf-8'),
+  writeTextFile: async (filePath, data) => {
+    const dir = path.dirname(filePath);
+    await fs.promises.mkdir(dir, { recursive: true });
+    await fs.promises.writeFile(filePath, data);
+  },
+  exists: async (filePath) => {
+    try {
+      await fs.promises.access(filePath);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 });

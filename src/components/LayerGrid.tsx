@@ -22,10 +22,10 @@ interface LayerConfig {
 
 interface LayerGridProps {
   presets: LoadedPreset[];
-  onPresetActivate: (layerId: string, presetId: string, velocity?: number) => void;
+  onPresetActivate: (layerId: string, presetId: string, velocity?: number) => void | Promise<void>;
   onLayerClear: (layerId: string) => void;
   onLayerConfigChange: (layerId: string, config: Partial<LayerConfig>) => void;
-  onPresetSelect: (layerId: string, presetId: string) => void;
+  onPresetSelect: (layerId: string, presetId: string) => void | Promise<void>;
   clearAllSignal: number;
   externalTrigger?: { layerId: string; presetId: string; velocity: number } | null;
   layerChannels: Record<string, number>;
