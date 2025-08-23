@@ -88,6 +88,8 @@ interface GlobalSettingsModalProps {
   onCanvasVibranceChange: (value: number) => void;
   canvasBackground: string;
   onCanvasBackgroundChange: (value: string) => void;
+  visualsPath: string;
+  onVisualsPathChange: (value: string) => void;
 }
 
 export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
@@ -146,6 +148,8 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   onCanvasVibranceChange,
   canvasBackground,
   onCanvasBackgroundChange,
+  visualsPath,
+  onVisualsPathChange,
 }) => {
   const [activeTab, setActiveTab] = useState('audio');
 
@@ -263,6 +267,8 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                 onStartMonitorChange={onStartMonitorChange}
                 sidebarCollapsed={sidebarCollapsed}
                 onSidebarCollapsedChange={onSidebarCollapsedChange}
+                visualsPath={visualsPath}
+                onVisualsPathChange={onVisualsPathChange}
               />
             )}
           </div>
