@@ -31,8 +31,10 @@ export class ProbabilisticGenerator implements GeneratorInstance {
 
     // Decisión probabilística de generar nota
     const shouldGenerateNote = Math.random() < (density * intensity);
+    console.log('🎲 Probabilistic decision:', shouldGenerateNote, 'density:', density, 'intensity:', intensity);
     
     if (shouldGenerateNote) {
+      console.log('🎵 Generating probabilistic note');
       const scaleNotes = getScaleNotes(key, scale);
       const note = this.selectWeightedNote(scaleNotes);
       const velocity = this.calculateVelocity(intensity, variation);
@@ -83,6 +85,7 @@ export class ProbabilisticGenerator implements GeneratorInstance {
 
   private selectWeightedNote(scaleNotes: number[]): number {
     const weights = scaleNotes.map(n => this.noteWeights.get(n) || 1);
+    if (weights.length === 0) return 60;
     const index = weightedRandomChoice(weights);
     return scaleNotes[index] || scaleNotes[0];
   }

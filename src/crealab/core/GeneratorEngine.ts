@@ -171,6 +171,8 @@ export class GeneratorEngine {
     const generator = this.generators.get(track.generator.type);
     if (!generator) return;
 
+    console.log('🎵 Processing track:', track.name, 'generator:', track.generator.type, 'playStop:', track.controls.playStop, 'parameters:', track.generator.parameters);
+
     // Actualizar parámetros del generador basado en controles
     generator.updateParameters(track);
     MusicalIntelligence.evolvePattern(track);
@@ -204,8 +206,11 @@ export class GeneratorEngine {
       return;
     }
 
+    console.log('🎵 Sending MIDI notes to device:', track.outputDeviceName || track.outputDevice, 'channel:', track.midiChannel, 'notes:', notes.length);
+
     const midi = MidiManager.getInstance();
     const beatDuration = (60 / globalTempo) * 1000; // ms per beat
+    let notesSuccessfullySent = 0;
 
     await Promise.all(
       notes.map(n =>
@@ -215,9 +220,19 @@ export class GeneratorEngine {
           n.note,
           n.velocity,
           n.duration * beatDuration
-        )
+        ).then(success => {
+          if (success) {
+            notesSuccessfullySent++;
+            console.log('✅ MIDI note sent:', n.note, 'velocity:', n.velocity, 'to channel:', track.midiChannel);
+          } else {
+            console.warn('❌ Failed to send MIDI note:', n.note, 'to device:', track.outputDevice);
+          }
+          return success;
+        })
       )
     );
+
+    console.log(`📊 MIDI Summary: ${notesSuccessfullySent}/${notes.length} notes sent successfully`);
 
     // Notificar que se enviaron notas al dispositivo
     if (typeof window !== 'undefined') {
@@ -279,12 +294,14 @@ export class GeneratorEngine {
   updateTrackParameters(track: GenerativeTrack) {
     const generator = this.generators.get(track.generator.type);
     if (generator) {
+      console.log('🔧 Updating parameters for track:', track.name, 'type:', track.generator.type);
       generator.updateParameters(track);
     }
   }
 
   // Cambiar tipo de generador
   changeGeneratorType(track: GenerativeTrack, newType: GeneratorType) {
+    console.log('🔄 Changing generator type for track:', track.name, 'from:', track.generator.type, 'to:', newType);
     // Reset del generador anterior
     const oldGenerator = this.generators.get(track.generator.type);
     if (oldGenerator) {
@@ -295,6 +312,7 @@ export class GeneratorEngine {
     track.generator.type = newType;
     track.generator.enabled = newType !== 'off';
 
+    console.log('🎛️ Setting default parameters for generator:', newType);
     // Configurar parámetros por defecto según el tipo
     this.setDefaultParameters(track, newType);
   }
@@ -304,16 +322,16 @@ export class GeneratorEngine {
     switch (type) {
       case 'euclidean':
       case 'euclidean-circles':
-        track.generator.parameters = { pulses: 8, steps: 16, offset: 0, mutation: 0.1 };
+        track.generator.parameters = { pulses: 4, steps: 16, offset: 0, mutation: 0.05 };
         break;
       case 'probabilistic':
-        track.generator.parameters = { density: 0.5, variation: 0.3, swing: 0.1 };
+        track.generator.parameters = { density: 0.4, variation: 0.2, swing: 0.05 };
         break;
       case 'markov':
-        track.generator.parameters = { order: 2, creativity: 0.5, memory: 8 };
+        track.generator.parameters = { order: 1, creativity: 0.3, memory: 4 };
         break;
       case 'arpeggiator':
-        track.generator.parameters = { pattern: 'up', octaves: 2, noteLength: 0.25 };
+        track.generator.parameters = { pattern: 'up', octaves: 1, noteLength: 0.5 };
         break;
       case 'chaos':
         track.generator.parameters = { attractor: 'lorenz', sensitivity: 0.5, scaling: 1.0 };
@@ -339,6 +357,9 @@ export class GeneratorEngine {
       default:
         track.generator.parameters = {};
     }
+    
+    console.log('✅ Default parameters set:', track.generator.parameters);
+    console.log('🎵 Generator enabled:', track.generator.enabled);
   }
 
   // Getters

@@ -31,10 +31,13 @@ export class MarkovGenerator implements GeneratorInstance {
     }
 
     // Probability to trigger based on intensity and density
-    if (Math.random() > intensity * density) {
+    const triggerProbability = intensity * density;
+    console.log('🎲 Markov trigger probability:', triggerProbability);
+    if (Math.random() > triggerProbability) {
       return notes;
     }
 
+    console.log('🎵 Generating markov note');
     const nextNote = this.generateNextNote(scaleNotes, order, creativity);
     const velocity = Math.floor(60 + intensity * 60);
     const duration = 0.25;
@@ -82,6 +85,7 @@ export class MarkovGenerator implements GeneratorInstance {
 
     if (candidates.length === 0 || Math.random() < creativity) {
       // pick random from scale
+      if (scaleNotes.length === 0) return 60;
       return scaleNotes[Math.floor(Math.random() * scaleNotes.length)];
     }
 

@@ -39,10 +39,18 @@ export function euclideanRhythm(pulses: number, steps: number): boolean[] {
 // Get MIDI notes for given key and scale using tonal
 export function getScaleNotes(key: string, scale: string): number[] {
   const tonalScale = Scale.get(`${key} ${scale}`);
-  return tonalScale.notes.map(n => {
+  
+  if (!tonalScale.notes || tonalScale.notes.length === 0) {
+    // Fallback to C major scale
+    console.warn('Failed to get scale notes, using C major fallback');
+    return [60, 62, 64, 65, 67, 69, 71]; // C major scale starting from middle C
+  }
+  
+  const notes = tonalScale.notes.map(n => {
     const midi = Note.midi(n);
     return midi != null ? midi : 60;
   });
+  return notes.length > 0 ? notes : [60, 62, 64, 65, 67, 69, 71];
 }
 
 // Weighted random choice returns index based on weights array

@@ -19,30 +19,34 @@ export class EuclideanGenerator implements GeneratorInstance {
     
     // Parámetros del euclidean rhythm
     const pulses = Math.max(1, Math.floor((params.pulses || 8) * (track.controls.paramA / 127)));
-    const steps = Math.max(1, Math.floor((params.steps || 16) * (track.controls.paramB / 127)));
-    const offset = Math.floor((params.offset || 0) * (track.controls.paramC / 127));
+    const steps = Math.max(4, Math.floor((params.steps || 16)));
+    const offset = Math.floor((params.offset || 0) * (track.controls.paramC / 127) * steps);
     const mutationRate = (params.mutation || 0.1);
     
     // Regenerar patrón si cambió algún parámetro
     if (this.pattern.length !== steps) {
       this.pattern = euclideanRhythm(pulses, steps);
       this.rotatePattern(offset);
+      console.log('🎵 Euclidean pattern generated:', this.pattern, 'pulses:', pulses, 'steps:', steps);
     }
 
     // Mutación evolutiva del patrón
     if (currentTime - this.lastMutationTime > 4 && Math.random() < mutationRate) {
       this.mutatePattern();
       this.lastMutationTime = currentTime;
+      console.log('🧬 Euclidean pattern mutated');
     }
 
     // Verificar si hay hit en el step actual
     const stepIndex = Math.floor(currentTime * 4) % steps; // 16th notes
+    console.log('🎵 Euclidean currentTime:', currentTime, 'stepIndex:', stepIndex);
     if (this.pattern[stepIndex]) {
       const scaleNotes = getScaleNotes(key, scale);
       const intensity = track.controls.intensity / 127;
-      
+
       // Aplicar probabilidad basada en intensidad
       if (Math.random() < intensity) {
+        console.log('🎵 Euclidean hit at step:', stepIndex, 'intensity:', intensity);
         const note = this.selectNote(scaleNotes, track);
         const velocity = this.calculateVelocity(track, intensity);
         const duration = this.calculateDuration(track);
@@ -55,6 +59,8 @@ export class EuclideanGenerator implements GeneratorInstance {
         });
       }
     }
+    
+    console.log('🎵 Euclidean generated notes:', notes.length);
 
     return notes;
   }
@@ -90,6 +96,7 @@ export class EuclideanGenerator implements GeneratorInstance {
 
   private selectNote(scaleNotes: number[], track: GenerativeTrack): number {
     // Selección inteligente basada en el tipo de instrumento
+    if (scaleNotes.length === 0) return 60; // Fallback to middle C
     const profile = track.instrumentProfile;
     let noteRange = scaleNotes;
 
@@ -105,7 +112,13 @@ export class EuclideanGenerator implements GeneratorInstance {
       }
     }
 
-    return noteRange[Math.floor(Math.random() * noteRange.length)] || scaleNotes[0];
+    if (noteRange.length === 0) noteRange = scaleNotes;
+    
+    const selectedNote = noteRange[Math.floor(Math.random() * noteRange.length)] || 60;
+    
+    // Expandir rango de notas para incluir octavas (24-96)
+    const octaveNote = selectedNote + (Math.floor(Math.random() * 4) * 12) + 24;
+    return Math.min(96, Math.max(24, octaveNote));
   }
 
   private calculateVelocity(track: GenerativeTrack, intensity: number): number {

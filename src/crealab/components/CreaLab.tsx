@@ -205,34 +205,6 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
     }));
   };
 
-  // Función auxiliar para activar/desactivar tracks individuales
-  const toggleTrackPlayStop = (trackNumber: number) => {
-    setProject(prev => {
-      const track = prev.tracks[trackNumber - 1];
-      if (!track.generator.enabled || track.generator.type === 'off') {
-        console.warn(`Track ${trackNumber} has no active generator`);
-        return prev;
-      }
-
-      const newTracks = prev.tracks.map(t =>
-        t.trackNumber === trackNumber
-          ? {
-              ...t,
-              controls: {
-                ...t.controls,
-                playStop: !t.controls.playStop
-              }
-            }
-          : t
-      ) as any;
-
-      const engine = GeneratorEngine.getInstance();
-      engine.updateTracks(newTracks);
-
-      return { ...prev, tracks: newTracks };
-    });
-  };
-
   const updateMidiChannel = (trackNumber: number, channel: number) => {
     setProject(prev => ({
       ...prev,
@@ -348,6 +320,8 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
       ) as any;
       const engine = GeneratorEngine.getInstance();
       engine.changeGeneratorType(newTracks[trackNumber - 1], type as GeneratorType);
+      // Actualizar el engine con los nuevos tracks
+      engine.updateTracks(newTracks);
       return { ...prev, tracks: newTracks };
     });
   };
@@ -411,15 +385,6 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
               </div>
 
               <div className="track-controls">
-                <div className="track-play-controls">
-                  <button
-                    className={`track-play-btn ${track.controls.playStop ? 'active' : ''}`}
-                    onClick={() => toggleTrackPlayStop(track.trackNumber)}
-                  >
-                    {track.controls.playStop ? '⏹️' : '▶️'}
-                  </button>
-                </div>
-
                 <select
                   className="device-selector"
                   value={track.inputDevice || ''}
