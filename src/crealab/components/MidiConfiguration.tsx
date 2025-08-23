@@ -2,18 +2,30 @@ import React, { useState } from 'react';
 import { useMidiDevices } from '../hooks/useMidiDevices';
 import './MidiConfiguration.css';
 
+interface DeviceSettings {
+  track: boolean;
+  sync: boolean;
+  output: boolean;
+}
+
 interface Props {
   onClose: () => void;
 }
 
 export const MidiConfiguration: React.FC<Props> = ({ onClose }) => {
-  const { inputDevices, outputDevices, midiClock, testDevice, refreshDevices } = useMidiDevices();
-  const [testing, setTesting] = useState<string | null>(null);
+  const { inputDevices, outputDevices, refreshDevices } = useMidiDevices();
+  const [globalController, setGlobalController] = useState('');
+  const [settings, setSettings] = useState<Record<string, DeviceSettings>>({});
 
-  const handleTest = async (id: string) => {
-    setTesting(id);
-    await testDevice(id);
-    setTesting(null);
+  const allDevices = [...inputDevices, ...outputDevices].filter(
+    (d, i, arr) => arr.findIndex(dev => dev.id === d.id) === i
+  );
+
+  const toggle = (id: string, key: keyof DeviceSettings) => {
+    setSettings(prev => ({
+      ...prev,
+      [id]: { ...prev[id], [key]: !prev[id]?.[key] }
+    }));
   };
 
   return (
@@ -25,66 +37,49 @@ export const MidiConfiguration: React.FC<Props> = ({ onClose }) => {
         </div>
 
         <div className="config-section">
-          <div className="section-header">
-            <h4>Clock</h4>
-          </div>
-          <div className="clock-status">
-            <div className={`status-indicator ${midiClock.isRunning ? 'running' : 'stopped'}`}></div>
-            <span>{midiClock.isRunning ? 'Running' : 'Stopped'} @ {midiClock.bpm} BPM</span>
-          </div>
-        </div>
-
-        <div className="config-section">
-          <div className="section-header">
-            <h4>Input Devices</h4>
-            <button className="refresh-btn" onClick={refreshDevices}>Refresh</button>
-          </div>
-          <div className="devices-list">
-            {inputDevices.length === 0 && (
-              <div className="no-devices">No input devices</div>
-            )}
+          <h4>Global MIDI controller</h4>
+          <select
+            className="global-controller-select"
+            value={globalController}
+            onChange={e => setGlobalController(e.target.value)}
+          >
+            <option value="">Select device</option>
             {inputDevices.map(dev => (
-              <div key={dev.id} className="device-item">
-                <div className="device-info">
-                  <div className="device-name">{dev.name}</div>
-                  <div className="device-manufacturer">{dev.manufacturer}</div>
-                  <div className={`device-status ${dev.state}`}>{dev.state}</div>
-                </div>
-                <button
-                  className={`test-btn ${testing === dev.id ? 'testing' : ''}`}
-                  disabled={testing === dev.id}
-                  onClick={() => handleTest(dev.id)}
-                >
-                  {testing === dev.id ? '...' : 'Test'}
-                </button>
-              </div>
+              <option key={dev.id} value={dev.id}>{dev.name}</option>
             ))}
-          </div>
+          </select>
         </div>
 
         <div className="config-section">
           <div className="section-header">
-            <h4>Output Devices</h4>
+            <h4>Other MIDI devices</h4>
             <button className="refresh-btn" onClick={refreshDevices}>Refresh</button>
           </div>
-          <div className="devices-list">
-            {outputDevices.length === 0 && (
-              <div className="no-devices">No output devices</div>
-            )}
-            {outputDevices.map(dev => (
-              <div key={dev.id} className="device-item">
-                <div className="device-info">
-                  <div className="device-name">{dev.name}</div>
-                  <div className="device-manufacturer">{dev.manufacturer}</div>
-                  <div className={`device-status ${dev.state}`}>{dev.state}</div>
-                </div>
-                <button
-                  className={`test-btn ${testing === dev.id ? 'testing' : ''}`}
-                  disabled={testing === dev.id}
-                  onClick={() => handleTest(dev.id)}
-                >
-                  {testing === dev.id ? '...' : 'Test'}
-                </button>
+          <div className="device-grid">
+            <div className="device-grid-header">
+              <span>Device</span>
+              <span>Track</span>
+              <span>Sync</span>
+              <span>Output</span>
+            </div>
+            {allDevices.map(dev => (
+              <div key={dev.id} className="device-grid-row">
+                <span>{dev.name}</span>
+                <input
+                  type="checkbox"
+                  checked={!!settings[dev.id]?.track}
+                  onChange={() => toggle(dev.id, 'track')}
+                />
+                <input
+                  type="checkbox"
+                  checked={!!settings[dev.id]?.sync}
+                  onChange={() => toggle(dev.id, 'sync')}
+                />
+                <input
+                  type="checkbox"
+                  checked={!!settings[dev.id]?.output}
+                  onChange={() => toggle(dev.id, 'output')}
+                />
               </div>
             ))}
           </div>

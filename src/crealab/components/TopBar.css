@@ -1,11 +1,11 @@
 .topbar-container {
   background: #2d2d2d;
   border-bottom: 1px solid #444;
-  padding: 15px 20px;
+  padding: 8px 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  min-height: 60px;
+  min-height: 40px;
 }
 
 .topbar-title {
@@ -16,7 +16,7 @@
 
 .topbar-title h1 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1rem;
   background: linear-gradient(45deg, #4CAF50, #8BC34A);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -25,28 +25,28 @@
 
 .project-name {
   color: #ccc;
-  font-size: 1rem;
+  font-size: 0.8rem;
   font-weight: 500;
 }
 
 .topbar-controls {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 10px;
 }
 
 .global-settings {
   display: flex;
-  gap: 15px;
+  gap: 8px;
   align-items: center;
 }
 
 .global-settings label {
   color: #ccc;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
 .global-settings input,
@@ -54,20 +54,20 @@
   background: #3a3a3a;
   border: 1px solid #555;
   color: #fff;
-  padding: 4px 8px;
+  padding: 2px 4px;
   border-radius: 4px;
-  font-size: 0.9rem;
-  width: 60px;
+  font-size: 0.8rem;
+  width: 50px;
 }
 
 .switch-app-btn {
   background: linear-gradient(45deg, #2196F3, #21CBF3);
   border: none;
   color: white;
-  padding: 8px 16px;
+  padding: 4px 8px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 500;
   transition: all 0.2s ease;
 }
