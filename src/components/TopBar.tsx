@@ -95,38 +95,43 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
       </div>
 
-      {/* Espaciador flexible para empujar contenido a la derecha */}
-      <div className="top-bar-spacer"></div>
+        {/* Espaciador flexible para centrar la sección de acciones */}
+        <div className="top-bar-spacer"></div>
 
-      {/* Sección derecha - Controles de Launchpad y acciones */}
-      <div className="actions-section">
+        {/* Sección central - Acciones y recursos */}
+        <div className="actions-section">
+          <button onClick={onOpenResources} className="action-button">Resources</button>
+          <button onClick={onClearAll} className="action-button">Clear All</button>
+          <button onClick={onFullScreen} className="action-button" alt="Go Full Screen mode!!">Full Screen</button>
+          <button onClick={onOpenSettings} className="action-button">Settings</button>
+        </div>
+
+        {/* Espaciador flexible para empujar Launchpad a la derecha */}
+        <div className="top-bar-spacer"></div>
+
+        {/* Sección derecha - Controles de Launchpad */}
         {launchpadAvailable && (
-          <div className="launchpad-controls">
-            <select
-              value={launchpadPreset}
-              onChange={(e) => onLaunchpadPresetChange(e.target.value)}
-              className="launchpad-preset-select"
-            >
-              {LAUNCHPAD_PRESETS.map(p => (
-                <option key={p.id} value={p.id}>{p.label}</option>
-              ))}
-            </select>
-            <button 
-              onClick={onToggleLaunchpad}
-              className={`launchpad-button ${launchpadRunning ? 'running' : ''}`}
-            >
-              {launchpadRunning ? 'Stop Launchpad' : 'Go Launchpad'}
-            </button>
-          </div>
+          <>
+            <div className="separator" />
+            <div className="launchpad-controls">
+              <select
+                value={launchpadPreset}
+                onChange={(e) => onLaunchpadPresetChange(e.target.value)}
+                className="launchpad-preset-select"
+              >
+                {LAUNCHPAD_PRESETS.map(p => (
+                  <option key={p.id} value={p.id}>{p.label}</option>
+                ))}
+              </select>
+              <button
+                onClick={onToggleLaunchpad}
+                className={`launchpad-button ${launchpadRunning ? 'running' : ''}`}
+              >
+                {launchpadRunning ? 'Stop Launchpad' : 'Go Launchpad'}
+              </button>
+            </div>
+          </>
         )}
-        
-        <div className="separator" />
-        
-        <button onClick={onFullScreen} alt="Go Full Screen mode!!">Full Screen</button>
-        <button onClick={onClearAll}>Clear All</button>
-        <button onClick={onOpenResources}>Resources</button>
-        <button onClick={onOpenSettings}>Settings</button>
-      </div>
-    </div>
+        </div>
   );
 };

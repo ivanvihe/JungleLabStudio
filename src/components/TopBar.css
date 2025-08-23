@@ -128,10 +128,16 @@
   animation: pulse-green 1.5s infinite;
 }
 
-.actions-section > button {
-  margin-right: 5px;
+.action-button {
+  background: #333;
+  border: none;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 4px;
   font-size: 11px;
-  padding: 6px 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 @keyframes pulse-green {
