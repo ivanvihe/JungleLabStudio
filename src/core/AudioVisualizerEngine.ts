@@ -100,6 +100,8 @@ export class AudioVisualizerEngine {
       this.renderer.clear();
       this.layerManager.renderLayers();
       this.compositor.composite(this.layerManager.getLayers());
+      // Reset WebGL state to avoid feedback loops with bound textures
+      this.renderer.resetState();
     };
 
     animate();
