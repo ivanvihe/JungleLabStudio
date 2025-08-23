@@ -1,20 +1,43 @@
-import React, { useState } from 'react';
-import { CreaLabProject, Track, Phase } from '../types/CrealabTypes';
+import React, { useEffect, useState } from 'react';
+import { CreaLabProject, Track } from '../types/CrealabTypes';
 import './CreaLab.css';
 
 interface CreaLabProps {
   onSwitchToAudioVisualizer: () => void;
 }
 
+const DEFAULT_SLOTS = 8;
+
 export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) => {
+  const [midiDevices, setMidiDevices] = useState<{ id: string; name: string }[]>([]);
+  const [dragging, setDragging] = useState<{ trackIndex: number; slotIndex: number } | null>(null);
+
+  useEffect(() => {
+    const nav = navigator as any;
+    if (nav.requestMIDIAccess) {
+      nav.requestMIDIAccess().then((access: any) => {
+        const inputs = Array.from(access.inputs.values()).map((d: any) => ({
+          id: d.id,
+          name: d.name || d.id
+        }));
+        setMidiDevices(inputs);
+      }).catch(() => {
+        // ignore
+      });
+    }
+  }, []);
+
   const [project, setProject] = useState<CreaLabProject>({
     id: 'project-1',
     name: 'New Project',
     tracks: [
-      { id: 'track-1', name: 'Track 1', midiDevice: '', clips: {} }
-    ],
-    phases: [
-      { id: 'phase-1', name: 'Phase 1' }
+      {
+        id: 'track-1',
+        name: 'Track 1',
+        midiDevice: '',
+        midiChannel: 1,
+        clips: Array(DEFAULT_SLOTS).fill(null)
+      }
     ],
     globalTempo: 128,
     key: 'C',
@@ -26,7 +49,8 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
       id: `track-${Date.now()}`,
       name: `Track ${project.tracks!.length + 1}`,
       midiDevice: '',
-      clips: {}
+      midiChannel: 1,
+      clips: Array(DEFAULT_SLOTS).fill(null)
     };
     setProject(prev => ({
       ...prev,
@@ -37,26 +61,42 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
   const renameTrack = (trackId: string, name: string) => {
     setProject(prev => ({
       ...prev,
-      tracks: prev.tracks?.map(t => t.id === trackId ? { ...t, name } : t)
+      tracks: prev.tracks?.map(t => (t.id === trackId ? { ...t, name } : t))
     }));
   };
 
-  const assignMidi = (trackId: string, device: string) => {
+  const assignMidiDevice = (trackId: string, device: string) => {
     setProject(prev => ({
       ...prev,
-      tracks: prev.tracks?.map(t => t.id === trackId ? { ...t, midiDevice: device } : t)
+      tracks: prev.tracks?.map(t => (t.id === trackId ? { ...t, midiDevice: device } : t))
     }));
   };
 
-  const addPhase = () => {
-    const newPhase: Phase = {
-      id: `phase-${Date.now()}`,
-      name: `Phase ${project.phases!.length + 1}`
-    };
+  const assignMidiChannel = (trackId: string, channel: number) => {
     setProject(prev => ({
       ...prev,
-      phases: [...(prev.phases || []), newPhase]
+      tracks: prev.tracks?.map(t => (t.id === trackId ? { ...t, midiChannel: channel } : t))
     }));
+  };
+
+  const handleDragStart = (trackIndex: number, slotIndex: number) => {
+    setDragging({ trackIndex, slotIndex });
+  };
+
+  const handleDrop = (toTrackIndex: number, toSlotIndex: number) => {
+    if (!dragging) return;
+    setProject(prev => {
+      const tracks = prev.tracks?.map(t => ({ ...t, clips: [...t.clips] })) || [];
+      const clip = tracks[dragging.trackIndex].clips[dragging.slotIndex];
+      tracks[dragging.trackIndex].clips[dragging.slotIndex] = tracks[toTrackIndex].clips[toSlotIndex];
+      tracks[toTrackIndex].clips[toSlotIndex] = clip;
+      return { ...prev, tracks };
+    });
+    setDragging(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
   };
 
   return (
@@ -74,10 +114,12 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
               <input
                 type="number"
                 value={project.globalTempo}
-                onChange={(e) => setProject(prev => ({
-                  ...prev,
-                  globalTempo: parseInt(e.target.value) || 128
-                }))}
+                onChange={(e) =>
+                  setProject(prev => ({
+                    ...prev,
+                    globalTempo: parseInt(e.target.value) || 128
+                  }))
+                }
                 min={60}
                 max={200}
               />
@@ -103,37 +145,47 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
 
       <main className="crealab-workspace">
         <div className="track-view">
-          <div className="section-column">
-            <div className="section-header">Phases</div>
-            {project.phases?.map(phase => (
-              <div key={phase.id} className="section-label">{phase.name}</div>
-            ))}
-            <button onClick={addPhase} className="add-section">+ Phase</button>
-          </div>
-
-          {project.tracks?.map(track => (
+          {project.tracks?.map((track, trackIndex) => (
             <div key={track.id} className="track-column">
               <div className="track-header">
                 <input
                   value={track.name}
                   onChange={(e) => renameTrack(track.id, e.target.value)}
                 />
-                <input
+                <select
                   value={track.midiDevice}
-                  onChange={(e) => assignMidi(track.id, e.target.value)}
-                  placeholder="MIDI Device"
-                />
+                  onChange={(e) => assignMidiDevice(track.id, e.target.value)}
+                >
+                  <option value="">Select MIDI</option>
+                  {midiDevices.map(dev => (
+                    <option key={dev.id} value={dev.id}>{dev.name}</option>
+                  ))}
+                </select>
+                <select
+                  value={track.midiChannel}
+                  onChange={(e) => assignMidiChannel(track.id, parseInt(e.target.value))}
+                >
+                  {Array.from({ length: 16 }, (_, i) => i + 1).map(ch => (
+                    <option key={ch} value={ch}>Ch {ch}</option>
+                  ))}
+                </select>
               </div>
-              {project.phases?.map(phase => (
-                <div key={phase.id} className="clip-slot">
-                  {track.clips[phase.id]?.name || ''}
+              {track.clips.map((clip, slotIndex) => (
+                <div
+                  key={slotIndex}
+                  className="clip-slot"
+                  draggable={!!clip}
+                  onDragStart={() => handleDragStart(trackIndex, slotIndex)}
+                  onDragOver={handleDragOver}
+                  onDrop={() => handleDrop(trackIndex, slotIndex)}
+                >
+                  {clip?.name || ''}
                 </div>
               ))}
             </div>
           ))}
-
-          <div className="add-track-column">
-            <button onClick={addTrack}>+ Track</button>
+          <div className="add-track-button">
+            <button onClick={addTrack}>+</button>
           </div>
         </div>
       </main>
