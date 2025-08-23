@@ -4,6 +4,10 @@ import { ProbabilisticGenerator } from '../generators/ProbabilisticGenerator';
 import { MarkovGenerator } from '../generators/MarkovGenerator';
 import { ArpeggiatorGenerator } from '../generators/ArpeggiatorGenerator';
 import { ChaosGenerator } from '../generators/ChaosGenerator';
+import { LSystemGenerator } from '../generators/advanced/LSystemGenerator';
+import { CellularAutomataGenerator } from '../generators/advanced/CellularAutomataGenerator';
+import { NeuralNetworkGenerator } from '../generators/advanced/NeuralNetworkGenerator';
+import { MusicalIntelligence } from '../ai/MusicalIntelligence';
 
 export interface GeneratorInstance {
   generate(
@@ -43,6 +47,9 @@ export class GeneratorEngine {
     this.generators.set('markov', new MarkovGenerator());
     this.generators.set('arpeggiator', new ArpeggiatorGenerator());
     this.generators.set('chaos', new ChaosGenerator());
+    this.generators.set('lsystem', new LSystemGenerator());
+    this.generators.set('cellular', new CellularAutomataGenerator());
+    this.generators.set('neural', new NeuralNetworkGenerator());
   }
 
   // Iniciar el motor generativo
@@ -59,6 +66,16 @@ export class GeneratorEngine {
       this.tick(tracks, globalTempo, key, scale);
     }, interval);
 
+    // Enviar mensajes de inicio de clock si están habilitados
+    tracks.forEach(t => {
+      if (t.sendClock) {
+        this.sendMidiStart(t);
+        if (!this.tracksWithClock.includes(t)) {
+          this.tracksWithClock.push(t);
+        }
+      }
+    });
+
     console.log('🎵 Generator Engine started at', globalTempo, 'BPM');
   }
 
@@ -74,12 +91,29 @@ export class GeneratorEngine {
 
     // Reset all generators
     this.generators.forEach(generator => generator.reset());
+
+     // Enviar mensajes de stop a dispositivos que usan clock
+    this.tracksWithClock.forEach(t => this.sendMidiStop(t));
+    this.tracksWithClock = [];
     console.log('🛑 Generator Engine stopped');
   }
 
   // Tick principal - ejecuta cada 16th note
+  private tracksWithClock: GenerativeTrack[] = [];
+
   private tick(tracks: GenerativeTrack[], globalTempo: number, key: string, scale: string) {
+    MusicalIntelligence.applyCrossTrackInfluence(tracks);
+    MusicalIntelligence.analyzeHarmony(tracks);
+
     tracks.forEach(track => {
+      if (track.sendClock && !this.tracksWithClock.includes(track)) {
+        this.tracksWithClock.push(track);
+      }
+
+      if (track.sendClock) {
+        this.sendMidiClock(track, 6);
+      }
+
       if (track.generator.enabled && track.controls.playStop) {
         this.processTrack(track, globalTempo, key, scale);
       }
@@ -100,6 +134,7 @@ export class GeneratorEngine {
 
     // Actualizar parámetros del generador basado en controles
     generator.updateParameters(track);
+    MusicalIntelligence.evolvePattern(track);
 
     // Generar notas
     const notes = generator.generate(track, this.currentTime, globalTempo, key, scale);
@@ -145,6 +180,41 @@ export class GeneratorEngine {
     }
   }
 
+  // Enviar mensajes de clock
+  private async sendMidiClock(track: GenerativeTrack, pulses: number) {
+    if (!track.outputDevice) return;
+    try {
+      const access = await (navigator as any).requestMIDIAccess();
+      const output = access.outputs.get(track.outputDevice);
+      if (!output) return;
+      for (let i = 0; i < pulses; i++) {
+        output.send([0xf8]);
+      }
+    } catch (err) {
+      console.warn('Failed to send MIDI clock:', err);
+    }
+  }
+
+  private async sendMidiStart(track: GenerativeTrack) {
+    await this.sendMidiMessage(track, 0xfa);
+  }
+
+  private async sendMidiStop(track: GenerativeTrack) {
+    await this.sendMidiMessage(track, 0xfc);
+  }
+
+  private async sendMidiMessage(track: GenerativeTrack, msg: number) {
+    if (!track.outputDevice) return;
+    try {
+      const access = await (navigator as any).requestMIDIAccess();
+      const output = access.outputs.get(track.outputDevice);
+      if (!output) return;
+      output.send([msg]);
+    } catch (err) {
+      console.warn('Failed to send MIDI message:', err);
+    }
+  }
+
   // Actualizar parámetros de un track específico
   updateTrackParameters(track: GenerativeTrack) {
     const generator = this.generators.get(track.generator.type);
@@ -186,6 +256,15 @@ export class GeneratorEngine {
         break;
       case 'chaos':
         track.generator.parameters = { attractor: 'lorenz', sensitivity: 0.5, scaling: 1.0 };
+        break;
+      case 'lsystem':
+        track.generator.parameters = { rules: { A: 'AB', B: 'A' } };
+        break;
+      case 'cellular':
+        track.generator.parameters = { seed: [1] };
+        break;
+      case 'neural':
+        track.generator.parameters = {};
         break;
       default:
         track.generator.parameters = {};

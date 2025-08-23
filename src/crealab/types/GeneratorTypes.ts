@@ -8,7 +8,8 @@ export type GeneratorType =
   | 'sequencer'       // Secuenciador con variaciones
   | 'chaos'           // Sistemas caóticos
   | 'cellular'        // Autómatas celulares
-  | 'lsystem';        // L-Systems fractales
+  | 'lsystem'        // L-Systems fractales
+  | 'neural';        // Redes neuronales simples
 
 export interface MidiGenerator {
   id: string;
