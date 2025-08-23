@@ -35,6 +35,11 @@ async fn save_config(state: State<'_, ConfigState>) -> Result<(), String> {
     cfg.save(&state.path).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+async fn stop_audio() {
+    audio::stop();
+}
+
 fn main() {
     let config_path = tauri::api::path::app_config_dir(&tauri::Config::default())
         .unwrap_or(std::path::PathBuf::from("."))
@@ -43,14 +48,7 @@ fn main() {
 
     tauri::Builder::default()
         .manage(ConfigState { path: config_path, inner: std::sync::Mutex::new(cfg) })
-        .manage(midi::MidiState::default())
-        .invoke_handler(tauri::generate_handler![
-            set_layer_opacity,
-            get_config,
-            save_config,
-            midi::list_midi_ports,
-            midi::select_midi_port
-        ])
+        .invoke_handler(tauri::generate_handler![set_layer_opacity, get_config, save_config, stop_audio])
 
         .setup(|app| {
             if let Err(e) = midi::start(app.handle().clone()) {

@@ -1,8 +1,11 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use log::error;
+use once_cell::sync::Lazy;
 use rustfft::{num_complex::Complex, FftPlanner};
 use serde::Serialize;
+use std::sync::Mutex;
 use tauri::AppHandle;
+use tokio::sync::watch;
+
 
 #[derive(Serialize, Clone)]
 pub struct AudioData {
@@ -12,17 +15,27 @@ pub struct AudioData {
     pub high: f32, // 4000+ Hz
 }
 
-pub fn start(app: AppHandle) -> anyhow::Result<()> {
+static STOP_TX: Lazy<Mutex<Option<watch::Sender<bool>>>> = Lazy::new(|| Mutex::new(None));
+
+pub fn start(app: AppHandle) {
+    let (tx, rx) = watch::channel(false);
+    *STOP_TX.lock().unwrap() = Some(tx);
     tauri::async_runtime::spawn(async move {
-        if let Err(e) = run(app.clone()) {
-            error!("audio error: {e:?}");
-            let _ = app.emit_all("error", format!("audio error: {e}"));
+        if let Err(e) = run(app.clone(), rx).await {
+            eprintln!("audio error: {e:?}");
+
         }
     });
     Ok(())
 }
 
-fn run(app: AppHandle) -> anyhow::Result<()> {
+pub fn stop() {
+    if let Some(tx) = STOP_TX.lock().unwrap().as_ref() {
+        let _ = tx.send(true);
+    }
+}
+
+async fn run(app: AppHandle, mut stop_rx: watch::Receiver<bool>) -> anyhow::Result<()> {
     let host = cpal::default_host();
     let device = host
         .default_input_device()
@@ -91,6 +104,8 @@ fn run(app: AppHandle) -> anyhow::Result<()> {
     )?;
 
     stream.play()?;
-    std::thread::park();
+    // Wait for stop signal
+    let _ = stop_rx.changed().await;
+    stream.pause()?;
     Ok(())
 }
