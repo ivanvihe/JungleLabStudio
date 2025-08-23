@@ -1,301 +1,219 @@
-import React, { useEffect, useState } from 'react';
-import { CreaLabProject, Track, MidiClip, MidiNote } from '../types/CrealabTypes';
-
+import React, { useState } from 'react';
+import { CreaLabProject, GenerativeTrack } from '../types/CrealabTypes';
+import { TopBar } from './TopBar';
 import './CreaLab.css';
 
 interface CreaLabProps {
   onSwitchToAudioVisualizer: () => void;
 }
 
-const DEFAULT_SLOTS = 8;
+const TRACK_COLORS = [
+  '#ff6b6b',
+  '#ffa94d',
+  '#ffd43b',
+  '#69db7c',
+  '#4dabf7',
+  '#845ef7',
+  '#f06595',
+  '#94d82d'
+];
+
+const createDefaultTrack = (n: number): GenerativeTrack => ({
+  id: `track-${n}`,
+  name: `Track ${n}`,
+  trackNumber: n,
+  color: TRACK_COLORS[(n - 1) % TRACK_COLORS.length],
+  outputDevice: '',
+  midiChannel: 1,
+  generator: {
+    type: 'off',
+    enabled: false,
+    parameters: {},
+    lastNoteTime: 0,
+    currentStep: 0
+  },
+  controls: {
+    intensity: 0,
+    paramA: 0,
+    paramB: 0,
+    paramC: 0,
+    playStop: false,
+    mode: 0
+  },
+  launchControlMapping: {
+    stripNumber: n,
+    faderCC: 0,
+    knob1CC: 0,
+    knob2CC: 0,
+    knob3CC: 0,
+    button1CC: 0,
+    button2CC: 0
+  }
+});
 
 export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) => {
-  const [midiDevices, setMidiDevices] = useState<{ id: string; name: string }[]>([]);
-  const [dragging, setDragging] = useState<{ trackIndex: number; slotIndex: number } | null>(null);
-
-  useEffect(() => {
-    const nav = navigator as any;
-    if (nav.requestMIDIAccess) {
-      nav.requestMIDIAccess().then((access: any) => {
-        const inputs = Array.from(access.inputs.values()).map((d: any) => ({
-          id: d.id,
-          name: d.name || d.id
-        }));
-        setMidiDevices(inputs);
-      }).catch(() => {
-        // ignore
-      });
-    }
-  }, []);
-
   const [project, setProject] = useState<CreaLabProject>({
     id: 'project-1',
     name: 'New Project',
     tracks: [
-      {
-        id: 'track-1',
-        name: 'Track 1',
-        midiDevice: '',
-        midiChannel: 1,
-        clips: Array(DEFAULT_SLOTS).fill(null)
-      }
+      createDefaultTrack(1),
+      createDefaultTrack(2),
+      createDefaultTrack(3),
+      createDefaultTrack(4),
+      createDefaultTrack(5),
+      createDefaultTrack(6),
+      createDefaultTrack(7),
+      createDefaultTrack(8)
     ],
-    globalTempo: 128,
+    globalTempo: 120,
     key: 'C',
-    scale: 'minor'
+    scale: 'minor',
+    genre: 'default',
+    transport: {
+      isPlaying: false,
+      isPaused: false,
+      currentBeat: 0,
+      currentBar: 0,
+      currentStep: 0
+    },
+    launchControl: {
+      connected: false
+    },
+    midiClock: {
+      enabled: false,
+      source: 'internal',
+      ppqn: 24
+    }
   });
 
-  const addTrack = () => {
-    const newTrack: Track = {
-      id: `track-${Date.now()}`,
-      name: `Track ${project.tracks!.length + 1}`,
-      midiDevice: '',
-      midiChannel: 1,
-      clips: Array(DEFAULT_SLOTS).fill(null)
-    };
+  const updateTrackName = (trackNumber: number, name: string) => {
     setProject(prev => ({
       ...prev,
-      tracks: [...(prev.tracks || []), newTrack]
+      tracks: prev.tracks.map(t =>
+        t.trackNumber === trackNumber ? { ...t, name } : t
+      ) as any
     }));
   };
 
-  const renameTrack = (trackId: string, name: string) => {
+  const updateMidiChannel = (trackNumber: number, channel: number) => {
     setProject(prev => ({
       ...prev,
-      tracks: prev.tracks?.map(t => (t.id === trackId ? { ...t, name } : t))
+      tracks: prev.tracks.map(t =>
+        t.trackNumber === trackNumber ? { ...t, midiChannel: channel } : t
+      ) as any
     }));
   };
 
-  const assignMidiDevice = (trackId: string, device: string) => {
+  const updateGeneratorType = (trackNumber: number, type: string) => {
     setProject(prev => ({
       ...prev,
-      tracks: prev.tracks?.map(t => (t.id === trackId ? { ...t, midiDevice: device } : t))
-    }));
-  };
-
-  const assignMidiChannel = (trackId: string, channel: number) => {
-    setProject(prev => ({
-      ...prev,
-      tracks: prev.tracks?.map(t => (t.id === trackId ? { ...t, midiChannel: channel } : t))
-    }));
-  };
-
-  const createMidiClip = (trackIndex: number, slotIndex: number) => {
-    const track = project.tracks?.[trackIndex];
-    if (!track) return;
-
-    // Generar algunas notas de ejemplo basadas en la escala del proyecto
-    const scaleNotes = getScaleNotes(project.key, project.scale);
-    const randomNotes: MidiNote[] = [];
-
-    // Crear un patrón básico de 4 beats
-    for (let i = 0; i < 4; i++) {
-      if (Math.random() > 0.5) {
-        // 50% probabilidad por beat
-        randomNotes.push({
-          note: scaleNotes[Math.floor(Math.random() * scaleNotes.length)],
-          time: i,
-          velocity: 80 + Math.floor(Math.random() * 47), // 80-127
-          duration: 0.25 + Math.random() * 0.75 // 0.25-1 beats
-        });
-      }
-    }
-
-    const newClip: MidiClip = {
-      id: `clip-${Date.now()}`,
-      name: `Clip ${slotIndex + 1}`,
-      trackType: 'lead', // Por defecto
-      notes: randomNotes,
-      duration: 4, // 4 beats
-      channel: track.midiChannel,
-      enabled: true
-    };
-
-    setProject(prev => ({
-      ...prev,
-      tracks: prev.tracks?.map((t, idx) =>
-        idx === trackIndex
-          ? {
-              ...t,
-              clips: t.clips.map((c, cidx) => (cidx === slotIndex ? newClip : c))
-            }
+      tracks: prev.tracks.map(t =>
+        t.trackNumber === trackNumber
+          ? { ...t, generator: { ...t.generator, type: type as any } }
           : t
-      )
+      ) as any
     }));
-
-    // Enviar notas MIDI si hay dispositivo configurado
-    sendMidiClip(newClip, track.midiDevice);
-  };
-
-  const handleDragStart = (trackIndex: number, slotIndex: number) => {
-    setDragging({ trackIndex, slotIndex });
-  };
-
-  const handleDrop = (toTrackIndex: number, toSlotIndex: number) => {
-    if (!dragging) return;
-    setProject(prev => {
-      const tracks = prev.tracks?.map(t => ({ ...t, clips: [...t.clips] })) || [];
-      const clip = tracks[dragging.trackIndex].clips[dragging.slotIndex];
-      tracks[dragging.trackIndex].clips[dragging.slotIndex] = tracks[toTrackIndex].clips[toSlotIndex];
-      tracks[toTrackIndex].clips[toSlotIndex] = clip;
-      return { ...prev, tracks };
-    });
-    setDragging(null);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const getScaleNotes = (key: string, scale: string): number[] => {
-    const keyToRoot: { [key: string]: number } = {
-      C: 60,
-      'C#': 61,
-      D: 62,
-      'D#': 63,
-      E: 64,
-      F: 65,
-      'F#': 66,
-      G: 67,
-      'G#': 68,
-      A: 69,
-      'A#': 70,
-      B: 71
-    };
-
-    const scaleIntervals: { [scale: string]: number[] } = {
-      minor: [0, 2, 3, 5, 7, 8, 10],
-      major: [0, 2, 4, 5, 7, 9, 11],
-      dorian: [0, 2, 3, 5, 7, 9, 10],
-      pentatonic: [0, 2, 5, 7, 9]
-    };
-
-    const root = keyToRoot[key] || 60;
-    const intervals = scaleIntervals[scale] || scaleIntervals['minor'];
-
-    return intervals.map(interval => root + interval);
-  };
-
-  const sendMidiClip = async (clip: MidiClip, deviceId: string) => {
-    if (!deviceId) return;
-
-    try {
-      const access = await (navigator as any).requestMIDIAccess();
-      const output = access.outputs.get(deviceId);
-      if (!output) return;
-
-      // Reproducir las notas del clip
-      clip.notes.forEach((note, index) => {
-        setTimeout(() => {
-          // Note On
-          output.send([0x90 + (clip.channel - 1), note.note, note.velocity]);
-
-          // Note Off después de la duración
-          setTimeout(() => {
-            output.send([0x80 + (clip.channel - 1), note.note, 0]);
-          }, note.duration * 500); // Convertir beats a ms (asumiendo 120 BPM)
-        }, note.time * 500);
-      });
-    } catch (error) {
-      console.log('No se pudo enviar MIDI:', error);
-    }
-
   };
 
   return (
     <div className="crealab-container">
-      <header className="crealab-header">
-        <div className="crealab-title">
-          <h1>🎼 Crea Lab</h1>
-          <span className="project-name">{project.name}</span>
-        </div>
-
-        <div className="crealab-controls">
-          <div className="global-settings">
-            <label>
-              BPM:
-              <input
-                type="number"
-                value={project.globalTempo}
-                onChange={(e) =>
-                  setProject(prev => ({
-                    ...prev,
-                    globalTempo: parseInt(e.target.value) || 128
-                  }))
-                }
-                min={60}
-                max={200}
-              />
-            </label>
-            <label>
-              Key:
-              <select
-                value={project.key}
-                onChange={(e) => setProject(prev => ({ ...prev, key: e.target.value }))}
-              >
-                {['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'].map(key => (
-                  <option key={key} value={key}>{key}</option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          <button onClick={onSwitchToAudioVisualizer} className="switch-app-btn">
-            🎨 AudioVisualizer
-          </button>
-        </div>
-      </header>
+      <TopBar
+        projectName={project.name}
+        tempo={project.globalTempo}
+        onTempoChange={tempo => setProject(p => ({ ...p, globalTempo: tempo }))}
+        keySignature={project.key}
+        onKeyChange={key => setProject(p => ({ ...p, key }))}
+        onSwitchToAudioVisualizer={onSwitchToAudioVisualizer}
+      />
 
       <main className="crealab-workspace">
-        <div className="track-view">
-          {project.tracks?.map((track, trackIndex) => (
-            <div key={track.id} className="track-column">
+        <div className="tracks-grid">
+          {project.tracks.map(track => (
+            <div
+              key={track.id}
+              className="track-strip"
+              style={{ ['--track-color' as any]: track.color }}
+            >
               <div className="track-header">
+                <div className="track-number">{track.trackNumber}</div>
                 <input
+                  className="track-name-input"
                   value={track.name}
-                  onChange={(e) => renameTrack(track.id, e.target.value)}
+                  onChange={e => updateTrackName(track.trackNumber, e.target.value)}
                 />
-                <div className="midi-selectors">
-                  <select
-                    value={track.midiDevice}
-                    onChange={(e) => assignMidiDevice(track.id, e.target.value)}
-                  >
-                    <option value="">MIDI Dev</option>
-                    {midiDevices.map(dev => (
-                      <option key={dev.id} value={dev.id}>{dev.name.substring(0, 8)}</option>
-                    ))}
+              </div>
+
+              <div className="track-controls">
+                <div className="midi-config">
+                  <select className="device-selector">
+                    <option>Device</option>
                   </select>
                   <select
+                    className="channel-selector"
                     value={track.midiChannel}
-                    onChange={(e) => assignMidiChannel(track.id, parseInt(e.target.value))}
+                    onChange={e =>
+                      updateMidiChannel(track.trackNumber, parseInt(e.target.value))
+                    }
                   >
                     {Array.from({ length: 16 }, (_, i) => i + 1).map(ch => (
-                      <option key={ch} value={ch}>Ch {ch}</option>
+                      <option key={ch} value={ch}>{ch}</option>
                     ))}
                   </select>
                 </div>
-              </div>
-              {track.clips.map((clip, slotIndex) => (
-                <div
-                  key={slotIndex}
-                  className={`clip-slot ${!clip ? 'empty' : ''}`}
-                  draggable={!!clip}
-                  onDragStart={() => handleDragStart(trackIndex, slotIndex)}
-                  onDragOver={handleDragOver}
-                  onDrop={() => handleDrop(trackIndex, slotIndex)}
-                  onDoubleClick={() => createMidiClip(trackIndex, slotIndex)}
 
-                >
-                  {clip?.name || '+'}
+                <div className="generator-config">
+                  <select
+                    className="generator-selector"
+                    value={track.generator.type}
+                    onChange={e => updateGeneratorType(track.trackNumber, e.target.value)}
+                  >
+                    <option value="off">Off</option>
+                    <option value="euclidean">Euclidean</option>
+                    <option value="probabilistic">Probabilistic</option>
+                    <option value="markov">Markov</option>
+                    <option value="arpeggiator">Arpeggiator</option>
+                    <option value="chaos">Chaos</option>
+                  </select>
                 </div>
-              ))}
+
+                <div className="launch-control-preview">
+                  <div className="lc-controls">
+                    <div className="lc-knobs">
+                      <div className="lc-knob"><span className="knob-value">{track.controls.paramA}</span></div>
+                      <div className="lc-knob"><span className="knob-value">{track.controls.paramB}</span></div>
+                      <div className="lc-knob"><span className="knob-value">{track.controls.paramC}</span></div>
+                    </div>
+                    <div className="lc-fader">
+                      <div className="fader-track">
+                        <div
+                          className="fader-thumb"
+                          style={{ bottom: `${(track.controls.intensity / 127) * 60}px` }}
+                        />
+                      </div>
+                      <div className="fader-value">{track.controls.intensity}</div>
+                    </div>
+                    <div className="lc-buttons">
+                      <button className={`lc-button ${track.controls.playStop ? 'active' : ''}`}>▶</button>
+                      <button className={`lc-button ${track.controls.mode ? 'active' : ''}`}>M</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="track-status">
+                <div
+                  className={`generator-status ${track.generator.enabled ? 'active' : 'inactive'}`}
+                >
+                  {track.generator.enabled ? track.generator.type : 'inactive'}
+                </div>
+              </div>
             </div>
           ))}
-          <div className="add-track-button">
-            <button onClick={addTrack}>+</button>
-          </div>
         </div>
       </main>
     </div>
   );
 };
+
+export default CreaLab;
+

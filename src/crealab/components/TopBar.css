@@ -1,0 +1,79 @@
+.topbar-container {
+  background: #2d2d2d;
+  border-bottom: 1px solid #444;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 60px;
+}
+
+.topbar-title {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.topbar-title h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  background: linear-gradient(45deg, #4CAF50, #8BC34A);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.project-name {
+  color: #ccc;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.topbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.global-settings {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.global-settings label {
+  color: #ccc;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.global-settings input,
+.global-settings select {
+  background: #3a3a3a;
+  border: 1px solid #555;
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  width: 60px;
+}
+
+.switch-app-btn {
+  background: linear-gradient(45deg, #2196F3, #21CBF3);
+  border: none;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.switch-app-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
