@@ -95,8 +95,13 @@
 }
 
 .device-selector {
-  flex: 2;
   width: 100%;
+  flex: none;
+}
+
+.output-row .device-selector {
+  flex: 2;
+  width: auto;
 }
 
 .channel-selector {
