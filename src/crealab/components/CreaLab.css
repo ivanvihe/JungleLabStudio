@@ -101,7 +101,7 @@
   display: flex;
   flex-direction: column;
   border-right: 1px solid #444;
-  width: 180px;
+  width: 120px;
 }
 
 .track-header {
@@ -110,29 +110,29 @@
   border-bottom: 1px solid #444;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .track-header input {
   background: #3a3a3a;
   border: 1px solid #555;
   color: #fff;
-  padding: 4px 6px;
+  padding: 3px 5px;
   border-radius: 4px;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
 }
 
 .track-header select {
   background: #3a3a3a;
   border: 1px solid #555;
   color: #fff;
-  padding: 4px 6px;
+  padding: 2px 4px;
   border-radius: 4px;
-  font-size: 0.85rem;
+  font-size: 0.7rem;
 }
 
 .clip-slot {
-  height: 60px;
+  height: 35px;
   border-bottom: 1px solid #333;
   display: flex;
   align-items: center;
