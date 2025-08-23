@@ -428,13 +428,14 @@ const App: React.FC = () => {
       const stored = localStorage.getItem('activeLayers');
       if (stored) {
         const layers = JSON.parse(stored) as Record<string, string>;
-        Object.entries(layers).forEach(([layerId, presetId]) => {
-          engineRef.current!.activateLayerPreset(layerId, presetId);
-        })
-        .catch((err: any) => {
-          console.error('Failed to access MIDI devices', err);
+        Promise.all(
+          Object.entries(layers).map(([layerId, presetId]) =>
+            engineRef.current!.activateLayerPreset(layerId, presetId)
+          )
+        ).catch(err => {
+          console.error('Failed to activate stored layers', err);
         });
-    }
+      }
     }
   }, [isFullscreenMode, isInitialized]);
 
