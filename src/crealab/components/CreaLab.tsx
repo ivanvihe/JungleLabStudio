@@ -165,7 +165,7 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
             paramA: strip.values.knob1,
             paramB: strip.values.knob2,
             paramC: strip.values.knob3,
-            playStop: strip.values.button1,
+            playStop: strip.values.button1 || t.controls.playStop,
             mode: strip.values.button2 ? 1 : 0
           }
         };
