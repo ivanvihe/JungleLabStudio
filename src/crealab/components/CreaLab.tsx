@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { CreaLabProject, Scene } from '../types/CrealabTypes';
+import { CreaLabProject, Scene, MidiClip } from '../types/CrealabTypes';
+import { MidiClipGenerator } from '../core/MidiClipGenerator';
+import { SceneEditor } from './SceneEditor';
 import './CreaLab.css';
 
 interface CreaLabProps {
@@ -17,6 +19,7 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
   });
 
   const [selectedScene, setSelectedScene] = useState<string | null>(null);
+  const clipGenerator = MidiClipGenerator.getInstance();
 
   const createNewScene = () => {
     const newScene: Scene = {
@@ -38,6 +41,46 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
       scenes: [...prev.scenes, newScene]
     }));
   };
+
+  const generateDubScene = () => {
+    const kick = clipGenerator.generateKick('dub', 8, 10);
+    const bass = clipGenerator.generateBass(project.key, project.scale, 'dub', 8, 1);
+    const arp = clipGenerator.generateArpeggio(project.key, 'dorian', 'floating', 8, 2);
+    const chords = clipGenerator.generateChordProgression(project.key, 'dubClassic', 8, 3);
+    
+    const newScene: Scene = {
+      id: `scene-${Date.now()}`,
+      name: `Dub Scene ${project.scenes.length + 1}`,
+      duration: 8,
+      tempo: project.globalTempo,
+      clips: [kick, bass, arp, chords],
+      visualConfig: {
+        primaryPreset: '',
+        layerPresets: {},
+        triggers: []
+      },
+      musicalContext: 'drop'
+    };
+    
+    setProject(prev => ({
+      ...prev,
+      scenes: [...prev.scenes, newScene]
+    }));
+    
+    setSelectedScene(newScene.id);
+  };
+
+  const updateScene = (sceneId: string, updates: Partial<Scene>) => {
+    setProject(prev => ({
+      ...prev,
+      scenes: prev.scenes.map(scene => 
+        scene.id === sceneId ? { ...scene, ...updates } : scene
+      )
+    }));
+  };
+
+  const currentScene = selectedScene ? 
+    project.scenes.find(s => s.id === selectedScene) : null;
 
   return (
     <div className="crealab-container">
@@ -85,7 +128,12 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
         <div className="scenes-panel">
           <div className="scenes-header">
             <h3>Scenes</h3>
-            <button onClick={createNewScene} className="add-scene-btn">+ Add Scene</button>
+            <div className="scenes-actions">
+              <button onClick={createNewScene} className="add-scene-btn">+ Empty</button>
+              <button onClick={generateDubScene} className="generate-scene-btn">
+                🎵 Dub
+              </button>
+            </div>
           </div>
           
           <div className="scenes-list">
@@ -111,11 +159,13 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
 
         <div className="main-workspace">
           {selectedScene ? (
-            <div className="scene-editor">
-              <h2>Scene Editor</h2>
-              <p>Selected scene: {project.scenes.find(s => s.id === selectedScene)?.name}</p>
-              <p className="coming-soon">MIDI Grid and clip editor coming soon...</p>
-            </div>
+            <SceneEditor 
+              scene={currentScene!}
+              onUpdateScene={(updates) => updateScene(selectedScene, updates)}
+              globalTempo={project.globalTempo}
+              projectKey={project.key}
+              projectScale={project.scale}
+            />
           ) : (
             <div className="no-scene-selected">
               <div className="welcome-message">
@@ -124,6 +174,9 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
                 <div className="quick-actions">
                   <button onClick={createNewScene} className="primary-btn">
                     Create First Scene
+                  </button>
+                  <button onClick={generateDubScene} className="secondary-btn">
+                    Generate Dub Scene
                   </button>
                 </div>
               </div>

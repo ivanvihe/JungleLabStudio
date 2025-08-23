@@ -115,20 +115,35 @@
   font-size: 1.1rem;
 }
 
-.add-scene-btn {
+.scenes-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.add-scene-btn,
+.generate-scene-btn {
   background: #4CAF50;
   border: none;
   color: white;
   padding: 6px 12px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 500;
   transition: background 0.2s ease;
 }
 
-.add-scene-btn:hover {
+.generate-scene-btn {
+  background: #FF9800;
+}
+
+.add-scene-btn:hover,
+.generate-scene-btn:hover {
   background: #5CBF60;
+}
+
+.generate-scene-btn:hover {
+  background: #FFB74D;
 }
 
 .scenes-list {
@@ -214,6 +229,24 @@
   box-shadow: 0 6px 16px rgba(76, 175, 80, 0.3);
 }
 
+.secondary-btn {
+  background: linear-gradient(45deg, #FF9800, #FFB74D);
+  border: none;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  margin-left: 12px;
+}
+
+.secondary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(255, 152, 0, 0.3);
+}
+
 .scene-editor {
   padding: 40px;
   text-align: center;
@@ -223,4 +256,9 @@
   color: #888;
   font-style: italic;
   margin-top: 20px;
+}
+
+.quick-actions {
+  display: flex;
+  justify-content: center;
 }
