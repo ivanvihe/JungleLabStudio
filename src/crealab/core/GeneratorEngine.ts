@@ -9,6 +9,7 @@ import { LSystemGenerator } from '../generators/advanced/LSystemGenerator';
 import { CellularAutomataGenerator } from '../generators/advanced/CellularAutomataGenerator';
 import { NeuralNetworkGenerator } from '../generators/advanced/NeuralNetworkGenerator';
 import { MusicalIntelligence } from '../ai/MusicalIntelligence';
+import { MidiManager } from './MidiManager';
 
 export interface GeneratorInstance {
   generate(
@@ -155,42 +156,35 @@ export class GeneratorEngine {
 
     // Enviar notas MIDI si hay alguna
     if (notes.length > 0) {
-      this.sendMidiNotes(notes, track);
+      this.sendMidiNotes(notes, track, globalTempo);
     }
   }
 
   // Enviar notas MIDI al dispositivo externo
-  private async sendMidiNotes(notes: MidiNote[], track: GenerativeTrack) {
-    if (track.outputDevice) {
-      try {
-        const access = await (navigator as any).requestMIDIAccess();
-        const output = access.outputs.get(track.outputDevice);
-
-        if (output) {
-          notes.forEach(note => {
-            // Note On
-            const noteOnMsg = [
-              0x90 + (track.midiChannel - 1), // Note on + channel
-              note.note,
-              note.velocity
-            ];
-            output.send(noteOnMsg);
-
-            // Note Off (programado)
-            setTimeout(() => {
-              const noteOffMsg = [
-                0x80 + (track.midiChannel - 1), // Note off + channel
-                note.note,
-                0
-              ];
-              output.send(noteOffMsg);
-            }, note.duration * 1000); // Convert to milliseconds
-          });
-        }
-      } catch (error) {
-        console.warn('Failed to send MIDI notes:', error);
-      }
+  private async sendMidiNotes(
+    notes: MidiNote[],
+    track: GenerativeTrack,
+    globalTempo: number
+  ) {
+    if (!track.outputDevice) {
+      console.warn(`No output device configured for track ${track.name}`);
+      return;
     }
+
+    const midi = MidiManager.getInstance();
+    const beatDuration = (60 / globalTempo) * 1000; // ms per beat
+
+    await Promise.all(
+      notes.map(n =>
+        midi.sendNote(
+          track.outputDevice!,
+          track.midiChannel,
+          n.note,
+          n.velocity,
+          n.duration * beatDuration
+        )
+      )
+    );
 
     if (this.broadcast && track.visualLayer && typeof track.visualPad === 'number') {
       notes.forEach(note => {
