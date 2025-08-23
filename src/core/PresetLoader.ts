@@ -133,6 +133,7 @@ export class PresetLoader {
   private shaderModules = import.meta.glob('../presets/*/shader.wgsl', { as: 'raw' });
   private configModules = import.meta.glob('../presets/*/config.json', { import: 'default' });
   private nextMidiNote: number = 36; // C2 como nota base
+  private basePath: string;
 
   // Listeners para cambios en presets
   private presetsChangeListeners: (() => void)[] = [];
@@ -140,8 +141,10 @@ export class PresetLoader {
   constructor(
     private camera: THREE.Camera,
     private renderer: THREE.WebGLRenderer,
-    private glitchTextPads: number = 1
+    private glitchTextPads: number = 1,
+    basePath: string = 'src/presets'
   ) {
+    this.basePath = basePath.replace(/^\.\//, '').replace(/\/$/, '');
     try {
       const stored = localStorage.getItem('genLabPresets');
       if (stored) this.genLabPresets = JSON.parse(stored);
@@ -155,6 +158,10 @@ export class PresetLoader {
     } catch {
       this.fractalLabPresets = [];
     }
+  }
+
+  public getBasePath(): string {
+    return this.basePath;
   }
 
   public setGlitchTextPads(count: number): void {
@@ -236,13 +243,13 @@ export class PresetLoader {
 
         cloneConfig.note = baseNote + (i - 1);
         
-        const clone: LoadedPreset = {
-          id: `${presetId}-${i}`,
-          config: cloneConfig,
-          createPreset,
-          shaderCode,
-          folderPath: `src/presets/${presetId}`,
-        };
+            const clone: LoadedPreset = {
+              id: `${presetId}-${i}`,
+              config: cloneConfig,
+              createPreset,
+              shaderCode,
+              folderPath: `${this.basePath}/${presetId}`,
+            };
         
         this.loadedPresets.set(clone.id, clone);
         console.log(`✅ Custom text instance reloaded: ${clone.config.name}`);
@@ -391,52 +398,52 @@ export class PresetLoader {
       if (presetId === 'custom-glitch-text') {
         const baseNote = cfg.note!;
         
-        for (let i = 1; i <= this.glitchTextPads; i++) {
-          const cloneConfig = JSON.parse(JSON.stringify(cfg));
-          const text = this.customTextContents[i - 1] || `Text ${i}`;
-          cloneConfig.name = text;
+          for (let i = 1; i <= this.glitchTextPads; i++) {
+            const cloneConfig = JSON.parse(JSON.stringify(cfg));
+            const text = this.customTextContents[i - 1] || `Text ${i}`;
+            cloneConfig.name = text;
 
-          if (cloneConfig.defaultConfig?.text?.content !== undefined) {
-            cloneConfig.defaultConfig.text.content = text;
+            if (cloneConfig.defaultConfig?.text?.content !== undefined) {
+              cloneConfig.defaultConfig.text.content = text;
+            }
+
+            cloneConfig.note = baseNote + (i - 1);
+
+            const clone: LoadedPreset = {
+              id: `${presetId}-${i}`,
+              config: cloneConfig,
+              createPreset,
+              shaderCode,
+              folderPath: `${this.basePath}/${presetId}`,
+            };
+
+            this.loadedPresets.set(clone.id, clone);
+            loadedPresets.push(clone);
+            console.log(`✅ Preset loaded: ${clone.config.name}`);
           }
-
-          cloneConfig.note = baseNote + (i - 1);
-          
-          const clone: LoadedPreset = {
-            id: `${presetId}-${i}`,
-            config: cloneConfig,
+      } else if (presetId === 'gen-lab') {
+          this.genLabBase = {
+            config: cfg,
             createPreset,
             shaderCode,
-            folderPath: `src/presets/${presetId}`,
+            folderPath: `${this.basePath}/${presetId}`,
           };
-          
-          this.loadedPresets.set(clone.id, clone);
-          loadedPresets.push(clone);
-          console.log(`✅ Preset loaded: ${clone.config.name}`);
-        }
-      } else if (presetId === 'gen-lab') {
-        this.genLabBase = {
-          config: cfg,
-          createPreset,
-          shaderCode,
-          folderPath: `src/presets/${presetId}`,
-        };
       } else if (presetId === 'fractal-lab') {
-        this.fractalLabBase = {
-          config: cfg,
-          createPreset,
-          shaderCode,
-          folderPath: `src/presets/${presetId}`,
-        };
+          this.fractalLabBase = {
+            config: cfg,
+            createPreset,
+            shaderCode,
+            folderPath: `${this.basePath}/${presetId}`,
+          };
       } else {
         // Preset normal
-        const loaded: LoadedPreset = {
-          id: presetId,
-          config: cfg,
-          createPreset,
-          shaderCode,
-          folderPath: `src/presets/${presetId}`
-        };
+          const loaded: LoadedPreset = {
+            id: presetId,
+            config: cfg,
+            createPreset,
+            shaderCode,
+            folderPath: `${this.basePath}/${presetId}`
+          };
 
         this.loadedPresets.set(presetId, loaded);
         loadedPresets.push(loaded);
@@ -499,7 +506,7 @@ export class PresetLoader {
 
   private async persistNote(presetId: string, note: number): Promise<void> {
     try {
-      const path = `src/presets/${presetId}/config.json`;
+        const path = `${this.basePath}/${presetId}/config.json`;
       if (typeof window !== 'undefined' && (window as any).__TAURI__) {
         const { exists, readTextFile, writeFile } = await import(
           /* @vite-ignore */ '@tauri-apps/api/fs'

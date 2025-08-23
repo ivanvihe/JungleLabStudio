@@ -212,6 +212,9 @@ const App: React.FC = () => {
   const [canvasBrightness, setCanvasBrightness] = useState(() => parseFloat(localStorage.getItem('canvasBrightness') || '1'));
   const [canvasVibrance, setCanvasVibrance] = useState(() => parseFloat(localStorage.getItem('canvasVibrance') || '1'));
   const [canvasBackground, setCanvasBackground] = useState(() => localStorage.getItem('canvasBackground') || '#000000');
+  const [visualsPath, setVisualsPath] = useState(
+    () => localStorage.getItem('visualsPath') || './src/presets/'
+  );
 
   useEffect(() => {
     const channel = new BroadcastChannel('av-sync');
@@ -268,6 +271,10 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('canvasBackground', canvasBackground);
   }, [canvasBackground]);
+
+  useEffect(() => {
+    localStorage.setItem('visualsPath', visualsPath);
+  }, [visualsPath]);
 
   useEffect(() => {
     if (!isFullscreenMode && midiTrigger) {
@@ -406,7 +413,7 @@ const App: React.FC = () => {
       console.log('🔧 Canvas found, initializing engine...');
       try {
         setStatus('Loading presets...');
-        const engine = new AudioVisualizerEngine(canvasRef.current, { glitchTextPads });
+        const engine = new AudioVisualizerEngine(canvasRef.current, { glitchTextPads, visualsPath });
         await engine.initialize();
         engineRef.current = engine;
         setGenLabBasePreset(engine.getGenLabBasePreset());
@@ -443,7 +450,7 @@ const App: React.FC = () => {
         engineRef.current.dispose();
       }
     };
-  }, [glitchTextPads]);
+  }, [glitchTextPads, visualsPath]);
 
 
   // Activar capas almacenadas en modo fullscreen
@@ -1193,6 +1200,8 @@ const App: React.FC = () => {
         onCanvasVibranceChange={setCanvasVibrance}
         canvasBackground={canvasBackground}
         onCanvasBackgroundChange={setCanvasBackground}
+        visualsPath={visualsPath}
+        onVisualsPathChange={setVisualsPath}
       />
 
       {/* Modal de galeria de presets */}
