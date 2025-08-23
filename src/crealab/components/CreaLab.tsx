@@ -10,6 +10,7 @@ import MidiConfiguration from './MidiConfiguration';
 import ProjectManager from './ProjectManager';
 import './CreaLab.css';
 import { GeneratorEngine } from '../core/GeneratorEngine';
+import { MODULE_KNOB_LABELS, EURORACK_MODULES } from '../data/EurorackModules';
 
 interface CreaLabProps {
   onSwitchToAudioVisualizer: () => void;
@@ -37,15 +38,6 @@ const DEFAULT_TRACK_TYPES: TrackType[] = [
   'lead'
 ];
 
-const KNOB_LABELS: Record<GeneratorType, [string, string, string]> = {
-  off: ['Param A', 'Param B', 'Param C'],
-  euclidean: ['Pulses', 'Steps', 'Offset'],
-  probabilistic: ['Density', 'Variation', 'Swing'],
-  markov: ['Order', 'Creativity', 'Density'],
-  arpeggiator: ['Pattern', 'Octaves', 'Length'],
-  chaos: ['Sensitivity', 'Scaling', 'Attractor'],
-  magenta: ['Steps', 'Temp', 'Density']
-};
 
 const createDefaultTrack = (n: number): GenerativeTrack => ({
   id: `track-${n}`,
@@ -403,7 +395,7 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
                 <div className="section-title">Controles MIDI</div>
                 <LaunchControlStrip
                   strip={controller?.channelStrips[track.trackNumber - 1] || null}
-                  labels={KNOB_LABELS[track.generator.type]}
+                  labels={MODULE_KNOB_LABELS[track.trackType]}
                 />
 
                 <div className="section-divider" />
@@ -415,13 +407,9 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
                     updateTrackType(track.trackNumber, e.target.value as TrackType)
                   }
                 >
-                  <option value="kick">Kick</option>
-                  <option value="bass">Bass</option>
-                  <option value="arp">Arp</option>
-                  <option value="lead">Lead</option>
-                  <option value="fx">FX</option>
-                  <option value="perc">Perc</option>
-                  <option value="visual">Visual</option>
+                  {EURORACK_MODULES.map(m => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
                 </select>
 
                 <select
