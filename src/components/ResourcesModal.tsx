@@ -4,6 +4,7 @@ import { LoadedPreset } from '../core/PresetLoader';
 import { PresetControls } from './PresetControls';
 import { setNestedValue } from '../utils/objectPath';
 import { GenLabPresetModal } from './GenLabPresetModal';
+import { FractalLabPresetModal } from './FractalLabPresetModal';
 import './ResourcesModal.css';
 
 interface ResourcesModalProps {
@@ -15,6 +16,9 @@ interface ResourcesModalProps {
   genLabPresets?: { name: string; config: any }[];
   genLabBasePreset?: LoadedPreset | null;
   onGenLabPresetsChange?: (presets: { name: string; config: any }[]) => void;
+  fractalLabPresets?: { name: string; config: any }[];
+  fractalLabBasePreset?: LoadedPreset | null;
+  onFractalLabPresetsChange?: (presets: { name: string; config: any }[]) => void;
   onAddPresetToLayer?: (presetId: string, layerId: string) => void;
   onRemovePresetFromLayer?: (presetId: string, layerId: string) => void;
   launchpadPresets?: { id: LaunchpadPreset; label: string }[];
@@ -32,6 +36,8 @@ type NodeKind =
   | 'custom-text'
   | 'genlab-folder'
   | 'genlab-item'
+  | 'fractallab-folder'
+  | 'fractallab-item'
   | 'launchpad';
 
 interface TreeNode {
@@ -42,6 +48,7 @@ interface TreeNode {
   preset?: LoadedPreset;
   launchpadId?: LaunchpadPreset;
   genLabIndex?: number;
+  fractalLabIndex?: number;
 }
 
 export const ResourcesModal: React.FC<ResourcesModalProps> = ({
@@ -53,6 +60,9 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
   genLabPresets = [],
   genLabBasePreset,
   onGenLabPresetsChange,
+  fractalLabPresets = [],
+  fractalLabBasePreset,
+  onFractalLabPresetsChange,
   onAddPresetToLayer,
   onRemovePresetFromLayer,
   launchpadPresets = LAUNCHPAD_PRESETS,
@@ -70,6 +80,7 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
     'visual-custom',
     'templates',
     'template-genlab',
+    'template-fractallab',
     'launchpad'
   ]));
   const [sidebarWidth, setSidebarWidth] = useState(220);
@@ -92,6 +103,8 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
 
   const [editingGenLabIndex, setEditingGenLabIndex] = useState<number | null>(null);
   const [isGenLabModalOpen, setGenLabModalOpen] = useState(false);
+  const [editingFractalLabIndex, setEditingFractalLabIndex] = useState<number | null>(null);
+  const [isFractalLabModalOpen, setFractalLabModalOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -209,6 +222,37 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
     onGenLabPresetsChange?.(list);
   };
 
+  const handleSaveFractalLabPreset = (preset: { name: string; config: any }) => {
+    const list = [...fractalLabPresets];
+    if (editingFractalLabIndex !== null) {
+      list[editingFractalLabIndex] = preset;
+    } else {
+      list.push(preset);
+    }
+    onFractalLabPresetsChange?.(list);
+    setEditingFractalLabIndex(null);
+  };
+
+  const handleDeleteFractalLabPreset = (index: number) => {
+    const list = [...fractalLabPresets];
+    list.splice(index, 1);
+    onFractalLabPresetsChange?.(list);
+    if (selectedNode?.kind === 'fractallab-item' && selectedNode.fractalLabIndex === index) {
+      setSelectedNode(null);
+    }
+  };
+
+  const handleDuplicateFractalLabPreset = (index: number) => {
+    const list = [...fractalLabPresets];
+    const original = list[index];
+    const copy = {
+      name: `${original.name} Copy`,
+      config: JSON.parse(JSON.stringify(original.config))
+    };
+    list.splice(index + 1, 0, copy);
+    onFractalLabPresetsChange?.(list);
+  };
+
   const handleTemplateCountChange = (count: number) => {
     const newCount = Math.max(1, Math.min(10, count));
     setTemplateCount(newCount);
@@ -277,10 +321,16 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
   if (!isOpen) return null;
 
   const mainPresets = presets.filter(
-    p => !p.id.startsWith('custom-glitch-text') && !p.id.startsWith('gen-lab-')
+    p =>
+      !p.id.startsWith('custom-glitch-text') &&
+      !p.id.startsWith('gen-lab-') &&
+      !p.id.startsWith('fractal-lab-')
   );
   const customPresets = presets.filter(
-    p => p.id.startsWith('custom-glitch-text') || p.id.startsWith('gen-lab-')
+    p =>
+      p.id.startsWith('custom-glitch-text') ||
+      p.id.startsWith('gen-lab-') ||
+      p.id.startsWith('fractal-lab-')
   );
 
   const tree: TreeNode[] = [
@@ -329,6 +379,17 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
             kind: 'genlab-item',
             genLabIndex: idx
           }))
+        },
+        {
+          id: 'template-fractallab',
+          label: 'Fractal Lab',
+          kind: 'fractallab-folder',
+          children: fractalLabPresets.map((p, idx) => ({
+            id: `fractallab-${idx}`,
+            label: p.name,
+            kind: 'fractallab-item',
+            fractalLabIndex: idx
+          }))
         }
       ]
     },
@@ -346,7 +407,10 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
   ];
 
   const renderNode = (node: TreeNode, depth = 0) => {
-    const isFolder = node.kind === 'folder' || node.kind === 'genlab-folder';
+    const isFolder =
+      node.kind === 'folder' ||
+      node.kind === 'genlab-folder' ||
+      node.kind === 'fractallab-folder';
     const expandedNode = expanded.has(node.id);
     return (
       <div key={node.id}>
@@ -555,6 +619,122 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
                   editingGenLabIndex !== null ? genLabPresets[editingGenLabIndex] : undefined
                 }
                 onSave={handleSaveGenLabPreset}
+              />
+            )}
+          </div>
+        );
+      }
+      case 'fractallab-folder': {
+        return (
+          <div className="genlab-config">
+            <button
+              className="genlab-add-button"
+              onClick={() => {
+                setEditingFractalLabIndex(null);
+                setFractalLabModalOpen(true);
+              }}
+            >
+              Add Preset
+            </button>
+            <ul className="genlab-list">
+              {fractalLabPresets.map((p, idx) => (
+                <li
+                  key={idx}
+                  onClick={() =>
+                    setSelectedNode({
+                      id: `fractallab-${idx}`,
+                      label: p.name,
+                      kind: 'fractallab-item',
+                      fractalLabIndex: idx,
+                    })
+                  }
+                >
+                  <span>{p.name}</span>
+                  <div>
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        setEditingFractalLabIndex(idx);
+                        setFractalLabModalOpen(true);
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        handleDuplicateFractalLabPreset(idx);
+                      }}
+                    >
+                      Duplicate
+                    </button>
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        handleDeleteFractalLabPreset(idx);
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {fractalLabBasePreset && (
+              <FractalLabPresetModal
+                isOpen={isFractalLabModalOpen}
+                onClose={() => {
+                  setFractalLabModalOpen(false);
+                  setEditingFractalLabIndex(null);
+                }}
+                basePreset={fractalLabBasePreset}
+                initial={
+                  editingFractalLabIndex !== null
+                    ? fractalLabPresets[editingFractalLabIndex]
+                    : undefined
+                }
+                onSave={handleSaveFractalLabPreset}
+              />
+            )}
+          </div>
+        );
+      }
+      case 'fractallab-item': {
+        const idx = selectedNode.fractalLabIndex!;
+        const item = fractalLabPresets[idx];
+        return (
+          <div className="genlab-config">
+            <h3>{item.name}</h3>
+            <div>
+              <button
+                onClick={() => {
+                  setEditingFractalLabIndex(idx);
+                  setFractalLabModalOpen(true);
+                }}
+              >
+                Edit
+              </button>
+              <button onClick={() => handleDuplicateFractalLabPreset(idx)}>
+                Duplicate
+              </button>
+              <button onClick={() => handleDeleteFractalLabPreset(idx)}>
+                Delete
+              </button>
+            </div>
+            {fractalLabBasePreset && (
+              <FractalLabPresetModal
+                isOpen={isFractalLabModalOpen}
+                onClose={() => {
+                  setFractalLabModalOpen(false);
+                  setEditingFractalLabIndex(null);
+                }}
+                basePreset={fractalLabBasePreset}
+                initial={
+                  editingFractalLabIndex !== null
+                    ? fractalLabPresets[editingFractalLabIndex]
+                    : undefined
+                }
+                onSave={handleSaveFractalLabPreset}
               />
             )}
           </div>

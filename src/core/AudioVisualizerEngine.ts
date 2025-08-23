@@ -278,6 +278,16 @@ export class AudioVisualizerEngine {
     return this.presetLoader.getGenLabBasePreset();
   }
 
+  public async updateFractalLabPresets(presets: { name: string; config: any }[]): Promise<LoadedPreset[]> {
+    this.presetLoader.setFractalLabPresets(presets);
+    await this.presetLoader.loadAllPresets();
+    return this.presetLoader.getLoadedPresets();
+  }
+
+  public getFractalLabBasePreset(): LoadedPreset | null {
+    return this.presetLoader.getFractalLabBasePreset();
+  }
+
   public updateAudioData(audioData: AudioData): void {
     this.presetLoader.updateAudioData(audioData);
   }
