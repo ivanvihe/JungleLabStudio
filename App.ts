@@ -47,7 +47,7 @@ export class AudioVisualizerApp {
     try {
       console.log('🔍 Scanning for presets...');
       
-      // Cargar todos los presets automáticamente
+      // Automatically load all presets
       this.loadedPresets = await this.presetLoader.loadAllPresets();
       
       console.log(`✅ Found ${this.loadedPresets.length} presets:`);
@@ -55,7 +55,7 @@ export class AudioVisualizerApp {
         console.log(`  - ${preset.config.name} (${preset.id})`);
       });
 
-      // Activar el primer preset por defecto
+      // Activate the first preset by default
       if (this.loadedPresets.length > 0) {
         this.activatePreset(this.loadedPresets[0].id);
       }
@@ -75,11 +75,11 @@ export class AudioVisualizerApp {
 
   private async setupAudioListener(): Promise<void> {
     try {
-      // Detectar si estamos en un entorno Tauri
+      // Detect if running in a Tauri environment
       if (typeof window !== 'undefined' && (window as any).__TAURI__) {
         console.log('🎵 Tauri environment detected, setting up audio listener...');
-        
-        // Importación dinámica solo si Tauri está disponible
+
+        // Dynamic import only if Tauri is available
         const tauriEvent = await import('@tauri-apps/api/event').catch(err => {
           console.warn('Tauri event API not available:', err);
           return null;
@@ -106,7 +106,7 @@ export class AudioVisualizerApp {
   }
 
   private setupFallbackAudio(): void {
-    // Audio de prueba para entornos sin Tauri
+    // Test audio for environments without Tauri
     const generateTestAudio = () => {
       const time = Date.now() * 0.001;
       const audioData: AudioData = {
@@ -119,8 +119,8 @@ export class AudioVisualizerApp {
       };
       this.presetLoader.updateAudioData(audioData);
     };
-
-    // Actualizar audio de prueba cada 16ms (~60fps)
+    
+    // Update test audio every 16ms (~60fps)
     setInterval(generateTestAudio, 16);
     console.log('🎭 Fallback audio data generator started');
   }
@@ -149,23 +149,23 @@ export class AudioVisualizerApp {
   // Public API methods
   
   /**
-   * Obtiene la lista de presets cargados
+   * Get the list of loaded presets
    */
   public getAvailablePresets(): LoadedPreset[] {
     return this.loadedPresets;
   }
 
   /**
-   * Activa un preset específico
+   * Activate a specific preset
    */
   public activatePreset(presetId: string): boolean {
     try {
-      // Desactivar preset actual
+      // Deactivate current preset
       if (this.currentPresetId) {
         this.presetLoader.deactivatePreset(this.currentPresetId);
       }
 
-      // Activar nuevo preset
+      // Activate new preset
       const preset = this.presetLoader.activatePreset(presetId);
       if (preset) {
         this.currentPresetId = presetId;
@@ -181,7 +181,7 @@ export class AudioVisualizerApp {
   }
 
   /**
-   * Desactiva el preset actual
+   * Deactivate the current preset
    */
   public deactivateCurrentPreset(): void {
     if (this.currentPresetId) {
@@ -192,7 +192,7 @@ export class AudioVisualizerApp {
   }
 
   /**
-   * Obtiene información del preset activo
+   * Get information about the active preset
    */
   public getCurrentPreset(): LoadedPreset | null {
     if (!this.currentPresetId) return null;
@@ -200,7 +200,7 @@ export class AudioVisualizerApp {
   }
 
   /**
-   * Cambia la opacidad del preset activo
+   * Change the opacity of the active preset
    */
   public setOpacity(opacity: number): void {
     if (this.currentPresetId) {
@@ -212,7 +212,7 @@ export class AudioVisualizerApp {
   }
 
   /**
-   * Actualiza la configuración del preset activo
+   * Update the configuration of the active preset
    */
   public updatePresetConfig(config: any): void {
     if (this.currentPresetId) {
@@ -224,23 +224,23 @@ export class AudioVisualizerApp {
   }
 
   /**
-   * Recarga todos los presets (útil para desarrollo)
+   * Reload all presets (useful for development)
    */
   public async reloadPresets(): Promise<void> {
     console.log('🔄 Reloading presets...');
-    
-    // Limpiar presets actuales
+
+    // Clear current presets
     this.presetLoader.dispose();
     this.currentPresetId = null;
 
-    // Recargar
+    // Reload
     this.loadedPresets = await this.presetLoader.loadAllPresets();
-    
+
     console.log(`✅ Reloaded ${this.loadedPresets.length} presets`);
   }
 
   /**
-   * Limpia recursos al cerrar la aplicación
+   * Clean up resources when closing the application
    */
   public dispose(): void {
     this.presetLoader.dispose();
@@ -249,13 +249,13 @@ export class AudioVisualizerApp {
   }
 }
 
-// Factory function para inicializar la app
+// Factory function to initialize the app
 export async function createAudioVisualizerApp(container: HTMLElement): Promise<AudioVisualizerApp> {
   const app = new AudioVisualizerApp(container);
   return app;
 }
 
-// UI Helper para crear controles de presets
+// UI Helper to create preset controls
 export class PresetUI {
   private app: AudioVisualizerApp;
   private container: HTMLElement;
@@ -269,10 +269,10 @@ export class PresetUI {
   private createUI(): void {
     const presets = this.app.getAvailablePresets();
     
-    // Crear selector de presets
+    // Create preset selector
     const presetSelector = document.createElement('select');
     presetSelector.className = 'preset-selector';
-    presetSelector.innerHTML = '<option value="">Seleccionar preset...</option>';
+    presetSelector.innerHTML = '<option value="">Select preset...</option>';
     
     presets.forEach(preset => {
       const option = document.createElement('option');
@@ -292,16 +292,16 @@ export class PresetUI {
       }
     });
 
-    // Crear container para controles dinámicos
+    // Create container for dynamic controls
     const controlsContainer = document.createElement('div');
     controlsContainer.className = 'preset-controls';
 
-    // Crear control de opacidad global
+    // Create global opacity control
     const opacityContainer = document.createElement('div');
     opacityContainer.className = 'control-group';
-    
+
     const opacityLabel = document.createElement('label');
-    opacityLabel.textContent = 'Opacidad Global: ';
+    opacityLabel.textContent = 'Global Opacity: ';
     
     const opacitySlider = document.createElement('input');
     opacitySlider.type = 'range';
@@ -318,9 +318,9 @@ export class PresetUI {
     opacityContainer.appendChild(opacityLabel);
     opacityContainer.appendChild(opacitySlider);
 
-    // Botón de recarga (útil para desarrollo)
+    // Reload button (useful for development)
     const reloadButton = document.createElement('button');
-    reloadButton.textContent = '🔄 Recargar Presets';
+    reloadButton.textContent = '🔄 Reload Presets';
     reloadButton.addEventListener('click', () => this.app.reloadPresets());
 
     // Ensamblar UI
@@ -339,7 +339,7 @@ export class PresetUI {
     const controlsContainer = this.container.querySelector('.preset-controls') as HTMLElement;
     controlsContainer.innerHTML = '';
 
-    // Crear controles basados en la configuración del preset
+    // Create controls based on preset configuration
     if (preset.config.controls) {
       preset.config.controls.forEach((control: any) => {
         const controlElement = this.createControl(control);
@@ -347,13 +347,13 @@ export class PresetUI {
       });
     }
 
-    // Mostrar información del preset
+    // Show preset information
     const infoElement = document.createElement('div');
     infoElement.className = 'preset-info';
     infoElement.innerHTML = `
       <h3>${preset.config.name}</h3>
       <p>${preset.config.description}</p>
-      <small>Autor: ${preset.config.author} | Versión: ${preset.config.version}</small>
+      <small>Author: ${preset.config.author} | Version: ${preset.config.version}</small>
     `;
     controlsContainer.insertBefore(infoElement, controlsContainer.firstChild);
   }
@@ -395,7 +395,7 @@ export class PresetUI {
         input.value = control.default?.toString() || '';
     }
 
-    // Añadir event listener para actualizar configuración
+    // Add event listener to update configuration
     input.addEventListener('input', (e) => {
       const target = e.target as HTMLInputElement;
       let value: any = target.value;
@@ -406,7 +406,7 @@ export class PresetUI {
         value = target.checked;
       }
 
-      // Actualizar configuración usando el path del control
+      // Update configuration using the control path
       const config = this.getNestedConfig(control.name, value);
       this.app.updatePresetConfig(config);
     });

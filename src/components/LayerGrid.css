@@ -3,14 +3,14 @@
   background: #0A0A0A;
   color: #FFFFFF;
   padding: 0;
-  /* Altura dinámica para evitar cortes en la última layer */
+/* Dynamic height to avoid cutting the last layer */
   /* height: 360px;  Altura fija ajustada para headers */
   /* overflow: hidden;  Sin scroll, todo visible */
 }
 
 /* Layer Section - 100px cada una */
 .layer-section {
-  margin-top: 2px; /* Separación entre layers */
+  margin-top: 2px; /* Spacing between layers */
   height: 120px; /* Contenido + header */
   background: #111111;
   border-bottom: 1px solid #000000;

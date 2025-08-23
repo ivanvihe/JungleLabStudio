@@ -44,17 +44,17 @@ export const AudioSettings: React.FC<AudioSettingsProps> = ({
 
   return (
     <div className="settings-section">
-      <h3>🎵 Configuración de Audio</h3>
+      <h3>🎵 Audio Settings</h3>
 
       <div className="setting-group">
         <label className="setting-label">
-          <span>Dispositivo de Entrada</span>
+          <span>Input Device</span>
           <select
             value={selectedAudioId || ''}
             onChange={(e) => onSelectAudio(e.target.value)}
             className="setting-select"
           >
-            <option value="">Por Defecto</option>
+            <option value="">Default</option>
             {audioDevices.map((dev) => (
               <option key={dev.id} value={dev.id}>
                 {dev.label}
@@ -66,7 +66,7 @@ export const AudioSettings: React.FC<AudioSettingsProps> = ({
 
       <div className="setting-group">
         <label className="setting-label">
-          <span>Ganancia de Entrada: {(audioGain * 100).toFixed(0)}%</span>
+          <span>Input Gain: {(audioGain * 100).toFixed(0)}%</span>
           <input
             type="range"
             min={0}
@@ -81,39 +81,39 @@ export const AudioSettings: React.FC<AudioSettingsProps> = ({
 
       <div className="setting-group">
         <label className="setting-label">
-          <span>Tamaño de Buffer</span>
+          <span>Buffer Size</span>
           <select
             value={bufferSize}
             onChange={(e) => setBufferSize(parseInt(e.target.value))}
             className="setting-select"
           >
-            <option value={512}>512 (Baja latencia)</option>
-            <option value={1024}>1024 (Balanceado)</option>
-            <option value={2048}>2048 (Recomendado)</option>
-            <option value={4096}>4096 (Alta estabilidad)</option>
+            <option value={512}>512 (Low latency)</option>
+            <option value={1024}>1024 (Balanced)</option>
+            <option value={2048}>2048 (Recommended)</option>
+            <option value={4096}>4096 (High stability)</option>
           </select>
         </label>
       </div>
 
       <div className="setting-group">
         <label className="setting-label">
-          <span>Resolución FFT</span>
+          <span>FFT Resolution</span>
           <select
             value={fftSize}
             onChange={(e) => setFFTSize(parseInt(e.target.value))}
             className="setting-select"
           >
-            <option value={1024}>1024 (Rápido)</option>
-            <option value={2048}>2048 (Recomendado)</option>
-            <option value={4096}>4096 (Alta precisión)</option>
-            <option value={8192}>8192 (Máxima calidad)</option>
+            <option value={1024}>1024 (Fast)</option>
+            <option value={2048}>2048 (Recommended)</option>
+            <option value={4096}>4096 (High precision)</option>
+            <option value={8192}>8192 (Maximum quality)</option>
           </select>
         </label>
       </div>
 
       <div className="setting-group">
         <label className="setting-label">
-          <span>Suavizado de Audio: {(smoothingTime * 100).toFixed(0)}%</span>
+          <span>Audio Smoothing: {(smoothingTime * 100).toFixed(0)}%</span>
           <input
             type="range"
             min={0}

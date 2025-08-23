@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { LayerState } from './LayerManager';
 
 /**
- * Encapsula la lógica de compositing de layers.
+ * Encapsula la logica de compositing de layers.
  */
 export class Compositor {
   private scene: THREE.Scene;

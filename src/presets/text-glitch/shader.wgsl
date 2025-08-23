@@ -10,23 +10,23 @@ struct Uniforms {
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 
-// Función para generar ruido digital
+// Funcion para generar ruido digital
 fn digitalNoise(p: vec2<f32>) -> f32 {
     let K1 = vec2<f32>(23.14069263277926, 2.665144142690225);
     return fract(cos(dot(p, K1)) * 12345.6789);
 }
 
-// Función para efecto de bloque digital
+// Funcion para efecto de bloque digital
 fn digitalBlock(uv: vec2<f32>, blockSize: f32) -> vec2<f32> {
     let block = floor(uv * blockSize) / blockSize;
     return block;
 }
 
-// Función para renderizar texto procedural (ejemplo básico)
+// Funcion para renderizar texto procedural (ejemplo basico)
 fn renderLetter(uv: vec2<f32>, letter: i32, position: vec2<f32>, size: f32) -> f32 {
     let localUV = (uv - position) / size;
     
-    // Verificar si estamos dentro del área de la letra
+    // Verificar si estamos dentro del area de la letra
     if (localUV.x < 0.0 || localUV.x > 1.0 || localUV.y < 0.0 || localUV.y > 1.0) {
         return 0.0;
     }
@@ -53,14 +53,14 @@ fn renderLetter(uv: vec2<f32>, letter: i32, position: vec2<f32>, size: f32) -> f
             return clamp(vertical + top + middle + bottom, 0.0, 1.0);
         }
         default: {
-            // Letra genérica (rectángulo)
+            // Letra generica (rectangulo)
             return step(0.1, localUV.x) - step(0.9, localUV.x) + 
                    step(0.1, localUV.y) - step(0.9, localUV.y);
         }
     }
 }
 
-// Función para efectos de glitch
+// Funcion para efectos de glitch
 fn applyGlitch(uv: vec2<f32>, time: f32, intensity: f32) -> vec2<f32> {
     var glitchedUV = uv;
     
@@ -85,7 +85,7 @@ fn applyGlitch(uv: vec2<f32>, time: f32, intensity: f32) -> vec2<f32> {
     return glitchedUV;
 }
 
-// Función para aberración cromática
+// Funcion para aberracion cromatica
 fn chromaticAberration(uv: vec2<f32>, intensity: f32) -> vec3<f32> {
     let rOffset = vec2<f32>(intensity * 0.01, 0.0);
     let bOffset = vec2<f32>(-intensity * 0.01, 0.0);
@@ -98,7 +98,7 @@ fn chromaticAberration(uv: vec2<f32>, intensity: f32) -> vec3<f32> {
     return vec3<f32>(r, g, b);
 }
 
-// Función para renderizar el texto "ROBOTICA"
+// Funcion para renderizar el texto "ROBOTICA"
 fn renderText(uv: vec2<f32>, time: f32) -> f32 {
     let letterSize = 0.08;
     let spacing = 0.1;
@@ -106,7 +106,7 @@ fn renderText(uv: vec2<f32>, time: f32) -> f32 {
     
     var textMask = 0.0;
     
-    // Definir posiciones y tiempos de aparición para cada letra
+    // Definir posiciones y tiempos de aparicion para cada letra
     let letters = array<i32, 8>(0, 1, 2, 1, 3, 4, 5, 6); // R O B O T I C A
     let appearOrder = array<i32, 8>(3, 7, 1, 5, 0, 2, 4, 6); // Orden desordenado
     let appearTimes = array<f32, 8>(0.0, 0.8, 1.6, 2.4, 3.2, 4.0, 4.8, 5.6);
@@ -120,11 +120,11 @@ fn renderText(uv: vec2<f32>, time: f32) -> f32 {
         if (time >= appearTime) {
             let letterProgress = min(1.0, (time - appearTime) / 1.2); // Fade in de 1.2 segundos
             
-            // Posición inicial (dispersa) y final
+            // Posicion inicial (dispersa) y final
             let finalX = startX + f32(letterIndex) * spacing;
             let finalY = 0.0;
             
-            // Posición inicial aleatoria basada en el índice
+            // Posicion inicial aleatoria basada en el indice
             let scatterX = sin(f32(letterIndex) * 23.14) * 0.3 * (1.0 - letterProgress);
             let scatterY = cos(f32(letterIndex) * 31.41) * 0.2 * (1.0 - letterProgress);
             
@@ -139,7 +139,7 @@ fn renderText(uv: vec2<f32>, time: f32) -> f32 {
     return clamp(textMask, 0.0, 1.0);
 }
 
-// Función para scanlines
+// Funcion para scanlines
 fn scanlines(uv: vec2<f32>, time: f32) -> f32 {
     let scanlineFreq = 400.0;
     let scanlineSpeed = 20.0;
@@ -160,7 +160,7 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4<
 fn fs_main(@builtin(position) frag_coord: vec4<f32>) -> @location(0) vec4<f32> {
     let resolution = vec2<f32>(1920.0, 1080.0);
     var uv = (frag_coord.xy / resolution) * 2.0 - 1.0;
-    uv.x *= resolution.x / resolution.y; // Corrección de aspecto
+    uv.x *= resolution.x / resolution.y; // Correccion de aspecto
     
     let time = uniforms.time;
     let audioIntensity = (uniforms.audio_low + uniforms.audio_mid + uniforms.audio_high) / 3.0;
@@ -179,9 +179,9 @@ fn fs_main(@builtin(position) frag_coord: vec4<f32>) -> @location(0) vec4<f32> {
     let primaryColor = vec3<f32>(0.0, 1.0, 0.53);    // #00FF88 - Verde ciberpunk
     let glitchColor1 = vec3<f32>(1.0, 0.27, 0.27);   // #FF4444 - Rojo glitch
     let glitchColor2 = vec3<f32>(0.27, 0.27, 1.0);   // #4444FF - Azul glitch
-    let accentColor = vec3<f32>(0.53, 1.0, 0.0);     // #88FF00 - Verde ácido
+    let accentColor = vec3<f32>(0.53, 1.0, 0.0);     // #88FF00 - Verde acido
     
-    // Aplicar aberración cromática durante glitch intenso
+    // Aplicar aberracion cromatica durante glitch intenso
     var finalTextColor = primaryColor;
     if (glitchIntensity > 0.6) {
         let chromatic = chromaticAberration(glitchedUV, uniforms.audio_high);
@@ -224,7 +224,7 @@ fn fs_main(@builtin(position) frag_coord: vec4<f32>) -> @location(0) vec4<f32> {
     let backgroundNoise = digitalNoise(uv * 100.0 + time * 0.5) * 0.1 * uniforms.audio_high;
     finalColor += vec3<f32>(backgroundNoise);
     
-    // Viñeta sutil
+    // Vineta sutil
     let vignette = 1.0 - length(uv * 0.3);
     finalColor *= vignette * 0.7 + 0.3;
     

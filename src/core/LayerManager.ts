@@ -29,7 +29,7 @@ export interface LayerState {
 }
 
 /**
- * Maneja la creación, activación y renderizado de layers.
+ * Maneja la creacion, activacion y renderizado de layers.
  */
 export class LayerManager {
   private layers: Map<string, LayerState> = new Map();

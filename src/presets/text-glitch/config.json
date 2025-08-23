@@ -1,6 +1,6 @@
 {
   "name": "Text Glitch",
-  "description": "Texto animado con efectos glitch y aparición desordenada de letras",
+  "description": "Texto animado con efectos glitch y aparicion desordenada de letras",
   "author": "AudioVisualizer",
   "version": "1.0.0",
   "category": "text",
@@ -69,7 +69,7 @@
     {
       "name": "text.fontSize",
       "type": "slider",
-      "label": "Tamaño de Fuente",
+      "label": "Tamano de Fuente",
       "min": 40,
       "max": 200,
       "step": 10,
@@ -114,7 +114,7 @@
     {
       "name": "effects.chromaticAberration",
       "type": "slider",
-      "label": "Aberración Cromática",
+      "label": "Aberracion Cromatica",
       "min": 0.0,
       "max": 1.0,
       "step": 0.1,
@@ -135,13 +135,13 @@
     {
       "name": "effects.enableScanlines",
       "type": "checkbox",
-      "label": "Líneas de Escaneo",
+      "label": "Lineas de Escaneo",
       "default": true
     },
     {
       "name": "effects.enableChromatic",
       "type": "checkbox",
-      "label": "Aberración Cromática",
+      "label": "Aberracion Cromatica",
       "default": true
     },
     {
@@ -177,19 +177,19 @@
   ],
   "audioMapping": {
     "low": {
-      "description": "Controla la aparición y timing de las letras",
+      "description": "Controla la aparicion y timing de las letras",
       "frequency": "20-250 Hz",
-      "effect": "Velocidad de aparición y movimientos base"
+      "effect": "Velocidad de aparicion y movimientos base"
     },
     "mid": {
-      "description": "Modula los efectos glitch y distorsión",
+      "description": "Modula los efectos glitch y distorsion",
       "frequency": "250-4000 Hz",
       "effect": "Intensidad de glitch y efectos digitales"
     },
     "high": {
       "description": "Controla efectos de alta frecuencia y detalles",
       "frequency": "4000+ Hz",
-      "effect": "Scanlines, ruido y aberración cromática"
+      "effect": "Scanlines, ruido y aberracion cromatica"
     }
   },
   "performance": {

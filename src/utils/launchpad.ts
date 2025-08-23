@@ -97,7 +97,7 @@ export function buildLaunchpadFrame(
   data: { fft: number[]; low: number; mid: number; high: number },
   options?: { text?: string }
 ): number[] {
-  // 🔥 CRÍTICO: Siempre inicializar con exactamente 64 elementos (8x8 grid)
+  // 🔥 CRITICAL: Always initialize with exactly 64 elements (8x8 grid)
   const colors = new Array(GRID_LEN).fill(0);
 
   // Debug: verify that we have valid data
@@ -113,7 +113,7 @@ export function buildLaunchpadFrame(
       for (let x = 0; x < cols; x++) {
         const idx = Math.floor((data.fft.length / cols) * x);
         const v = data.fft[idx] || 0;
-        // Amplificar la señal para mejor visibilidad
+        // Amplify the signal for better visibility
         const amplified = Math.min(1, v * 3);
         const height = Math.min(GRID_SIZE, Math.floor(amplified * GRID_SIZE));
         const color = Math.min(127, Math.floor(amplified * 100) + 10);
@@ -164,13 +164,13 @@ export function buildLaunchpadFrame(
     }
     case 'test': {
       // PRESET TEST COMPLETAMENTE INDEPENDIENTE DEL AUDIO
-      // Usa TODO el grid 8x8 con un patrón visible
+      // Use the entire 8x8 grid with a visible pattern
       const t = Date.now() / 300;
       for (let y = 0; y < GRID_SIZE; y++) {
         for (let x = 0; x < GRID_SIZE; x++) {
           const gridIndex = y * GRID_SIZE + x;
 
-          // Patrón de ondas cruzadas que cubre todo el grid
+          // Crossed wave pattern covering the entire grid
           const wave1 = Math.sin(t + x * 0.8) * 0.5;
           const wave2 = Math.sin(t * 0.7 + y * 0.6) * 0.5;
           const combined = (wave1 + wave2 + 2) / 4;
@@ -183,7 +183,7 @@ export function buildLaunchpadFrame(
       break;
     }
     case 'rainbow': {
-      // ARCOÍRIS ROTATIVO que usa todo el grid 8x8
+      // ROTATING RAINBOW using the entire 8x8 grid
       const t = Date.now() / 100;
       for (let y = 0; y < GRID_SIZE; y++) {
         for (let x = 0; x < GRID_SIZE; x++) {
@@ -197,7 +197,7 @@ export function buildLaunchpadFrame(
       break;
     }
     case 'snake': {
-      // EFECTO SERPIENTE MÓVIL que usa todo el grid 8x8
+      // MOVING SNAKE EFFECT covering the entire 8x8 grid
       const t = Date.now() / 150;
       const snakeLength = 12;
 
@@ -207,18 +207,18 @@ export function buildLaunchpadFrame(
       for (let i = 0; i < snakeLength; i++) {
         const phase = (t + i * 0.5) % (Math.PI * 4);
 
-        // Calcular posición en el grid 8x8
+        // Calculate position in the 8x8 grid
         let x = Math.floor((Math.sin(phase) + 1) * (GRID_SIZE - 1) / 2);
         let y = Math.floor((Math.cos(phase * 0.7) + 1) * (GRID_SIZE - 1) / 2);
 
-        // Asegurar que está dentro del grid 8x8
+        // Ensure it is inside the 8x8 grid
         x = Math.max(0, Math.min(GRID_SIZE - 1, x));
         y = Math.max(0, Math.min(GRID_SIZE - 1, y));
 
         const gridIndex = y * GRID_SIZE + x;
         const intensity = Math.floor(((snakeLength - i) / snakeLength) * 100) + 20;
 
-        // Solo actualizar si el nuevo color es más brillante
+        // Only update if the new color is brighter
         if (colors[gridIndex] < intensity) {
           colors[gridIndex] = intensity;
         }
@@ -255,21 +255,21 @@ export function buildLaunchpadFrame(
       break;
     }
     default: {
-      console.warn(`Preset desconocido: ${preset}, devolviendo grid vacío`);
+      console.warn(`Unknown preset: ${preset}, returning empty grid`);
       break;
     }
   }
 
-  // 🔥 VERIFICACIÓN FINAL: Asegurar que siempre devolvemos exactamente 64 elementos
+  // 🔥 FINAL CHECK: ensure we always return exactly 64 elements
   if (colors.length !== GRID_LEN) {
-    console.error(`❌ ERROR CRÍTICO: buildLaunchpadFrame devuelve ${colors.length} elementos, debe ser 64!`);
-    return new Array(GRID_LEN).fill(0); // Fallback seguro
+    console.error(`❌ CRITICAL ERROR: buildLaunchpadFrame returns ${colors.length} elements, must be 64!`);
+    return new Array(GRID_LEN).fill(0); // Safe fallback
   }
 
-  // Debug: mostrar estadísticas del frame generado
+  // Debug: show statistics of the generated frame
   const activeCount = colors.filter(c => c > 0).length;
   const maxValue = Math.max(...colors);
-  console.log(`🎹 Launchpad frame [${preset}]: ${activeCount}/64 pads activos, max=${maxValue}`);
+  console.log(`🎹 Launchpad frame [${preset}]: ${activeCount}/64 active pads, max=${maxValue}`);
 
   return colors;
 }

@@ -167,7 +167,7 @@ class CustomGlitchTextPreset extends BasePreset {
     const vFov = THREE.MathUtils.degToRad(cam.fov);
     const visibleHeight = 2 * Math.tan(vFov / 2) * distance;
     const visibleWidth = visibleHeight * cam.aspect;
-    const planeHeight = visibleWidth / 4; // mantener proporción 4:1 del canvas
+    const planeHeight = visibleWidth / 4; // mantener proporcion 4:1 del canvas
     this.mesh = new THREE.Mesh(
       new THREE.PlaneGeometry(visibleWidth, planeHeight),
       new THREE.MeshBasicMaterial({ map: this.texture, transparent: true, color: new THREE.Color(this.currentConfig.color) })

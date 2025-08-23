@@ -126,7 +126,7 @@ export class PresetLoader {
   private genLabPresets: { name: string; config: any }[] = [];
   private genLabBase: { config: PresetConfig; createPreset: any; shaderCode?: string; folderPath: string } | null = null;
 
-  // Carga dinámica de presets desde el sistema de archivos
+  // Carga dinamica de presets desde el sistema de archivos
   private presetModules = import.meta.glob('../presets/*/preset.ts');
   private shaderModules = import.meta.glob('../presets/*/shader.wgsl', { as: 'raw' });
   private configModules = import.meta.glob('../presets/*/config.json', { import: 'default' });
@@ -393,7 +393,7 @@ export class PresetLoader {
       }
     }
 
-    // Añadir presets personalizados de Gen Lab
+    // Anadir presets personalizados de Gen Lab
     this.reloadGenLabPresets(loadedPresets);
 
     console.log(`🎨 Loaded ${loadedPresets.length} presets total (${this.glitchTextPads} custom text instances, ${this.genLabPresets.length} gen lab presets)`);
@@ -401,7 +401,7 @@ export class PresetLoader {
   }
 
   /**
-   * Auto-configura presets nuevos que no tienen configuración completa
+   * Auto-configura presets nuevos que no tienen configuracion completa
    */
   private autoConfigurePreset(config: PresetConfig, presetId: string): PresetConfig {
     const autoConfig = { ...config };
@@ -527,7 +527,7 @@ export class PresetLoader {
     this.activePresets.forEach(preset => preset.updateAudioData(audioData));
   }
 
-  // Métodos para gestión de listeners de cambios en presets
+  // Metodos para gestion de listeners de cambios en presets
   public onPresetsChanged(callback: () => void): void {
     this.presetsChangeListeners.push(callback);
   }
@@ -549,7 +549,7 @@ export class PresetLoader {
     });
   }
 
-  // Gestión de presets personalizados de Gen Lab
+  // Gestion de presets personalizados de Gen Lab
   public setGenLabPresets(presets: { name: string; config: any }[]): void {
     this.genLabPresets = presets;
     try {
@@ -574,7 +574,7 @@ export class PresetLoader {
     };
   }
 
-  // Métodos de utilidad para custom text
+  // Metodos de utilidad para custom text
   public getCustomTextInstances(): LoadedPreset[] {
     return Array.from(this.loadedPresets.values())
       .filter(preset => preset.id.startsWith('custom-glitch-text'));
@@ -596,7 +596,7 @@ export class PresetLoader {
   }
 }
 
-// Tipos para controles de configuración
+// Tipos para controles de configuracion
 export interface ControlConfig {
   name: string;
   type: 'slider' | 'color' | 'checkbox' | 'text' | 'select';

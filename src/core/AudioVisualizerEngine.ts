@@ -131,7 +131,7 @@ export class AudioVisualizerEngine {
         return false;
       }
 
-      // Cargar configuración guardada específica para el layer y clonar config base
+      // Cargar configuracion guardada especifica para el layer y clonar config base
       const savedConfig = await this.loadLayerPresetConfig(presetId, layerId);
       const loadedPresetConfig = JSON.parse(JSON.stringify(loadedPreset.config));
       loadedPresetConfig.defaultConfig = {
@@ -139,7 +139,7 @@ export class AudioVisualizerEngine {
         ...savedConfig
       };
 
-      // Activar nuevo preset con config específica del layer
+      // Activar nuevo preset con config especifica del layer
       const presetInstance = this.presetLoader.activatePreset(
         presetId,
         layer.scene,

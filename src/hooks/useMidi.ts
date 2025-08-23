@@ -131,7 +131,7 @@ export function useMidi(options: MidiOptions) {
 
     const intervalMs =
       (60 * 1000) /
-      (internalBpmRef.current * midiClockSettings.resolution / 24);
+      (internalBpmRef.current * midiClockSettings.resolution);
 
     internalClockRef.current = setInterval(() => {
       handleClockTick(performance.now(), true);
@@ -363,8 +363,10 @@ export function useMidi(options: MidiOptions) {
     setMidiClockSettings(prev => ({ ...prev, ...updates }));
 
     if (updates.type === 'internal') {
+      setBpm(internalBpmRef.current);
       startInternalClock();
     } else if (updates.type === 'midi' || updates.type === 'off') {
+      setBpm(null);
       stopInternalClock();
     }
   };
