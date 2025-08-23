@@ -84,6 +84,19 @@
   font-weight: 500;
 }
 
+.track-led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #222;
+  box-shadow: 0 0 4px rgba(0,0,0,0.8);
+}
+
+.track-led.on {
+  background: #0f0;
+  box-shadow: 0 0 6px #0f0;
+}
+
 .track-name-input:focus {
   outline: none;
   border-color: #777;
