@@ -24,6 +24,19 @@
   gap: 4px;
 }
 
+.lcx-knob-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.lcx-knob-label {
+  margin-top: 2px;
+  font-size: 8px;
+  color: #ccc;
+  text-align: center;
+}
+
 .lcx-knob {
   width: 20px;
   height: 20px;

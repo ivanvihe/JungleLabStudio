@@ -18,9 +18,9 @@ export class MarkovGenerator implements GeneratorInstance {
     scale: string
   ): MidiNote[] {
     const notes: MidiNote[] = [];
-    const params = track.generator.parameters;
-    const order = Math.max(1, params.order || 1);
-    const creativity = params.creativity || 0.5;
+    const order = Math.max(1, Math.floor((track.controls.paramA / 127) * 4));
+    const creativity = track.controls.paramB / 127;
+    const density = track.controls.paramC / 127;
     const intensity = track.controls.intensity / 127;
 
     const scaleNotes = getScaleNotes(key, scale);
@@ -30,8 +30,8 @@ export class MarkovGenerator implements GeneratorInstance {
       this.train(scaleNotes);
     }
 
-    // Probability to trigger
-    if (Math.random() > intensity) {
+    // Probability to trigger based on intensity and density
+    if (Math.random() > intensity * density) {
       return notes;
     }
 

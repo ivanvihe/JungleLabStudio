@@ -1,5 +1,4 @@
 import { SessionMidiController, ChannelStrip } from '../types/GeneratorTypes';
-import { LegacyGeneratorEngine } from './LegacyGeneratorEngine';
 
 export class SessionMidiManager {
   private static instance: SessionMidiManager;
@@ -160,15 +159,12 @@ export class SessionMidiManager {
         break;
       case 'knob1':
         strip.values.knob1 = value;
-        this.updateGenerator(strip, 'density', value / 127);
         break;
       case 'knob2':
         strip.values.knob2 = value;
-        this.updateGenerator(strip, 'probability', value / 127);
         break;
       case 'knob3':
         strip.values.knob3 = value;
-        this.updateGenerator(strip, 'velocity', value / 127);
         break;
       case 'button1':
         strip.values.button1 = value > 0;
@@ -186,12 +182,6 @@ export class SessionMidiManager {
     if (!control) return;
     control.value = value;
     this.emitUpdate();
-  }
-  
-  private updateGenerator(strip: ChannelStrip, control: string, value: number) {
-    const trackId = this.trackMapping.get(strip.stripIndex);
-    if (!trackId) return;
-    LegacyGeneratorEngine.getInstance().updateGeneratorControl(trackId, control, value);
   }
   
   // Mapear un track a un strip específico

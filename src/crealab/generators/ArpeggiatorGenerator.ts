@@ -12,10 +12,11 @@ export class ArpeggiatorGenerator implements GeneratorInstance {
     key: string,
     scale: string
   ): MidiNote[] {
-    const params = track.generator.parameters;
-    const pattern = params.pattern || 'up';
-    const octaves = params.octaves || 1;
-    const noteLength = params.noteLength || 0.25;
+    // Map real-time controls to parameters
+    const patternIndex = Math.floor((track.controls.paramA / 127) * 4);
+    const pattern = ['up', 'down', 'upDown', 'random'][patternIndex] || 'up';
+    const octaves = Math.max(1, Math.floor((track.controls.paramB / 127) * 4));
+    const noteLength = 0.1 + (track.controls.paramC / 127) * 0.9;
 
     const scaleNotes = getScaleNotes(key, scale);
     const sequence = this.buildSequence(scaleNotes, pattern, octaves);

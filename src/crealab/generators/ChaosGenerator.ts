@@ -14,11 +14,11 @@ export class ChaosGenerator implements GeneratorInstance {
     key: string,
     scale: string
   ): MidiNote[] {
-    const params = track.generator.parameters;
-    const attractor = params.attractor || 'lorenz';
-    const sensitivity = params.sensitivity || 0.5;
-    const scaling = params.scaling || 1.0;
     const intensity = track.controls.intensity / 127;
+    const sensitivity = track.controls.paramA / 127;
+    const scaling = 0.5 + (track.controls.paramB / 127) * 1.5;
+    const attractorIndex = Math.floor((track.controls.paramC / 127) * 3);
+    const attractor = ['lorenz', 'henon', 'logistic'][attractorIndex] || 'lorenz';
 
     const scaleNotes = getScaleNotes(key, scale);
 
