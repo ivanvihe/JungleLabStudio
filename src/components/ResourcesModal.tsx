@@ -414,7 +414,7 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
               ))}
             </div>
             <div className="default-controls">
-              <h4>Valores por defecto:</h4>
+              <h4>Default values:</h4>
               <PresetControls
                 preset={preset}
                 config={preset.config.defaultConfig || {}}
@@ -428,7 +428,7 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
         return (
           <div className="template-controls-panel">
             <div className="custom-text-config">
-              <label>Cantidad:</label>
+              <label>Count:</label>
               <div className="count-controls">
                 <button onClick={() => handleTemplateCountChange(templateCount - 1)} disabled={templateCount <= 1}>
                   -

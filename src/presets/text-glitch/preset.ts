@@ -4,7 +4,7 @@ import { BasePreset, PresetConfig } from '../../core/PresetLoader';
 // Config para ROBOTICA Cinematic Intro
 export const config: PresetConfig = {
   name: "ROBOTICA Cinematic Intro",
-  description: "Titulo cinematografico 'ROBOTICA' con aparicion letra por letra y efectos de brillo",
+  description: "Cinematic title 'ROBOTICA' with letter-by-letter appearance and glow effects",
   author: "AudioVisualizer Pro",
   version: "1.0.0",
   category: "text",

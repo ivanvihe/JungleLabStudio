@@ -42,7 +42,7 @@ export const VisualSettings: React.FC<VisualSettingsProps> = ({
       <h3>🎨 Visual Settings</h3>
       <div className="setting-group">
         <label className="setting-label">
-          <span>Tecla para ocultar UI</span>
+          <span>Hide UI Hotkey</span>
           <input
             type="text"
             value={hideUiHotkey}
@@ -54,12 +54,12 @@ export const VisualSettings: React.FC<VisualSettingsProps> = ({
             readOnly
           />
         </label>
-        <small className="setting-hint">Presiona una tecla (por defecto F10)</small>
+        <small className="setting-hint">Press a key (default F10)</small>
       </div>
 
       <div className="setting-group">
         <label className="setting-label">
-          <span>Tecla para fullscreen</span>
+          <span>Fullscreen Hotkey</span>
           <input
             type="text"
             value={fullscreenHotkey}
@@ -71,12 +71,12 @@ export const VisualSettings: React.FC<VisualSettingsProps> = ({
             readOnly
           />
         </label>
-        <small className="setting-hint">Presiona una tecla (por defecto F9)</small>
+        <small className="setting-hint">Press a key (default F9)</small>
       </div>
 
       <div className="setting-group">
         <label className="setting-label">
-          <span>Tecla para salir de fullscreen</span>
+          <span>Exit Fullscreen Hotkey</span>
           <input
             type="text"
             value={exitFullscreenHotkey}
@@ -88,7 +88,7 @@ export const VisualSettings: React.FC<VisualSettingsProps> = ({
             readOnly
           />
         </label>
-        <small className="setting-hint">Presiona una tecla (por defecto F11)</small>
+        <small className="setting-hint">Press a key (default F11)</small>
       </div>
 
       <div className="setting-group">
@@ -98,13 +98,13 @@ export const VisualSettings: React.FC<VisualSettingsProps> = ({
             checked={fullscreenByDefault}
             onChange={(e) => onFullscreenByDefaultChange(e.target.checked)}
           />
-          <span>Ventanas en fullscreen por defecto</span>
+          <span>Open windows in fullscreen by default</span>
         </label>
       </div>
 
       <div className="setting-group">
         <label className="setting-label">
-          <span>Brillo: {canvasBrightness.toFixed(2)}</span>
+          <span>Brightness: {canvasBrightness.toFixed(2)}</span>
           <input
             type="range"
             min={0.5}
@@ -115,12 +115,12 @@ export const VisualSettings: React.FC<VisualSettingsProps> = ({
             className="setting-slider"
           />
         </label>
-        <small className="setting-hint">Ajusta el brillo global del canvas</small>
+        <small className="setting-hint">Adjust overall canvas brightness</small>
       </div>
 
       <div className="setting-group">
         <label className="setting-label">
-          <span>Viveza: {canvasVibrance.toFixed(2)}</span>
+          <span>Vibrance: {canvasVibrance.toFixed(2)}</span>
           <input
             type="range"
             min={0}
@@ -136,7 +136,7 @@ export const VisualSettings: React.FC<VisualSettingsProps> = ({
 
       <div className="setting-group">
         <label className="setting-label">
-          <span>Color de fondo del canvas</span>
+          <span>Canvas background color</span>
           <input
             type="color"
             value={canvasBackground}
@@ -144,12 +144,12 @@ export const VisualSettings: React.FC<VisualSettingsProps> = ({
             className="setting-color"
           />
         </label>
-        <small className="setting-hint">Elige un color de fondo para el canvas</small>
+        <small className="setting-hint">Choose a canvas background color</small>
       </div>
 
       <div className="setting-group">
         <label className="setting-label">
-          <span>Pads de Texto Glitch: {glitchTextPads}</span>
+          <span>Glitch Text Pads: {glitchTextPads}</span>
           <input
             type="range"
             min={1}
@@ -168,15 +168,15 @@ export const VisualSettings: React.FC<VisualSettingsProps> = ({
         <div className="layers-info">
           <div className="layer-info">
             <span className="layer-badge layer-c">C</span>
-            <span>Layer de Fondo - Renderiza primero</span>
+            <span>Background Layer - renders first</span>
           </div>
           <div className="layer-info">
             <span className="layer-badge layer-b">B</span>
-            <span>Layer Medio - Mezcla con transparencia</span>
+            <span>Middle Layer - blends with transparency</span>
           </div>
           <div className="layer-info">
             <span className="layer-badge layer-a">A</span>
-            <span>Layer Frontal - Renderiza encima</span>
+            <span>Front Layer - renders on top</span>
           </div>
         </div>
         <small className="setting-hint">
@@ -185,7 +185,7 @@ export const VisualSettings: React.FC<VisualSettingsProps> = ({
       </div>
 
       <div className="setting-group">
-        <h4>Calidad Visual</h4>
+        <h4>Visual Quality</h4>
         <div className="quality-presets">
           <button
             className="quality-button"
@@ -194,7 +194,7 @@ export const VisualSettings: React.FC<VisualSettingsProps> = ({
               onCanvasVibranceChange(1);
             }}
           >
-            🏃 Rendimiento
+            🏃 Performance
           </button>
           <button
             className="quality-button"
@@ -203,7 +203,7 @@ export const VisualSettings: React.FC<VisualSettingsProps> = ({
               onCanvasVibranceChange(1);
             }}
           >
-            ⚖️ Balanceado
+            ⚖️ Balanced
           </button>
           <button
             className="quality-button"
@@ -212,7 +212,7 @@ export const VisualSettings: React.FC<VisualSettingsProps> = ({
               onCanvasVibranceChange(1.5);
             }}
           >
-            💎 Calidad
+            💎 Quality
           </button>
         </div>
       </div>

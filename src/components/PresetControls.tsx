@@ -77,7 +77,7 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
   if (!preset.config.controls || preset.config.controls.length === 0) {
     return (
       <div className="preset-controls no-controls">
-        <p>No hay controles disponibles para este preset.</p>
+        <p>No controls available for this preset.</p>
       </div>
     );
   }
@@ -90,7 +90,7 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
             📝 Custom Text Instance
           </div>
           <div className="instance-info">
-            <small>Instancia: {preset.config.name}</small>
+            <small>Instance: {preset.config.name}</small>
           </div>
         </div>
       )}

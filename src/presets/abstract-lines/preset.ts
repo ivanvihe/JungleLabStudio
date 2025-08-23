@@ -42,7 +42,7 @@ export const config: PresetConfig = {
     {
       name: "flow.speed",
       type: "slider",
-      label: "Velocidad de Flujo",
+      label: "Flow Speed",
       min: 0.1,
       max: 3.0,
       step: 0.1,
@@ -69,7 +69,7 @@ export const config: PresetConfig = {
   ],
   audioMapping: {
     low: {
-      description: "Controla densidad y generacion de lineas",
+      description: "Controls line density and generation",
       frequency: "20-250 Hz", 
       effect: "Spawning y densidad base"
     },

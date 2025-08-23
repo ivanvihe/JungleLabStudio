@@ -62,7 +62,7 @@ export const config: PresetConfig = {
     {
       name: "particleCount.initial",
       type: "slider",
-      label: "Particulas Iniciales",
+      label: "Initial Particles",
       min: 0,
       max: 1000,
       step: 50,
@@ -71,7 +71,7 @@ export const config: PresetConfig = {
     {
       name: "evolution.lifespanBase",
       type: "slider",
-      label: "Vida Base de Particulas",
+      label: "Base Particle Lifespan",
       min: 2.0,
       max: 20.0,
       step: 0.5,
@@ -80,7 +80,7 @@ export const config: PresetConfig = {
     {
       name: "evolution.mutationRate",
       type: "slider",
-      label: "Tasa de Mutacion",
+      label: "Mutation Rate",
       min: 0.0,
       max: 1.0,
       step: 0.1,
@@ -89,7 +89,7 @@ export const config: PresetConfig = {
     {
       name: "evolution.adaptationSpeed",
       type: "slider",
-      label: "Velocidad de Adaptacion",
+      label: "Adaptation Speed",
       min: 0.1,
       max: 3.0,
       step: 0.1,
@@ -98,7 +98,7 @@ export const config: PresetConfig = {
     {
       name: "evolution.complexityGrowth",
       type: "slider",
-      label: "Crecimiento de Complejidad",
+      label: "Complexity Growth",
       min: 0.0,
       max: 2.0,
       step: 0.1,
@@ -107,7 +107,7 @@ export const config: PresetConfig = {
     {
       name: "behavior.attraction",
       type: "slider",
-      label: "Fuerza de Atraccion",
+      label: "Attraction Strength",
       min: 0.0,
       max: 1.0,
       step: 0.1,
@@ -116,7 +116,7 @@ export const config: PresetConfig = {
     {
       name: "behavior.socialBehavior",
       type: "slider",
-      label: "Comportamiento Social",
+      label: "Social Behavior",
       min: 0.0,
       max: 1.0,
       step: 0.1,
@@ -125,7 +125,7 @@ export const config: PresetConfig = {
     {
       name: "physics.turbulence",
       type: "slider",
-      label: "Turbulencia",
+      label: "Turbulence",
       min: 0.0,
       max: 1.0,
       step: 0.1,
@@ -134,67 +134,67 @@ export const config: PresetConfig = {
     {
       name: "effects.enableTrails",
       type: "checkbox",
-      label: "Estelas de Particulas",
+      label: "Particle Trails",
       default: true
     },
     {
       name: "effects.enableConnections",
       type: "checkbox",
-      label: "Conexiones Dinamicas",
+      label: "Dynamic Connections",
       default: true
     },
     {
       name: "effects.enableEvolution",
       type: "checkbox",
-      label: "Evolucion Activa",
+      label: "Active Evolution",
       default: true
     },
     {
       name: "effects.enableEmergence",
       type: "checkbox",
-      label: "Comportamiento Emergente",
+      label: "Emergent Behavior",
       default: true
     },
     {
       name: "colors.birth",
       type: "color",
-      label: "Color Nacimiento",
+      label: "Birth Color",
       default: "#FF6B9D"
     },
     {
       name: "colors.juvenile",
       type: "color",
-      label: "Color Juvenil",
+      label: "Juvenile Color",
       default: "#4ECDC4"
     },
     {
       name: "colors.mature",
       type: "color",
-      label: "Color Maduro",
+      label: "Mature Color",
       default: "#45B7D1"
     },
     {
       name: "colors.elder",
       type: "color",
-      label: "Color Anciano",
+      label: "Elder Color",
       default: "#96CEB4"
     }
   ],
   audioMapping: {
     low: {
-      description: "Controla el nacimiento y comportamiento basico de particulas",
+      description: "Controls particle birth and basic behavior",
       frequency: "20-250 Hz",
-      effect: "Generacion de nuevas particulas y movimientos fundamentales"
+      effect: "Generation of new particles and fundamental movements"
     },
     mid: {
       description: "Influye en la evolucion y complejidad del sistema",
       frequency: "250-4000 Hz",
-      effect: "Mutaciones, adaptaciones y comportamientos sociales"
+      effect: "Mutations, adaptations and social behaviors"
     },
     high: {
       description: "Desencadena eventos de emergencia y efectos avanzados",
       frequency: "4000+ Hz",
-      effect: "Comportamientos emergentes y efectos visuales complejos"
+      effect: "Emergent behaviors and complex visual effects"
     }
   },
   performance: {

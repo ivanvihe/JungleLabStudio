@@ -4,7 +4,7 @@ import { BasePreset, PresetConfig } from '../../core/PresetLoader';
 // Config embebido para ROBOTICA
 export const config: PresetConfig = {
   name: "ROBOTICA Text Intro",
-  description: "Visualizacion de texto 'R O B O T I C A' con animacion cinematografica de aparicion letra por letra",
+  description: "Text visualization 'R O B O T I C A' with cinematic letter-by-letter appearance animation",
   author: "AudioVisualizer",
   version: "1.0.0",
   category: "text",
@@ -41,7 +41,7 @@ export const config: PresetConfig = {
     {
       name: "text.scale",
       type: "slider",
-      label: "Escala del Texto",
+      label: "Text Scale",
       min: 0.5,
       max: 3.0,
       step: 0.1,
@@ -50,7 +50,7 @@ export const config: PresetConfig = {
     {
       name: "animation.fadeDuration",
       type: "slider",
-      label: "Duracion de Fade",
+      label: "Fade Duration",
       min: 2.0,
       max: 10.0,
       step: 0.5,
@@ -59,7 +59,7 @@ export const config: PresetConfig = {
     {
       name: "animation.letterDelay",
       type: "slider",
-      label: "Velocidad de Animacion",
+      label: "Animation Speed",
       min: 0.1,
       max: 1.0,
       step: 0.05,
@@ -68,7 +68,7 @@ export const config: PresetConfig = {
     {
       name: "animation.glowIntensity",
       type: "slider",
-      label: "Intensidad de Brillo",
+      label: "Glow Intensity",
       min: 0.0,
       max: 3.0,
       step: 0.1,
@@ -77,31 +77,31 @@ export const config: PresetConfig = {
     {
       name: "colors.text",
       type: "color",
-      label: "Color del Texto",
+      label: "Text Color",
       default: "#FFFFFF"
     },
     {
       name: "effects.enableGlow",
       type: "checkbox",
-      label: "Efectos de Brillo",
+      label: "Glow Effects",
       default: true
     }
   ],
   audioMapping: {
     low: {
-      description: "Controla la velocidad de animacion",
+      description: "Controls animation speed",
       frequency: "20-250 Hz",
-      effect: "Velocidad de aparicion de letras"
+      effect: "Letter appearance speed"
     },
     mid: {
-      description: "Controla el pulso y brillo",
+      description: "Controls pulse and glow",
       frequency: "250-4000 Hz",
-      effect: "Intensidad de pulso y brillo"
+      effect: "Pulse and glow intensity"
     },
     high: {
-      description: "Controla los destellos",
+      description: "Controls sparkles",
       frequency: "4000+ Hz",
-      effect: "Destellos y efectos especiales"
+      effect: "Sparkles and special effects"
     }
   },
   performance: {

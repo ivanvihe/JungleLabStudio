@@ -1,6 +1,6 @@
 {
   "name": "Abstract Lines",
-  "description": "Lineas abstractas que aparecen y desaparecen creando formas organicas con colores tenues",
+  "description": "Abstract lines that appear and disappear creating organic shapes with soft colors",
   "author": "AudioVisualizer",
   "version": "1.0.0",
   "category": "abstract",
@@ -55,7 +55,7 @@
     {
       "name": "animation.appearanceSpeed",
       "type": "slider",
-      "label": "Velocidad de Aparicion",
+      "label": "Appearance Speed",
       "min": 0.1,
       "max": 3.0,
       "step": 0.1,
@@ -64,7 +64,7 @@
     {
       "name": "animation.movementSpeed",
       "type": "slider",
-      "label": "Velocidad de Movimiento",
+      "label": "Movement Speed",
       "min": 0.1,
       "max": 2.0,
       "step": 0.1,
@@ -73,7 +73,7 @@
     {
       "name": "animation.formationSpeed",
       "type": "slider",
-      "label": "Velocidad de Formacion",
+      "label": "Formation Speed",
       "min": 0.2,
       "max": 4.0,
       "step": 0.1,
@@ -82,7 +82,7 @@
     {
       "name": "animation.flickerIntensity",
       "type": "slider",
-      "label": "Intensidad de Parpadeo",
+      "label": "Flicker Intensity",
       "min": 0.0,
       "max": 1.0,
       "step": 0.1,
@@ -91,7 +91,7 @@
     {
       "name": "animation.morphingRate",
       "type": "slider",
-      "label": "Velocidad de Transformacion",
+      "label": "Morphing Speed",
       "min": 0.1,
       "max": 2.0,
       "step": 0.1,
@@ -100,7 +100,7 @@
     {
       "name": "geometry.curvature",
       "type": "slider",
-      "label": "Curvatura de Lineas",
+      "label": "Line Curvature",
       "min": 0.0,
       "max": 1.0,
       "step": 0.1,
@@ -109,7 +109,7 @@
     {
       "name": "geometry.thickness",
       "type": "slider",
-      "label": "Grosor de Lineas",
+      "label": "Line Thickness",
       "min": 0.1,
       "max": 2.0,
       "step": 0.1,
@@ -118,61 +118,61 @@
     {
       "name": "effects.enableFlicker",
       "type": "checkbox",
-      "label": "Efecto Parpadeo",
+      "label": "Flicker Effect",
       "default": true
     },
     {
       "name": "effects.enableMorphing",
       "type": "checkbox",
-      "label": "Transformacion Continua",
+      "label": "Continuous Morphing",
       "default": true
     },
     {
       "name": "effects.enableFormation",
       "type": "checkbox",
-      "label": "Formacion de Patrones",
+      "label": "Pattern Formation",
       "default": true
     },
     {
       "name": "colors.primary",
       "type": "color",
-      "label": "Color Primario",
+      "label": "Primary Color",
       "default": "#E8F4F8"
     },
     {
       "name": "colors.secondary",
       "type": "color",
-      "label": "Color Secundario",
+      "label": "Secondary Color",
       "default": "#F0F8E8"
     },
     {
       "name": "colors.detail",
       "type": "color",
-      "label": "Color de Detalle",
+      "label": "Detail Color",
       "default": "#F8F0E8"
     },
     {
       "name": "colors.accent",
       "type": "color",
-      "label": "Color de Acento",
+      "label": "Accent Color",
       "default": "#F8E8F0"
     }
   ],
   "audioMapping": {
     "low": {
-      "description": "Controla la aparicion y movimiento de lineas primarias",
+      "description": "Controls appearance and movement of primary lines",
       "frequency": "20-250 Hz",
-      "effect": "Generacion de lineas principales y formaciones basicas"
+      "effect": "Generation of primary lines and basic formations"
     },
     "mid": {
-      "description": "Controla las lineas secundarias y transformaciones",
+      "description": "Controls secondary lines and transformations",
       "frequency": "250-4000 Hz",
-      "effect": "Morfologia y patrones intermedios"
+      "effect": "Morphology and intermediate patterns"
     },
     "high": {
-      "description": "Controla los detalles finos y efectos de parpadeo",
+      "description": "Controls fine details and flicker effects",
       "frequency": "4000+ Hz",
-      "effect": "Lineas de detalle y efectos sutiles"
+      "effect": "Detail lines and subtle effects"
     }
   },
   "performance": {
