@@ -79,7 +79,7 @@ export function useLaunchpad(audioData: AudioData, canvasRef: React.RefObject<HT
         : buildLaunchpadFrame(launchpadPreset, audioData, { text: launchpadText });
 
     if (rawFrame.length !== 64) {
-      console.error(`❌ ERROR: buildLaunchpadFrame devolvió ${rawFrame.length} elementos, debería ser 64!`);
+      console.error(`❌ ERROR: buildLaunchpadFrame returned ${rawFrame.length} elements, expected 64!`);
       return;
     }
 
@@ -92,14 +92,14 @@ export function useLaunchpad(audioData: AudioData, canvasRef: React.RefObject<HT
     });
 
     const nonZeroCount = frame.filter(c => c > 0).length;
-    console.log(`🎛️ Frame Launchpad: ${nonZeroCount}/64 pads activos, preset: ${launchpadPreset}`);
+    console.log(`🎛️ Launchpad frame: ${nonZeroCount}/64 active pads, preset: ${launchpadPreset}`);
 
     frame.forEach((color, i) => {
       const note = gridIndexToNote(i);
       try {
         launchpadOutput.send([0x90, note, color]);
       } catch (e) {
-        console.warn(`MIDI send error en pad ${i} (nota ${note}):`, e);
+        console.warn(`MIDI send error on pad ${i} (note ${note}):`, e);
       }
     });
   }, [audioData, launchpadRunning, launchpadPreset, launchpadOutput, launchpadSmoothness, launchpadText, canvasRef]);
@@ -107,7 +107,7 @@ export function useLaunchpad(audioData: AudioData, canvasRef: React.RefObject<HT
   useEffect(() => {
     if (launchpadRunning && launchpadOutput) {
       try {
-        console.log('Launchpad: Enviando handshake a', launchpadOutput.name);
+        console.log('Launchpad: Sending handshake to', launchpadOutput.name);
 
         const deviceName = launchpadOutput.name?.toLowerCase() || '';
         if (deviceName.includes('launchpad x')) {
@@ -127,7 +127,7 @@ export function useLaunchpad(audioData: AudioData, canvasRef: React.RefObject<HT
           launchpadOutput.send([0x90, note, 0]);
         }
       } catch (err) {
-        console.warn('Error inicializando launchpad:', err);
+        console.warn('Error initializing launchpad:', err);
       }
     } else if (!launchpadRunning && launchpadOutput) {
       try {
@@ -136,7 +136,7 @@ export function useLaunchpad(audioData: AudioData, canvasRef: React.RefObject<HT
           launchpadOutput.send([0x90, note, 0]);
         }
       } catch (err) {
-        console.warn('Error apagando launchpad:', err);
+        console.warn('Error turning off launchpad:', err);
       }
     }
   }, [launchpadRunning, launchpadOutput]);

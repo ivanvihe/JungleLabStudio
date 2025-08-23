@@ -28,11 +28,11 @@ interface MidiOptions {
 }
 
 interface MidiClockSettings {
-  resolution: number; // Pulsos por quarter note
-  delay: number; // Delay en ms
-  quantization: number; // Cuantización
-  jumpMode: boolean; // Modo jump por compases
-  stability: number; // Estabilidad del BPM
+  resolution: number; // pulses per quarter note
+  delay: number; // delay in ms
+  quantization: number; // quantization
+  jumpMode: boolean; // jump mode by measures
+  stability: number; // BPM stability
   type: 'midi' | 'internal' | 'off';
 }
 
@@ -56,7 +56,6 @@ export function useMidi(options: MidiOptions) {
   const measureCountRef = useRef(0);
   const lastTickTimeRef = useRef<number | null>(null);
   const bpmHistoryRef = useRef<number[]>([]);
-  const runningStatusRef = useRef(false);
   const clockStableRef = useRef(false);
 
   // Internal clock for fallback
@@ -217,7 +216,6 @@ export function useMidi(options: MidiOptions) {
     measureCountRef.current = 0;
     lastTickTimeRef.current = null;
     bpmHistoryRef.current = [];
-    runningStatusRef.current = false;
     clockStableRef.current = false;
     setBpm(null);
   };
@@ -226,33 +224,26 @@ export function useMidi(options: MidiOptions) {
     if (isFullscreenMode) return;
 
     const handleMIDIMessage = (event: any) => {
-      setMidiActive(true);
-      setTimeout(() => setMidiActive(false), 100);
       const [statusByte, note, vel] = event.data;
 
       // MIDI Clock messages
       if (statusByte === 0xf8 && midiClockSettings.type === 'midi') {
-        if (runningStatusRef.current) {
-          handleClockTick(performance.now(), false);
-        }
+        handleClockTick(performance.now(), false);
         return;
       }
 
       if (statusByte === 0xfa) {
         resetClock();
-        runningStatusRef.current = true;
         stopInternalClock();
         return;
       }
 
       if (statusByte === 0xfb) {
-        runningStatusRef.current = true;
         stopInternalClock();
         return;
       }
 
       if (statusByte === 0xfc) {
-        runningStatusRef.current = false;
         resetClock();
         if (midiClockSettings.type === 'internal') {
           startInternalClock();
@@ -263,6 +254,11 @@ export function useMidi(options: MidiOptions) {
       // Regular MIDI messages
       const command = statusByte & 0xf0;
       const channel = (statusByte & 0x0f) + 1;
+
+      if (command === 0x90 || command === 0x80) {
+        setMidiActive(true);
+        setTimeout(() => setMidiActive(false), 100);
+      }
 
       if (
         command === 0x90 &&

@@ -24,7 +24,7 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
 
   return (
     <div className="preset-selector-container">
-      <label htmlFor="preset-select">Seleccionar Preset:</label>
+      <label htmlFor="preset-select">Select Preset:</label>
       <select
         id="preset-select"
         value={currentPreset}
@@ -32,7 +32,7 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
         disabled={disabled}
         className="preset-select"
       >
-        <option value="">-- Selecciona un preset --</option>
+        <option value="">-- Select a preset --</option>
         {presets.map((preset) => (
           <option key={preset.id} value={preset.id}>
             {preset.config.name} - {preset.config.description}
@@ -42,7 +42,7 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
       
       {presets.length === 0 && !disabled && (
         <p className="no-presets-message">
-          No se encontraron presets. Asegúrate de tener presets en la carpeta visuals/presets/
+          No presets found. Make sure you have presets in the visuals/presets folder
         </p>
       )}
     </div>

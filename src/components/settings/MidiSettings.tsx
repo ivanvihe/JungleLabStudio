@@ -67,18 +67,18 @@ export const MidiSettings: React.FC<MidiSettingsProps> = ({
     <>
       <h3>🎛️ Hardware MIDI</h3>
 
-      <h4>🕒 MIDI Clock & Synchronización</h4>
+      <h4>🕒 MIDI Clock & Sync</h4>
 
       {/* Device Selection */}
       <div className="setting-group">
         <label className="setting-label">
-          <span>Dispositivo MIDI</span>
+          <span>MIDI Device</span>
           <select
             value={selectedMidiId || ''}
             onChange={e => onSelectMidi(e.target.value)}
             className="setting-select"
           >
-            <option value="">Seleccionar dispositivo...</option>
+            <option value="">Select device...</option>
             {midiDevices.map(dev => (
               <option key={dev.id} value={dev.id}>
                 {dev.label}
@@ -91,7 +91,7 @@ export const MidiSettings: React.FC<MidiSettingsProps> = ({
       {/* Clock Type */}
       <div className="setting-group">
         <label className="setting-label">
-          <span>Modo de Clock</span>
+          <span>Clock Mode</span>
           <select
             value={midiClockSettings.type}
             onChange={e =>
@@ -99,9 +99,9 @@ export const MidiSettings: React.FC<MidiSettingsProps> = ({
             }
             className="setting-select"
           >
-            <option value="midi">MIDI Clock Externo</option>
-            <option value="internal">Clock Interno</option>
-            <option value="off">Deshabilitado</option>
+            <option value="midi">External MIDI Clock</option>
+            <option value="internal">Internal Clock</option>
+            <option value="off">Disabled</option>
           </select>
         </label>
       </div>
@@ -110,7 +110,7 @@ export const MidiSettings: React.FC<MidiSettingsProps> = ({
       {midiClockSettings.type === 'internal' && (
         <div className="setting-group">
           <label className="setting-label">
-            <span>BPM Interno</span>
+            <span>Internal BPM</span>
             <input
               type="number"
               min={60}
@@ -126,7 +126,7 @@ export const MidiSettings: React.FC<MidiSettingsProps> = ({
       {/* Clock Resolution */}
       <div className="setting-group">
         <label className="setting-label">
-          <span>Resolución (PPQ)</span>
+          <span>Resolution (PPQ)</span>
           <select
             value={midiClockSettings.resolution}
             onChange={e => onUpdateClockSettings({ resolution: parseInt(e.target.value) })}
@@ -140,14 +140,14 @@ export const MidiSettings: React.FC<MidiSettingsProps> = ({
           </select>
         </label>
         <small className="setting-help">
-          Mayor resolución = mayor precisión pero más carga CPU
+          Higher resolution = more precision but more CPU load
         </small>
       </div>
 
       {/* Delay Compensation */}
       <div className="setting-group">
         <label className="setting-label">
-          <span>Delay Compensación (ms)</span>
+          <span>Delay Compensation (ms)</span>
           <input
             type="number"
             min={-50}
@@ -160,14 +160,14 @@ export const MidiSettings: React.FC<MidiSettingsProps> = ({
           />
         </label>
         <small className="setting-help">
-          Ajusta el timing si los visuales van adelantados (-) o retrasados (+)
+          Adjust timing if visuals are ahead (-) or behind (+)
         </small>
       </div>
 
       {/* BPM Stability */}
       <div className="setting-group">
         <label className="setting-label">
-          <span>Estabilidad BPM</span>
+          <span>BPM Stability</span>
           <input
             type="range"
             min={1}
@@ -181,14 +181,14 @@ export const MidiSettings: React.FC<MidiSettingsProps> = ({
           <span className="range-value">{midiClockSettings.stability}</span>
         </label>
         <small className="setting-help">
-          1 = Respuesta rápida, 10 = Máxima estabilidad
+          1 = Fast response, 10 = Maximum stability
         </small>
       </div>
 
       {/* Quantization */}
       <div className="setting-group">
         <label className="setting-label">
-          <span>Cuantización Visual</span>
+          <span>Visual Quantization</span>
           <select
             value={midiClockSettings.quantization}
             onChange={e =>
@@ -204,7 +204,7 @@ export const MidiSettings: React.FC<MidiSettingsProps> = ({
           </select>
         </label>
         <small className="setting-help">
-          Los cambios visuales se disparan solo en estos intervalos
+          Visual changes trigger only at these intervals
         </small>
       </div>
 
@@ -217,27 +217,27 @@ export const MidiSettings: React.FC<MidiSettingsProps> = ({
             onChange={e => onUpdateClockSettings({ jumpMode: e.target.checked })}
             className="setting-checkbox"
           />
-          <span>Modo Jump por Compases</span>
+          <span>Jump Mode by Measures</span>
         </label>
         <small className="setting-help">
-          Cambios de preset automáticos cada compás (4 beats)
+          Automatic preset changes every measure (4 beats)
         </small>
       </div>
 
       {/* Clock Status Display */}
       <div className="clock-status">
-        <h5>Estado del Clock</h5>
+        <h5>Clock Status</h5>
         <div className="status-grid">
           <div className="status-item">
-            <span className="status-label">Estado:</span>
+            <span className="status-label">Status:</span>
             <span
               className={`status-value ${clockStable ? 'stable' : 'unstable'}`}
             >
-              {clockStable ? '🟢 Estable' : '🟡 Sincronizando...'}
+              {clockStable ? '🟢 Stable' : '🟡 Syncing...'}
             </span>
           </div>
           <div className="status-item">
-            <span className="status-label">Compás:</span>
+            <span className="status-label">Measure:</span>
             <span className="status-value">{currentMeasure}</span>
           </div>
           <div className="status-item">
@@ -249,11 +249,11 @@ export const MidiSettings: React.FC<MidiSettingsProps> = ({
 
       <div className="setting-divider" />
 
-      <h4>🎹 MIDI para Pads</h4>
+      <h4>🎹 MIDI for Pads</h4>
 
       {/* Layer Channel Settings */}
       <div className="layer-channel-settings">
-        <h5>Canal MIDI por Layer</h5>
+        <h5>MIDI Channel per Layer</h5>
         {['A', 'B', 'C'].map(id => (
           <label key={id} className="setting-label">
             <span>Layer {id}</span>
@@ -273,7 +273,7 @@ export const MidiSettings: React.FC<MidiSettingsProps> = ({
 
       {/* Effect MIDI Notes */}
       <div className="effect-note-settings">
-        <h5>Notas MIDI por Efecto</h5>
+        <h5>MIDI Notes per Effect</h5>
         <div className="effects-grid">
           {AVAILABLE_EFFECTS.filter(eff => eff !== 'none').map(eff => (
             <label key={eff} className="setting-label effect-setting">

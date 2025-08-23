@@ -155,7 +155,7 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
     <div className="settings-modal-overlay">
       <div className="settings-modal-content">
         <div className="settings-header">
-          <h2>⚙️ Configuración Global</h2>
+          <h2>⚙️ Global Settings</h2>
           <button className="close-button" onClick={onClose}>✕</button>
         </div>
 
@@ -163,11 +163,11 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
           <div className="settings-sidebar">
             {[
               { id: 'audio', label: 'Audio', icon: '🎵' },
-              { id: 'hardware', label: 'Hardware MIDI', icon: '🎛️' },
-              { id: 'video', label: 'Rendimiento', icon: '🎮' },
-              { id: 'fullscreen', label: 'Monitores', icon: '🖥️' },
-              { id: 'visual', label: 'Visuales', icon: '🎨' },
-              { id: 'system', label: 'Sistema', icon: '🔧' },
+              { id: 'hardware', label: 'MIDI Hardware', icon: '🎛️' },
+              { id: 'video', label: 'Performance', icon: '🎮' },
+              { id: 'fullscreen', label: 'Monitors', icon: '🖥️' },
+              { id: 'visual', label: 'Visuals', icon: '🎨' },
+              { id: 'system', label: 'System', icon: '🔧' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -270,10 +270,10 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
 
         <div className="settings-footer">
           <div className="settings-info">
-            <span>💡 Los cambios se aplican automáticamente</span>
+            <span>💡 Changes are applied automatically</span>
           </div>
           <button className="primary-button" onClick={onClose}>
-            Cerrar
+            Close
           </button>
         </div>
       </div>
