@@ -1,5 +1,5 @@
 import { SessionMidiController, ChannelStrip } from '../types/GeneratorTypes';
-import { GeneratorEngine } from './GeneratorEngine';
+import { LegacyGeneratorEngine } from './LegacyGeneratorEngine';
 
 export class SessionMidiManager {
   private static instance: SessionMidiManager;
@@ -187,7 +187,7 @@ export class SessionMidiManager {
   private updateGenerator(strip: ChannelStrip, control: string, value: number) {
     const trackId = this.trackMapping.get(strip.stripIndex);
     if (!trackId) return;
-    GeneratorEngine.getInstance().updateGeneratorControl(trackId, control, value);
+    LegacyGeneratorEngine.getInstance().updateGeneratorControl(trackId, control, value);
   }
   
   // Mapear un track a un strip específico
