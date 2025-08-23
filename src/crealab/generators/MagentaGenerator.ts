@@ -1,12 +1,17 @@
 import { GeneratorInstance } from '../core/GeneratorEngine';
 import { GenerativeTrack, MidiNote } from '../types/CrealabTypes';
-import type * as mm from '@magenta/music';
+// Magenta is loaded dynamically to avoid bundling heavy dependencies.
+// Declare lightweight type aliases so the build can succeed even if the
+// library isn't installed locally.
+type MagentaModule = typeof import('@magenta/music');
+type MusicRNN = import('@magenta/music').MusicRNN;
+type NoteSequence = import('@magenta/music').INoteSequence;
 
 export class MagentaGenerator implements GeneratorInstance {
-  private mm: typeof import('@magenta/music') | null = null;
-  private rnn: mm.MusicRNN | null = null;
+  private mm: MagentaModule | null = null;
+  private rnn: MusicRNN | null = null;
   private loaded = false;
-  private sequence: mm.INoteSequence | null = null;
+  private sequence: NoteSequence | null = null;
   private generating = false;
   private step = 0;
 
@@ -35,10 +40,10 @@ export class MagentaGenerator implements GeneratorInstance {
     const density = track.controls.paramC / 127;
 
     if (!this.sequence && !this.generating) {
-      this.generating = true;
-      const seed: mm.INoteSequence = { notes: [], totalTime: 0 };
-      this.rnn
-        .continueSequence(seed, steps, temperature)
+        this.generating = true;
+        const seed: NoteSequence = { notes: [], totalTime: 0 };
+        this.rnn
+          .continueSequence(seed, steps, temperature)
         .then(seq => {
           this.sequence = this.mm!.sequences.quantizeNoteSequence(seq, 4);
           this.generating = false;
