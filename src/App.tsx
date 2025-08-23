@@ -16,7 +16,7 @@ import { useAudio } from './hooks/useAudio';
 import { useMidi } from './hooks/useMidi';
 import { useLaunchpad } from './hooks/useLaunchpad';
 import './App.css';
-import './components/LayerGrid.css';
+import './AppLayout.css';
 
 interface MonitorInfo {
   id: string;
