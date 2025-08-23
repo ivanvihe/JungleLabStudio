@@ -143,6 +143,14 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
     GeneratorEngine.getInstance().updateTracks(project.tracks);
   }, [project.tracks]);
 
+  // Efecto para inicializar el engine cuando se monta el componente
+  useEffect(() => {
+    const engine = GeneratorEngine.getInstance();
+    // Asegurar que el engine esté configurado con los tracks actuales
+    engine.updateTracks(project.tracks);
+    console.log('🎵 Generator Engine initialized with tracks:', project.tracks.length);
+  }, []);
+
   useEffect(() => {
     const engine = GeneratorEngine.getInstance();
     if (project.transport.isPlaying) {
@@ -150,6 +158,7 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
     } else {
       engine.stop();
     }
+    console.log('🎵 Transport state changed:', project.transport.isPlaying ? 'PLAYING' : 'STOPPED');
   }, [project.transport.isPlaying, project.globalTempo, project.key, project.scale, project.tracks]);
 
   useEffect(() => {
@@ -194,6 +203,34 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
         t.trackNumber === trackNumber ? { ...t, name } : t
       ) as any
     }));
+  };
+
+  // Función auxiliar para activar/desactivar tracks individuales
+  const toggleTrackPlayStop = (trackNumber: number) => {
+    setProject(prev => {
+      const track = prev.tracks[trackNumber - 1];
+      if (!track.generator.enabled || track.generator.type === 'off') {
+        console.warn(`Track ${trackNumber} has no active generator`);
+        return prev;
+      }
+
+      const newTracks = prev.tracks.map(t =>
+        t.trackNumber === trackNumber
+          ? {
+              ...t,
+              controls: {
+                ...t.controls,
+                playStop: !t.controls.playStop
+              }
+            }
+          : t
+      ) as any;
+
+      const engine = GeneratorEngine.getInstance();
+      engine.updateTracks(newTracks);
+
+      return { ...prev, tracks: newTracks };
+    });
   };
 
   const updateMidiChannel = (trackNumber: number, channel: number) => {
@@ -327,31 +364,31 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
         onOpenMidiConfig={() => setShowMidiConfig(true)}
         onOpenProjectManager={() => setShowProjectManager(true)}
         isPlaying={project.transport.isPlaying}
-        onPlayToggle={() =>
-          setProject(p => {
-            const nextPlaying = !p.transport.isPlaying;
-            const updatedTracks = p.tracks.map(t => ({
-              ...t,
-              controls: {
-                ...t.controls,
-                playStop: nextPlaying ? t.generator.enabled : false
-              },
-              generator: {
-                ...t.generator,
-                lastNoteTime: 0,
-                currentStep: 0
-              }
-            }));
-            // Keep engine in sync with track states
-            const engine = GeneratorEngine.getInstance();
-            engine.updateTracks(updatedTracks);
-            return {
-              ...p,
-              tracks: updatedTracks,
-              transport: { ...p.transport, isPlaying: nextPlaying }
-            };
-          })
-        }
+          onPlayToggle={() =>
+            setProject(p => {
+              const nextPlaying = !p.transport.isPlaying;
+              const updatedTracks = p.tracks.map(t => {
+                // Si está iniciando el play, activar playStop para tracks con generadores habilitados
+                // Si está parando, desactivar todos los playStop
+                const shouldPlay = nextPlaying && t.generator.enabled && t.generator.type !== 'off';
+                return {
+                  ...t,
+                  controls: {
+                    ...t.controls,
+                    playStop: shouldPlay
+                  }
+                };
+              });
+              // Keep engine in sync with track states
+              const engine = GeneratorEngine.getInstance();
+              engine.updateTracks(updatedTracks);
+              return {
+                ...p,
+                tracks: updatedTracks,
+                transport: { ...p.transport, isPlaying: nextPlaying }
+              };
+            })
+          }
         isMidiMapping={midiMapping}
         onToggleMidiMapping={() => setMidiMapping(m => !m)}
       />
@@ -374,6 +411,15 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
               </div>
 
               <div className="track-controls">
+                <div className="track-play-controls">
+                  <button
+                    className={`track-play-btn ${track.controls.playStop ? 'active' : ''}`}
+                    onClick={() => toggleTrackPlayStop(track.trackNumber)}
+                  >
+                    {track.controls.playStop ? '⏹️' : '▶️'}
+                  </button>
+                </div>
+
                 <select
                   className="device-selector"
                   value={track.inputDevice || ''}

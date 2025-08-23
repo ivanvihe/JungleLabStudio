@@ -74,6 +74,7 @@ export class GeneratorEngine {
     this.tracks = tracks;
     this.isRunning = true;
     this.currentTime = 0;
+    console.log('🎵 Starting GeneratorEngine with tracks:', tracks.map(t => `${t.name}(${t.generator.type}=${t.generator.enabled})`));
 
     // Calcular intervalo basado en el tempo (16th notes)
     const interval = (60 / globalTempo / 4) * 1000; // milliseconds
@@ -111,6 +112,11 @@ export class GeneratorEngine {
      // Enviar mensajes de stop a dispositivos que usan clock
     this.tracksWithClock.forEach(t => this.sendMidiStop(t));
     this.tracksWithClock = [];
+    
+    // Resetear estado interno de tracks
+    this.tracks.forEach(track => {
+      track.generator.currentStep = 0;
+    });
     console.log('🛑 Generator Engine stopped');
   }
 
@@ -125,6 +131,13 @@ export class GeneratorEngine {
     MusicalIntelligence.applyCrossTrackInfluence(this.tracks);
     MusicalIntelligence.analyzeHarmony(this.tracks);
 
+    // Filtrar solo tracks que están activos (playStop=true y enabled=true)
+    const activeTracks = this.tracks.filter(track =>
+      track.generator.enabled &&
+      track.controls.playStop &&
+      track.generator.type !== 'off'
+    );
+
     this.tracks.forEach(track => {
       if (track.sendClock && !this.tracksWithClock.includes(track)) {
         this.tracksWithClock.push(track);
@@ -134,7 +147,13 @@ export class GeneratorEngine {
         this.sendMidiClock(track, 6);
       }
 
-      if (track.generator.enabled) {
+      // Solo procesar tracks que están habilitados Y tienen playStop activo
+      if (
+        track.generator.enabled &&
+        track.controls.playStop &&
+        track.generator.type !== 'off'
+      ) {
+        console.log('🎵 Processing active track:', track.name, 'type:', track.generator.type);
         this.processTrack(track, globalTempo, key, scale);
       }
     });
@@ -163,6 +182,7 @@ export class GeneratorEngine {
     if (notes.length > 0) {
       // Notificar que el generador produjo notas
       track.generator.lastNoteTime = this.currentTime;
+      console.log('🎵 Generated notes for track:', track.name, 'notes:', notes.length);
       if (typeof window !== 'undefined') {
         window.dispatchEvent(
           new CustomEvent('generatorNote', { detail: { trackId: track.id } })
