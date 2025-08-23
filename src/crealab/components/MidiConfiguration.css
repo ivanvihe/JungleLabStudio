@@ -100,6 +100,8 @@
   padding: 2px 4px;
   border-radius: 4px;
   font-size: 10px;
+  height: 24px;
+  line-height: 20px;
 }
 
 .device-grid {

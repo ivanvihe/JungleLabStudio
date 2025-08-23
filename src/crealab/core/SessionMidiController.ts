@@ -64,12 +64,12 @@ export class SessionMidiManager {
       strips.push({
         stripIndex: i,
         controls: {
-          fader: 77 + i - 1,      // CC 77-84 (faders)
-          knob1: 13 + (i - 1) * 4,  // CC 13, 17, 21, 25, 29, 33, 37, 41 (knobs superiores)
-          knob2: 14 + (i - 1) * 4,  // CC 14, 18, 22, 26, 30, 34, 38, 42 (knobs medios)
-          knob3: 15 + (i - 1) * 4,  // CC 15, 19, 23, 27, 31, 35, 39, 43 (knobs inferiores)
-          button1: 41 + i - 1,       // CC 41-48 (botones superiores)
-          button2: 57 + i - 1        // CC 57-64 (botones inferiores)
+          fader: 77 + i - 1,       // CC 77-84 (faders)
+          knob1: 13 + (i - 1),     // CC 13-20 (top knobs)
+          knob2: 29 + (i - 1),     // CC 29-36 (middle knobs)
+          knob3: 49 + (i - 1),     // CC 49-56 (bottom knobs)
+          button1: 41 + i - 1,     // CC 41-48 (upper buttons)
+          button2: 57 + i - 1      // CC 57-64 (lower buttons)
         },
         values: {
           fader: 0,
@@ -101,8 +101,8 @@ export class SessionMidiManager {
   private handleMidiMessage(data: Uint8Array) {
     const [status, cc, value] = data;
     
-    // Solo procesar Control Change (176 = 0xB0 + channel 0)
-    if (status !== 176) return;
+    // Process Control Change messages on any MIDI channel
+    if ((status & 0xf0) !== 0xb0) return;
     
     if (!this.activeController) return;
     
@@ -125,15 +125,15 @@ export class SessionMidiManager {
   private determineStripFromCC(cc: number): number | null {
     // Faders: CC 77-84
     if (cc >= 77 && cc <= 84) return cc - 76;
-    
-    // Knobs: CC 13-15, 17-19, 21-23, 25-27, 29-31, 33-35, 37-39, 41-43
-    if (cc >= 13 && cc <= 43) {
-      return Math.floor((cc - 13) / 4) + 1;
-    }
-    
-    // Buttons: CC 41-48, 57-64
-    if (cc >= 41 && cc <= 48) return cc - 40;
-    if (cc >= 57 && cc <= 64) return cc - 56;
+
+    // Knobs
+    if (cc >= 13 && cc <= 20) return cc - 12; // top row
+    if (cc >= 29 && cc <= 36) return cc - 28; // middle row
+    if (cc >= 49 && cc <= 56) return cc - 48; // bottom row
+
+    // Buttons
+    if (cc >= 41 && cc <= 48) return cc - 40; // upper buttons
+    if (cc >= 57 && cc <= 64) return cc - 56; // lower buttons
     
     return null;
   }
@@ -141,9 +141,9 @@ export class SessionMidiManager {
   // Determinar tipo de control
   private determineControlType(cc: number): string | null {
     if (cc >= 77 && cc <= 84) return 'fader';
-    if ([13,17,21,25,29,33,37,41].includes(cc)) return 'knob1';
-    if ([14,18,22,26,30,34,38,42].includes(cc)) return 'knob2';
-    if ([15,19,23,27,31,35,39,43].includes(cc)) return 'knob3';
+    if (cc >= 13 && cc <= 20) return 'knob1';
+    if (cc >= 29 && cc <= 36) return 'knob2';
+    if (cc >= 49 && cc <= 56) return 'knob3';
     if (cc >= 41 && cc <= 48) return 'button1';
     if (cc >= 57 && cc <= 64) return 'button2';
     return null;
