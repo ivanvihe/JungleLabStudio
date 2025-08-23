@@ -6,6 +6,7 @@ import useLaunchControlXL from '../hooks/useLaunchControlXL';
 import { SessionMidiManager } from '../core/SessionMidiController';
 import { useMidiDevices } from '../hooks/useMidiDevices';
 import BassGeneratorControls from './BassGeneratorControls';
+import GeneratorControls from './GeneratorControls';
 import MidiConfiguration from './MidiConfiguration';
 import ProjectManager from './ProjectManager';
 import './CreaLab.css';
@@ -425,6 +426,11 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
                   <option value="chaos">Chaos</option>
                   <option value="magenta">Magenta</option>
                 </select>
+
+                <GeneratorControls
+                  track={track}
+                  onChange={changes => updateTrackControls(track.trackNumber, changes)}
+                />
 
                 {track.trackType === 'bass' && (
                   <BassGeneratorControls

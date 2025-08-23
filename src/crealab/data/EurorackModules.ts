@@ -12,37 +12,37 @@ export const EURORACK_MODULES: EurorackModule[] = [
     id: 'arp',
     name: 'ARP Sequencer',
     description: 'Secuenciador rítmico/melódico para líneas repetitivas.',
-    controls: ['Ritmo', 'Patrón', 'Swing']
+    controls: ['Transpose', 'Swing', 'Humanize']
   },
   {
     id: 'lead',
     name: 'Lead Synth',
     description: 'Sintetizador monofónico para melodías principales.',
-    controls: ['Pitch', 'Timbre', 'Filtro']
+    controls: ['Transpose', 'Swing', 'Humanize']
   },
   {
     id: 'bass',
     name: 'Bass Synth',
     description: 'Generador de bajos con cuerpo y pegada.',
-    controls: ['Cutoff', 'Resonancia', 'Drive']
+    controls: ['Transpose', 'Swing', 'Humanize']
   },
   {
     id: 'kick',
     name: 'Kick Drum',
     description: 'Percusión grave y corta para bombo.',
-    controls: ['Frecuencia', 'Decay', 'Drive']
+    controls: ['Transpose', 'Swing', 'Humanize']
   },
   {
     id: 'perc',
     name: 'Snare / Clap',
     description: 'Percusión media con componente de ruido.',
-    controls: ['Tone', 'Decay', 'Crackle']
+    controls: ['Transpose', 'Swing', 'Humanize']
   },
   {
     id: 'fx',
     name: 'FX Noise',
     description: 'Generador de ruido y efectos.',
-    controls: ['Ruido', 'Modulación', 'Filtro']
+    controls: ['Transpose', 'Swing', 'Humanize']
   },
   {
     id: 'visual',

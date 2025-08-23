@@ -22,7 +22,10 @@ const BassGeneratorControls: React.FC<Props> = ({ track, onParametersChange }) =
   };
 
   return (
-    <div className="generator-controls">
+    <div className="generator-module">
+      <div className="module-header">
+        <span>Bass Patterns</span>
+      </div>
       <div className="control-row">
         <label>Pattern</label>
         <select value={currentPattern} onChange={handlePatternChange}>
