@@ -300,7 +300,6 @@ class GenLabPreset extends BasePreset {
         );
         material.fragmentShader = defaultFragmentShader;
         material.needsUpdate = true;
-        material.dispose();
         this.renderer.compile(this.scene, this.camera);
       }
     }
