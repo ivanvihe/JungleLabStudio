@@ -36,7 +36,14 @@ fn main() {
 
     tauri::Builder::default()
         .manage(ConfigState { path: config_path, inner: std::sync::Mutex::new(cfg) })
-        .invoke_handler(tauri::generate_handler![set_layer_opacity, get_config, save_config])
+        .manage(midi::MidiState::default())
+        .invoke_handler(tauri::generate_handler![
+            set_layer_opacity,
+            get_config,
+            save_config,
+            midi::list_midi_ports,
+            midi::select_midi_port
+        ])
         .setup(|app| {
             midi::start(app.handle().clone());
             audio::start(app.handle().clone());

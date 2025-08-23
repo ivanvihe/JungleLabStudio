@@ -18,6 +18,7 @@ impl Default for LayerConfig {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Config {
     pub layers: HashMap<String, LayerConfig>,
+    pub midi_port: Option<String>,
 }
 
 impl Default for Config {
@@ -26,7 +27,7 @@ impl Default for Config {
         layers.insert("A".into(), LayerConfig { midi_channel: 14, ..Default::default() });
         layers.insert("B".into(), LayerConfig { midi_channel: 15, ..Default::default() });
         layers.insert("C".into(), LayerConfig { midi_channel: 16, ..Default::default() });
-        Self { layers }
+        Self { layers, midi_port: None }
     }
 }
 
