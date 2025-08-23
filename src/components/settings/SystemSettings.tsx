@@ -17,6 +17,8 @@ interface SystemSettingsProps {
   onStartMonitorChange: (id: string | null) => void;
   sidebarCollapsed: boolean;
   onSidebarCollapsedChange: (value: boolean) => void;
+  visualsPath: string;
+  onVisualsPathChange: (value: string) => void;
 }
 
 export const SystemSettings: React.FC<SystemSettingsProps> = ({
@@ -27,6 +29,8 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({
   onStartMonitorChange,
   sidebarCollapsed,
   onSidebarCollapsedChange,
+  visualsPath,
+  onVisualsPathChange,
 }) => {
   const [autoCleanCache, setAutoCleanCache] = useState(() =>
     localStorage.getItem('autoCleanCache') !== 'false'
@@ -35,6 +39,11 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({
     parseInt(localStorage.getItem('memoryLimit') || '512')
   );
   const [webglSupport, setWebglSupport] = useState<string>('Detecting...');
+  const [resourcesPath, setResourcesPath] = useState(visualsPath);
+
+  useEffect(() => {
+    setResourcesPath(visualsPath);
+  }, [visualsPath]);
 
   useEffect(() => {
     localStorage.setItem('autoCleanCache', autoCleanCache.toString());
@@ -57,6 +66,11 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({
       setWebglSupport('Not available');
     }
   }, []);
+
+  const handlePathChange = (value: string) => {
+    setResourcesPath(value);
+    onVisualsPathChange(value);
+  };
 
   const handleClearCache = () => {
     const keysToKeep = [
@@ -153,6 +167,19 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({
           />
           <span>Collapse sidebar on start</span>
         </label>
+      </div>
+
+      <div className="setting-group">
+        <label className="setting-label">
+          <span>Visuals Path</span>
+          <input
+            type="text"
+            value={resourcesPath}
+            onChange={e => handlePathChange(e.target.value)}
+            className="setting-input"
+          />
+        </label>
+        <small className="setting-hint">Base folder for visual presets</small>
       </div>
 
       {memInfo && (

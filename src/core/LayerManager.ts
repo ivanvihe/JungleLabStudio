@@ -169,7 +169,7 @@ export class LayerManager {
 
   private getLayerConfigPath(presetId: string, layerId: string): string {
     const loaded = this.presetLoader.getLoadedPresets().find(p => p.id === presetId);
-    const folder = loaded?.folderPath ?? `src/presets/${presetId}`;
+    const folder = loaded?.folderPath ?? `${this.presetLoader.getBasePath()}/${presetId}`;
     const variantMatch = presetId.match(/-(\d+)$/);
     const variantSuffix = variantMatch ? `-${variantMatch[1]}` : '';
     return `${folder}/layers/${layerId}${variantSuffix}.json`;

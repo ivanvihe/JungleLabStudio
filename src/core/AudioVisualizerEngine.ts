@@ -32,7 +32,10 @@ export class AudioVisualizerEngine {
   private multiMonitorMode = false;
   private currentBpm: number = 120;
 
-  constructor(private canvas: HTMLCanvasElement, options: { glitchTextPads?: number } = {}) {
+  constructor(
+    private canvas: HTMLCanvasElement,
+    options: { glitchTextPads?: number; visualsPath?: string } = {}
+  ) {
     this.camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
     this.renderer = new THREE.WebGLRenderer({
       canvas: this.canvas,
@@ -46,7 +49,12 @@ export class AudioVisualizerEngine {
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-    this.presetLoader = new PresetLoader(this.camera, this.renderer, options.glitchTextPads ?? 1);
+    this.presetLoader = new PresetLoader(
+      this.camera,
+      this.renderer,
+      options.glitchTextPads ?? 1,
+      options.visualsPath
+    );
     this.layerManager = new LayerManager(this.renderer, this.camera, this.presetLoader);
     this.layers = this.layerManager.getLayers();
     this.compositor = new Compositor(this.renderer);
@@ -189,7 +197,7 @@ export class AudioVisualizerEngine {
   // utilities is avoided to stay compatible with the browser/Tauri runtime.
   private getLayerConfigPath(presetId: string, layerId: string): string {
     const loaded = this.presetLoader.getLoadedPresets().find(p => p.id === presetId);
-    const folder = loaded?.folderPath ?? `src/presets/${presetId}`;
+    const folder = loaded?.folderPath ?? `${this.presetLoader.getBasePath()}/${presetId}`;
     const variantMatch = presetId.match(/-(\d+)$/);
     const variantSuffix = variantMatch ? `-${variantMatch[1]}` : '';
     return `${folder}/layers/${layerId}${variantSuffix}.json`;
