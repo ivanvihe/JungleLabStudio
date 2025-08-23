@@ -9,7 +9,7 @@
 
 .crealab-workspace {
   flex: 1;
-  padding: 20px;
+  padding: 10px;
   overflow-y: auto;
 }
 
@@ -17,18 +17,18 @@
 .tracks-grid {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
-  gap: 20px;
+  gap: 0;
   height: calc(100vh - 140px); /* Ajustar según TopBar + Footer */
 }
 
 .track-strip {
   background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
   border: 2px solid var(--track-color, #444);
-  border-radius: 12px;
-  padding: 15px;
+  border-radius: 8px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
@@ -55,18 +55,18 @@
 .track-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 4px;
+  margin-bottom: 4px;
 }
 
 .track-number {
   background: var(--track-color, #444);
   color: black;
   font-weight: bold;
-  padding: 4px 8px;
+  padding: 2px 4px;
   border-radius: 4px;
-  font-size: 12px;
-  min-width: 24px;
+  font-size: 10px;
+  min-width: 20px;
   text-align: center;
 }
 
@@ -75,9 +75,9 @@
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid #444;
   color: white;
-  padding: 6px 10px;
+  padding: 4px 6px;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
 }
 
@@ -92,12 +92,12 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
 }
 
 .midi-config {
   display: flex;
-  gap: 8px;
+  gap: 4px;
 }
 
 .device-selector,
@@ -107,9 +107,9 @@
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid #444;
   color: white;
-  padding: 4px 8px;
+  padding: 2px 4px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 10px;
   cursor: pointer;
 }
 
@@ -122,20 +122,20 @@
 }
 
 .generator-config {
-  margin-top: 5px;
+  margin-top: 4px;
 }
 
 .generator-selector {
   width: 100%;
-  padding: 6px 10px;
-  font-size: 13px;
+  padding: 4px 6px;
+  font-size: 11px;
 }
 
 .track-type-selector {
   width: 100%;
-  margin-bottom: 6px;
-  padding: 6px 10px;
-  font-size: 13px;
+  margin-bottom: 4px;
+  padding: 4px 6px;
+  font-size: 11px;
 }
 
 /* LAUNCH CONTROL PREVIEW */
