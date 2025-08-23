@@ -31,6 +31,11 @@ export default defineConfig({
   json: {
     stringify: false
   },
+  css: {
+    modules: {
+      localsConvention: 'camelCase'
+    }
+  },
   // Configurar el manejo de dependencias opcionales
   optimizeDeps: {
     exclude: [

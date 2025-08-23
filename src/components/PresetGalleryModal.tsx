@@ -207,6 +207,7 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
   };
 
   const handleDefaultControlChange = async (path: string, value: any) => {
+
     if (!selected) return;
 
     // Update in-memory default config
@@ -231,6 +232,10 @@ export const PresetGalleryModal: React.FC<PresetGalleryModalProps> = ({
 
     // Force re-render
     setSelected({ ...selected });
+  };
+
+  const handleDefaultControlChange = (path: string, value: any) => {
+    void persistDefaultConfig(path, value);
   };
 
   if (!isOpen) return null;

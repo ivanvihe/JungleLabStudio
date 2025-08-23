@@ -1,9 +1,5 @@
 /* MEJORA 4: CSS para GlobalSettingsModal mejorado */
 
-:root {
-  --accent-color: #FFB74D;
-}
-
 .settings-modal-overlay {
   position: fixed;
   top: 0;
