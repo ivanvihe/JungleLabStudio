@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { CreaLabProject, GenerativeTrack } from '../types/CrealabTypes';
 import { TopBar } from './TopBar';
+import LaunchControlVisualizer from './LaunchControlVisualizer';
+import useLaunchControlXL from '../hooks/useLaunchControlXL';
 import './CreaLab.css';
 
 interface CreaLabProps {
@@ -52,6 +54,7 @@ const createDefaultTrack = (n: number): GenerativeTrack => ({
 });
 
 export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) => {
+  const controller = useLaunchControlXL();
   const [project, setProject] = useState<CreaLabProject>({
     id: 'project-1',
     name: 'New Project',
@@ -125,6 +128,8 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
         onKeyChange={key => setProject(p => ({ ...p, key }))}
         onSwitchToAudioVisualizer={onSwitchToAudioVisualizer}
       />
+
+      <LaunchControlVisualizer controller={controller} />
 
       <main className="crealab-workspace">
         <div className="tracks-grid">
