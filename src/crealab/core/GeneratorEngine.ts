@@ -156,6 +156,14 @@ export class GeneratorEngine {
 
     // Enviar notas MIDI si hay alguna
     if (notes.length > 0) {
+      // Notificar que el generador produjo notas
+      track.generator.lastNoteTime = this.currentTime;
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('generatorNote', { detail: { trackId: track.id } })
+        );
+      }
+
       this.sendMidiNotes(notes, track, globalTempo);
     }
   }
@@ -185,6 +193,13 @@ export class GeneratorEngine {
         )
       )
     );
+
+    // Notificar que se enviaron notas al dispositivo
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('trackNote', { detail: { trackId: track.id } })
+      );
+    }
 
     if (this.broadcast && track.visualLayer && typeof track.visualPad === 'number') {
       notes.forEach(note => {

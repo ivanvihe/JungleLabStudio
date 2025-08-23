@@ -81,6 +81,7 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
   const [showMidiConfig, setShowMidiConfig] = useState(false);
   const [showProjectManager, setShowProjectManager] = useState(false);
   const [midiMapping, setMidiMapping] = useState(false);
+  const [trackActivity, setTrackActivity] = useState<Record<string, boolean>>({});
   const [project, setProject] = useState<CreaLabProject>({
     id: 'project-1',
     name: 'New Project',
@@ -174,6 +175,16 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
       return { ...prev, tracks: newTracks };
     });
   }, [controller]);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      const id = e.detail.trackId;
+      setTrackActivity(prev => ({ ...prev, [id]: true }));
+      setTimeout(() => setTrackActivity(prev => ({ ...prev, [id]: false })), 100);
+    };
+    window.addEventListener('trackNote', handler);
+    return () => window.removeEventListener('trackNote', handler);
+  }, []);
 
   const updateTrackName = (trackNumber: number, name: string) => {
     setProject(prev => ({
@@ -339,6 +350,7 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
                   value={track.name}
                   onChange={e => updateTrackName(track.trackNumber, e.target.value)}
                 />
+                <span className={`track-led ${trackActivity[track.id] ? 'on' : ''}`} />
               </div>
 
               <div className="track-controls">

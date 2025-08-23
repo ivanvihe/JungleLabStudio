@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { GenerativeTrack } from '../types/CrealabTypes';
 import { MODULE_KNOB_LABELS } from '../data/EurorackModules';
 import './CreaLab.css';
@@ -24,11 +24,24 @@ export const GeneratorControls: React.FC<Props> = ({ track, onChange, mappingMod
 
   const labels = MODULE_KNOB_LABELS[track.trackType] || ['Param A', 'Param B', 'Param C'];
 
+  const [noteActive, setNoteActive] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      if (e.detail.trackId === track.id) {
+        setNoteActive(true);
+        setTimeout(() => setNoteActive(false), 100);
+      }
+    };
+    window.addEventListener('generatorNote', handler);
+    return () => window.removeEventListener('generatorNote', handler);
+  }, [track.id]);
+
   return (
     <div className={`generator-module${mappingMode ? ' mapping-mode' : ''}`}>
       <div className="module-header">
         <span>{track.trackType.toUpperCase()} Module</span>
-        <span className={`activity-led ${track.generator.enabled ? 'on' : ''}`} />
+        <span className={`activity-led ${noteActive ? 'on' : ''}`} />
       </div>
       <div className="control-row" onClick={handleMap('intensity')}>
         <label>Intensity</label>
