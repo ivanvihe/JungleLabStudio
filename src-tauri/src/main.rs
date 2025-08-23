@@ -1,9 +1,10 @@
-mod gpu;
-mod midi;
 mod audio;
 mod config;
+mod gpu;
+mod midi;
 
 use config::{Config, ConfigState, LayerConfig};
+use log::error;
 use tauri::{Manager, State};
 
 #[tauri::command]
@@ -12,7 +13,13 @@ async fn set_layer_opacity(layer: String, opacity: f32, state: State<'_, ConfigS
     if let Some(l) = cfg.layers.get_mut(&layer) {
         l.opacity = opacity;
     } else {
-        cfg.layers.insert(layer.clone(), LayerConfig { opacity, ..Default::default() });
+        cfg.layers.insert(
+            layer.clone(),
+            LayerConfig {
+                opacity,
+                ..Default::default()
+            },
+        );
     }
 }
 
@@ -35,11 +42,24 @@ fn main() {
     let cfg = Config::load(&config_path);
 
     tauri::Builder::default()
-        .manage(ConfigState { path: config_path, inner: std::sync::Mutex::new(cfg) })
-        .invoke_handler(tauri::generate_handler![set_layer_opacity, get_config, save_config])
+        .manage(ConfigState {
+            path: config_path,
+            inner: std::sync::Mutex::new(cfg),
+        })
+        .invoke_handler(tauri::generate_handler![
+            set_layer_opacity,
+            get_config,
+            save_config
+        ])
         .setup(|app| {
-            midi::start(app.handle().clone());
-            audio::start(app.handle().clone());
+            if let Err(e) = midi::start(app.handle().clone()) {
+                error!("failed to start midi: {e:?}");
+                let _ = app.emit_all("error", format!("midi start error: {e}"));
+            }
+            if let Err(e) = audio::start(app.handle().clone()) {
+                error!("failed to start audio: {e:?}");
+                let _ = app.emit_all("error", format!("audio start error: {e}"));
+            }
             tauri::async_runtime::spawn(gpu::init());
             Ok(())
         })
