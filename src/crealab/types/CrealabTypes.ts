@@ -19,6 +19,18 @@ export interface MidiClip {
   enabled: boolean;
 }
 
+export interface Phase {
+  id: string;
+  name: string;
+}
+
+export interface Track {
+  id: string;
+  name: string;
+  midiDevice: string;
+  clips: Record<string, MidiClip | null>; // phaseId -> clip
+}
+
 export interface VisualClip {
   id: string;
   presetId: string;
@@ -51,7 +63,9 @@ export interface VisualSceneConfig {
 export interface CreaLabProject {
   id: string;
   name: string;
-  scenes: Scene[];
+  scenes?: Scene[];
+  phases?: Phase[];
+  tracks?: Track[];
   globalTempo: number;
   key: string;
   scale: string;
