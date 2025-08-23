@@ -327,10 +327,29 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
         onOpenProjectManager={() => setShowProjectManager(true)}
         isPlaying={project.transport.isPlaying}
         onPlayToggle={() =>
-          setProject(p => ({
-            ...p,
-            transport: { ...p.transport, isPlaying: !p.transport.isPlaying }
-          }))
+          setProject(p => {
+            const nextPlaying = !p.transport.isPlaying;
+            const updatedTracks = p.tracks.map(t => ({
+              ...t,
+              controls: {
+                ...t.controls,
+                playStop: nextPlaying ? t.generator.enabled : false
+              },
+              generator: {
+                ...t.generator,
+                lastNoteTime: 0,
+                currentStep: 0
+              }
+            }));
+            // Keep engine in sync with track states
+            const engine = GeneratorEngine.getInstance();
+            engine.updateTracks(updatedTracks);
+            return {
+              ...p,
+              tracks: updatedTracks,
+              transport: { ...p.transport, isPlaying: nextPlaying }
+            };
+          })
         }
         isMidiMapping={midiMapping}
         onToggleMidiMapping={() => setMidiMapping(m => !m)}
