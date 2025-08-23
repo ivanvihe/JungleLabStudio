@@ -1,11 +1,34 @@
 import { GeneratorInstance } from '../core/GeneratorEngine';
 import { GenerativeTrack, MidiNote } from '../types/CrealabTypes';
-// Magenta is loaded dynamically to avoid bundling heavy dependencies.
-// Declare lightweight type aliases so the build can succeed even if the
-// library isn't installed locally.
-type MagentaModule = typeof import('@magenta/music');
-type MusicRNN = import('@magenta/music').MusicRNN;
-type NoteSequence = import('@magenta/music').INoteSequence;
+
+// Magenta is loaded at runtime to avoid bundling heavy dependencies.  We
+// declare minimal interfaces here so the code can compile even if the real
+// library isn't available during the build.
+interface NoteSequence {
+  notes: {
+    pitch?: number;
+    velocity?: number;
+    quantizedStartStep?: number;
+    quantizedEndStep?: number;
+  }[];
+  totalTime: number;
+}
+
+interface MusicRNN {
+  initialize(): Promise<void>;
+  continueSequence(
+    seq: NoteSequence,
+    steps: number,
+    temperature: number
+  ): Promise<NoteSequence>;
+}
+
+interface MagentaModule {
+  MusicRNN: new (checkpoint: string) => MusicRNN;
+  sequences: {
+    quantizeNoteSequence(seq: NoteSequence, steps: number): NoteSequence;
+  };
+}
 
 export class MagentaGenerator implements GeneratorInstance {
   private mm: MagentaModule | null = null;
@@ -16,13 +39,21 @@ export class MagentaGenerator implements GeneratorInstance {
   private step = 0;
 
   constructor() {
-    import('@magenta/music').then(mod => {
-      this.mm = mod;
-      this.rnn = new mod.MusicRNN(
-        'https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/basic_rnn'
-      );
-      this.rnn.initialize().then(() => (this.loaded = true));
-    });
+    // Use a dynamically constructed import to prevent bundlers from trying to
+    // resolve the heavy optional dependency at build time.
+    const magentaLoader = new Function("return import('@magenta/music')");
+    magentaLoader()
+      .then((mod: MagentaModule) => {
+        this.mm = mod;
+        this.rnn = new mod.MusicRNN(
+          'https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/basic_rnn'
+        );
+        this.rnn.initialize().then(() => (this.loaded = true));
+      })
+      .catch(() => {
+        // If the module fails to load, keep the generator disabled.
+        this.loaded = false;
+      });
   }
 
   generate(
