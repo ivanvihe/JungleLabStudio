@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CreaLabProject, Track } from '../types/CrealabTypes';
+import { CreaLabProject, Track, MidiClip } from '../types/CrealabTypes';
 import './CreaLab.css';
 
 interface CreaLabProps {
@@ -99,6 +99,26 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
     e.preventDefault();
   };
 
+  const createMidiClip = (trackIndex: number, slotIndex: number) => {
+    setProject(prev => {
+      const tracks = prev.tracks?.map(t => ({ ...t, clips: [...t.clips] })) || [];
+      const track = tracks[trackIndex];
+      if (!track.clips[slotIndex]) {
+        const newClip: MidiClip = {
+          id: `clip-${Date.now()}`,
+          name: `Clip ${slotIndex + 1}`,
+          trackType: 'lead',
+          notes: [],
+          duration: 4,
+          channel: track.midiChannel,
+          enabled: true
+        };
+        track.clips[slotIndex] = newClip;
+      }
+      return { ...prev, tracks };
+    });
+  };
+
   return (
     <div className="crealab-container">
       <header className="crealab-header">
@@ -175,11 +195,12 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
               {track.clips.map((clip, slotIndex) => (
                 <div
                   key={slotIndex}
-                  className="clip-slot"
+                  className={`clip-slot ${!clip ? 'empty' : ''}`}
                   draggable={!!clip}
                   onDragStart={() => handleDragStart(trackIndex, slotIndex)}
                   onDragOver={handleDragOver}
                   onDrop={() => handleDrop(trackIndex, slotIndex)}
+                  onClick={() => !clip && createMidiClip(trackIndex, slotIndex)}
                 >
                   {clip?.name || '+'}
                 </div>
