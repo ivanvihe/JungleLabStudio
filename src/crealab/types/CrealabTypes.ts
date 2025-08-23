@@ -23,6 +23,7 @@ export type GeneratorType =
     | 'neural'        // Redes neuronales simples
     | 'magenta'       // Generador basado en Magenta.js
     | 'bassline'      // Generador específico de bajos
+    | 'pattern'       // Reproduce un patrón MIDI global
     | 'off';          // Desactivado
 
 // Parámetros base para generadores

@@ -471,6 +471,7 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
                 <option value="bassline">Bassline</option>
                 <option value="chaos">Chaos</option>
                 <option value="magenta">Magenta</option>
+                <option value="pattern">Pattern</option>
               </select>
 
                 <GeneratorControls
