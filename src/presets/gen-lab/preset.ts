@@ -123,9 +123,9 @@ class GenLabPreset extends BasePreset {
       float simplex(vec2 p) {
         const float F2 = 0.3660254037844386;
         const float G2 = 0.21132486540518713;
-        vec2 s = (p.x + p.y) * F2;
+        float s = (p.x + p.y) * F2;
         vec2 i = floor(p + s);
-        vec2 t = (i.x + i.y) * G2;
+        float t = (i.x + i.y) * G2;
         vec2 P0 = i - t;
         vec2 p0 = p - P0;
         vec2 i1 = (p0.x > p0.y) ? vec2(1., 0.) : vec2(0., 1.);
