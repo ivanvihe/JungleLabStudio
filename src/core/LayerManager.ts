@@ -2,6 +2,22 @@ import * as THREE from 'three';
 import { PresetLoader, LoadedPreset } from './PresetLoader';
 import { setNestedValue } from '../utils/objectPath';
 
+function deepMerge(target: any, source: any): any {
+  const result = { ...target };
+  for (const key in source) {
+    if (
+      source[key] &&
+      typeof source[key] === 'object' &&
+      !Array.isArray(source[key])
+    ) {
+      result[key] = deepMerge(result[key] || {}, source[key]);
+    } else {
+      result[key] = source[key];
+    }
+  }
+  return result;
+}
+
 export interface LayerState {
   preset: LoadedPreset | null;
   scene: THREE.Scene;
@@ -98,12 +114,12 @@ export class LayerManager {
         return false;
       }
 
-      const savedConfig = await this.loadLayerPresetConfig(presetId, layerId);
-      const loadedPresetConfig = JSON.parse(JSON.stringify(loadedPreset.config));
-      loadedPresetConfig.defaultConfig = {
-        ...loadedPresetConfig.defaultConfig,
-        ...savedConfig
-      };
+        const savedConfig = await this.loadLayerPresetConfig(presetId, layerId);
+        const loadedPresetConfig = JSON.parse(JSON.stringify(loadedPreset.config));
+        loadedPresetConfig.defaultConfig = deepMerge(
+          loadedPresetConfig.defaultConfig,
+          savedConfig
+        );
 
       const presetInstance = this.presetLoader.activatePreset(
         presetId,
