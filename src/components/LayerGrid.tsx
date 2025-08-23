@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LoadedPreset } from '../core/PresetLoader';
 import { AVAILABLE_EFFECTS } from '../utils/effects';
 import { usePresetGrid } from '../hooks/usePresetGrid';
+import './LayerGrid.css';
 
 
 interface LayerConfig {

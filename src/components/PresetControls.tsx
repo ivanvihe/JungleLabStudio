@@ -8,6 +8,7 @@ import {
   CheckboxControl,
   SelectControl,
 } from './controls';
+import './PresetControls.css';
 
 interface ControlRendererProps {
   control: any;
