@@ -140,6 +140,16 @@
   color: #888;
 }
 
+.clip-slot.empty {
+  color: #555;
+  cursor: pointer;
+}
+
+.clip-slot.empty:hover {
+  background: #2d2d2d;
+  color: #aaa;
+}
+
 .add-track-button {
   display: flex;
   flex-direction: column;
