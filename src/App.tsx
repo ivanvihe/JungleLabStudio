@@ -20,7 +20,7 @@ import {
   LAUNCHPAD_PRESETS
 } from './utils/launchpad';
 import './App.css';
-import './components/LayerGrid.css';
+import './AppLayout.css';
 
 interface MonitorInfo {
   id: string;

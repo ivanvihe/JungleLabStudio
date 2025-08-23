@@ -1,5 +1,6 @@
 import React from 'react';
 import { AudioData } from '../core/PresetLoader';
+import './StatusBar.css';
 
 interface StatusBarProps {
   status: string;

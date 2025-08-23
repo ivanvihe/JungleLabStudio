@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { LAUNCHPAD_PRESETS } from '../utils/launchpad';
+import './TopBar.css';
 
 interface TopBarProps {
   midiActive: boolean;

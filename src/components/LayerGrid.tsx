@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LoadedPreset } from '../core/PresetLoader';
 import { AVAILABLE_EFFECTS } from '../utils/effects';
+import './LayerGrid.css';
 
 interface LayerConfig {
   id: string;
