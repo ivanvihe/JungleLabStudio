@@ -1,12 +1,12 @@
 {
   "package": {
-    "productName": "AudioVisualizer",
+    "productName": "Jungle Lab Studio",
     "version": "0.1.0"
   },
   "tauri": {
     "windows": [
       {
-        "title": "Control",
+        "title": "Jungle Lab Studio - Control",
         "width": 800,
         "height": 600
       }
