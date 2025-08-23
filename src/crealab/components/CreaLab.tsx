@@ -4,6 +4,7 @@ import { TopBar } from './TopBar';
 import LaunchControlVisualizer from './LaunchControlVisualizer';
 import useLaunchControlXL from '../hooks/useLaunchControlXL';
 import { InstrumentSelector } from './InstrumentSelector';
+import MidiConfiguration from './MidiConfiguration';
 import './CreaLab.css';
 
 interface CreaLabProps {
@@ -56,6 +57,7 @@ const createDefaultTrack = (n: number): GenerativeTrack => ({
 
 export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) => {
   const controller = useLaunchControlXL();
+  const [showMidiConfig, setShowMidiConfig] = useState(false);
   const [project, setProject] = useState<CreaLabProject>({
     id: 'project-1',
     name: 'New Project',
@@ -138,6 +140,8 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
         onKeyChange={key => setProject(p => ({ ...p, key }))}
         onSwitchToAudioVisualizer={onSwitchToAudioVisualizer}
       />
+
+      <button className="open-midi-config" onClick={() => setShowMidiConfig(true)}>MIDI Config</button>
 
       <LaunchControlVisualizer controller={controller} />
 
@@ -232,6 +236,7 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
           ))}
         </div>
       </main>
+      {showMidiConfig && <MidiConfiguration onClose={() => setShowMidiConfig(false)} />}
     </div>
   );
 };
