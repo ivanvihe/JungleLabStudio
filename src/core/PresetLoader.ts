@@ -1,5 +1,10 @@
 import * as THREE from 'three';
 import fs from 'fs';
+import Ajv from 'ajv';
+import presetSchema from '../../presets/schema.json';
+
+const ajv = new Ajv();
+const validatePresetConfig = ajv.compile(presetSchema);
 
 export interface PresetConfig {
   name: string;
@@ -156,6 +161,10 @@ export class PresetLoader {
 
       // Auto-configurar preset si es necesario
       cfg = this.autoConfigurePreset(cfg, presetId);
+      if (!validatePresetConfig(cfg)) {
+        console.error('Invalid preset config for custom text preset:', validatePresetConfig.errors);
+        return;
+      }
       
       let shaderCode: string | undefined;
       const shaderPath = `../presets/${presetId}/shader.wgsl`;
@@ -268,6 +277,10 @@ export class PresetLoader {
 
       // Auto-configurar preset si es necesario
       cfg = this.autoConfigurePreset(cfg, presetId);
+      if (!validatePresetConfig(cfg)) {
+        console.error(`Invalid preset config for ${presetId}:`, validatePresetConfig.errors);
+        continue;
+      }
       if (typeof cfg.note !== 'number') {
         cfg.note = nextNote++;
         await this.persistNote(presetId, cfg.note);
