@@ -16,7 +16,7 @@ interface TopBarProps {
   onFullScreen: () => void;
   onClearAll: () => void;
   onOpenSettings: () => void;
-  onOpenPresetGallery: () => void;
+  onOpenResources: () => void;
   launchpadAvailable: boolean;
   launchpadRunning: boolean;
   launchpadPreset: string;
@@ -38,7 +38,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onFullScreen,
   onClearAll,
   onOpenSettings,
-  onOpenPresetGallery,
+  onOpenResources,
   launchpadAvailable,
   launchpadRunning,
   launchpadPreset,
@@ -124,7 +124,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         
         <button onClick={onFullScreen} alt="Go Full Screen mode!!">Full Screen</button>
         <button onClick={onClearAll}>Clear All</button>
-        <button onClick={onOpenPresetGallery}>Presets</button>
+        <button onClick={onOpenResources}>Resources</button>
         <button onClick={onOpenSettings}>Settings</button>
       </div>
     </div>
