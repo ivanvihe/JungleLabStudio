@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { CreaLabProject, GenerativeTrack, TrackType } from '../types/CrealabTypes';
 import { TopBar } from './TopBar';
-import LaunchControlVisualizer from './LaunchControlVisualizer';
+import LaunchControlPreview from './LaunchControlPreview';
+import LaunchControlStrip from './LaunchControlStrip';
 import useLaunchControlXL from '../hooks/useLaunchControlXL';
 import { useMidiDevices } from '../hooks/useMidiDevices';
 import BassGeneratorControls from './BassGeneratorControls';
@@ -245,7 +246,12 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
           }))
         }
       />
-      <LaunchControlVisualizer controller={controller} />
+      <LaunchControlPreview
+        track={project.tracks[0]}
+        onKnobWheel={(field, e) =>
+          handleKnobWheel(project.tracks[0], field, e)
+        }
+      />
 
       <main className="crealab-workspace">
         <div className="tracks-grid">
@@ -302,27 +308,9 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
 
                 <div className="section-divider" />
                 <div className="section-title">Controles MIDI</div>
-                <div className="launch-control-preview">
-                  <div className="lc-controls">
-                    <div className="lc-knobs">
-                      <div className="lc-knob" onWheel={e => handleKnobWheel(track, 'paramA', e)}><span className="knob-value">{track.controls.paramA}</span></div>
-                      <div className="lc-knob" onWheel={e => handleKnobWheel(track, 'paramB', e)}><span className="knob-value">{track.controls.paramB}</span></div>
-                      <div className="lc-knob" onWheel={e => handleKnobWheel(track, 'paramC', e)}><span className="knob-value">{track.controls.paramC}</span></div>
-                    </div>
-                    <div className="lc-fader" onWheel={e => handleKnobWheel(track, 'intensity', e)}>
-                      <div className="fader-track">
-                        <div
-                          className="fader-thumb"
-                          style={{ bottom: `${(track.controls.intensity / 127) * 60}px` }}
-                        />
-                      </div>
-                      <div className="fader-value">{track.controls.intensity}</div>
-                    </div>
-                    <div className="lc-buttons">
-                      <button className={`lc-button ${track.controls.mode ? 'active' : ''}`}>M</button>
-                    </div>
-                  </div>
-                </div>
+                <LaunchControlStrip
+                  strip={controller?.channelStrips[track.trackNumber - 1] || null}
+                />
 
                 <div className="section-divider" />
                 <div className="section-title">Generador</div>
