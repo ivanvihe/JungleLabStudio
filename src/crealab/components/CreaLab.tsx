@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { CreaLabProject, Track, MidiClip, MidiNote } from '../types/CrealabTypes';
+
 import './CreaLab.css';
 
 interface CreaLabProps {
@@ -198,6 +199,7 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
     } catch (error) {
       console.log('No se pudo enviar MIDI:', error);
     }
+
   };
 
   return (
@@ -253,35 +255,38 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
                   value={track.name}
                   onChange={(e) => renameTrack(track.id, e.target.value)}
                 />
-                <select
-                  value={track.midiDevice}
-                  onChange={(e) => assignMidiDevice(track.id, e.target.value)}
-                >
-                  <option value="">Select MIDI</option>
-                  {midiDevices.map(dev => (
-                    <option key={dev.id} value={dev.id}>{dev.name}</option>
-                  ))}
-                </select>
-                <select
-                  value={track.midiChannel}
-                  onChange={(e) => assignMidiChannel(track.id, parseInt(e.target.value))}
-                >
-                  {Array.from({ length: 16 }, (_, i) => i + 1).map(ch => (
-                    <option key={ch} value={ch}>Ch {ch}</option>
-                  ))}
-                </select>
+                <div className="midi-selectors">
+                  <select
+                    value={track.midiDevice}
+                    onChange={(e) => assignMidiDevice(track.id, e.target.value)}
+                  >
+                    <option value="">MIDI Dev</option>
+                    {midiDevices.map(dev => (
+                      <option key={dev.id} value={dev.id}>{dev.name.substring(0, 8)}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={track.midiChannel}
+                    onChange={(e) => assignMidiChannel(track.id, parseInt(e.target.value))}
+                  >
+                    {Array.from({ length: 16 }, (_, i) => i + 1).map(ch => (
+                      <option key={ch} value={ch}>Ch {ch}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
               {track.clips.map((clip, slotIndex) => (
                 <div
                   key={slotIndex}
-                  className="clip-slot"
+                  className={`clip-slot ${!clip ? 'empty' : ''}`}
                   draggable={!!clip}
                   onDragStart={() => handleDragStart(trackIndex, slotIndex)}
                   onDragOver={handleDragOver}
                   onDrop={() => handleDrop(trackIndex, slotIndex)}
                   onDoubleClick={() => createMidiClip(trackIndex, slotIndex)}
+
                 >
-                  {clip?.name || ''}
+                  {clip?.name || '+'}
                 </div>
               ))}
             </div>
