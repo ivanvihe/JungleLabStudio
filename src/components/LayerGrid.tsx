@@ -254,23 +254,26 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
                 </option>
               ))}
             </select>
-            <label className="effect-always">
+            <label
+              className="effect-always"
+              title="Effect always active"
+            >
               <input
                 type="checkbox"
                 checked={layerEffects[layer.id]?.alwaysOn}
                 onChange={(e) => onLayerEffectToggle(layer.id, e.target.checked)}
               />
-              Always
+              <span role="img" aria-label="always on">♾️</span>
             </label>
             <span className="control-separator">|</span>
             <div className="jump-controls">
-              <label>
+              <label title="Auto jump between presets">
                 <input
                   type="checkbox"
                   checked={layer.autoJump}
                   onChange={(e) => handleLayerConfigChange(layer.id, 'autoJump', e.target.checked)}
                 />
-                Jump
+                <span role="img" aria-label="auto jump">🔀</span>
               </label>
               <select
                 value={layer.jumpDirection}

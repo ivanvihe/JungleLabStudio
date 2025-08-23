@@ -14,6 +14,7 @@ interface TopBarProps {
   onAudioGainChange: (value: number) => void;
   audioLevel: number;
   onFullScreen: () => void;
+  onToggleUi: () => void;
   onClearAll: () => void;
   onOpenSettings: () => void;
   onOpenResources: () => void;
@@ -36,6 +37,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onAudioGainChange,
   audioLevel,
   onFullScreen,
+  onToggleUi,
   onClearAll,
   onOpenSettings,
   onOpenResources,
@@ -100,10 +102,36 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Sección central - Acciones y recursos */}
         <div className="actions-section">
-          <button onClick={onOpenResources} className="action-button">Resources</button>
-          <button onClick={onClearAll} className="action-button">Clear All</button>
-          <button onClick={onFullScreen} className="action-button" alt="Go Full Screen mode!!">Full Screen</button>
-          <button onClick={onOpenSettings} className="action-button">Settings</button>
+          <button
+            onClick={onOpenResources}
+            className="action-button"
+            title="Open resources"
+            aria-label="Open resources"
+          >📂</button>
+          <button
+            onClick={onClearAll}
+            className="action-button"
+            title="Clear all"
+            aria-label="Clear all"
+          >🗑️</button>
+          <button
+            onClick={onToggleUi}
+            className="action-button"
+            title="Hide controls (F10)"
+            aria-label="Hide controls"
+          >🙈</button>
+          <button
+            onClick={onFullScreen}
+            className="action-button"
+            title="Full screen"
+            aria-label="Full screen"
+          >⛶</button>
+          <button
+            onClick={onOpenSettings}
+            className="action-button"
+            title="Settings"
+            aria-label="Settings"
+          >⚙️</button>
         </div>
 
         {/* Espaciador flexible para empujar Launchpad a la derecha */}
