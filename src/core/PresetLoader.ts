@@ -125,6 +125,8 @@ export class PresetLoader {
   private customTextContents: string[] = [];
   private genLabPresets: { name: string; config: any }[] = [];
   private genLabBase: { config: PresetConfig; createPreset: any; shaderCode?: string; folderPath: string } | null = null;
+  private fractalLabPresets: { name: string; config: any }[] = [];
+  private fractalLabBase: { config: PresetConfig; createPreset: any; shaderCode?: string; folderPath: string } | null = null;
 
   // Carga dinamica de presets desde el sistema de archivos
   private presetModules = import.meta.glob('../presets/*/preset.ts');
@@ -145,6 +147,13 @@ export class PresetLoader {
       if (stored) this.genLabPresets = JSON.parse(stored);
     } catch {
       this.genLabPresets = [];
+    }
+
+    try {
+      const storedFractal = localStorage.getItem('fractalLabPresets');
+      if (storedFractal) this.fractalLabPresets = JSON.parse(storedFractal);
+    } catch {
+      this.fractalLabPresets = [];
     }
   }
 
@@ -284,6 +293,42 @@ export class PresetLoader {
     });
   }
 
+  private reloadFractalLabPresets(loadedList?: LoadedPreset[]): void {
+    if (!this.fractalLabBase) return;
+
+    for (const id of Array.from(this.loadedPresets.keys())) {
+      if (id.startsWith('fractal-lab-')) {
+        this.loadedPresets.delete(id);
+      }
+    }
+
+    const baseNote = this.nextMidiNote;
+
+    this.fractalLabPresets.forEach((preset, idx) => {
+      const cloneConfig = JSON.parse(JSON.stringify(this.fractalLabBase!.config));
+      cloneConfig.name = preset.name;
+      if (preset.config) {
+        cloneConfig.defaultConfig = {
+          ...cloneConfig.defaultConfig,
+          ...preset.config,
+        };
+      }
+      cloneConfig.note = baseNote + idx;
+      this.updateMidiNoteTracking(cloneConfig.note);
+
+      const clone: LoadedPreset = {
+        id: `fractal-lab-${idx + 1}`,
+        config: cloneConfig,
+        createPreset: this.fractalLabBase!.createPreset,
+        shaderCode: this.fractalLabBase!.shaderCode,
+        folderPath: this.fractalLabBase!.folderPath,
+      };
+
+      this.loadedPresets.set(clone.id, clone);
+      if (loadedList) loadedList.push(clone);
+    });
+  }
+
   public async loadAllPresets(): Promise<LoadedPreset[]> {
     const moduleEntries = Object.entries(this.presetModules);
     console.log('🔍 Loading presets:', moduleEntries.map(([p]) => p));
@@ -370,8 +415,14 @@ export class PresetLoader {
           console.log(`✅ Preset loaded: ${clone.config.name}`);
         }
       } else if (presetId === 'gen-lab') {
-        // Guardar preset base para generar instancias personalizadas
         this.genLabBase = {
+          config: cfg,
+          createPreset,
+          shaderCode,
+          folderPath: `src/presets/${presetId}`,
+        };
+      } else if (presetId === 'fractal-lab') {
+        this.fractalLabBase = {
           config: cfg,
           createPreset,
           shaderCode,
@@ -393,10 +444,10 @@ export class PresetLoader {
       }
     }
 
-    // Anadir presets personalizados de Gen Lab
     this.reloadGenLabPresets(loadedPresets);
+    this.reloadFractalLabPresets(loadedPresets);
 
-    console.log(`🎨 Loaded ${loadedPresets.length} presets total (${this.glitchTextPads} custom text instances, ${this.genLabPresets.length} gen lab presets)`);
+    console.log(`🎨 Loaded ${loadedPresets.length} presets total (${this.glitchTextPads} custom text instances, ${this.genLabPresets.length} gen lab presets, ${this.fractalLabPresets.length} fractal lab presets)`);
     return loadedPresets;
   }
 
@@ -571,6 +622,31 @@ export class PresetLoader {
       createPreset: this.genLabBase.createPreset,
       shaderCode: this.genLabBase.shaderCode,
       folderPath: this.genLabBase.folderPath,
+    };
+  }
+
+  // Gestion de presets personalizados de Fractal Lab
+  public setFractalLabPresets(presets: { name: string; config: any }[]): void {
+    this.fractalLabPresets = presets;
+    try {
+      localStorage.setItem('fractalLabPresets', JSON.stringify(presets));
+    } catch {}
+    this.reloadFractalLabPresets();
+    this.notifyPresetsChanged();
+  }
+
+  public getFractalLabPresets(): { name: string; config: any }[] {
+    return this.fractalLabPresets;
+  }
+
+  public getFractalLabBasePreset(): LoadedPreset | null {
+    if (!this.fractalLabBase) return null;
+    return {
+      id: 'fractal-lab',
+      config: this.fractalLabBase.config,
+      createPreset: this.fractalLabBase.createPreset,
+      shaderCode: this.fractalLabBase.shaderCode,
+      folderPath: this.fractalLabBase.folderPath,
     };
   }
 

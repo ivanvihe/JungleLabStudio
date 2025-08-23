@@ -61,6 +61,14 @@ const App: React.FC = () => {
     }
   });
   const [genLabBasePreset, setGenLabBasePreset] = useState<LoadedPreset | null>(null);
+  const [fractalLabPresets, setFractalLabPresets] = useState<{ name: string; config: any }[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('fractalLabPresets') || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const [fractalLabBasePreset, setFractalLabBasePreset] = useState<LoadedPreset | null>(null);
 
   // Top bar & settings state
   const [layerChannels, setLayerChannels] = useState<Record<string, number>>(() => {
@@ -390,6 +398,7 @@ const App: React.FC = () => {
         await engine.initialize();
         engineRef.current = engine;
         setGenLabBasePreset(engine.getGenLabBasePreset());
+        setFractalLabBasePreset(engine.getFractalLabBasePreset());
 
         const multiMonitor = localStorage.getItem('multiMonitorMode') === 'true';
         engine.setMultiMonitorMode(multiMonitor);
@@ -400,6 +409,9 @@ const App: React.FC = () => {
         }
         if (genLabPresets.length > 0) {
           presets = await engine.updateGenLabPresets(genLabPresets);
+        }
+        if (fractalLabPresets.length > 0) {
+          presets = await engine.updateFractalLabPresets(fractalLabPresets);
         }
         setAvailablePresets(presets);
         setIsInitialized(true);
@@ -821,6 +833,21 @@ const App: React.FC = () => {
     }
   };
 
+  const handleFractalLabPresetsChange = async (presets: { name: string; config: any }[]) => {
+    setFractalLabPresets(presets);
+    localStorage.setItem('fractalLabPresets', JSON.stringify(presets));
+    if (engineRef.current) {
+      try {
+        const updated = await engineRef.current.updateFractalLabPresets(presets);
+        setAvailablePresets(updated);
+        setStatus(`Fractal Lab actualizado: ${presets.length} preset${presets.length !== 1 ? 's' : ''}`);
+      } catch (err) {
+        console.error('Error updating Fractal Lab presets:', err);
+        setStatus('Error updating Fractal Lab');
+      }
+    }
+  };
+
   // Handler para anadir preset a layer desde la galeria sin activarlo
   const handleAddPresetToLayer = (presetId: string, layerId: string) => {
     const addFn = (window as any).addPresetToLayer as
@@ -1140,6 +1167,9 @@ const App: React.FC = () => {
         genLabPresets={genLabPresets}
         genLabBasePreset={genLabBasePreset}
         onGenLabPresetsChange={handleGenLabPresetsChange}
+        fractalLabPresets={fractalLabPresets}
+        fractalLabBasePreset={fractalLabBasePreset}
+        onFractalLabPresetsChange={handleFractalLabPresetsChange}
         onAddPresetToLayer={handleAddPresetToLayer}
         onRemovePresetFromLayer={handleRemovePresetFromLayer}
         launchpadPresets={LAUNCHPAD_PRESETS}
