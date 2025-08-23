@@ -283,7 +283,18 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
     setProject(prev => {
       const newTracks = prev.tracks.map(t =>
         t.trackNumber === trackNumber
-          ? { ...t, generator: { ...t.generator, type: type as any, enabled: type !== 'off' } }
+          ? {
+              ...t,
+              generator: {
+                ...t.generator,
+                type: type as any,
+                enabled: type !== 'off'
+              },
+              controls: {
+                ...t.controls,
+                playStop: type !== 'off' || t.controls.playStop
+              }
+            }
           : t
       ) as any;
       const engine = GeneratorEngine.getInstance();
