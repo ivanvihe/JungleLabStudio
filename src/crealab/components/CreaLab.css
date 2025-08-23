@@ -140,15 +140,29 @@
   color: #888;
 }
 
+.clip-slot:not(.empty) {
+  background: linear-gradient(135deg, #3a3a3a, #2a2a2a);
+  border: 1px solid #555;
+  color: #fff;
+  font-weight: 500;
+}
+
+.clip-slot:not(.empty):hover {
+  background: linear-gradient(135deg, #4a4a4a, #3a3a3a);
+  border-color: #666;
+}
+
 .add-track-button {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  align-self: flex-start;
+  padding: 6px;
 }
 
 .add-track-button button {
-  margin: 8px;
-  background: #4CAF50;
+  margin: 2px;
+  background: linear-gradient(135deg, #4CAF50, #45a049);
   border: none;
   color: #fff;
   padding: 8px 12px;
@@ -156,4 +170,12 @@
   border-radius: 4px;
   height: 40px;
   width: 40px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+.add-track-button button:hover {
+  background: linear-gradient(135deg, #45a049, #3d8b40);
+  transform: translateY(-1px);
 }
