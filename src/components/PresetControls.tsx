@@ -26,6 +26,7 @@ const CONTROL_RENDERERS: Record<string, React.FC<ControlRendererProps>> = {
   select: SelectControl,
 };
 
+
 interface PresetControlsProps {
   preset: LoadedPreset;
   config: Record<string, any>;
