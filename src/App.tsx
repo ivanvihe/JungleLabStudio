@@ -541,9 +541,9 @@ const App: React.FC = () => {
         .filter(([, role]) => role === 'secondary')
         .map(([id]) => id);
       const ids = [
-        ...(mainId ? [parseInt(mainId, 10)] : []),
+        ...(mainId !== undefined ? [parseInt(mainId, 10)] : []),
         ...secondaryIds.map(id => parseInt(id, 10))
-      ].filter(Boolean);
+      ].filter(id => !Number.isNaN(id));
       if (ids.length === 0) {
         setStatus('Error: No hay monitores seleccionados');
         return;
@@ -642,7 +642,7 @@ const App: React.FC = () => {
         setStatus('Error: Fullscreen no disponible');
       }
     }
-  }, [activeLayers, monitorRoles, monitors]);
+  }, [activeLayers, monitorRoles, monitors, isFullscreenMode]);
 
   useEffect(() => {
     if (isFullscreenMode) return;
