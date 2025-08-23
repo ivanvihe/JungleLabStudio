@@ -1,200 +1,60 @@
 {
-  "name": "Text Glitch",
-  "description": "Animated text with glitch effects and scrambled letter appearance",
-  "author": "AudioVisualizer",
+  "name": "ROBOTICA Cinematic Intro",
+  "description": "Cinematic title 'ROBOTICA' with letter-by-letter appearance and glow effects",
+  "author": "AudioVisualizer Pro",
   "version": "1.0.0",
   "category": "text",
-  "tags": ["text", "glitch", "animated", "cyberpunk", "digital"],
-  "thumbnail": "text_glitch_thumb.png",
+  "tags": ["text", "intro", "robotica", "cinematic", "title"],
+  "thumbnail": "robotica_cinematic_thumb.png",
   "note": 61,
   "defaultConfig": {
-    "width": 1920,
-    "height": 1080,
-    "zoom": 1.0,
-    "audioSensitivity": 1.0,
-    "audioSmoothness": 0.5,
-    "audioReactivity": 1.0,
-    "paletteColor": "#ffffff",
     "opacity": 1.0,
-    "fadeMs": 500,
+    "fadeMs": 200,
     "text": {
       "content": "ROBOTICA",
-      "fontSize": 120,
-      "fontFamily": "Arial Black, sans-serif",
-      "letterSpacing": 0.3,
-      "lineHeight": 1.2
+      "fontSize": 180,
+      "fontFamily": "Arial Black, Helvetica, sans-serif",
+      "letterSpacing": 0.15,
+      "scale": 1.0
     },
     "animation": {
+      "duration": 15.0,
       "letterDelay": 0.8,
-      "shuffleIntensity": 0.7,
-      "glitchFrequency": 2.5,
-      "fadeInDuration": 1.2,
-      "repositionSpeed": 1.5,
-      "digitalDistortion": 0.6
+      "fadeInDuration": 2.0,
+      "glowIntensity": 2.5,
+      "pulseSpeed": 1.5,
+      "animationOrder": [1, 7, 2, 4, 0, 5, 6, 3]
     },
     "colors": {
-      "primary": "#00FF88",
-      "secondary": "#FF0088",
-      "accent": "#88FF00",
-      "glitch1": "#FF4444",
-      "glitch2": "#4444FF",
-      "background": "#0A0F14"
+      "text": "#FFFFFF",
+      "glow": "#88CCFF",
+      "accent": "#FFAA44"
     },
     "effects": {
-      "enableGlitch": true,
-      "enableShuffle": true,
-      "enableScanlines": true,
-      "enableChromatic": true,
-      "enableNoise": true,
-      "glitchIntensity": 0.8,
-      "chromaticAberration": 0.3,
-      "scanlineSpeed": 2.0,
-      "noiseLevel": 0.15
-    },
-    "layout": {
-      "centerX": 0.5,
-      "centerY": 0.5,
-      "scatterRadius": 200,
-      "finalSpacing": 80,
-      "verticalOffset": 30
+      "enableGlow": true,
+      "enablePulse": true,
+      "enableSparkle": true,
+      "enableCinematicFade": true
     }
   },
   "controls": [
-    {
-      "name": "text.content",
-      "type": "text",
-      "label": "Text to Display",
-      "default": "ROBOTICA"
-    },
-    {
-      "name": "text.fontSize",
-      "type": "slider",
-      "label": "Font Size",
-      "min": 40,
-      "max": 200,
-      "step": 10,
-      "default": 120
-    },
-    {
-      "name": "animation.letterDelay",
-      "type": "slider",
-      "label": "Letter Delay",
-      "min": 0.2,
-      "max": 2.0,
-      "step": 0.1,
-      "default": 0.8
-    },
-    {
-      "name": "animation.shuffleIntensity",
-      "type": "slider",
-      "label": "Shuffle Intensity",
-      "min": 0.0,
-      "max": 1.0,
-      "step": 0.1,
-      "default": 0.7
-    },
-    {
-      "name": "animation.glitchFrequency",
-      "type": "slider",
-      "label": "Glitch Frequency",
-      "min": 0.5,
-      "max": 5.0,
-      "step": 0.1,
-      "default": 2.5
-    },
-    {
-      "name": "effects.glitchIntensity",
-      "type": "slider",
-      "label": "Glitch Intensity",
-      "min": 0.0,
-      "max": 1.0,
-      "step": 0.1,
-      "default": 0.8
-    },
-    {
-      "name": "effects.chromaticAberration",
-      "type": "slider",
-      "label": "Chromatic Aberration",
-      "min": 0.0,
-      "max": 1.0,
-      "step": 0.1,
-      "default": 0.3
-    },
-    {
-      "name": "effects.enableGlitch",
-      "type": "checkbox",
-      "label": "Enable Glitch",
-      "default": true
-    },
-    {
-      "name": "effects.enableShuffle",
-      "type": "checkbox",
-      "label": "Enable Shuffle",
-      "default": true
-    },
-    {
-      "name": "effects.enableScanlines",
-      "type": "checkbox",
-      "label": "Scanlines",
-      "default": true
-    },
-    {
-      "name": "effects.enableChromatic",
-      "type": "checkbox",
-      "label": "Chromatic Aberration",
-      "default": true
-    },
-    {
-      "name": "colors.primary",
-      "type": "color",
-      "label": "Primary Color",
-      "default": "#00FF88"
-    },
-    {
-      "name": "colors.secondary",
-      "type": "color",
-      "label": "Secondary Color",
-      "default": "#FF0088"
-    },
-    {
-      "name": "colors.accent",
-      "type": "color",
-      "label": "Accent Color",
-      "default": "#88FF00"
-    },
-    {
-      "name": "colors.glitch1",
-      "type": "color",
-      "label": "Glitch Color 1",
-      "default": "#FF4444"
-    },
-    {
-      "name": "colors.glitch2",
-      "type": "color",
-      "label": "Glitch Color 2",
-      "default": "#4444FF"
-    }
+    {"name": "text.content", "type": "text", "label": "Text", "default": "ROBOTICA"},
+    {"name": "text.fontSize", "type": "slider", "label": "Font Size", "min": 40, "max": 240, "step": 10, "default": 180},
+    {"name": "text.letterSpacing", "type": "slider", "label": "Letter Spacing", "min": 0.0, "max": 1.0, "step": 0.01, "default": 0.15},
+    {"name": "animation.letterDelay", "type": "slider", "label": "Letter Delay", "min": 0.1, "max": 2.0, "step": 0.1, "default": 0.8},
+    {"name": "animation.glowIntensity", "type": "slider", "label": "Glow Intensity", "min": 0.0, "max": 5.0, "step": 0.1, "default": 2.5},
+    {"name": "animation.pulseSpeed", "type": "slider", "label": "Pulse Speed", "min": 0.5, "max": 5.0, "step": 0.1, "default": 1.5},
+    {"name": "colors.text", "type": "color", "label": "Text Color", "default": "#FFFFFF"},
+    {"name": "colors.glow", "type": "color", "label": "Glow Color", "default": "#88CCFF"},
+    {"name": "colors.accent", "type": "color", "label": "Accent Color", "default": "#FFAA44"},
+    {"name": "effects.enableGlow", "type": "checkbox", "label": "Enable Glow", "default": true},
+    {"name": "effects.enablePulse", "type": "checkbox", "label": "Enable Pulse", "default": true},
+    {"name": "effects.enableSparkle", "type": "checkbox", "label": "Enable Sparkle", "default": true}
   ],
   "audioMapping": {
-    "low": {
-      "description": "Controls letter appearance and timing",
-      "frequency": "20-250 Hz",
-      "effect": "Appearance speed and base movements"
-    },
-    "mid": {
-      "description": "Modulates glitch and distortion effects",
-      "frequency": "250-4000 Hz",
-      "effect": "Glitch intensity and digital effects"
-    },
-    "high": {
-      "description": "Controls high-frequency effects and details",
-      "frequency": "4000+ Hz",
-      "effect": "Scanlines, noise and chromatic aberration"
-    }
+    "low": {"description": "Controls animation speed", "frequency": "20-250 Hz", "effect": "Letter appearance speed"},
+    "mid": {"description": "Controls pulse and glow", "frequency": "250-4000 Hz", "effect": "Pulse and glow intensity"},
+    "high": {"description": "Controls sparkles", "frequency": "4000+ Hz", "effect": "Sparkles and special effects"}
   },
-  "performance": {
-    "complexity": "medium",
-    "recommendedFPS": 60,
-    "gpuIntensive": false
-  }
+  "performance": {"complexity": "medium", "recommendedFPS": 60, "gpuIntensive": false}
 }
