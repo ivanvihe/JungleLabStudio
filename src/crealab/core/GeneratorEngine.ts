@@ -30,6 +30,7 @@ export class GeneratorEngine {
   private currentTime: number = 0;
   private intervalId: NodeJS.Timeout | null = null;
   private tracks: GenerativeTrack[] = [];
+  private broadcast: BroadcastChannel | null = null;
 
   static getInstance(): GeneratorEngine {
     if (!this.instance) {
@@ -40,6 +41,11 @@ export class GeneratorEngine {
 
   constructor() {
     this.initializeGenerators();
+    try {
+      this.broadcast = new BroadcastChannel('av-sync');
+    } catch (e) {
+      console.warn('BroadcastChannel not available', e);
+    }
   }
 
   private initializeGenerators() {
@@ -155,36 +161,48 @@ export class GeneratorEngine {
 
   // Enviar notas MIDI al dispositivo externo
   private async sendMidiNotes(notes: MidiNote[], track: GenerativeTrack) {
-    if (!track.outputDevice) return;
+    if (track.outputDevice) {
+      try {
+        const access = await (navigator as any).requestMIDIAccess();
+        const output = access.outputs.get(track.outputDevice);
 
-    try {
-      const access = await (navigator as any).requestMIDIAccess();
-      const output = access.outputs.get(track.outputDevice);
-      
-      if (!output) return;
+        if (output) {
+          notes.forEach(note => {
+            // Note On
+            const noteOnMsg = [
+              0x90 + (track.midiChannel - 1), // Note on + channel
+              note.note,
+              note.velocity
+            ];
+            output.send(noteOnMsg);
 
+            // Note Off (programado)
+            setTimeout(() => {
+              const noteOffMsg = [
+                0x80 + (track.midiChannel - 1), // Note off + channel
+                note.note,
+                0
+              ];
+              output.send(noteOffMsg);
+            }, note.duration * 1000); // Convert to milliseconds
+          });
+        }
+      } catch (error) {
+        console.warn('Failed to send MIDI notes:', error);
+      }
+    }
+
+    if (this.broadcast && track.visualLayer && typeof track.visualPad === 'number') {
       notes.forEach(note => {
-        // Note On
-        const noteOnMsg = [
-          0x90 + (track.midiChannel - 1), // Note on + channel
-          note.note,
-          note.velocity
-        ];
-        output.send(noteOnMsg);
-
-        // Note Off (programado)
-        setTimeout(() => {
-          const noteOffMsg = [
-            0x80 + (track.midiChannel - 1), // Note off + channel
-            note.note,
-            0
-          ];
-          output.send(noteOffMsg);
-        }, note.duration * 1000); // Convert to milliseconds
+        this.broadcast!.postMessage({
+          type: 'midiTrigger',
+          data: {
+            layerId: track.visualLayer,
+            note: track.visualPad,
+            velocity: note.velocity
+          }
+        });
       });
-
-    } catch (error) {
-      console.warn('Failed to send MIDI notes:', error);
     }
   }
 

@@ -199,6 +199,26 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
     }));
   };
 
+  const updateVisualLayer = (trackNumber: number, layer: string) => {
+    setProject(prev => ({
+      ...prev,
+      tracks: prev.tracks.map(t =>
+        t.trackNumber === trackNumber
+          ? { ...t, visualLayer: layer || undefined }
+          : t
+      ) as any
+    }));
+  };
+
+  const updateVisualPad = (trackNumber: number, pad: number) => {
+    setProject(prev => ({
+      ...prev,
+      tracks: prev.tracks.map(t =>
+        t.trackNumber === trackNumber ? { ...t, visualPad: pad } : t
+      ) as any
+    }));
+  };
+
   const updateInputDevice = (trackNumber: number, deviceId: string) => {
     const device = inputDevices.find(d => d.id === deviceId);
     setProject(prev => ({
@@ -348,6 +368,35 @@ export const CreaLab: React.FC<CreaLabProps> = ({ onSwitchToAudioVisualizer }) =
                       <option key={ch} value={ch}>{ch}</option>
                     ))}
                   </select>
+                </div>
+
+                <div className="visual-row">
+                  <select
+                    className="device-selector"
+                    value={track.visualLayer || ''}
+                    onChange={e =>
+                      updateVisualLayer(track.trackNumber, e.target.value)
+                    }
+                  >
+                    <option value="">Visual Layer</option>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                  </select>
+                  <input
+                    className="channel-selector"
+                    type="number"
+                    min={0}
+                    max={127}
+                    value={track.visualPad ?? ''}
+                    onChange={e =>
+                      updateVisualPad(
+                        track.trackNumber,
+                        parseInt(e.target.value) || 0
+                      )
+                    }
+                    placeholder="Pad note"
+                  />
                 </div>
 
                 <div className="section-divider" />
