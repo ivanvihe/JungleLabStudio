@@ -80,8 +80,6 @@ export class LayerManager {
       this.renderer.setClearColor(0x000000, 0);
       this.renderer.setRenderTarget(layer.renderTarget);
       this.renderer.clear(true, true, false);
-      this.renderer.setRenderTarget(layer.renderTarget);
-      this.renderer.clear();
       this.renderer.render(layer.scene, this.camera);
     });
 
