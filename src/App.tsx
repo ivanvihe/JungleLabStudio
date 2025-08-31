@@ -188,6 +188,7 @@ const App: React.FC = () => {
   })();
   const [glitchTextPads, setGlitchTextPads] = useState<number>(storedTemplate.count || parseInt(localStorage.getItem('glitchTextPads') || '1'));
   const [customTextContents, setCustomTextContents] = useState<string[]>(storedTemplate.texts || []);
+  const [emptyPads, setEmptyPads] = useState<number>(() => parseInt(localStorage.getItem('emptyPads') || '1'));
   const [clearSignal, setClearSignal] = useState(0);
   const [hideUiHotkey, setHideUiHotkey] = useState(() => localStorage.getItem('hideUiHotkey') || 'F10');
   const [isUiHidden, setIsUiHidden] = useState(false);
@@ -418,6 +419,9 @@ const App: React.FC = () => {
         engine.setMultiMonitorMode(multiMonitor);
 
         let presets = engine.getAvailablePresets();
+        if (emptyPads !== 1) {
+          presets = await engine.updateEmptyTemplates(emptyPads);
+        }
         if (customTextContents.length > 0) {
           presets = await engine.updateCustomTextTemplates(glitchTextPads, customTextContents);
         }
@@ -844,6 +848,21 @@ const App: React.FC = () => {
     handleCustomTextTemplateChange(count, customTextContents);
   };
 
+  const handleEmptyTemplateChange = async (count: number) => {
+    setEmptyPads(count);
+    localStorage.setItem('emptyPads', count.toString());
+    if (engineRef.current) {
+      try {
+        const updated = await engineRef.current.updateEmptyTemplates(count);
+        setAvailablePresets(updated);
+        setStatus(`Empty templates updated: ${count}`);
+      } catch (err) {
+        console.error('Error updating empty templates:', err);
+        setStatus('Error updating Empty templates');
+      }
+    }
+  };
+
   const handleGenLabPresetsChange = async (presets: { name: string; config: any }[]) => {
     setGenLabPresets(presets);
     localStorage.setItem('genLabPresets', JSON.stringify(presets));
@@ -1194,6 +1213,8 @@ const App: React.FC = () => {
         presets={availablePresets}
         onCustomTextTemplateChange={handleCustomTextTemplateChange}
         customTextTemplate={{ count: glitchTextPads, texts: customTextContents }}
+        onEmptyTemplateChange={handleEmptyTemplateChange}
+        emptyTemplateCount={emptyPads}
         genLabPresets={genLabPresets}
         genLabBasePreset={genLabBasePreset}
         onGenLabPresetsChange={handleGenLabPresetsChange}

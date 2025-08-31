@@ -13,6 +13,8 @@ interface ResourcesModalProps {
   presets: LoadedPreset[];
   onCustomTextTemplateChange?: (count: number, texts: string[]) => void;
   customTextTemplate?: { count: number; texts: string[] };
+  onEmptyTemplateChange?: (count: number) => void;
+  emptyTemplateCount?: number;
   genLabPresets?: { name: string; config: any }[];
   genLabBasePreset?: LoadedPreset | null;
   onGenLabPresetsChange?: (presets: { name: string; config: any }[]) => void;
@@ -34,6 +36,7 @@ type NodeKind =
   | 'folder'
   | 'preset'
   | 'custom-text'
+  | 'empty-template'
   | 'genlab-folder'
   | 'genlab-item'
   | 'fractallab-folder'
@@ -57,6 +60,8 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
   presets,
   onCustomTextTemplateChange,
   customTextTemplate = { count: 1, texts: [] },
+  onEmptyTemplateChange,
+  emptyTemplateCount = 1,
   genLabPresets = [],
   genLabBasePreset,
   onGenLabPresetsChange,
@@ -94,6 +99,7 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
     if (arr.length > customTextTemplate.count) arr.splice(customTextTemplate.count);
     return arr;
   });
+  const [emptyCount, setEmptyCount] = useState(emptyTemplateCount);
 
   const [layerAssignments, setLayerAssignments] = useState<Record<string, Set<string>>>(() => ({
     A: new Set(),
@@ -115,6 +121,12 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
       setTemplateTexts(arr);
     }
   }, [isOpen, customTextTemplate]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setEmptyCount(emptyTemplateCount);
+    }
+  }, [isOpen, emptyTemplateCount]);
 
   useEffect(() => {
     if (isOpen) {
@@ -253,6 +265,14 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
     onFractalLabPresetsChange?.(list);
   };
 
+  const handleEmptyCountChange = (count: number) => {
+    const newCount = Math.max(1, Math.min(10, count));
+    setEmptyCount(newCount);
+    if (onEmptyTemplateChange) {
+      onEmptyTemplateChange(newCount);
+    }
+  };
+
   const handleTemplateCountChange = (count: number) => {
     const newCount = Math.max(1, Math.min(10, count));
     setTemplateCount(newCount);
@@ -368,6 +388,7 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
       label: 'Templates',
       kind: 'folder',
       children: [
+        { id: 'template-empty', label: 'Empty', kind: 'empty-template' },
         { id: 'template-custom-text', label: 'Custom text', kind: 'custom-text' },
         {
           id: 'template-genlab',
@@ -484,6 +505,24 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
                 config={preset.config.defaultConfig || {}}
                 onChange={handleDefaultControlChange}
               />
+            </div>
+          </div>
+        );
+      }
+      case 'empty-template': {
+        return (
+          <div className="template-controls-panel">
+            <div className="custom-text-config">
+              <label>Count:</label>
+              <div className="count-controls">
+                <button onClick={() => handleEmptyCountChange(emptyCount - 1)} disabled={emptyCount <= 1}>
+                  -
+                </button>
+                <span className="count-display">{emptyCount}</span>
+                <button onClick={() => handleEmptyCountChange(emptyCount + 1)} disabled={emptyCount >= 10}>
+                  +
+                </button>
+              </div>
             </div>
           </div>
         );
