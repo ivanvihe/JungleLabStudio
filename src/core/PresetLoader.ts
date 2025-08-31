@@ -127,6 +127,8 @@ export class PresetLoader {
   private genLabBase: { config: PresetConfig; createPreset: any; shaderCode?: string; folderPath: string } | null = null;
   private fractalLabPresets: { name: string; config: any }[] = [];
   private fractalLabBase: { config: PresetConfig; createPreset: any; shaderCode?: string; folderPath: string } | null = null;
+  private emptyPresetCount: number = 1;
+  private emptyBase: { config: PresetConfig; createPreset: any; shaderCode?: string; folderPath: string } | null = null;
 
   // Carga dinamica de presets desde el sistema de archivos
   private presetModules = import.meta.glob('../presets/*/preset.ts');
@@ -260,6 +262,43 @@ export class PresetLoader {
       
     } catch (error) {
       console.error('Error reloading custom text presets:', error);
+    }
+  }
+
+  public setEmptyPresetCount(count: number): void {
+    const newCount = Math.max(1, Math.min(10, count));
+    this.emptyPresetCount = newCount;
+    console.log(`🔧 Empty presets set to: ${this.emptyPresetCount}`);
+    this.reloadEmptyPresets();
+    this.notifyPresetsChanged();
+  }
+
+  private reloadEmptyPresets(loadedList?: LoadedPreset[]): void {
+    if (!this.emptyBase) return;
+
+    for (const id of Array.from(this.loadedPresets.keys())) {
+      if (id.startsWith('empty-')) {
+        this.loadedPresets.delete(id);
+      }
+    }
+
+    const baseNote = this.emptyBase.config.note!;
+    for (let i = 1; i <= this.emptyPresetCount; i++) {
+      const cloneConfig = JSON.parse(JSON.stringify(this.emptyBase.config));
+      cloneConfig.name = `Empty ${i}`;
+      cloneConfig.note = baseNote + (i - 1);
+      this.updateMidiNoteTracking(cloneConfig.note);
+
+      const clone: LoadedPreset = {
+        id: `empty-${i}`,
+        config: cloneConfig,
+        createPreset: this.emptyBase.createPreset,
+        shaderCode: this.emptyBase.shaderCode,
+        folderPath: this.emptyBase.folderPath,
+      };
+
+      this.loadedPresets.set(clone.id, clone);
+      if (loadedList) loadedList.push(clone);
     }
   }
 
@@ -421,6 +460,13 @@ export class PresetLoader {
             loadedPresets.push(clone);
             console.log(`✅ Preset loaded: ${clone.config.name}`);
           }
+      } else if (presetId === 'empty') {
+          this.emptyBase = {
+            config: cfg,
+            createPreset,
+            shaderCode,
+            folderPath: `${this.basePath}/${presetId}`,
+          };
       } else if (presetId === 'gen-lab') {
           this.genLabBase = {
             config: cfg,
@@ -451,6 +497,7 @@ export class PresetLoader {
       }
     }
 
+    this.reloadEmptyPresets(loadedPresets);
     this.reloadGenLabPresets(loadedPresets);
     this.reloadFractalLabPresets(loadedPresets);
 

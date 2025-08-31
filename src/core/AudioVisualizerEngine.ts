@@ -278,6 +278,12 @@ export class AudioVisualizerEngine {
     return this.presetLoader.getLoadedPresets();
   }
 
+  public async updateEmptyTemplates(count: number): Promise<LoadedPreset[]> {
+    this.presetLoader.setEmptyPresetCount(count);
+    await this.presetLoader.loadAllPresets();
+    return this.presetLoader.getLoadedPresets();
+  }
+
   public async updateGenLabPresets(presets: { name: string; config: any }[]): Promise<LoadedPreset[]> {
     this.presetLoader.setGenLabPresets(presets);
     await this.presetLoader.loadAllPresets();

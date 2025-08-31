@@ -50,6 +50,14 @@ class GenerativeDubPreset extends BasePreset {
   private transitionStart = 0;
   private transitionDuration = 8;
 
+  private static readonly PALETTES = [
+    ['#0e0e0e', '#3a506b', '#5bc0be'],
+    ['#000000', '#1b262c', '#0f4c75'],
+    ['#000000', '#ffffff', '#88c0d0'],
+    ['#0d1b2a', '#1b263b', '#415a77'],
+    ['#222831', '#393e46', '#00adb5']
+  ].map(p => p.map(c => new THREE.Color(c)));
+
   public init(): void {
     this.currentConfig = JSON.parse(JSON.stringify(this.config.defaultConfig));
     const geometry = new THREE.PlaneGeometry(10, 10);
@@ -66,7 +74,10 @@ class GenerativeDubPreset extends BasePreset {
         uBlend: { value: 0 },
         uAudioLow: { value: 0 },
         uAudioMid: { value: 0 },
-        uAudioHigh: { value: 0 }
+        uAudioHigh: { value: 0 },
+        uColor1: { value: new THREE.Color('#0e0e0e') },
+        uColor2: { value: new THREE.Color('#3a506b') },
+        uColor3: { value: new THREE.Color('#5bc0be') }
       },
       vertexShader: `
         varying vec2 vUv;
@@ -86,6 +97,9 @@ class GenerativeDubPreset extends BasePreset {
         uniform float uAudioLow;
         uniform float uAudioMid;
         uniform float uAudioHigh;
+        uniform vec3 uColor1;
+        uniform vec3 uColor2;
+        uniform vec3 uColor3;
 
         float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
         float noise(vec2 p){
@@ -156,11 +170,13 @@ class GenerativeDubPreset extends BasePreset {
           float pA = getPattern(uPatternA, uv);
           float pB = getPattern(uPatternB, uv);
           float pattern = mix(pA, pB, uBlend);
-          vec3 col = 0.5 + 0.5 * sin(vec3(0.0, 2.0, 4.0) + pattern * 6.2831 + uAudioLow * 5.0);
+          vec3 col = mix(uColor1, uColor2, pattern);
+          col = mix(col, uColor3, pattern * pattern);
           gl_FragColor = vec4(col, uOpacity);
         }
       `
     });
+    this.randomizePalette(material);
     this.mesh = new THREE.Mesh(geometry, material);
     this.scene.add(this.mesh);
     this.lastChange = 0;
@@ -172,6 +188,7 @@ class GenerativeDubPreset extends BasePreset {
       Math.random() * 5 + 1,
       Math.random() * 0.2 + 0.05
     );
+    this.randomizePalette(material);
     this.currentPattern = this.nextPattern;
     let newPattern = this.currentPattern;
     while (newPattern === this.currentPattern) {
@@ -236,6 +253,15 @@ class GenerativeDubPreset extends BasePreset {
     if (newConfig.opacity !== undefined) {
       mat.uniforms.uOpacity.value = newConfig.opacity;
     }
+  }
+
+  private randomizePalette(material: THREE.ShaderMaterial): void {
+    const palette = GenerativeDubPreset.PALETTES[
+      Math.floor(Math.random() * GenerativeDubPreset.PALETTES.length)
+    ];
+    material.uniforms.uColor1.value.copy(palette[0]);
+    material.uniforms.uColor2.value.copy(palette[1]);
+    material.uniforms.uColor3.value.copy(palette[2]);
   }
 
   public dispose(): void {
