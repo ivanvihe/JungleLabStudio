@@ -76,11 +76,15 @@ export const usePresetGrid = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const getBaseId = (id: string) => (id.startsWith('custom-glitch-text') ? 'custom-glitch-text' : id);
+  const getBaseId = (id: string) => {
+    if (id.startsWith('custom-glitch-text')) return 'custom-glitch-text';
+    if (id.startsWith('empty')) return 'empty';
+    return id;
+  };
 
   const canPlace = (list: (string | null)[], id: string, ignoreIndex?: number) => {
     const base = getBaseId(id);
-    if (base === 'custom-glitch-text') return true;
+    if (base === 'custom-glitch-text' || base === 'empty') return true;
     return !list.some((pid, idx) => pid && getBaseId(pid) === base && idx !== ignoreIndex);
   };
 

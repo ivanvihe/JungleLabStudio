@@ -78,10 +78,20 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
   } = usePresetGrid();
   const jumpPositions = React.useRef<Record<string, number>>({});
 
-  const handlePresetClick = (layerId: string, presetId: string, velocity?: number) => {
+  const handlePresetClick = (
+    layerId: string,
+    presetId: string,
+    index?: number,
+    velocity?: number
+  ) => {
     if (!presetId) return; // No hacer nada si es un slot vacio
-    
-    const cellKey = `${layerId}-${presetId}`;
+
+    if (index === undefined) {
+      const list = layerPresets[layerId];
+      index = list.findIndex(id => id === presetId);
+    }
+
+    const cellKey = `${layerId}-${presetId}-${index}`;
     const layer = layers.find(l => l.id === layerId);
     const wasActive = layer?.activePreset === presetId;
     const preset = presets.find(p => p.id === presetId);
@@ -136,6 +146,7 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
       handlePresetClick(
         externalTrigger.layerId,
         externalTrigger.presetId,
+        undefined,
         externalTrigger.velocity
       );
     }
@@ -196,7 +207,7 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
         }
         const presetId = currentList[idx];
         if (presetId) {
-          handlePresetClick(layer.id, presetId);
+          handlePresetClick(layer.id, presetId, idx);
         }
       }, intervalMs);
 
@@ -400,7 +411,7 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
               const preset = presets.find(p => p.id === presetId);
               if (!preset) return null;
               
-              const cellKey = `${layer.id}-${preset.id}`;
+              const cellKey = `${layer.id}-${preset.id}-${idx}`;
               const isActive = layer.activePreset === preset.id;
               const isClicked = clickedCell === cellKey;
               const isDragOver = dragTarget?.layerId === layer.id && dragTarget.index === idx;
@@ -409,7 +420,7 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
                 <div
                   key={cellKey}
                   className={`preset-cell ${isActive ? 'active' : ''} ${isClicked ? 'clicked' : ''} ${isDragOver ? 'drag-over' : ''}`}
-                  onClick={() => handlePresetClick(layer.id, preset.id)}
+                  onClick={() => handlePresetClick(layer.id, preset.id, idx)}
                   draggable
                   onDragStart={(e) => handleDragStart(e, layer.id, idx)}
                   onDragEnd={handleDragEnd}
