@@ -1,10 +1,10 @@
 {
   "name": "Generative Dub",
-  "description": "Auto-evolving visuals that never repeat",
+  "description": "Generative fractals and particles that evolve forever",
   "author": "AudioVisualizer",
   "version": "1.0.0",
   "category": "generative",
-  "tags": ["auto", "infinite", "dub", "abstract", "audio-reactive"],
+  "tags": ["auto", "infinite", "dub", "abstract", "audio-reactive", "fractal", "particles"],
   "thumbnail": "generative_dub_thumb.png",
   "defaultConfig": {
     "opacity": 1.0
