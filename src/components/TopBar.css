@@ -143,15 +143,6 @@
   transition: all 0.2s ease;
 }
 
-.action-button.switch-app {
-  background: linear-gradient(45deg, #4CAF50, #8BC34A);
-  color: white;
-}
-
-.action-button.switch-app:hover {
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
-}
-
 @keyframes pulse-green {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }

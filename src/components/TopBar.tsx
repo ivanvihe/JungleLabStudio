@@ -24,7 +24,6 @@ interface TopBarProps {
   onToggleLaunchpad?: () => void;
   launchpadText?: string;
   onLaunchpadTextChange?: (text: string) => void;
-  onSwitchToCreaLab?: () => void;
   onLaunchpadPresetChange?: (preset: string) => void;
 }
 
@@ -50,8 +49,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onToggleLaunchpad,
   onLaunchpadPresetChange,
   launchpadText,
-  onLaunchpadTextChange,
-  onSwitchToCreaLab
+  onLaunchpadTextChange
 }) => {
   const [activeLed, setActiveLed] = useState(0);
 
@@ -138,11 +136,6 @@ export const TopBar: React.FC<TopBarProps> = ({
             title="Settings"
             aria-label="Settings"
           >⚙️</button>
-          {onSwitchToCreaLab && (
-            <button onClick={onSwitchToCreaLab} className="action-button switch-app" title="Switch to Crea Lab">
-              🎼
-            </button>
-          )}
         </div>
 
         {/* Flexible spacer to push Launchpad controls to the right */}

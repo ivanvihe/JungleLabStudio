@@ -1,8 +1,6 @@
 # Jungle Lab Studio
 
-A comprehensive music production suite featuring:
-- **Crea Lab**: MIDI clip generation and creative assistant
-- **AudioVisualizer**: Real-time audio visualization engine
+A comprehensive music production suite featuring the **AudioVisualizer**: real-time audio visualization engine.
 
 ## Adding new presets
 
