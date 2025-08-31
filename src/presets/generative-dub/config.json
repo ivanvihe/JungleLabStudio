@@ -1,0 +1,19 @@
+{
+  "name": "Generative Dub",
+  "description": "Auto-evolving visuals that never repeat",
+  "author": "AudioVisualizer",
+  "version": "1.0.0",
+  "category": "generative",
+  "tags": ["auto", "infinite", "dub", "abstract", "audio-reactive"],
+  "thumbnail": "generative_dub_thumb.png",
+  "defaultConfig": {
+    "opacity": 1.0
+  },
+  "controls": [],
+  "audioMapping": {
+    "low": { "description": "Influences color warmth", "frequency": "20-250 Hz", "effect": "Color shift" },
+    "mid": { "description": "Changes movement speed", "frequency": "250-4000 Hz", "effect": "Motion intensity" },
+    "high": { "description": "Adds detail", "frequency": "4000+ Hz", "effect": "Texture" }
+  },
+  "performance": { "complexity": "medium", "recommendedFPS": 60, "gpuIntensive": true }
+}
