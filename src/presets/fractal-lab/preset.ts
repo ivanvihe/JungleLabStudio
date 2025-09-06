@@ -240,16 +240,6 @@ class FractalLabPreset extends BasePreset {
     if (newConfig.brightness !== undefined) mat.uniforms.uBrightness.value = newConfig.brightness;
     if (newConfig.contrast !== undefined) mat.uniforms.uContrast.value = newConfig.contrast;
     if (newConfig.saturation !== undefined) mat.uniforms.uSaturation.value = newConfig.saturation;
-    if (newConfig.width !== undefined || newConfig.height !== undefined) {
-      const w = (this.currentConfig.width || 1920) / 100;
-      const h = (this.currentConfig.height || 1080) / 100;
-      this.mesh.geometry.dispose();
-      this.mesh.geometry = new THREE.PlaneGeometry(w, h);
-      mat.uniforms.uResolution.value = new THREE.Vector2(
-        this.currentConfig.width || 1920,
-        this.currentConfig.height || 1080
-      );
-    }
   }
 
   public dispose(): void {

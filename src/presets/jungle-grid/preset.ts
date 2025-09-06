@@ -41,42 +41,43 @@ class AbletonRemoteClient {
 }
 
 class JungleGridPreset extends BasePreset {
-  private canvas: HTMLCanvasElement;
-  private ctx: CanvasRenderingContext2D;
   private client: AbletonRemoteClient;
   private tracks: TrackInfo[] = [];
   private lastFetch = 0;
+  private gridGroup: THREE.Group;
+  private idleMaterial: THREE.LineBasicMaterial;
+  private activeMaterial: THREE.LineBasicMaterial;
+  private baseMaterial: THREE.LineBasicMaterial;
   private blinkPhase = 0;
-  private plane: THREE.Mesh;
 
   constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, config: PresetConfig) {
     super(scene, camera, renderer, config);
 
-    this.canvas = document.createElement('canvas');
-    this.canvas.width = this.config.defaultConfig.width || 1920;
-    this.canvas.height = this.config.defaultConfig.height || 1080;
-    this.ctx = this.canvas.getContext('2d')!;
     this.client = new AbletonRemoteClient();
+    this.gridGroup = new THREE.Group();
+    this.scene.add(this.gridGroup);
 
-    const texture = new THREE.CanvasTexture(this.canvas);
-    const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
-    const geometry = new THREE.PlaneGeometry(16, 9);
-    this.plane = new THREE.Mesh(geometry, material);
-    this.scene.add(this.plane);
+    this.idleMaterial = new THREE.LineBasicMaterial({ color: new THREE.Color(this.config.defaultConfig.colors.clipIdle) });
+    this.activeMaterial = new THREE.LineBasicMaterial({ color: new THREE.Color(this.config.defaultConfig.colors.clipActive) });
+    this.baseMaterial = new THREE.LineBasicMaterial({ color: new THREE.Color(this.config.defaultConfig.grid.stroke) });
   }
 
   init() {
-    // No specific init logic needed here as constructor handles setup
+    // Set camera position to view the grid filling the screen
+    this.camera.position.z = 10; // Adjust as needed for desired fill
+    this.camera.lookAt(0, 0, 0);
   }
 
   async update() {
     const timeMs = performance.now();
-    const dt = this.clock.getDelta() * 1000;
-    this.blinkPhase = (this.blinkPhase + dt) % this.config.defaultConfig.blink.periodMs;
-
+    this.blinkPhase = (this.blinkPhase + this.clock.getDelta() * 1000) % this.config.defaultConfig.blink.periodMs;
     await this.fetchDataIfNeeded(timeMs);
-    this.renderGrid();
-    (this.plane.material as THREE.MeshBasicMaterial).map.needsUpdate = true;
+    this.updateGrid();
+
+    // Camera oscillation
+    const oscillationSpeed = 0.00005; // Adjust for desired speed
+    const oscillationAmount = 0.5; // Adjust for desired movement range
+    this.camera.position.x = Math.sin(timeMs * oscillationSpeed) * oscillationAmount;
   }
 
   async fetchDataIfNeeded(timeMs: number) {
@@ -84,39 +85,69 @@ class JungleGridPreset extends BasePreset {
       this.lastFetch = timeMs;
       try {
         const tracks = await this.client.getTracksInfo();
-        this.tracks = Array.isArray(tracks) ? tracks : [];
+        if (JSON.stringify(tracks) !== JSON.stringify(this.tracks)) {
+            this.tracks = Array.isArray(tracks) ? tracks : [];
+            this.createGrid();
+        }
       } catch (error) {
         console.error("JungleGrid: Failed to fetch track info:", error);
       }
     }
   }
 
-  renderGrid() {
-    const { width, height } = this.canvas;
-    const ctx = this.ctx;
-    ctx.clearRect(0, 0, width, height);
-
-    const gridWidth = width * 0.15;
-    const gridHeight = height * 0.15;
-    const gridX = (width - gridWidth) / 2;
-    const gridY = (height - gridHeight) / 2;
+  createGrid() {
+    this.gridGroup.clear();
 
     const columns = Math.max(1, this.tracks.length);
     const rows = Math.max(1, ...this.tracks.map(t => t.clips?.length || 1));
 
+    // Calculate visible width and height at camera's z position
+    const aspect = this.camera.aspect;
+    const fovRad = THREE.MathUtils.degToRad(this.camera.fov);
+    const visibleHeight = 2 * Math.tan(fovRad / 2) * this.camera.position.z;
+    const visibleWidth = visibleHeight * aspect;
+
+    // Scale the grid to fill the visible area (e.g., 80% of visible area)
+    const gridFillFactor = 0.8; 
+    const gridWidth = visibleWidth * gridFillFactor;
+    const gridHeight = visibleHeight * gridFillFactor;
+
     const cellW = gridWidth / columns;
     const cellH = gridHeight / rows;
-    const margin = 2;
-    const cornerRadius = 5;
+    const margin = 0.05; // Relative margin
+    const cornerRadius = 0.1; // Relative corner radius
 
     for (let c = 0; c < columns; c++) {
       for (let r = 0; r < rows; r++) {
-        this.strokeRoundedRect(gridX + c * cellW + margin, gridY + r * cellH + margin, cellW - 2 * margin, cellH - 2 * margin, cornerRadius, this.config.defaultConfig.grid.stroke, this.config.defaultConfig.grid.strokeWidth, 1);
+        const shape = new THREE.Shape();
+        const x = 0, y = 0, width = cellW - margin, height = cellH - margin, radius = cornerRadius;
+        shape.moveTo(x, y + radius);
+        shape.lineTo(x, y + height - radius);
+        shape.quadraticCurveTo(x, y + height, x + radius, y + height);
+        shape.lineTo(x + width - radius, y + height);
+        shape.quadraticCurveTo(x + width, y + height, x + width, y + height - radius);
+        shape.lineTo(x + width, y + radius);
+        shape.quadraticCurveTo(x + width, y, x + width - radius, y);
+        shape.lineTo(x + radius, y);
+        shape.quadraticCurveTo(x, y, x, y + radius);
+
+        const points = shape.getPoints();
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const cell = new THREE.Line(geometry, this.baseMaterial);
+
+        cell.position.set(
+          c * cellW - gridWidth / 2 + margin / 2,
+          r * cellH - gridHeight / 2 + margin / 2,
+          0
+        );
+        this.gridGroup.add(cell);
       }
     }
+  }
 
-    const idleColor = this.config.defaultConfig.colors.clipIdle;
-    const activeColor = this.config.defaultConfig.colors.clipActive;
+  updateGrid() {
+    const columns = Math.max(1, this.tracks.length);
+    const rows = Math.max(1, ...this.tracks.map(t => t.clips?.length || 1));
 
     const t = this.blinkPhase / this.config.defaultConfig.blink.periodMs;
     const tri = t < 0.5 ? t * 2 : (1 - t) * 2;
@@ -127,47 +158,30 @@ class JungleGridPreset extends BasePreset {
       const clipSlots = track?.clips || [];
       for (let r = 0; r < rows; r++) {
         const slot = clipSlots[r];
-        if (!slot || !slot.has_clip) continue;
+        const cellIndex = c * rows + r;
+        const cell = this.gridGroup.children[cellIndex] as THREE.Line;
 
-        const clip = slot.clip;
-        const x = gridX + c * cellW + margin;
-        const y = gridY + r * cellH + margin;
-        const w = cellW - 2 * margin;
-        const h = cellH - 2 * margin;
-
-        if (clip?.is_playing) {
-          this.strokeRoundedRect(x, y, w, h, cornerRadius, activeColor, this.config.defaultConfig.grid.strokeWidth + 1, blinkAlpha);
-        } else {
-          this.strokeRoundedRect(x, y, w, h, cornerRadius, idleColor, this.config.defaultConfig.grid.strokeWidth + 1, 0.8);
+        if (cell) {
+            (cell.material as THREE.LineBasicMaterial).transparent = true;
+            if (slot?.has_clip) {
+                if (slot.clip?.is_playing) {
+                    cell.material = this.activeMaterial;
+                    (cell.material as THREE.LineBasicMaterial).opacity = blinkAlpha;
+                } else {
+                    cell.material = this.idleMaterial;
+                    (cell.material as THREE.LineBasicMaterial).opacity = 0.8;
+                }
+            } else {
+                cell.material = this.baseMaterial;
+                (cell.material as THREE.LineBasicMaterial).opacity = 1;
+            }
         }
       }
     }
   }
 
-  strokeRoundedRect(x: number, y: number, w: number, h: number, radius: number, color: string, lineWidth: number, alpha = 1) {
-    this.ctx.save();
-    this.ctx.globalAlpha = alpha;
-    this.ctx.strokeStyle = color;
-    this.ctx.lineWidth = lineWidth;
-    this.ctx.beginPath();
-    this.ctx.moveTo(x + radius, y);
-    this.ctx.lineTo(x + w - radius, y);
-    this.ctx.arcTo(x + w, y, x + w, y + radius, radius);
-    this.ctx.lineTo(x + w, y + h - radius);
-    this.ctx.arcTo(x + w, y + h, x + w - radius, y + h, radius);
-    this.ctx.lineTo(x + radius, y + h);
-    this.ctx.arcTo(x, y + h, x, y + h - radius, radius);
-    this.ctx.lineTo(x, y + radius);
-    this.ctx.arcTo(x, y, x + radius, y, radius);
-    this.ctx.closePath();
-    this.ctx.stroke();
-    this.ctx.restore();
-  }
-
   dispose() {
-    this.scene.remove(this.plane);
-    (this.plane.material as THREE.MeshBasicMaterial).map.dispose();
-    this.plane.geometry.dispose();
+    this.scene.remove(this.gridGroup);
   }
 }
 

@@ -40,7 +40,6 @@ class ParticleGridSunPreset extends BasePreset {
   }
 
   init(): void {
-    this.renderer.setClearColor(0x000000, 0);
     const count = 100;
     const radius = 3;
 

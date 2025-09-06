@@ -34,7 +34,6 @@ class ArpWavesPreset extends BasePreset {
   }
 
   init(): void {
-    this.renderer.setClearColor(0x000000, 0);
     this.createBars();
   }
 

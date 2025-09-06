@@ -296,11 +296,58 @@ class RoboticaCinematicPreset extends BasePreset {
   }
 
   public init(): void {
-    // Fondo transparente
-    this.renderer.setClearColor(0x000000, 0);
-    
     this.createCinematicText();
     this.scene.add(this.textGroup);
+  }
+
+  private createCinematicText(): void {
+    const rawText = this.currentConfig.text.content;
+    const letters = rawText.replace(/\s+/g, '').split('');
+    const fontSize = this.currentConfig.text.fontSize;
+    const fontFamily = this.currentConfig.text.fontFamily;
+    const scale = this.currentConfig.text.scale;
+
+    // Calculate total width of the text in normalized coordinates (-1 to 1)
+    // Assuming a base letter width of 0.1 units in normalized space
+    const baseLetterWidth = 0.1;
+    const baseLetterSpacing = 0.02;
+    const baseWordSpacing = 0.05;
+
+    let totalWidth = 0;
+    for (const char of rawText) {
+      if (char === ' ') {
+        totalWidth += baseWordSpacing;
+      } else {
+        totalWidth += baseLetterWidth + baseLetterSpacing;
+      }
+    }
+    totalWidth -= baseLetterSpacing;
+
+    const startX = -totalWidth / 2.0;
+    let currentX = startX;
+
+    for (let charIdx = 0; charIdx < rawText.length; charIdx++) {
+      const char = rawText[charIdx];
+      
+      if (char === ' ') {
+        currentX += baseWordSpacing;
+        continue;
+      }
+
+      const position = new THREE.Vector3(currentX + baseLetterWidth / 2, 0, 0);
+      const letter = new CinematicLetter(char, fontSize, fontFamily, position);
+      
+      this.letters.push(letter);
+      this.textGroup.add(letter.getMesh());
+
+      currentX += baseLetterWidth + baseLetterSpacing;
+    }
+
+    // Apply global scale from config
+    this.textGroup.scale.setScalar(scale);
+
+    // Posicionar el grupo en el centro de la pantalla
+    this.textGroup.position.set(0, 0, 0);
   }
 
   private createCinematicText(): void {

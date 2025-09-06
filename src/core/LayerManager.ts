@@ -79,7 +79,9 @@ export class LayerManager {
 
       this.renderer.setClearColor(0x000000, 0);
       this.renderer.setRenderTarget(layer.renderTarget);
-      this.renderer.clear(true, true, false);
+      this.renderer.clearDepth(); // Clear only depth buffer
+      this.renderer.clearStencil(); // Clear only stencil buffer
+      // Do NOT clear the color buffer (alpha channel)
       this.renderer.render(layer.scene, this.camera);
     });
 

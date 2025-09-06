@@ -60,7 +60,7 @@ class GenerativeDubPreset extends BasePreset {
 
   public init(): void {
     this.currentConfig = JSON.parse(JSON.stringify(this.config.defaultConfig));
-    const geometry = new THREE.PlaneGeometry(10, 10);
+    const geometry = new THREE.PlaneGeometry(2, 2);
     this.currentPattern = Math.floor(Math.random() * 10);
     this.nextPattern = this.currentPattern;
     const material = new THREE.ShaderMaterial({

@@ -149,11 +149,11 @@ export class InfiniteNeuralNetwork extends BasePreset {
     this.scene.overrideMaterial = null;
 
     // Colocar camara en origen mirando al eje X
-    this.camera.position.set(0, 0, 0);
-    this.camera.lookAt(1, 0, 0);
+    // this.camera.position.set(0, 0, 0);
+    // this.camera.lookAt(1, 0, 0);
 
     // Generar nodos iniciales
-    while (this.nextSpawnX < this.camera.position.x + 50) {
+    while (this.nextSpawnX < 50) {
       this.spawnNode();
     }
   }
@@ -231,14 +231,14 @@ export class InfiniteNeuralNetwork extends BasePreset {
     const audioIntensity = (this.audioData.low + this.audioData.mid + this.audioData.high) / 3;
 
     const speed = this.currentConfig.speed * (0.5 + this.audioData.high);
-    this.camera.position.x += delta * speed;
-    this.camera.lookAt(this.camera.position.x + 1, 0, 0);
+    // Move the entire scene content instead of the camera
+    this.scene.position.x -= delta * speed;
 
-    while (this.nextSpawnX < this.camera.position.x + 50) {
+    while (this.nextSpawnX < this.scene.position.x + 50) {
       this.spawnNode();
     }
 
-    while (this.nodes.length && this.nodes[0].position.x < this.camera.position.x - 20) {
+    while (this.nodes.length && this.nodes[0].position.x < this.scene.position.x - 20) {
       const old = this.nodes.shift()!;
       this.removeNode(old);
     }
@@ -262,7 +262,7 @@ export class InfiniteNeuralNetwork extends BasePreset {
   private deepMerge(target: any, source: any): any {
     const result = { ...target };
     for (const key in source) {
-      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+      if (source[key] && typeof source[key] === 'object' && !ArrayArray(source[key])) {
         result[key] = this.deepMerge(result[key] || {}, source[key]);
       } else {
         result[key] = source[key];
@@ -284,10 +284,10 @@ export class InfiniteNeuralNetwork extends BasePreset {
     this.connections = [];
 
     // Restaurar estado original de escena y camara
-    this.scene.background = this.originalBackground;
-    this.scene.overrideMaterial = this.originalOverrideMaterial;
-    this.camera.position.copy(this.initialCameraPosition);
-    this.camera.quaternion.copy(this.initialCameraQuaternion);
+    // this.scene.background = this.originalBackground;
+    // this.scene.overrideMaterial = this.originalOverrideMaterial;
+    // this.camera.position.copy(this.initialCameraPosition);
+    // this.camera.quaternion.copy(this.initialCameraQuaternion);
   }
 }
 

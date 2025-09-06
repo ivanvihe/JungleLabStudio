@@ -336,7 +336,6 @@ class AbstractLinesPreset extends BasePreset {
 
   public init(): void {
     // Sin fondo - completamente transparente
-    this.renderer.setClearColor(0x000000, 0);
     
     // Crear lineas iniciales
     for (let i = 0; i < 20; i++) {

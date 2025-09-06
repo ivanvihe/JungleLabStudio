@@ -37,7 +37,6 @@ class AuroraPulsePreset extends BasePreset {
   }
 
   public init(): void {
-    this.renderer.setClearColor(0x000000, 0);
     this.currentConfig = JSON.parse(JSON.stringify(this.config.defaultConfig));
     const geometry = new THREE.PlaneGeometry(2, 2);
     const material = new THREE.ShaderMaterial({

@@ -438,13 +438,6 @@ class AnalysisSpectrum extends BasePreset {
     if (this.starField) {
       this.starField.rotation.y += deltaTime * 0.02;
     }
-
-    const radius = this.currentConfig.radius;
-    const cameraSpeed = 0.12;
-    this.camera.position.x = Math.cos(time * cameraSpeed) * radius;
-    this.camera.position.z = Math.sin(time * cameraSpeed) * radius;
-    this.camera.position.y = radius * 0.4 + 2.5 + Math.sin(time * 0.25) * 0.3;
-    this.camera.lookAt(0, 1.5, 0);
   }
 
   updateConfig(newConfig: any): void {

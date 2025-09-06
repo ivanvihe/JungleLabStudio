@@ -32,7 +32,6 @@ class DubPulsePreset extends BasePreset {
   }
 
   init(): void {
-    this.renderer.setClearColor(0x000000, 0);
     const geo = new THREE.RingGeometry(0.5, 0.52, 64);
     const mat = new THREE.MeshBasicMaterial({ color: this.currentConfig.color, transparent: true, opacity: 0.5 });
     this.ring = new THREE.Mesh(geo, mat);

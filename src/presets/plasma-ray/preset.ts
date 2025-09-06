@@ -356,9 +356,6 @@ class ProfessionalPlasmaRayPreset extends BasePreset {
   }
   
   public init(): void {
-    // Fondo completamente transparente
-    this.renderer.setClearColor(0x000000, 0);
-    
     // Crear el rayo de plasma profesional
     this.plasmaRay = new EnergyWaveRay(this.currentConfig);
     this.plasmaRay.getMeshes().forEach(mesh => this.scene.add(mesh));
