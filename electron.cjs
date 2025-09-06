@@ -167,6 +167,48 @@ ipcMain.handle('toggle-fullscreen', (event, ids = []) => {
   }
 });
 
+const net = require('net');
+
+ipcMain.handle('tcp-request', (event, command, port, host) => {
+  return new Promise((resolve, reject) => {
+    const socket = new net.Socket();
+    let buffer = '';
+
+    socket.connect(port, host, () => {
+      socket.write(JSON.stringify(command));
+    });
+
+    socket.on('data', (chunk) => {
+      buffer += chunk.toString('utf-8');
+      try {
+        const parsed = JSON.parse(buffer);
+        if (parsed && parsed.status) {
+          socket.destroy();
+          if (parsed.status === 'ok') {
+            resolve(parsed.result);
+          } else {
+            reject(new Error(parsed.message || 'Remote error'));
+          }
+        }
+      } catch {
+        // Wait for more data
+      }
+    });
+
+    socket.on('error', (err) => {
+      socket.destroy();
+      reject(err);
+    });
+
+    setTimeout(() => {
+      if (buffer.length === 0) {
+        socket.destroy();
+        reject(new Error('Remote timeout'));
+      }
+    }, 3000);
+  });
+});
+
 app.whenReady().then(() => {
   createWindow();
 

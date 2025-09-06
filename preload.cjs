@@ -10,5 +10,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Notification when the main window exits fullscreen
   onMainLeaveFullscreen: (callback) => ipcRenderer.on('main-leave-fullscreen', callback),
-  removeMainLeaveFullscreenListener: () => ipcRenderer.removeAllListeners('main-leave-fullscreen')
+  removeMainLeaveFullscreenListener: () => ipcRenderer.removeAllListeners('main-leave-fullscreen'),
+  tcpRequest: (command, port, host) => ipcRenderer.invoke('tcp-request', command, port, host)
 });
