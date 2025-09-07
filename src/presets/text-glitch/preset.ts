@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { BasePreset, PresetConfig } from '../../core/PresetLoader';
+import { applyVFX } from './vfx';
 
 // Config para ROBOTICA Cinematic Intro
 export const config: PresetConfig = {
@@ -368,6 +369,8 @@ class RoboticaCinematicPreset extends BasePreset {
         child.material.uniforms.uOpacity.value = currentOpacity * this.opacity;
       }
     });
+
+    applyVFX(this.renderer.domElement, this.audioData);
   }
 
   public updateConfig(newConfig: any): void {

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { BasePreset, PresetConfig } from '../../core/PresetLoader';
+import { applyVFX } from './vfx';
 
 // Configuracion del preset Evolutive Particles
 export const config: PresetConfig = {
@@ -586,6 +587,8 @@ class EvolutiveParticlesPreset extends BasePreset {
     
     // Actualizar conexiones
     this.connectionSystem.update(this.particles, this.currentConfig, this.scene);
+
+    applyVFX(this.renderer.domElement, this.audioData);
   }
   
   private updateAttractors(time: number): void {

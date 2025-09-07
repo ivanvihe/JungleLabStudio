@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { BasePreset, PresetConfig } from '../../core/PresetLoader';
+import { applyVFX } from './vfx';
 
 export const config: PresetConfig = {
   name: "Abstract Lines Pro",
@@ -390,6 +391,8 @@ class AbstractLinesPreset extends BasePreset {
     this.linePool.getActive().forEach(line => {
       line.getMesh().material.uniforms.uOpacity.value *= this.opacity;
     });
+
+    applyVFX(this.renderer.domElement, this.audioData);
   }
 
   public updateConfig(newConfig: any): void {

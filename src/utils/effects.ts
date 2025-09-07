@@ -9,5 +9,6 @@ export const AVAILABLE_EFFECTS = [
   'invert',
   'sepia',
   'noise',
-  'scanlines'
+  'scanlines',
+  'flash'
 ];

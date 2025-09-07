@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { BasePreset, PresetConfig } from '../../core/PresetLoader';
+import { triggerClipFlash } from './vfx';
 
 // Interfaz para la información de tracks
 interface TrackInfo {
@@ -417,6 +418,9 @@ class JungleGridPreset extends BasePreset {
             
             cell.material.color.setHex(parseInt(this.config.defaultConfig.colors.clipActive.replace('#', ''), 16));
             cell.material.opacity = blinkAlpha;
+            if (blinkAlpha > 0.95) {
+              triggerClipFlash(this.renderer.domElement);
+            }
           } else {
             // Clip idle
             cell.material.color.setHex(parseInt(this.config.defaultConfig.colors.clipIdle.replace('#', ''), 16));
