@@ -75,6 +75,8 @@ class JungleGridPreset extends BasePreset {
     // Set camera position to view the grid filling the screen
     this.camera.position.z = 10; // Adjust as needed for desired fill
     this.camera.lookAt(0, 0, 0);
+    // Render an initial grid even if no track data is available
+    this.createGrid();
   }
 
   async update() {
