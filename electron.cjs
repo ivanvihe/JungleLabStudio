@@ -43,6 +43,10 @@ function createWindow() {
     mainWindow.loadFile(startUrl);
   }
 
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  });
+
   // Log when the page is ready
   mainWindow.webContents.once('did-finish-load', () => {
     console.log('✅ Page loaded successfully');
