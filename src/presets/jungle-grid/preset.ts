@@ -22,14 +22,23 @@ type TrackInfo = {
 class AbletonRemoteClient {
   async request<T = any>(command: object, port = 9888, host = "127.0.0.1"): Promise<T> {
     if ((window as any).electronAPI?.tcpRequest) {
-        try {
-            const result = await (window as any).electronAPI.tcpRequest(command, port, host);
-            return result;
-        } catch (error) {
-            console.error("JungleGrid: TCP request failed:", error);
-            return Promise.reject(error);
-        }
-    } else {
+      try {
+        const result = await (window as any).electronAPI.tcpRequest(command, port, host);
+        return result;
+      } catch (error) {
+        console.error("JungleGrid: TCP request failed:", error);
+        return Promise.reject(error);
+      }
+    }
+
+    // Fallback attempt using HTTP when running outside Electron
+    try {
+      const response = await fetch(`http://${host}:${port}`, {
+        method: 'POST',
+        body: JSON.stringify(command)
+      });
+      return (await response.json()) as T;
+    } catch (error) {
       console.warn("JungleGrid: electronAPI.tcpRequest not found. Using stub data.");
       return Promise.resolve<any>([]);
     }
