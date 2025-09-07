@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { LoadedPreset } from '../core/PresetLoader';
-import { PresetControls } from './PresetControls';
+import PresetControls from './PresetControls';
 import { setNestedValue } from '../utils/objectPath';
 import './GenLabPresetModal.css';
 

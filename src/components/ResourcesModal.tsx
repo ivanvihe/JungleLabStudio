@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { LAUNCHPAD_PRESETS, LaunchpadPreset } from '../utils/launchpad';
 import { LoadedPreset } from '../core/PresetLoader';
 import { getPresetThumbnail } from '../utils/presetThumbnails';
-import { PresetControls } from './PresetControls';
+import PresetControls from './PresetControls';
 import { setNestedValue } from '../utils/objectPath';
 import { GenLabPresetModal } from './GenLabPresetModal';
 import { FractalLabPresetModal } from './FractalLabPresetModal';
@@ -55,7 +55,7 @@ interface TreeNode {
   fractalLabIndex?: number;
 }
 
-export const ResourcesModal: React.FC<ResourcesModalProps> = ({
+const ResourcesModal: React.FC<ResourcesModalProps> = ({
   isOpen,
   onClose,
   presets,
@@ -800,4 +800,6 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
     </>
   );
 };
+
+export default ResourcesModal;
 

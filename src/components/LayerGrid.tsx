@@ -40,7 +40,7 @@ interface LayerGridProps {
   bpm: number | null;
 }
 
-export const LayerGrid: React.FC<LayerGridProps> = ({
+const LayerGrid: React.FC<LayerGridProps> = ({
   presets,
   onPresetActivate,
   onLayerClear,
@@ -448,3 +448,5 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
     </div>
   );
 };
+
+export default LayerGrid;
