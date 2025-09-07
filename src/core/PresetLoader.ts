@@ -412,9 +412,7 @@ export class PresetLoader {
       // Auto-configurar preset si es necesario
       // Auto-configurar preset si es necesario
       cfg = this.autoConfigurePreset(cfg, presetId);
-      console.log(`Jungle-Grid-Debug: Validating config for ${presetId}`, cfg);
       const isValid = validateConfig(cfg);
-      console.log(`Jungle-Grid-Debug: Is config valid for ${presetId}? ${isValid}`);
       if (!isValid) {
         console.warn(`Invalid config for ${presetId}, skipping`);
 

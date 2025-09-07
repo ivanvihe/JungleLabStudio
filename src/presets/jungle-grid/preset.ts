@@ -22,6 +22,7 @@ class AbletonRemoteClient {
   private isConnecting = false;
   private connectionAttempts = 0;
   private maxReconnectAttempts = 10;
+  private hasAnnouncedConnection = false;
 
   constructor() {
     this.connect();
@@ -41,14 +42,16 @@ class AbletonRemoteClient {
     
     this.connectionPromise = new Promise((resolve, reject) => {
       try {
-        console.log(`JungleGrid: 🔄 Intento de conexión ${this.connectionAttempts} a ws://127.0.0.1:9888`);
         this.ws = new WebSocket('ws://127.0.0.1:9888');
         
         this.ws.onopen = () => {
-          console.log('JungleGrid: ✅ CONECTADO a Ableton Remote WebSocket');
+          if (!this.hasAnnouncedConnection) {
+            console.log('Ableton remote connected');
+            this.hasAnnouncedConnection = true;
+          }
           this.isConnecting = false;
-          this.connectionAttempts = 0; // Reset counter on successful connection
-          
+          this.connectionAttempts = 0;
+
           if (this.reconnectTimeout) {
             clearTimeout(this.reconnectTimeout);
             this.reconnectTimeout = null;
@@ -57,40 +60,29 @@ class AbletonRemoteClient {
         };
 
         this.ws.onerror = (error) => {
-          console.error('JungleGrid: ❌ Error WebSocket:', error);
-          console.error('JungleGrid: ℹ️  Verifica que JungleLaStudioRemote esté ejecutándose en Ableton');
+          console.error('JungleGrid: WebSocket error:', error);
           this.isConnecting = false;
           reject(error);
         };
 
         this.ws.onclose = (event) => {
-          console.log(`JungleGrid: 🔌 WebSocket cerrado - Código: ${event.code}, Razón: ${event.reason}`);
-          
-          if (event.code === 1006) {
-            console.log('JungleGrid: ⚠️  Conexión rechazada - El servidor WebSocket no está disponible');
-          }
-          
+          this.hasAnnouncedConnection = false;
           this.ws = null;
           this.connectionPromise = null;
           this.isConnecting = false;
-          
-          // Reintentar solo si no hemos excedido el límite
+
           if (this.connectionAttempts < this.maxReconnectAttempts && !this.reconnectTimeout) {
-            const delay = Math.min(5000 + (this.connectionAttempts * 2000), 30000); // Backoff exponencial
-            console.log(`JungleGrid: 🔄 Reintentando en ${delay}ms...`);
-            
+            const delay = Math.min(5000 + (this.connectionAttempts * 2000), 30000);
             this.reconnectTimeout = window.setTimeout(() => {
               this.reconnectTimeout = null;
               this.connect();
             }, delay);
           } else if (this.connectionAttempts >= this.maxReconnectAttempts) {
-            console.error('JungleGrid: ⛔ Máximo de intentos de reconexión alcanzado');
+            console.error('JungleGrid: Maximum reconnection attempts reached');
           }
         };
 
-        this.ws.onmessage = (event) => {
-          console.log('JungleGrid: 📨 Mensaje WebSocket recibido:', event.data);
-        };
+        this.ws.onmessage = () => {};
 
         // Timeout de conexión más largo
         setTimeout(() => {
@@ -119,13 +111,11 @@ class AbletonRemoteClient {
       await this.connect();
       
       if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-        console.warn('JungleGrid: ⚠️  WebSocket no disponible para solicitud de tracks');
         return [];
       }
 
       return new Promise((resolve) => {
         const timeout = setTimeout(() => {
-          console.warn('JungleGrid: ⏱️ Timeout esperando respuesta de tracks (10s)');
           this.ws?.removeEventListener('message', onMessage);
           resolve([]);
         }, 10000);
@@ -133,11 +123,6 @@ class AbletonRemoteClient {
         const onMessage = (event: MessageEvent) => {
           try {
             const data = JSON.parse(event.data);
-            console.log('JungleGrid: 📨 Respuesta recibida:', {
-              type: data.type,
-              status: data.status,
-              tracksLength: data.tracks?.length || data.result?.length || 'unknown'
-            });
             
             // Manejar diferentes tipos de respuesta del remote script
             if (data.status === 'ok' && 
@@ -159,16 +144,7 @@ class AbletonRemoteClient {
                 tracks = data;
               }
               
-              console.log(`JungleGrid: 🎵 ${tracks.length} tracks procesados exitosamente`);
-              
-              // Debug de los primeros tracks
-              if (tracks.length > 0) {
-                console.log('JungleGrid: 📊 Primer track:', {
-                  name: tracks[0].name,
-                  clipsCount: tracks[0].clips?.length || 0,
-                  firstClip: tracks[0].clips?.[0]
-                });
-              }
+
               
               resolve(tracks);
             } else if (data.status === 'error') {
@@ -196,11 +172,9 @@ class AbletonRemoteClient {
           { type: 'session_info' }
         ];
         
-        console.log('JungleGrid: 📤 Enviando solicitudes de tracks...');
         requests.forEach((request, index) => {
           setTimeout(() => {
             if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-              console.log(`JungleGrid: 📤 Solicitud ${index + 1}:`, request);
               this.ws.send(JSON.stringify(request));
             }
           }, index * 200); // Más tiempo entre solicitudes
@@ -230,7 +204,6 @@ class AbletonRemoteClient {
   }
 
   resetConnection(): void {
-    console.log('JungleGrid: 🔄 Reset manual de conexión solicitado');
     this.connectionAttempts = 0;
     this.disconnect();
     setTimeout(() => this.connect(), 1000);
@@ -277,8 +250,6 @@ class JungleGridPreset extends BasePreset {
   }
 
   init() {
-    console.log('JungleGrid: 🚀 Inicializando preset');
-    
     // Set camera position to view the grid
     if (this.camera instanceof THREE.PerspectiveCamera) {
       this.camera.position.set(0, 0, 10);
@@ -297,7 +268,6 @@ class JungleGridPreset extends BasePreset {
       this.updateConnectionStatus();
     }, 2000);
     
-    console.log('JungleGrid: ✅ Preset inicializado');
   }
 
   private createDebugText(): void {
@@ -435,7 +405,6 @@ class JungleGridPreset extends BasePreset {
         const currentStr = JSON.stringify(this.tracks);
         
         if (tracksStr !== currentStr) {
-          console.log(`JungleGrid: 🔄 Tracks actualizados: ${tracks.length} encontrados`);
           this.tracks = Array.isArray(tracks) ? tracks : [];
           this.createGrid();
           
@@ -466,12 +435,9 @@ class JungleGridPreset extends BasePreset {
     this.gridCells = [];
 
     if (this.tracks.length === 0) {
-      console.log('JungleGrid: 📋 Creando grid vacío (sin tracks)');
       this.createEmptyGrid();
       return;
     }
-
-    console.log(`JungleGrid: 🎛️ Creando grid con ${this.tracks.length} tracks`);
     
     const maxTracks = Math.min(this.tracks.length, 8);
     const maxClips = 8;
@@ -508,7 +474,6 @@ class JungleGridPreset extends BasePreset {
       }
     }
 
-    console.log(`JungleGrid: ✅ Grid creado: ${this.gridCells.length} celdas para ${maxTracks} tracks`);
   }
 
   private createEmptyGrid(): void {
@@ -580,12 +545,10 @@ class JungleGridPreset extends BasePreset {
   updateConfig(newConfig: any): void {
     // Actualizar configuración si es necesario
     if (newConfig.refreshMs !== undefined) {
-      console.log(`JungleGrid: ⚙️ Refresh rate actualizado a ${newConfig.refreshMs}ms`);
     }
   }
 
   dispose(): void {
-    console.log('JungleGrid: 🧹 Limpiando preset');
     
     if (this.statusUpdateInterval) {
       clearInterval(this.statusUpdateInterval);
@@ -607,7 +570,6 @@ class JungleGridPreset extends BasePreset {
     this.scene.remove(this.gridGroup);
     this.client.disconnect();
     
-    console.log('JungleGrid: ✅ Preset limpiado');
   }
 }
 

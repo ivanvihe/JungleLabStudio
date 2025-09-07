@@ -61,6 +61,14 @@ class GenerativeDubPreset extends BasePreset {
   public init(): void {
     this.currentConfig = JSON.parse(JSON.stringify(this.config.defaultConfig));
     const geometry = new THREE.PlaneGeometry(2, 2);
+
+    // Ensure the plane fills the view even after other presets modify the camera
+    if (this.camera instanceof THREE.PerspectiveCamera) {
+      this.camera.position.set(0, 0, 1);
+      this.camera.lookAt(0, 0, 0);
+      this.camera.updateProjectionMatrix();
+    }
+
     this.currentPattern = Math.floor(Math.random() * 10);
     this.nextPattern = this.currentPattern;
     
@@ -194,6 +202,7 @@ class GenerativeDubPreset extends BasePreset {
     this.mesh = new THREE.Mesh(geometry, material);
     this.scene.add(this.mesh);
     this.lastChange = 0;
+    this.clock.start();
   }
 
   private randomize(material: THREE.ShaderMaterial): void {
