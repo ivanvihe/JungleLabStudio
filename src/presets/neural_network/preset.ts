@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { BasePreset, PresetConfig } from '../../core/PresetLoader';
+import { applyVFX } from './vfx';
 
 export const config: PresetConfig = {
   name: 'Infinite Neural Journey',
@@ -252,6 +253,8 @@ export class InfiniteNeuralNetwork extends BasePreset {
 
     this.nodes.forEach(n => n.update(audioIntensity, time));
     this.connections.forEach(c => c.update(this.audioData.mid));
+
+    applyVFX(this.renderer.domElement, this.audioData);
   }
 
   updateConfig(newConfig: any): void {

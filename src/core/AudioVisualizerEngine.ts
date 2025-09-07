@@ -165,6 +165,10 @@ export class AudioVisualizerEngine {
     this.layerManager.clearAll();
   }
 
+  public triggerLayerVFX(layerId: string, effect: string): void {
+    this.layerManager.triggerVFX(layerId, effect);
+  }
+
   public updateBpm(bpm: number): void {
     this.currentBpm = bpm;
     this.layerManager.updateBpm(bpm);

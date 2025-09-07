@@ -191,6 +191,14 @@ export class LayerManager {
     }
   }
 
+  public triggerVFX(layerId: string, effect: string): void {
+    const layer = this.layers.get(layerId);
+    if (!layer) return;
+    const canvas = layer.renderer.domElement;
+    canvas.classList.add(`effect-${effect}`);
+    setTimeout(() => canvas.classList.remove(`effect-${effect}`), 300);
+  }
+
   private getLayerConfigPath(presetId: string, layerId: string): string {
     const loaded = this.presetLoader.getLoadedPresets().find(p => p.id === presetId);
     const folder = loaded?.folderPath ?? `${this.presetLoader.getBasePath()}/${presetId}`;

@@ -893,6 +893,10 @@ const App: React.FC = () => {
     }
   };
 
+  const handleTriggerVFX = (layerId: string, effect: string) => {
+    engineRef.current?.triggerLayerVFX(layerId, effect);
+  };
+
   const handleGenLabPresetsChange = async (presets: { name: string; config: any }[]) => {
     setGenLabPresets(presets);
     localStorage.setItem('genLabPresets', JSON.stringify(presets));
@@ -1268,6 +1272,7 @@ const App: React.FC = () => {
           onToggleLaunchpad={() => setLaunchpadRunning(r => !r)}
           launchpadText={launchpadText}
           onLaunchpadTextChange={setLaunchpadText}
+          onTriggerVFX={handleTriggerVFX}
         />
       </Suspense>
     </div>

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { BasePreset, PresetConfig } from '../../core/PresetLoader';
+import { applyVFX } from './vfx';
 
 export const config: PresetConfig = {
   name: 'Generative Dub',
@@ -279,6 +280,8 @@ class GenerativeDubPreset extends BasePreset {
         mat.uniforms.uBlend.value = 0;
       }
     }
+
+    applyVFX(this.renderer.domElement, this.audioData);
   }
 
   public updateConfig(newConfig: any): void {

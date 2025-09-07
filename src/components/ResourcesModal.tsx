@@ -7,6 +7,7 @@ import { setNestedValue } from '../utils/objectPath';
 import { GenLabPresetModal } from './GenLabPresetModal';
 import { FractalLabPresetModal } from './FractalLabPresetModal';
 import './ResourcesModal.css';
+import VFXControls from './VFXControls';
 
 interface ResourcesModalProps {
   isOpen: boolean;
@@ -31,11 +32,13 @@ interface ResourcesModalProps {
   onToggleLaunchpad?: () => void;
   launchpadText?: string;
   onLaunchpadTextChange?: (text: string) => void;
+  onTriggerVFX?: (layerId: string, effect: string) => void;
 }
 
 type NodeKind =
   | 'folder'
   | 'preset'
+  | 'vfx-preset'
   | 'custom-text'
   | 'empty-template'
   | 'genlab-folder'
@@ -77,7 +80,8 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
   launchpadRunning,
   onToggleLaunchpad,
   launchpadText,
-  onLaunchpadTextChange
+  onLaunchpadTextChange,
+  onTriggerVFX
 }) => {
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set([
@@ -87,7 +91,8 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
     'templates',
     'template-genlab',
     'template-fractallab',
-    'launchpad'
+    'launchpad',
+    'vfx'
   ]));
   const [sidebarWidth, setSidebarWidth] = useState(220);
   const [isResizing, setIsResizing] = useState(false);
@@ -369,6 +374,17 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
       ]
     },
     {
+      id: 'vfx',
+      label: 'VFX',
+      kind: 'folder',
+      children: presets.map(p => ({
+        id: `vfx-${p.id}`,
+        label: p.config.name,
+        kind: 'vfx-preset',
+        preset: p
+      }))
+    },
+    {
       id: 'templates',
       label: 'Templates',
       kind: 'folder',
@@ -491,6 +507,19 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
                 onChange={handleDefaultControlChange}
               />
             </div>
+          </div>
+        );
+      }
+      case 'vfx-preset': {
+        const preset = selectedNode.preset!;
+        const assigned = ['A', 'B', 'C'].filter(layer => layerAssignments[layer].has(preset.id));
+        return (
+          <div className="gallery-controls-panel">
+            <VFXControls
+              preset={preset}
+              assignedLayers={assigned}
+              onTrigger={onTriggerVFX || (()=>{})}
+            />
           </div>
         );
       }
