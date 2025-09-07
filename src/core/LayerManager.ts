@@ -198,9 +198,10 @@ export class LayerManager {
             return JSON.parse(await readTextFile(cfgPath));
           }
         } else if ((window as any).electronAPI) {
-          const fs = await import('fs');
-          if (fs.existsSync(cfgPath)) {
-            return JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+          const api = (window as any).electronAPI;
+          if (await api.exists(cfgPath)) {
+            const content = await api.readTextFile(cfgPath);
+            return JSON.parse(content);
           }
         }
       }
@@ -226,9 +227,9 @@ export class LayerManager {
           await createDir(dir, { recursive: true });
           await writeFile({ path: cfgPath, contents: JSON.stringify(cfg, null, 2) });
         } else if ((window as any).electronAPI) {
-          const fs = await import('fs');
-          await fs.promises.mkdir(dir, { recursive: true });
-          await fs.promises.writeFile(cfgPath, JSON.stringify(cfg, null, 2));
+          const api = (window as any).electronAPI;
+          await api.createDir(dir);
+          await api.writeTextFile(cfgPath, JSON.stringify(cfg, null, 2));
         }
       }
     } catch (err) {
