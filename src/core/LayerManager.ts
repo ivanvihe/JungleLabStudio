@@ -301,8 +301,10 @@ export class LayerManager {
   }
 
   public updateBpm(bpm: number): void {
-    this.layers.forEach(layer => {
-      layer.preset?.setBpm(bpm);
+    this.layers.forEach((layer, layerId) => {
+      if (!layer.preset) return;
+      const active = this.presetLoader.getActivePreset(`${layerId}-${layer.preset.id}`);
+      active?.setBpm(bpm);
     });
   }
 
