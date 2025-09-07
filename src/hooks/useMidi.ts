@@ -232,15 +232,6 @@ export function useMidi(options: MidiOptions) {
       const channel = (status & 0x0f) + 1;
       const messageType = status & 0xf0;
 
-      // Debug MIDI messages
-      console.log('MIDI Message:', {
-        status,
-        note,
-        velocity,
-        channel,
-        messageType,
-      });
-
       // Solo procesar LaunchPad toggle si es exactamente el canal y nota configurados
       if (
         channel === launchpadChannel &&
