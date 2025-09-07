@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LoadedPreset } from '../core/PresetLoader';
 import { AVAILABLE_EFFECTS } from '../utils/effects';
 import { usePresetGrid } from '../hooks/usePresetGrid';
+import { getPresetThumbnail } from '../utils/presetThumbnails';
 import './LayerGrid.css';
 
 
@@ -218,22 +219,6 @@ export const LayerGrid: React.FC<LayerGridProps> = ({
       timers.forEach(clearInterval);
     };
   }, [layers, layerPresets, bpm]);
-
-  const getPresetThumbnail = (preset: LoadedPreset): string => {
-    const thumbnails: Record<string, string> = {
-      'neural_network': '🧠',
-      'abstract-lines': '📈',
-      'abstract-lines-pro': '📊',
-      'abstract-shapes': '🔷',
-      'evolutive-particles': '✨',
-      'boom-wave': '💥',
-      'plasma-ray': '⚡',
-      'shot-text': '📝',
-      'text-glitch': '🔤',
-      'custom-glitch-text': '📝'
-    };
-    return thumbnails[preset.id] || thumbnails[preset.id.split('-')[0]] || '🎨';
-  };
 
   return (
     <div className="layer-grid">

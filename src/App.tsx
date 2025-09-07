@@ -1,13 +1,21 @@
 // App.tsx - Completo con todas las mejoras del presets gallery
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  Suspense,
+  lazy,
+} from 'react';
 import { AudioVisualizerEngine } from './core/AudioVisualizerEngine';
-import { LayerGrid } from './components/LayerGrid';
 import { StatusBar } from './components/StatusBar';
-import { PresetControls } from './components/PresetControls';
 import { TopBar } from './components/TopBar';
-import { ResourcesModal } from './components/ResourcesModal';
-import { GlobalSettingsModal } from './components/GlobalSettingsModal';
+// Lazy loaded heavy components
+const LayerGrid = lazy(() => import('./components/LayerGrid'));
+const PresetControls = lazy(() => import('./components/PresetControls'));
+const ResourcesModal = lazy(() => import('./components/ResourcesModal'));
+const GlobalSettingsModal = lazy(() => import('./components/GlobalSettingsModal'));
 import { LoadedPreset } from './core/PresetLoader';
 import { setNestedValue } from './utils/objectPath';
 import { AVAILABLE_EFFECTS } from './utils/effects';
@@ -963,9 +971,10 @@ const App: React.FC = () => {
 
       {/* Grid de capas */}
       <div className="layer-grid-container">
-        <LayerGrid
-          presets={availablePresets}
-          externalTrigger={midiTrigger}
+        <Suspense fallback={<div>Loading layers...</div>}>
+          <LayerGrid
+            presets={availablePresets}
+            externalTrigger={midiTrigger}
           onPresetActivate={(layerId, presetId, velocity) => {
             (async () => {
               if (engineRef.current) {
@@ -1037,11 +1046,12 @@ const App: React.FC = () => {
           clearAllSignal={clearSignal}
           layerChannels={layerChannels}
           layerEffects={layerEffects}
-          onLayerEffectChange={handleLayerEffectChange}
-          onLayerEffectToggle={handleLayerEffectToggle}
-          onOpenResources={() => setResourcesOpen(true)}
-          bpm={bpm}
-        />
+            onLayerEffectChange={handleLayerEffectChange}
+            onLayerEffectToggle={handleLayerEffectToggle}
+            onOpenResources={() => setResourcesOpen(true)}
+            bpm={bpm}
+          />
+        </Suspense>
       </div>
 
       {/* Seccion inferior con visuales y controles */}
@@ -1073,22 +1083,24 @@ const App: React.FC = () => {
               {isControlsOpen ? '✕' : '⚙️'}
             </button>
             {isControlsOpen && selectedPreset && (
-              <PresetControls
-                preset={selectedPreset}
-                config={layerPresetConfigs[selectedLayer!]?.[selectedPreset.id]}
-                onChange={(path, value) => {
-                  if (engineRef.current && selectedLayer && selectedPreset) {
-                    engineRef.current.updateLayerPresetConfig(selectedLayer, path, value);
-                    setLayerPresetConfigs(prev => {
-                      const layerMap = { ...(prev[selectedLayer] || {}) };
-                      const cfg = { ...(layerMap[selectedPreset.id] || {}) };
-                      setNestedValue(cfg, path, value);
-                      layerMap[selectedPreset.id] = cfg;
-                      return { ...prev, [selectedLayer]: layerMap };
-                    });
-                  }
-                }}
-              />
+              <Suspense fallback={<div>Loading controls...</div>}>
+                <PresetControls
+                  preset={selectedPreset}
+                  config={layerPresetConfigs[selectedLayer!]?.[selectedPreset.id]}
+                  onChange={(path, value) => {
+                    if (engineRef.current && selectedLayer && selectedPreset) {
+                      engineRef.current.updateLayerPresetConfig(selectedLayer, path, value);
+                      setLayerPresetConfigs(prev => {
+                        const layerMap = { ...(prev[selectedLayer] || {}) };
+                        const cfg = { ...(layerMap[selectedPreset.id] || {}) };
+                        setNestedValue(cfg, path, value);
+                        layerMap[selectedPreset.id] = cfg;
+                        return { ...prev, [selectedLayer]: layerMap };
+                      });
+                    }
+                  }}
+                />
+              </Suspense>
             )}
             {isControlsOpen && !selectedPreset && (
               <div className="no-preset-selected">Selecciona un preset</div>
@@ -1106,39 +1118,40 @@ const App: React.FC = () => {
       />
 
       {/* Modal de configuracion global */}
-      <GlobalSettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        audioDevices={audioDevices.map(d => ({ id: d.deviceId, label: d.label || d.deviceId }))}
-        midiDevices={midiDevices.map((d: any) => ({ id: d.id, label: d.name || d.id }))}
-        launchpadDevices={launchpadOutputs.map((d: any) => ({ id: d.id, label: d.name || d.id }))}
-        selectedAudioId={audioDeviceId}
-        selectedMidiId={midiDeviceId}
-        selectedLaunchpadId={launchpadId}
-        onSelectAudio={(id) => {
-          setAudioDeviceId(id || null);
-          if (id) {
-            localStorage.setItem('selectedAudioDevice', id);
-          } else {
-            localStorage.removeItem('selectedAudioDevice');
-          }
-        }}
-        onSelectMidi={(id) => {
-          setMidiDeviceId(id || null);
-          if (id) {
-            localStorage.setItem('selectedMidiDevice', id);
-          } else {
-            localStorage.removeItem('selectedMidiDevice');
-          }
-        }}
-        onSelectLaunchpad={(id) => {
-          setLaunchpadId(id);
-          if (id) {
-            localStorage.setItem('launchpadId', id);
-          } else {
-            localStorage.removeItem('launchpadId');
-          }
-        }}
+      <Suspense fallback={null}>
+        <GlobalSettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          audioDevices={audioDevices.map(d => ({ id: d.deviceId, label: d.label || d.deviceId }))}
+          midiDevices={midiDevices.map((d: any) => ({ id: d.id, label: d.name || d.id }))}
+          launchpadDevices={launchpadOutputs.map((d: any) => ({ id: d.id, label: d.name || d.id }))}
+          selectedAudioId={audioDeviceId}
+          selectedMidiId={midiDeviceId}
+          selectedLaunchpadId={launchpadId}
+          onSelectAudio={(id) => {
+            setAudioDeviceId(id || null);
+            if (id) {
+              localStorage.setItem('selectedAudioDevice', id);
+            } else {
+              localStorage.removeItem('selectedAudioDevice');
+            }
+          }}
+          onSelectMidi={(id) => {
+            setMidiDeviceId(id || null);
+            if (id) {
+              localStorage.setItem('selectedMidiDevice', id);
+            } else {
+              localStorage.removeItem('selectedMidiDevice');
+            }
+          }}
+          onSelectLaunchpad={(id) => {
+            setLaunchpadId(id);
+            if (id) {
+              localStorage.setItem('launchpadId', id);
+            } else {
+              localStorage.removeItem('launchpadId');
+            }
+          }}
         audioGain={audioGain}
         onAudioGainChange={setAudioGain}
         midiClockSettings={midiClockSettings}
@@ -1203,34 +1216,37 @@ const App: React.FC = () => {
         canvasBackground={canvasBackground}
         onCanvasBackgroundChange={setCanvasBackground}
         visualsPath={visualsPath}
-        onVisualsPathChange={setVisualsPath}
-      />
+          onVisualsPathChange={setVisualsPath}
+        />
+      </Suspense>
 
       {/* Modal de galeria de presets */}
-      <ResourcesModal
-        isOpen={isResourcesOpen}
-        onClose={() => setResourcesOpen(false)}
-        presets={availablePresets}
-        onCustomTextTemplateChange={handleCustomTextTemplateChange}
-        customTextTemplate={{ count: glitchTextPads, texts: customTextContents }}
-        onEmptyTemplateChange={handleEmptyTemplateChange}
-        emptyTemplateCount={emptyPads}
-        genLabPresets={genLabPresets}
-        genLabBasePreset={genLabBasePreset}
-        onGenLabPresetsChange={handleGenLabPresetsChange}
-        fractalLabPresets={fractalLabPresets}
-        fractalLabBasePreset={fractalLabBasePreset}
-        onFractalLabPresetsChange={handleFractalLabPresetsChange}
-        onAddPresetToLayer={handleAddPresetToLayer}
-        onRemovePresetFromLayer={handleRemovePresetFromLayer}
-        launchpadPresets={LAUNCHPAD_PRESETS}
-        launchpadPreset={launchpadPreset}
-        onLaunchpadPresetChange={setLaunchpadPreset}
-        launchpadRunning={launchpadRunning}
-        onToggleLaunchpad={() => setLaunchpadRunning(r => !r)}
-        launchpadText={launchpadText}
-        onLaunchpadTextChange={setLaunchpadText}
-      />
+      <Suspense fallback={null}>
+        <ResourcesModal
+          isOpen={isResourcesOpen}
+          onClose={() => setResourcesOpen(false)}
+          presets={availablePresets}
+          onCustomTextTemplateChange={handleCustomTextTemplateChange}
+          customTextTemplate={{ count: glitchTextPads, texts: customTextContents }}
+          onEmptyTemplateChange={handleEmptyTemplateChange}
+          emptyTemplateCount={emptyPads}
+          genLabPresets={genLabPresets}
+          genLabBasePreset={genLabBasePreset}
+          onGenLabPresetsChange={handleGenLabPresetsChange}
+          fractalLabPresets={fractalLabPresets}
+          fractalLabBasePreset={fractalLabBasePreset}
+          onFractalLabPresetsChange={handleFractalLabPresetsChange}
+          onAddPresetToLayer={handleAddPresetToLayer}
+          onRemovePresetFromLayer={handleRemovePresetFromLayer}
+          launchpadPresets={LAUNCHPAD_PRESETS}
+          launchpadPreset={launchpadPreset}
+          onLaunchpadPresetChange={setLaunchpadPreset}
+          launchpadRunning={launchpadRunning}
+          onToggleLaunchpad={() => setLaunchpadRunning(r => !r)}
+          launchpadText={launchpadText}
+          onLaunchpadTextChange={setLaunchpadText}
+        />
+      </Suspense>
     </div>
   );
 };
