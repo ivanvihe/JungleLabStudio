@@ -150,6 +150,29 @@ const App: React.FC = () => {
     setLaunchpadText,
   } = useLaunchpad(audioData, canvasRef);
 
+  const handleLaunchpadToggle = useCallback(() => {
+    console.log('🎯 LaunchPad toggle requested');
+
+    // Validar que hay un dispositivo disponible
+    if (!launchpadOutput) {
+      console.warn('⚠️ No LaunchPad device available for toggle');
+      return;
+    }
+
+    // Validar que el dispositivo está conectado
+    if (launchpadOutput.state !== 'connected') {
+      console.warn('⚠️ LaunchPad device not connected:', launchpadOutput.state);
+      return;
+    }
+
+    console.log('✅ LaunchPad toggle válido, ejecutando...');
+    setLaunchpadRunning(prev => {
+      const newState = !prev;
+      console.log(`🔄 LaunchPad state: ${prev} → ${newState}`);
+      return newState;
+    });
+  }, [launchpadOutput, setLaunchpadRunning]);
+
   const {
     midiDevices,
     midiDeviceId,
@@ -175,7 +198,7 @@ const App: React.FC = () => {
     effectMidiNotes,
     launchpadChannel,
     launchpadNote,
-    onLaunchpadToggle: () => setLaunchpadRunning(prev => !prev),
+    onLaunchpadToggle: handleLaunchpadToggle,
     engineRef,
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -963,9 +986,10 @@ const App: React.FC = () => {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenResources={() => setResourcesOpen(true)}
         launchpadAvailable={launchpadAvailable}
+        launchpadOutput={launchpadOutput}
         launchpadRunning={launchpadRunning}
         launchpadPreset={launchpadPreset}
-        onToggleLaunchpad={() => setLaunchpadRunning(r => !r)}
+        onToggleLaunchpad={handleLaunchpadToggle}
         launchpadText={launchpadText}
         onLaunchpadTextChange={setLaunchpadText}
         onLaunchpadPresetChange={setLaunchpadPreset}
