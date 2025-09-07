@@ -4,11 +4,21 @@ import { applyVFX } from './vfx';
 
 export const config: PresetConfig = {
   name: 'Generative Dub',
-  description: 'Generative fractals and particles that evolve forever',
+  description: 'Generative fractals, mandelbrots and abstract puzzles that evolve forever',
   author: 'AudioVisualizer',
-  version: '1.0.0',
+  version: '1.1.0',
   category: 'generative',
-  tags: ['auto', 'infinite', 'dub', 'abstract', 'audio-reactive', 'fractal', 'particles'],
+  tags: [
+    'auto',
+    'infinite',
+    'dub',
+    'abstract',
+    'audio-reactive',
+    'fractal',
+    'particles',
+    'mandelbrot',
+    'puzzle'
+  ],
   thumbnail: 'generative_dub_thumb.png',
   defaultConfig: {
     opacity: 1.0
@@ -38,7 +48,7 @@ class GenerativeDubPreset extends BasePreset {
   private mesh!: THREE.Mesh;
   private currentConfig: any;
   private lastChange = 0;
-  private changeInterval = 30;
+  private changeInterval = 60 + Math.random() * 60;
 
   private audioLow = 0;
   private audioMid = 0;
@@ -50,6 +60,9 @@ class GenerativeDubPreset extends BasePreset {
   private nextPattern = 0;
   private transitionStart = 0;
   private transitionDuration = 8;
+  private timeOffset = Math.random() * 1000;
+
+  private static readonly PATTERN_COUNT = 15;
 
   private static readonly PALETTES = [
     ['#0e0e0e', '#3a506b', '#5bc0be'],
@@ -74,7 +87,9 @@ class GenerativeDubPreset extends BasePreset {
       this.camera.updateProjectionMatrix();
     }
 
-    this.currentPattern = Math.floor(Math.random() * 10);
+    this.currentPattern = Math.floor(
+      Math.random() * GenerativeDubPreset.PATTERN_COUNT
+    );
     this.nextPattern = this.currentPattern;
     
     const material = new THREE.ShaderMaterial({
@@ -183,10 +198,53 @@ class GenerativeDubPreset extends BasePreset {
             vec2 p = uv*3.0;
             p += vec2(fbm(p+uTime), fbm(p-uTime));
             return fbm(p);
-          } else {
+          } else if(id < 9.5){
             vec2 p = uv*5.0;
             float n = fbm(p+uTime);
             return step(0.85, n);
+          } else if(id < 10.5){
+            vec2 c = (uv - 0.5) * 3.0;
+            vec2 z = vec2(0.0);
+            float m = 0.0;
+            for(int i=0;i<32;i++){
+              z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
+              if(dot(z,z) > 4.0) break;
+              m += 1.0;
+            }
+            return m/32.0;
+          } else if(id < 11.5){
+            vec2 p = uv*4.0;
+            vec2 ip = floor(p);
+            vec2 fp = fract(p);
+            float j = step(0.5, sin(ip.x + ip.y));
+            float edge = smoothstep(0.3,0.32,max(abs(fp.x-0.5),abs(fp.y-0.5)));
+            return j*edge;
+          } else if(id < 12.5){
+            vec2 p = uv*6.0;
+            vec2 ip = floor(p);
+            vec2 fp = fract(p);
+            float checker = mod(ip.x + ip.y, 2.0);
+            float d = checker > 0.5 ? fp.x : 1.0 - fp.x;
+            return step(fp.y, d);
+          } else if(id < 13.5){
+            vec2 p = uv*5.0;
+            vec2 i = floor(p);
+            vec2 f = fract(p);
+            float res = 8.0;
+            for(int y=-1;y<=1;y++){
+              for(int x=-1;x<=1;x++){
+                vec2 g = vec2(float(x), float(y));
+                vec2 o = vec2(hash(i+g), hash(i+g+vec2(1.23,4.56)));
+                vec2 r = g + o - f;
+                res = min(res, dot(r,r));
+              }
+            }
+            return sqrt(res);
+          } else {
+            vec2 p = uv - 0.5;
+            float r = length(p);
+            float a = atan(p.y,p.x);
+            return fract(r*3.0 + sin(a*8.0 + uTime));
           }
         }
 
@@ -211,8 +269,8 @@ class GenerativeDubPreset extends BasePreset {
       this.renderer.domElement.clientHeight;
     this.mesh.scale.set(aspect, 1, 1);
     this.scene.add(this.mesh);
-    this.lastChange = 0;
     this.clock.start();
+    this.lastChange = this.timeOffset;
   }
 
   private randomize(material: THREE.ShaderMaterial): void {
@@ -225,18 +283,18 @@ class GenerativeDubPreset extends BasePreset {
     this.currentPattern = this.nextPattern;
     let newPattern = this.currentPattern;
     while (newPattern === this.currentPattern) {
-      newPattern = Math.floor(Math.random() * 10);
+      newPattern = Math.floor(Math.random() * GenerativeDubPreset.PATTERN_COUNT);
     }
     this.nextPattern = newPattern;
-    this.transitionStart = this.clock.getElapsedTime();
-    this.transitionDuration = 5 + Math.random() * 5;
+    this.transitionStart = this.clock.getElapsedTime() + this.timeOffset;
+    this.transitionDuration = 5 + Math.random() * 10;
     material.uniforms.uPatternA.value = this.currentPattern;
     material.uniforms.uPatternB.value = this.nextPattern;
     material.uniforms.uBlend.value = 0;
   }
 
   public update(): void {
-    const t = this.clock.getElapsedTime();
+    const t = this.clock.getElapsedTime() + this.timeOffset;
     const mat = this.mesh.material as THREE.ShaderMaterial;
     mat.uniforms.uTime.value = t;
 
@@ -266,7 +324,7 @@ class GenerativeDubPreset extends BasePreset {
     if (t - this.lastChange > this.changeInterval) {
       this.randomize(mat);
       this.lastChange = t;
-      this.changeInterval = 30 + Math.random() * 30;
+      this.changeInterval = 60 + Math.random() * 60;
     }
 
     if (this.currentPattern !== this.nextPattern) {
