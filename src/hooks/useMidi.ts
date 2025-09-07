@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { AudioVisualizerEngine } from '../core/AudioVisualizerEngine';
 import { LoadedPreset } from '../core/PresetLoader';
+import { isLaunchpadDevice } from '../utils/launchpad';
 
 interface MidiTrigger {
   layerId: string;
@@ -328,7 +329,9 @@ export function useMidi(options: MidiOptions) {
       (navigator as any)
         .requestMIDIAccess({ sysex: true })
         .then((access: any) => {
-          const inputs = Array.from(access.inputs.values());
+          const inputs = Array.from(access.inputs.values()).filter(
+            (i: any) => !isLaunchpadDevice(i)
+          );
           setMidiDevices(inputs);
 
           inputs.forEach((input: any) => {
@@ -340,7 +343,9 @@ export function useMidi(options: MidiOptions) {
           });
 
           access.onstatechange = () => {
-            const ins = Array.from(access.inputs.values());
+            const ins = Array.from(access.inputs.values()).filter(
+              (i: any) => !isLaunchpadDevice(i)
+            );
             setMidiDevices(ins);
             ins.forEach((input: any) => {
               if (!midiDeviceId || input.id === midiDeviceId) {
