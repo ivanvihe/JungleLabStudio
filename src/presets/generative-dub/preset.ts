@@ -70,7 +70,13 @@ class GenerativeDubPreset extends BasePreset {
       uniforms: {
         uTime: { value: 0 },
         uOpacity: { value: this.opacity },
-        uParams: { value: new THREE.Vector3(Math.random() * 3 + 1, Math.random() * 5 + 1, Math.random() * 0.2 + 0.05) },
+        uParams: {
+          value: new THREE.Vector3(
+            Math.random() * 3 + 1,
+            Math.random() * 5 + 1,
+            Math.random() * 0.2 + 0.05
+          )
+        },
         uPatternA: { value: this.currentPattern },
         uPatternB: { value: this.nextPattern },
         uBlend: { value: 0 },
@@ -82,14 +88,15 @@ class GenerativeDubPreset extends BasePreset {
         uColor3: { value: new THREE.Color('#5bc0be') }
       },
       vertexShader: `
-        varying vec2 vUv;
-        void main(){
+        out vec2 vUv;
+        void main() {
           vUv = uv;
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
       `,
       fragmentShader: `
-        varying vec2 vUv;
+        precision highp float;
+        in vec2 vUv;
         uniform float uTime;
         uniform float uOpacity;
         uniform vec3 uParams;
@@ -102,6 +109,7 @@ class GenerativeDubPreset extends BasePreset {
         uniform vec3 uColor1;
         uniform vec3 uColor2;
         uniform vec3 uColor3;
+        out vec4 fragColor;
 
         float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
         float noise(vec2 p){
@@ -174,9 +182,10 @@ class GenerativeDubPreset extends BasePreset {
           float pattern = mix(pA, pB, uBlend);
           vec3 col = mix(uColor1, uColor2, pattern);
           col = mix(col, uColor3, pattern * pattern);
-          gl_FragColor = vec4(col, uOpacity);
+          fragColor = vec4(col, uOpacity);
         }
-      `
+      `,
+      glslVersion: THREE.GLSL3
     });
     // Inicializar con parámetros y paleta aleatorios desde el comienzo
     this.randomize(material);
