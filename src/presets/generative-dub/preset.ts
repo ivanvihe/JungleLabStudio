@@ -63,6 +63,7 @@ class GenerativeDubPreset extends BasePreset {
     const geometry = new THREE.PlaneGeometry(2, 2);
     this.currentPattern = Math.floor(Math.random() * 10);
     this.nextPattern = this.currentPattern;
+    
     const material = new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: false,
@@ -112,6 +113,7 @@ class GenerativeDubPreset extends BasePreset {
         out vec4 fragColor;
 
         float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
+        
         float noise(vec2 p){
           vec2 i = floor(p);
           vec2 f = fract(p);
@@ -122,6 +124,7 @@ class GenerativeDubPreset extends BasePreset {
           vec2 u = f * f * (3.0 - 2.0 * f);
           return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
         }
+        
         float fbm(vec2 p){
           float v = 0.0;
           float a = 0.5;
@@ -187,6 +190,7 @@ class GenerativeDubPreset extends BasePreset {
       `,
       glslVersion: THREE.GLSL3
     });
+    
     // Inicializar con parámetros y paleta aleatorios desde el comienzo
     this.randomize(material);
     this.mesh = new THREE.Mesh(geometry, material);
@@ -224,11 +228,13 @@ class GenerativeDubPreset extends BasePreset {
       Math.min(this.audioData.low * this.audioSensitivity, 1),
       this.audioSmoothing
     );
+
     this.audioMid = THREE.MathUtils.lerp(
       this.audioMid,
       Math.min(this.audioData.mid * this.audioSensitivity, 1),
       this.audioSmoothing
     );
+    
     this.audioHigh = THREE.MathUtils.lerp(
       this.audioHigh,
       Math.min(this.audioData.high * this.audioSensitivity, 1),
