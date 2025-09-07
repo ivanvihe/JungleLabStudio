@@ -11,9 +11,9 @@ const COLOR_PALETTE = [
 
 export const config: PresetConfig = {
   name: 'ANALYSIS',
-  description: '3D audio spectrum analyzer with smooth pastel particle transitions, starfield and pulsating frequency rings.',
+  description: '3D audio spectrum analyzer with smooth pastel particle transitions, starfield, pulsating rings and extended dB grid.',
   author: 'AudioVisualizer',
-  version: '2.1.0',
+  version: '2.3.0',
   category: 'analysis',
   tags: ['spectrum', 'analysis', 'particles', 'grid', 'nature'],
   thumbnail: 'analysis_thumb.png',
@@ -136,6 +136,8 @@ class AnalysisSpectrum extends BasePreset {
       band6: { particles: [], color: this.currentConfig.colors.band6, centerX: 3.2, targetCount: 0, currentCount: 0, audioLevel: 0, smoothedLevel: 0 }
     };
 
+    this.createFrequencyRings();
+
     // Crear campo de estrellas para un fondo mas espectacular
     const starCount = 500;
     const starGeometry = new THREE.BufferGeometry();
@@ -165,7 +167,8 @@ class AnalysisSpectrum extends BasePreset {
   }
 
   private createDbGrid(): void {
-    this.gridBack = new THREE.GridHelper(8, 16, 0x663333, 0x331111);
+    // Finer grid to show 5 dB increments from -60dB to +5dB
+    this.gridBack = new THREE.GridHelper(8, 32, 0x663333, 0x331111);
     this.gridBack.rotation.x = Math.PI / 2;
     this.gridBack.position.set(0, 2, -6);
     this.gridBack.material.opacity = 0.5;
@@ -224,10 +227,7 @@ class AnalysisSpectrum extends BasePreset {
   private createDbLabels(): void {
     this.dbLabels = new THREE.Group();
 
-    const dbLevels = ['-60dB', '-40dB', '-20dB', '0dB'];
-    const yPositions = [0.5, 1.5, 2.5, 3.5];
-
-    dbLevels.forEach((db, i) => {
+    for (let db = -60; db <= 5; db += 5) {
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d')!;
       canvas.width = 64;
@@ -239,7 +239,8 @@ class AnalysisSpectrum extends BasePreset {
       context.fillStyle = '#D9B9A9';
       context.font = 'bold 14px Arial';
       context.textAlign = 'center';
-      context.fillText(db, 32, 20);
+      const label = db > 0 ? `+${db}dB` : `${db}dB`;
+      context.fillText(label, 32, 20);
 
       const texture = new THREE.CanvasTexture(canvas);
       const material = new THREE.SpriteMaterial({
@@ -248,13 +249,31 @@ class AnalysisSpectrum extends BasePreset {
         opacity: 0.9
       });
       const sprite = new THREE.Sprite(material);
-      sprite.position.set(-4.5, yPositions[i], -5.8);
+      // Map -60..+5 dB to y positions 0.5..3.75 (20dB per unit)
+      const y = 0.5 + (db + 60) / 20;
+      sprite.position.set(-4.5, y, -5.8);
       sprite.scale.set(0.8, 0.2, 1);
 
       this.dbLabels!.add(sprite);
-    });
+    }
 
     this.scene.add(this.dbLabels);
+  }
+
+  private createFrequencyRings(): void {
+    const radii = [0.8, 1.2, 1.6, 2.0, 2.4, 2.8];
+    (['band1', 'band2', 'band3', 'band4', 'band5', 'band6'] as BandName[]).forEach((band, i) => {
+      const geometry = new THREE.TorusGeometry(radii[i], 0.05, 16, 64);
+      const material = new THREE.MeshBasicMaterial({
+        color: this.currentConfig.colors[band],
+        transparent: true,
+        opacity: 0.25
+      });
+      const ring = new THREE.Mesh(geometry, material);
+      ring.rotation.x = Math.PI / 2;
+      this.group.add(ring);
+      this.rings[band] = ring;
+    });
   }
 
   private createParticle(colorHex: string, centerX: number): Particle {
@@ -395,9 +414,10 @@ class AnalysisSpectrum extends BasePreset {
           const flightTime = time * particle.speed + particle.offset;
           const audioInfluence = range.smoothedLevel * 1.5;
           const jitter = particle.radius + audioInfluence * 0.5;
-          const x = particle.basePosition.x + Math.sin(flightTime) * jitter;
-          const y = particle.basePosition.y + Math.cos(flightTime * 1.5) * jitter * 0.5 + audioInfluence * 0.3;
-          const z = particle.basePosition.z + Math.cos(flightTime * 0.7) * jitter;
+          const swirl = audioInfluence * 2;
+          const x = particle.basePosition.x + Math.sin(flightTime + swirl) * jitter;
+          const y = particle.basePosition.y + Math.cos(flightTime * 1.5 + swirl) * jitter * 0.5 + audioInfluence * 0.3;
+          const z = particle.basePosition.z + Math.cos(flightTime * 0.7 + swirl) * jitter;
 
           particle.mesh.position.set(x, y, z);
 
@@ -411,6 +431,7 @@ class AnalysisSpectrum extends BasePreset {
       if (ring) {
         const scale = 1 + range.smoothedLevel * 5;
         ring.scale.setScalar(scale);
+        ring.rotation.z += deltaTime * (0.2 + range.smoothedLevel * 1.5);
         (ring.material as THREE.MeshBasicMaterial).color.set(range.color);
         (ring.material as THREE.MeshBasicMaterial).opacity = 0.2 + range.audioLevel * 0.8;
       }
