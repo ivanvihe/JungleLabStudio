@@ -42,6 +42,13 @@ export class Compositor {
         uniform float globalOpacity;
         varying vec2 vUv;
 
+        vec4 blend(vec4 top, vec4 bottom) {
+          return vec4(
+            top.rgb * top.a + bottom.rgb * bottom.a * (1.0 - top.a),
+            top.a + bottom.a * (1.0 - top.a)
+          );
+        }
+
         void main() {
           vec4 colorC = texture2D(layerC, vUv);
           vec4 colorB = texture2D(layerB, vUv);
@@ -51,12 +58,9 @@ export class Compositor {
           colorB.a *= opacityB;
           colorA.a *= opacityA;
 
-          vec4 result = vec4(0.0, 0.0, 0.0, 0.0);
-          result = mix(result, colorC, colorC.a);
-          result.rgb = mix(result.rgb, colorB.rgb, colorB.a);
-          result.a = max(result.a, colorB.a);
-          result.rgb = mix(result.rgb, colorA.rgb, colorA.a);
-          result.a = max(result.a, colorA.a);
+          vec4 result = colorC;
+          result = blend(colorB, result);
+          result = blend(colorA, result);
           result.a *= globalOpacity;
           gl_FragColor = result;
         }
