@@ -121,7 +121,9 @@
     "effects": [
       {"name": "flash", "label": "Flash"},
       {"name": "glitch", "label": "Glitch"},
-      {"name": "blur", "label": "Blur"}
+      {"name": "blur", "label": "Blur"},
+      {"name": "distortion", "label": "Distortion"},
+      {"name": "scanlines", "label": "Scanlines"}
     ]
   },
   "audioMapping": {

@@ -49,7 +49,12 @@ fn fs_main(@builtin(position) frag_coord: vec4<f32>) -> @location(0) vec4<f32> {
     // Resplandor ambiental basado en audio
     if (audio_avg > 0.05) {
         let glow_intensity = uniforms.audio_high * 0.1;
-        let glow_color = vec3<f32>(0.2, 0.4, 0.8) * glow_intensity * vignette;
+        let hue = uniforms.time + uniforms.audio_mid * 5.0;
+        let glow_color = vec3<f32>(
+            0.5 + 0.5 * sin(hue),
+            0.5 + 0.5 * sin(hue + 2.094),
+            0.5 + 0.5 * sin(hue + 4.188)
+        ) * glow_intensity * vignette;
         color += glow_color;
         alpha = max(alpha, glow_intensity * 0.2);
     }
