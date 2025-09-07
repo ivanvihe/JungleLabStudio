@@ -92,7 +92,7 @@ interface GlobalSettingsModalProps {
   onVisualsPathChange: (value: string) => void;
 }
 
-export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
+const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   isOpen,
   onClose,
   audioDevices,
@@ -287,4 +287,6 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
     </div>
   );
 };
+
+export default GlobalSettingsModal;
 

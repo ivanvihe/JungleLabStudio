@@ -35,7 +35,7 @@ interface PresetControlsProps {
   isReadOnly?: boolean;
 }
 
-export const PresetControls: React.FC<PresetControlsProps> = ({
+const PresetControls: React.FC<PresetControlsProps> = ({
   preset,
   config,
   onChange,
@@ -122,3 +122,5 @@ export const PresetControls: React.FC<PresetControlsProps> = ({
     </div>
   );
 };
+
+export default PresetControls;
