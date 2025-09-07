@@ -118,6 +118,14 @@ const App: React.FC = () => {
     };
   });
 
+  const [layerVFX, setLayerVFX] = useState<Record<string, Record<string, string[]>>>(() => {
+    try {
+      const stored = localStorage.getItem('layerVFX');
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return { A: {}, B: {}, C: {} };
+  });
+
   const [isFullscreenMode, setIsFullscreenMode] = useState(
     () => new URLSearchParams(window.location.search).get('fullscreen') === 'true'
   );
@@ -331,6 +339,14 @@ const App: React.FC = () => {
       console.warn('Failed to persist layer effects:', e);
     }
   }, [layerEffects]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('layerVFX', JSON.stringify(layerVFX));
+    } catch (e) {
+      console.warn('Failed to persist layer VFX:', e);
+    }
+  }, [layerVFX]);
 
   const activeEffectClasses = Object.entries(layerEffects)
     .filter(([, cfg]) => cfg.active && cfg.effect !== 'none')
@@ -897,8 +913,23 @@ const App: React.FC = () => {
     engineRef.current?.triggerLayerVFX(layerId, effect);
   };
 
-  const handleSetVFX = (layerId: string, effect: string, enabled: boolean) => {
+  const handleSetVFX = (
+    layerId: string,
+    presetId: string,
+    effect: string,
+    enabled: boolean
+  ) => {
     engineRef.current?.setLayerVFX(layerId, effect, enabled);
+    setLayerVFX(prev => {
+      const layerMap = { ...(prev[layerId] || {}) };
+      const effects = new Set(layerMap[presetId] || []);
+      if (enabled) {
+        effects.add(effect);
+      } else {
+        effects.delete(effect);
+      }
+      return { ...prev, [layerId]: { ...layerMap, [presetId]: Array.from(effects) } };
+    });
   };
 
   const handleGenLabPresetsChange = async (presets: { name: string; config: any }[]) => {
@@ -1011,6 +1042,11 @@ const App: React.FC = () => {
               if (engineRef.current) {
                 await engineRef.current.activateLayerPreset(layerId, presetId);
                 setActiveLayers(prev => ({ ...prev, [layerId]: presetId }));
+
+                const savedVfx = layerVFX[layerId]?.[presetId] || [];
+                savedVfx.forEach(effect =>
+                  engineRef.current?.setLayerVFX(layerId, effect, true)
+                );
 
                 const preset = availablePresets.find(p => p.id === presetId);
                 if (preset) {
@@ -1278,6 +1314,7 @@ const App: React.FC = () => {
           onLaunchpadTextChange={setLaunchpadText}
           onTriggerVFX={handleTriggerVFX}
           onSetVFX={handleSetVFX}
+          layerVFX={layerVFX}
         />
       </Suspense>
     </div>

@@ -122,6 +122,13 @@ export class LayerManager {
         layer.scene.clear();
       }
 
+      const canvas = layer.renderer.domElement;
+      Array.from(canvas.classList).forEach(cls => {
+        if (cls.startsWith('vfx-') || cls.startsWith('effect-')) {
+          canvas.classList.remove(cls);
+        }
+      });
+
       const loadedPreset = this.presetLoader.getLoadedPresets().find(p => p.id === presetId);
       if (!loadedPreset) {
         console.error(`Loaded preset ${presetId} no encontrado`);

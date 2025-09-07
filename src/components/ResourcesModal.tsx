@@ -33,7 +33,13 @@ interface ResourcesModalProps {
   launchpadText?: string;
   onLaunchpadTextChange?: (text: string) => void;
   onTriggerVFX?: (layerId: string, effect: string) => void;
-  onSetVFX?: (layerId: string, effect: string, enabled: boolean) => void;
+  onSetVFX?: (
+    layerId: string,
+    presetId: string,
+    effect: string,
+    enabled: boolean
+  ) => void;
+  layerVFX?: Record<string, Record<string, string[]>>;
 }
 
 type NodeKind =
@@ -83,7 +89,8 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
   launchpadText,
   onLaunchpadTextChange,
   onTriggerVFX,
-  onSetVFX
+  onSetVFX,
+  layerVFX
 }) => {
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set([
@@ -484,6 +491,9 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
     switch (selectedNode.kind) {
       case 'preset': {
         const preset = selectedNode.preset!;
+        const assigned = ['A', 'B', 'C'].filter(layer =>
+          layerAssignments[layer].has(preset.id)
+        );
         return (
           <div className="gallery-controls-panel">
             <div className="controls-header">
@@ -509,18 +519,33 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
                 onChange={handleDefaultControlChange}
               />
             </div>
+            <VFXControls
+              preset={preset}
+              assignedLayers={assigned}
+              activeEffects={assigned.reduce((acc, layer) => {
+                acc[layer] = layerVFX?.[layer]?.[preset.id] || [];
+                return acc;
+              }, {} as Record<string, string[]>)}
+              onToggle={onSetVFX || (() => {})}
+            />
           </div>
         );
       }
       case 'vfx-preset': {
         const preset = selectedNode.preset!;
-        const assigned = ['A', 'B', 'C'].filter(layer => layerAssignments[layer].has(preset.id));
+        const assigned = ['A', 'B', 'C'].filter(layer =>
+          layerAssignments[layer].has(preset.id)
+        );
         return (
           <div className="gallery-controls-panel">
             <VFXControls
               preset={preset}
               assignedLayers={assigned}
-              onToggle={onSetVFX || (()=>{})}
+              activeEffects={assigned.reduce((acc, layer) => {
+                acc[layer] = layerVFX?.[layer]?.[preset.id] || [];
+                return acc;
+              }, {} as Record<string, string[]>)}
+              onToggle={onSetVFX || (() => {})}
             />
           </div>
         );
