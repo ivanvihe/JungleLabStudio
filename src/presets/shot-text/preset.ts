@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { BasePreset, PresetConfig } from '../../core/PresetLoader';
+import { applyVFX } from './vfx';
 
 // Config embebido para ROBOTICA
 export const config: PresetConfig = {
@@ -465,6 +466,8 @@ class RoboticaTextPreset extends BasePreset {
     const scale = this.currentConfig.text.scale * (1 + audioIntensity * 0.1);
     this.textGroup.scale.setScalar(scale);
     this.glowGroup.scale.setScalar(scale);
+
+    applyVFX(this.renderer.domElement, this.audioData);
   }
 
   public updateConfig(newConfig: any): void {

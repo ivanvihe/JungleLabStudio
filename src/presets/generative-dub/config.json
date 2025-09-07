@@ -10,6 +10,13 @@
     "opacity": 1.0
   },
   "controls": [],
+  "vfx": {
+    "effects": [
+      {"name": "flash", "label": "Flash"},
+      {"name": "glitch", "label": "Glitch"},
+      {"name": "noise", "label": "Noise"}
+    ]
+  },
   "audioMapping": {
     "low": { "description": "Influences color warmth", "frequency": "20-250 Hz", "effect": "Color shift" },
     "mid": { "description": "Changes movement speed", "frequency": "250-4000 Hz", "effect": "Motion intensity" },

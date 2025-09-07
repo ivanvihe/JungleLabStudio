@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BasePreset, PresetConfig } from '../../core/PresetLoader';
-import { triggerClipFlash } from './vfx';
+import { triggerClipFlash, applyVFX } from './vfx';
 
 // Interfaz para la información de tracks
 interface TrackInfo {
@@ -293,6 +293,8 @@ class JungleGridPreset extends BasePreset {
     const oscillationSpeed = 0.00005;
     const oscillationAmount = 0.3;
     this.camera.position.x = Math.sin(timeMs * oscillationSpeed) * oscillationAmount;
+
+    applyVFX(this.renderer.domElement, this.audioData);
   }
 
   async fetchDataIfNeeded(timeMs: number) {

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { BasePreset, PresetConfig } from '../../core/PresetLoader';
+import { applyVFX } from './vfx';
 
 // Paleta de colores solicitada para el preset Analysis
 const COLOR_PALETTE = [
@@ -418,6 +419,8 @@ class AnalysisSpectrum extends BasePreset {
     if (this.starField) {
       this.starField.rotation.y += deltaTime * 0.02;
     }
+
+    applyVFX(this.renderer.domElement, this.audioData);
   }
 
   updateConfig(newConfig: any): void {

@@ -117,6 +117,13 @@
       "default": true
     }
   ],
+  "vfx": {
+    "effects": [
+      {"name": "flash", "label": "Flash"},
+      {"name": "glitch", "label": "Glitch"},
+      {"name": "blur", "label": "Blur"}
+    ]
+  },
   "audioMapping": {
     "low": {
       "description": "Controls animation speed and letter appearance",

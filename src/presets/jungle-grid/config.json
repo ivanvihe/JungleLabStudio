@@ -30,5 +30,12 @@
     "gpuIntensive": false
   },
   "controls": [],
+  "vfx": {
+    "effects": [
+      {"name": "flash", "label": "Flash"},
+      {"name": "glitch", "label": "Glitch"},
+      {"name": "invert", "label": "Invert"}
+    ]
+  },
   "audioMapping": {}
 }
