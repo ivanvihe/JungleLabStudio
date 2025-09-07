@@ -1,10 +1,20 @@
 {
   "name": "Generative Dub",
-  "description": "Generative fractals and particles that evolve forever",
+  "description": "Generative fractals, mandelbrots and abstract puzzles that evolve forever",
   "author": "AudioVisualizer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "category": "generative",
-  "tags": ["auto", "infinite", "dub", "abstract", "audio-reactive", "fractal", "particles"],
+  "tags": [
+    "auto",
+    "infinite",
+    "dub",
+    "abstract",
+    "audio-reactive",
+    "fractal",
+    "particles",
+    "mandelbrot",
+    "puzzle"
+  ],
   "thumbnail": "generative_dub_thumb.png",
   "defaultConfig": {
     "opacity": 1.0
