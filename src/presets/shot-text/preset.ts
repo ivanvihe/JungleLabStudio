@@ -214,7 +214,8 @@ class RoboticaLetter {
           const material = new THREE.MeshBasicMaterial({
             color: color,
             transparent: true,
-            opacity: 0
+            opacity: 0,
+            depthTest: false
           });
           const cube = new THREE.Mesh(geometry, material);
           cube.position.set(x, y, 0);
@@ -224,7 +225,8 @@ class RoboticaLetter {
           const glowMaterial = new THREE.MeshBasicMaterial({
             color: color,
             transparent: true,
-            opacity: 0
+            opacity: 0,
+            depthTest: false
           });
           const glowCube = new THREE.Mesh(geometry, glowMaterial);
           glowCube.position.set(x, y, 0.01);
@@ -344,6 +346,12 @@ class RoboticaTextPreset extends BasePreset {
   }
 
   public init(): void {
+    if (this.camera instanceof THREE.PerspectiveCamera) {
+      this.camera.position.set(0, 0, 5);
+      this.camera.lookAt(0, 0, 0);
+      this.camera.updateProjectionMatrix();
+    }
+
     this.createText();
     this.scene.add(this.textGroup);
     this.scene.add(this.glowGroup);
@@ -388,6 +396,17 @@ class RoboticaTextPreset extends BasePreset {
       this.glowGroup.add(letter.glowMesh);
 
       currentX += letterWidth + letterSpacing;
+    }
+
+    if (this.camera instanceof THREE.PerspectiveCamera) {
+      const cam = this.camera as THREE.PerspectiveCamera;
+      const distance = cam.position.z;
+      const vFov = THREE.MathUtils.degToRad(cam.fov);
+      const visibleHeight = 2 * Math.tan(vFov / 2) * distance;
+      const visibleWidth = visibleHeight * cam.aspect;
+      const scale = (visibleWidth * 0.8) / totalWidth;
+      this.textGroup.scale.setScalar(scale);
+      this.glowGroup.scale.setScalar(scale);
     }
   }
 

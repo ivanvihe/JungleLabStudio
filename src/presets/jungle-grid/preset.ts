@@ -238,8 +238,8 @@ class JungleGridPreset extends BasePreset {
   private gridCells: GridCell[] = [];
   private blinkPhase = 0;
   private connectionStatus = 'connecting';
-  private debugText: THREE.Mesh | null = null;
   private statusUpdateInterval: number | null = null;
+  private lastTrackCountLogged = -1;
 
   constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, config: PresetConfig) {
     super(scene, camera, renderer, config);
@@ -259,125 +259,24 @@ class JungleGridPreset extends BasePreset {
     
     // Start with empty grid
     this.createGrid();
-    
-    // Crear texto de debug
-    this.createDebugText();
-    
+
     // Status update interval
     this.statusUpdateInterval = window.setInterval(() => {
       this.updateConnectionStatus();
     }, 2000);
-    
-  }
 
-  private createDebugText(): void {
-    try {
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      if (!context) return;
-
-      canvas.width = 1024;
-      canvas.height = 256;
-      
-      context.fillStyle = 'rgba(0, 0, 0, 0.9)';
-      context.fillRect(0, 0, canvas.width, canvas.height);
-      
-      context.fillStyle = '#ffffff';
-      context.font = 'bold 32px Arial';
-      context.textAlign = 'center';
-      context.fillText('Jungle Grid', canvas.width / 2, 60);
-      
-      context.font = '24px Arial';
-      context.fillStyle = '#ffaa00';
-      context.fillText('Conectando a Ableton...', canvas.width / 2, 120);
-      
-      context.font = '18px Arial';
-      context.fillStyle = '#888888';
-      context.fillText('Puerto: 9888 | WebSocket', canvas.width / 2, 160);
-      context.fillText('Verifica que JungleLaStudioRemote esté activo', canvas.width / 2, 190);
-
-      const texture = new THREE.CanvasTexture(canvas);
-      const material = new THREE.MeshBasicMaterial({ 
-        map: texture, 
-        transparent: true,
-        opacity: 0.9
-      });
-      const geometry = new THREE.PlaneGeometry(8, 2);
-      
-      this.debugText = new THREE.Mesh(geometry, material);
-      this.debugText.position.set(0, 4, 0);
-      this.scene.add(this.debugText);
-    } catch (error) {
-      console.error('JungleGrid: Error creando debug text:', error);
-    }
-  }
-
-  private updateDebugText(title: string, subtitle: string, details?: string): void {
-    if (!this.debugText) return;
-    
-    try {
-      const material = this.debugText.material as THREE.MeshBasicMaterial;
-      const texture = material.map as THREE.CanvasTexture;
-      const canvas = texture.image as HTMLCanvasElement;
-      const context = canvas.getContext('2d');
-      if (!context) return;
-
-      // Clear canvas
-      context.fillStyle = 'rgba(0, 0, 0, 0.9)';
-      context.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Title
-      context.fillStyle = '#ffffff';
-      context.font = 'bold 32px Arial';
-      context.textAlign = 'center';
-      context.fillText('Jungle Grid', canvas.width / 2, 60);
-      
-      // Status
-      const connected = this.client.isConnected();
-      context.fillStyle = connected ? '#00ff00' : '#ffaa00';
-      context.font = '24px Arial';
-      context.fillText(title, canvas.width / 2, 120);
-      
-      // Details
-      context.fillStyle = '#888888';
-      context.font = '18px Arial';
-      context.fillText(subtitle, canvas.width / 2, 160);
-      
-      if (details) {
-        context.fillText(details, canvas.width / 2, 190);
-      }
-      
-      // Connection status indicator
-      const statusText = `Estado: ${this.client.getConnectionStatus()}`;
-      context.font = '16px Arial';
-      context.fillStyle = connected ? '#00ff00' : '#ff4444';
-      context.fillText(statusText, canvas.width / 2, 220);
-      
-      texture.needsUpdate = true;
-    } catch (error) {
-      console.error('JungleGrid: Error actualizando debug text:', error);
-    }
   }
 
   private updateConnectionStatus(): void {
     const connected = this.client.isConnected();
     const newStatus = connected ? 'connected' : 'disconnected';
-    
+
     if (newStatus !== this.connectionStatus) {
       this.connectionStatus = newStatus;
-      
       if (connected) {
-        this.updateDebugText(
-          `Conectado (${this.tracks.length} tracks)`,
-          'Recibiendo datos de Ableton Live',
-          'WebSocket activo en puerto 9888'
-        );
+        console.log(`JungleGrid: connected (${this.tracks.length} tracks)`);
       } else {
-        this.updateDebugText(
-          'Desconectado',
-          'Intentando reconectar...',
-          'Verifica JungleLaStudioRemote en Ableton'
-        );
+        console.log('JungleGrid: disconnected. Trying to reconnect...');
       }
     }
   }
@@ -407,20 +306,14 @@ class JungleGridPreset extends BasePreset {
         if (tracksStr !== currentStr) {
           this.tracks = Array.isArray(tracks) ? tracks : [];
           this.createGrid();
-          
-          this.updateDebugText(
-            `${this.tracks.length} tracks detectados`,
-            this.tracks.length > 0 ? 'Grid sincronizado con Ableton' : 'Esperando tracks en Ableton',
-            `Última actualización: ${new Date().toLocaleTimeString()}`
-          );
+
+          if (this.tracks.length !== this.lastTrackCountLogged) {
+            console.log(`JungleGrid: ${this.tracks.length} tracks detectados`);
+            this.lastTrackCountLogged = this.tracks.length;
+          }
         }
       } catch (error) {
         console.error('JungleGrid: Error fetching data:', error);
-        this.updateDebugText(
-          'Error de conexión',
-          'No se pudieron obtener los tracks',
-          'Revisa la conexión con Ableton'
-        );
       }
     }
   }
@@ -450,7 +343,7 @@ class JungleGridPreset extends BasePreset {
       
       for (let clipIndex = 0; clipIndex < maxClips; clipIndex++) {
         const x = (trackIndex - maxTracks / 2) * (cellWidth + spacing);
-        const y = (clipIndex - maxClips / 2) * (cellHeight + spacing);
+        const y = (maxClips - clipIndex - 1 - maxClips / 2) * (cellHeight + spacing);
 
         // Crear cell border
         const geometry = new THREE.EdgesGeometry(new THREE.PlaneGeometry(cellWidth, cellHeight));
@@ -485,7 +378,7 @@ class JungleGridPreset extends BasePreset {
     for (let x = 0; x < gridSize; x++) {
       for (let y = 0; y < gridSize; y++) {
         const posX = (x - gridSize / 2) * (cellWidth + spacing);
-        const posY = (y - gridSize / 2) * (cellHeight + spacing);
+        const posY = (gridSize - y - 1 - gridSize / 2) * (cellHeight + spacing);
 
         const geometry = new THREE.EdgesGeometry(new THREE.PlaneGeometry(cellWidth, cellHeight));
         const material = new THREE.LineBasicMaterial({
@@ -553,12 +446,6 @@ class JungleGridPreset extends BasePreset {
     if (this.statusUpdateInterval) {
       clearInterval(this.statusUpdateInterval);
       this.statusUpdateInterval = null;
-    }
-    
-    if (this.debugText) {
-      this.scene.remove(this.debugText);
-      this.debugText.geometry.dispose();
-      (this.debugText.material as THREE.Material).dispose();
     }
     
     this.gridCells.forEach(cell => {
