@@ -19,6 +19,7 @@ interface TopBarProps {
   onOpenSettings: () => void;
   onOpenResources: () => void;
   launchpadAvailable: boolean;
+  launchpadOutput: any | null;
   launchpadRunning: boolean;
   launchpadPreset: string;
   onToggleLaunchpad?: () => void;
@@ -44,6 +45,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenSettings,
   onOpenResources,
   launchpadAvailable,
+  launchpadOutput,
   launchpadRunning,
   launchpadPreset,
   onToggleLaunchpad,
@@ -163,10 +165,20 @@ export const TopBar: React.FC<TopBarProps> = ({
                 />
               )}
               <button
-                onClick={onToggleLaunchpad}
+                onClick={() => {
+                  console.log('🖱️ LaunchPad button clicked manually by user');
+                  onToggleLaunchpad?.();
+                }}
                 className={`launchpad-button ${launchpadRunning ? 'running' : ''}`}
+                type="button"
+                disabled={!launchpadOutput}
+                title={
+                  launchpadOutput
+                    ? `Toggle LaunchPad (${launchpadOutput.name})`
+                    : 'No LaunchPad device available'
+                }
               >
-                {launchpadRunning ? 'Stop Launchpad' : 'Go Launchpad'}
+                {launchpadRunning ? '⏹️ Stop LaunchPad' : '▶️ Go LaunchPad'}
               </button>
             </div>
           </>

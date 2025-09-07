@@ -227,29 +227,59 @@ export function useMidi(options: MidiOptions) {
   useEffect(() => {
     if (isFullscreenMode) return;
 
-    const handleMIDIMessage = (event: any) => {
-      const [statusByte, note, vel] = event.data;
+    const handleMidiMessage = (message: any) => {
+      const [status, note, velocity] = message.data;
+      const channel = (status & 0x0f) + 1;
+      const messageType = status & 0xf0;
 
-      // MIDI Clock messages
-      if (statusByte === 0xf8 && midiClockSettings.type === 'midi') {
+      // Debug MIDI messages
+      console.log('MIDI Message:', {
+        status,
+        note,
+        velocity,
+        channel,
+        messageType,
+      });
+
+      // Solo procesar LaunchPad toggle si es exactamente el canal y nota configurados
+      if (
+        channel === launchpadChannel &&
+        note === launchpadNote &&
+        velocity > 0 &&
+        messageType === 0x90
+      ) {
+        console.log('🎹 LaunchPad MIDI trigger válido recibido:', {
+          channel,
+          note,
+          velocity,
+          expected: { channel: launchpadChannel, note: launchpadNote },
+        });
+
+        // Solo entonces activar el toggle
+        onLaunchpadToggle?.();
+        return; // Salir temprano para evitar procesamiento adicional
+      }
+
+      // Clock MIDI processing
+      if (status === 0xf8 && midiClockSettings.type === 'midi') {
         const timestamp =
-          event.timeStamp ?? event.receivedTime ?? performance.now();
+          message.timeStamp ?? message.receivedTime ?? performance.now();
         handleClockTick(timestamp, false);
         return;
       }
 
-      if (statusByte === 0xfa) {
+      if (status === 0xfa) {
         resetClock();
         stopInternalClock();
         return;
       }
 
-      if (statusByte === 0xfb) {
+      if (status === 0xfb) {
         stopInternalClock();
         return;
       }
 
-      if (statusByte === 0xfc) {
+      if (status === 0xfc) {
         resetClock();
         if (midiClockSettings.type === 'internal') {
           startInternalClock();
@@ -257,23 +287,10 @@ export function useMidi(options: MidiOptions) {
         return;
       }
 
-      // Regular MIDI messages
-      const command = statusByte & 0xf0;
-      const channel = (statusByte & 0x0f) + 1;
-
-      if (command === 0x90 || command === 0x80) {
+      // Procesar otros triggers MIDI (layers, efectos, etc.)
+      if (messageType === 0x90 || messageType === 0x80) {
         setMidiActive(true);
         setTimeout(() => setMidiActive(false), 100);
-      }
-
-      if (
-        command === 0x90 &&
-        vel > 0 &&
-        channel === launchpadChannel &&
-        note === launchpadNote
-      ) {
-        onLaunchpadToggle();
-        return;
       }
 
       const channelToLayer = Object.fromEntries(
@@ -285,7 +302,7 @@ export function useMidi(options: MidiOptions) {
         ([, n]) => n === note,
       )?.[0];
 
-      if (command === 0x90 && vel > 0) {
+      if (messageType === 0x90 && velocity > 0) {
         if (matchedEffect) {
           setLayerEffects(prev => {
             const updated = { ...prev };
@@ -299,9 +316,9 @@ export function useMidi(options: MidiOptions) {
         }
         const preset = availablePresets.find(p => p.config.note === note);
         if (layerId && preset) {
-          setMidiTrigger({ layerId, presetId: preset.id, velocity: vel });
+          setMidiTrigger({ layerId, presetId: preset.id, velocity });
         }
-      } else if (command === 0x80 || (command === 0x90 && vel === 0)) {
+      } else if (messageType === 0x80 || (messageType === 0x90 && velocity === 0)) {
         if (matchedEffect) {
           setLayerEffects(prev => {
             const updated = { ...prev };
@@ -325,7 +342,7 @@ export function useMidi(options: MidiOptions) {
 
           inputs.forEach((input: any) => {
             if (!midiDeviceId || input.id === midiDeviceId) {
-              input.onmidimessage = handleMIDIMessage;
+              input.onmidimessage = handleMidiMessage;
             } else {
               input.onmidimessage = null;
             }
@@ -336,7 +353,7 @@ export function useMidi(options: MidiOptions) {
             setMidiDevices(ins);
             ins.forEach((input: any) => {
               if (!midiDeviceId || input.id === midiDeviceId) {
-                input.onmidimessage = handleMIDIMessage;
+                input.onmidimessage = handleMidiMessage;
               } else {
                 input.onmidimessage = null;
               }
@@ -362,6 +379,7 @@ export function useMidi(options: MidiOptions) {
     effectMidiNotes,
     launchpadChannel,
     launchpadNote,
+    onLaunchpadToggle,
     availablePresets,
   ]);
 

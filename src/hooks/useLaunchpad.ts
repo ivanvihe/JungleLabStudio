@@ -105,38 +105,41 @@ export function useLaunchpad(audioData: AudioData, canvasRef: React.RefObject<HT
   }, [audioData, launchpadRunning, launchpadPreset, launchpadOutput, launchpadSmoothness, launchpadText, canvasRef]);
 
   useEffect(() => {
+    console.log('LaunchPad state change:', {
+      running: launchpadRunning,
+      hasOutput: !!launchpadOutput,
+      outputId: launchpadOutput?.id,
+    });
+
     if (launchpadRunning && launchpadOutput) {
       try {
-        console.log('Launchpad: Sending handshake to', launchpadOutput.name);
+        console.log('🟢 Activando LaunchPad:', launchpadOutput.name);
 
-        const deviceName = launchpadOutput.name?.toLowerCase() || '';
-        if (deviceName.includes('launchpad x')) {
-          launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x0d, 0x0e, 0x01, 0xf7]);
-        } else if (deviceName.includes('launchpad mini mk3')) {
-          launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x18, 0x0e, 0x01, 0xf7]);
-        } else if (deviceName.includes('launchpad pro mk3')) {
-          launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x10, 0x0e, 0x01, 0xf7]);
-        } else {
-          launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x0d, 0x0e, 0x01, 0xf7]);
-          launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x18, 0x0e, 0x01, 0xf7]);
-          launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x10, 0x0e, 0x01, 0xf7]);
-        }
-
+        // Reset todos los pads antes de empezar
         for (let i = 0; i < 64; i++) {
           const note = gridIndexToNote(i);
           launchpadOutput.send([0x90, note, 0]);
         }
+
+        // Inicializar modo si es necesario (para Launchpad Pro)
+        if (launchpadOutput.name.toLowerCase().includes('pro')) {
+          console.log('🎛️ Configurando Launchpad Pro mode');
+          launchpadOutput.send([0xf0, 0x00, 0x20, 0x29, 0x02, 0x10, 0x0e, 0x01, 0xf7]);
+        }
       } catch (err) {
-        console.warn('Error initializing launchpad:', err);
+        console.error('❌ Error inicializando LaunchPad:', err);
       }
     } else if (!launchpadRunning && launchpadOutput) {
       try {
+        console.log('🔴 Desactivando LaunchPad:', launchpadOutput.name);
+
+        // Apagar todos los pads
         for (let i = 0; i < 64; i++) {
           const note = gridIndexToNote(i);
           launchpadOutput.send([0x90, note, 0]);
         }
       } catch (err) {
-        console.warn('Error turning off launchpad:', err);
+        console.warn('⚠️ Error apagando LaunchPad:', err);
       }
     }
   }, [launchpadRunning, launchpadOutput]);
