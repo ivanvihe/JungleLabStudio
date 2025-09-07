@@ -65,6 +65,8 @@ class GenerativeDubPreset extends BasePreset {
     this.nextPattern = this.currentPattern;
     const material = new THREE.ShaderMaterial({
       transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
       uniforms: {
         uTime: { value: 0 },
         uOpacity: { value: this.opacity },

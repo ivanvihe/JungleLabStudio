@@ -126,7 +126,9 @@ export class InfiniteNeuralNetwork extends BasePreset {
   private nodes: Node[] = [];
   private connections: Connection[] = [];
   private currentConfig: any;
-  private nextSpawnX = 0;
+  // Track next Z position where a node will be spawned so we can
+  // simulate travelling forward instead of sideways
+  private nextSpawnZ = 0;
   private initialCameraPosition = new THREE.Vector3();
   private initialCameraQuaternion = new THREE.Quaternion();
   private originalBackground: THREE.Color | THREE.Texture | null = null;
@@ -153,7 +155,7 @@ export class InfiniteNeuralNetwork extends BasePreset {
     // this.camera.lookAt(1, 0, 0);
 
     // Generar nodos iniciales
-    while (this.nextSpawnX < 50) {
+    while (this.nextSpawnZ < 50) {
       this.spawnNode();
     }
   }
@@ -162,9 +164,11 @@ export class InfiniteNeuralNetwork extends BasePreset {
     const size = this.currentConfig.nodeSize;
 
     // Reduce spacing between nodes for higher density
-    const x = this.nextSpawnX + Math.random() * 1 + 0.5;
+    // Instead of moving along the X axis we spawn nodes further down
+    // the Z axis so the network appears to approach the camera
+    const z = this.nextSpawnZ + Math.random() * 1 + 0.5;
+    const x = (Math.random() - 0.5) * 4;
     const y = (Math.random() - 0.5) * 4;
-    const z = (Math.random() - 0.5) * 4;
     const node = new Node(new THREE.Vector3(x, y, z), this.createNodeMaterial(), size);
     this.scene.add(node.mesh);
     this.nodes.push(node);
@@ -187,7 +191,8 @@ export class InfiniteNeuralNetwork extends BasePreset {
       }
     }
 
-    this.nextSpawnX = x;
+    // Record last spawn position
+    this.nextSpawnZ = z;
   }
 
   // CORRECCION: Metodos para crear materiales con configuracion correcta
@@ -232,13 +237,15 @@ export class InfiniteNeuralNetwork extends BasePreset {
 
     const speed = this.currentConfig.speed * (0.5 + this.audioData.high);
     // Move the entire scene content instead of the camera
-    this.scene.position.x -= delta * speed;
-
-    while (this.nextSpawnX < this.scene.position.x + 50) {
+    // Move the scene backwards on Z so the viewer travels through it
+    this.scene.position.z -= delta * speed;
+    // Continuously spawn nodes ahead of the camera
+    while (this.nextSpawnZ < this.scene.position.z + 50) {
       this.spawnNode();
     }
 
-    while (this.nodes.length && this.nodes[0].position.x < this.scene.position.x - 20) {
+    // Remove nodes that are far behind the camera to keep memory usage stable
+    while (this.nodes.length && this.nodes[0].position.z < this.scene.position.z - 20) {
       const old = this.nodes.shift()!;
       this.removeNode(old);
     }
@@ -262,7 +269,7 @@ export class InfiniteNeuralNetwork extends BasePreset {
   private deepMerge(target: any, source: any): any {
     const result = { ...target };
     for (const key in source) {
-      if (source[key] && typeof source[key] === 'object' && !ArrayArray(source[key])) {
+      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
         result[key] = this.deepMerge(result[key] || {}, source[key]);
       } else {
         result[key] = source[key];
