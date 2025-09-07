@@ -82,11 +82,10 @@ export class LayerManager {
     this.layers.forEach(layer => {
       if (!layer.isActive || !layer.preset || !layer.renderTarget) return;
 
-      this.renderer.setClearColor(0x000000, 0);
       this.renderer.setRenderTarget(layer.renderTarget);
-      this.renderer.clearDepth(); // Clear only depth buffer
-      this.renderer.clearStencil(); // Clear only stencil buffer
-      // Do NOT clear the color buffer (alpha channel)
+      this.renderer.setClearColor(0x000000, 0);
+      // Clear color, depth and stencil so each layer starts from a blank buffer
+      this.renderer.clear(true, true, true);
       this.renderer.render(layer.scene, layer.camera);
       // Reset state so next layer starts clean
       this.renderer.resetState();

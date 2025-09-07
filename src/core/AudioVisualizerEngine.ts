@@ -1,13 +1,7 @@
 import * as THREE from 'three';
 import { PresetLoader, LoadedPreset, AudioData } from './PresetLoader';
-import { LayerManager, LayerState } from './LayerManager';
+import { LayerManager } from './LayerManager';
 import { Compositor } from './Compositor';
-// Using simple path helpers instead of Node's `path` module which is not
-// available in the browser runtime. Node's `path.join` was causing errors
-// after bundling (e.g. `TypeError: Bi.join is not a function`).
-// For our use case we only need basic string concatenation to build and
-// inspect paths, so we implement lightweight helpers below.
-import { setNestedValue } from '../utils/objectPath';
 
 
 export class AudioVisualizerEngine {
@@ -15,7 +9,6 @@ export class AudioVisualizerEngine {
   private renderer: THREE.WebGLRenderer;
   private presetLoader: PresetLoader;
   private layerManager: LayerManager;
-  private layers: Map<string, LayerState>;
   private compositor: Compositor;
   private animationId: number | null = null;
   private isRunning = false;
@@ -46,7 +39,6 @@ export class AudioVisualizerEngine {
       options.visualsPath
     );
     this.layerManager = new LayerManager(this.renderer, this.camera, this.presetLoader);
-    this.layers = this.layerManager.getLayers();
     this.compositor = new Compositor(this.renderer);
 
     this.setupScene();
@@ -110,59 +102,8 @@ export class AudioVisualizerEngine {
     this.multiMonitorMode = active;
   }
 
-  public async activateLayerPreset(layerId: string, presetId: string): Promise<boolean> {
-    const layer = this.layers.get(layerId);
-    if (!layer) {
-      console.error(`Layer ${layerId} no encontrado`);
-      return false;
-    }
-
-    try {
-      // Desactivar preset anterior del layer si existe
-      if (layer.preset) {
-        this.presetLoader.deactivatePreset(`${layerId}-${layer.preset.id}`);
-        layer.scene.clear();
-      }
-
-      // Buscar preset cargado
-      const loadedPreset = this.presetLoader.getLoadedPresets().find(p => p.id === presetId);
-      if (!loadedPreset) {
-        console.error(`Loaded preset ${presetId} no encontrado`);
-        return false;
-      }
-
-      // Cargar configuracion guardada especifica para el layer y clonar config base
-      const savedConfig = await this.loadLayerPresetConfig(presetId, layerId);
-      const loadedPresetConfig = JSON.parse(JSON.stringify(loadedPreset.config));
-      loadedPresetConfig.defaultConfig = {
-        ...loadedPresetConfig.defaultConfig,
-        ...savedConfig
-      };
-
-      // Activar nuevo preset con config especifica del layer
-      const presetInstance = this.presetLoader.activatePreset(
-        presetId,
-        layer.scene,
-        `${layerId}-${presetId}`,
-        loadedPresetConfig,
-        layer.camera
-      );
-      if (!presetInstance) {
-        console.error(`No se pudo activar preset ${presetId}`);
-        return false;
-      }
-
-      // Asignar preset clonado con config al layer
-      layer.preset = { ...loadedPreset, config: loadedPresetConfig };
-      layer.isActive = true;
-
-      console.log(`✅ Layer ${layerId} activado con preset ${presetId}`);
-      return true;
-    } catch (error) {
-      console.error(`Error activando preset ${presetId} en layer ${layerId}:`, error);
-      return false;
-    }
-
+  public activateLayerPreset(layerId: string, presetId: string): Promise<boolean> {
+    return this.layerManager.activateLayerPreset(layerId, presetId);
   }
 
   public deactivateLayerPreset(layerId: string): void {
@@ -170,83 +111,15 @@ export class AudioVisualizerEngine {
   }
 
   public updateLayerConfig(layerId: string, config: any): void {
-    const layer = this.layers.get(layerId);
-    if (!layer) return;
-
-    if (config.opacity !== undefined) {
-      layer.opacity = config.opacity / 100; // Convertir de 0-100 a 0-1
-    }
-    
-    if (config.fadeTime !== undefined) {
-      layer.fadeTime = config.fadeTime;
-    }
+    this.layerManager.updateLayerConfig(layerId, config);
   }
 
-  // Build the path to the config file for a given layer preset. We keep the
-  // configs inside the original preset folder and append the clone index (if
-  // any) to the filename so each pad has its own file. Using Node's `path`
-  // utilities is avoided to stay compatible with the browser/Tauri runtime.
-  private getLayerConfigPath(presetId: string, layerId: string): string {
-    const loaded = this.presetLoader.getLoadedPresets().find(p => p.id === presetId);
-    const folder = loaded?.folderPath ?? `${this.presetLoader.getBasePath()}/${presetId}`;
-    const variantMatch = presetId.match(/-(\d+)$/);
-    const variantSuffix = variantMatch ? `-${variantMatch[1]}` : '';
-    return `${folder}/layers/${layerId}${variantSuffix}.json`;
-  }
-
-  private async loadLayerPresetConfig(presetId: string, layerId: string): Promise<any> {
-    try {
-      const cfgPath = this.getLayerConfigPath(presetId, layerId);
-      if (typeof window !== 'undefined' && (window as any).__TAURI__) {
-        const { exists, readTextFile } = await import(
-          /* @vite-ignore */ '@tauri-apps/api/fs'
-        );
-        if (await exists(cfgPath)) {
-          return JSON.parse(await readTextFile(cfgPath));
-        }
-      }
-    } catch (err) {
-      console.warn(`Could not load config for ${presetId} layer ${layerId}:`, err);
-    }
-    return {};
-  }
-
-  private async saveLayerPresetConfig(presetId: string, layerId: string, cfg: any): Promise<void> {
-    try {
-      if (typeof window !== 'undefined' && (window as any).__TAURI__) {
-        const { createDir, writeFile } = await import(
-          /* @vite-ignore */ '@tauri-apps/api/fs'
-        );
-        const cfgPath = this.getLayerConfigPath(presetId, layerId);
-        const dir = cfgPath.substring(0, cfgPath.lastIndexOf('/'));
-        await createDir(dir, { recursive: true });
-        await writeFile({ path: cfgPath, contents: JSON.stringify(cfg, null, 2) });
-      }
-    } catch (err) {
-      console.warn(`Could not save config for ${presetId} layer ${layerId}:`, err);
-    }
-  }
-
-  public async getLayerPresetConfig(layerId: string, presetId: string): Promise<any> {
-    const saved = await this.loadLayerPresetConfig(presetId, layerId);
-    if (Object.keys(saved).length > 0) return saved;
-    const loaded = this.presetLoader.getLoadedPresets().find(p => p.id === presetId);
-    return loaded ? JSON.parse(JSON.stringify(loaded.config.defaultConfig)) : {};
+  public getLayerPresetConfig(layerId: string, presetId: string): Promise<any> {
+    return this.layerManager.getLayerPresetConfig(layerId, presetId);
   }
 
   public updateLayerPresetConfig(layerId: string, pathKey: string, value: any): void {
-    const layer = this.layers.get(layerId);
-    if (!layer || !layer.preset) return;
-
-    setNestedValue(layer.preset.config.defaultConfig, pathKey, value);
-
-    const activePreset = this.presetLoader.getActivePreset(`${layerId}-${layer.preset.id}`);
-    if (activePreset && activePreset.updateConfig) {
-      activePreset.updateConfig(layer.preset.config.defaultConfig);
-    }
-    this.saveLayerPresetConfig(layer.preset.id, layerId, layer.preset.config.defaultConfig).catch(
-      err => console.warn(`Could not save config for ${layer.preset?.id}:`, err)
-    );
+    this.layerManager.updateLayerPresetConfig(layerId, pathKey, value);
   }
 
   public setGlobalOpacity(opacity: number): void {
