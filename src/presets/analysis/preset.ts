@@ -84,14 +84,7 @@ class AnalysisSpectrum extends BasePreset {
   private ambient?: THREE.AmbientLight;
   private pointLight?: THREE.PointLight;
   private starField?: THREE.Points;
-  private rings: Record<BandName, THREE.Mesh> = {
-    band1: new THREE.Mesh(),
-    band2: new THREE.Mesh(),
-    band3: new THREE.Mesh(),
-    band4: new THREE.Mesh(),
-    band5: new THREE.Mesh(),
-    band6: new THREE.Mesh()
-  };
+  private rings: Partial<Record<BandName, THREE.Mesh>> = {};
   private currentConfig: any;
   private initialCameraPosition = this.camera.position.clone();
   private initialCameraQuaternion = this.camera.quaternion.clone();
@@ -156,21 +149,7 @@ class AnalysisSpectrum extends BasePreset {
     this.starField = new THREE.Points(starGeometry, starMaterial);
     this.scene.add(this.starField);
 
-    // Crear anillos para cada banda de frecuencia
-    (Object.keys(this.rings) as BandName[]).forEach((band, i) => {
-      const ringGeo = new THREE.RingGeometry(0.5, 0.6, 64);
-      const ringMat = new THREE.MeshBasicMaterial({
-        color: this.currentConfig.colors[band],
-        transparent: true,
-        opacity: 0.4,
-        side: THREE.DoubleSide
-      });
-      const ring = new THREE.Mesh(ringGeo, ringMat);
-      ring.rotation.x = Math.PI / 2;
-      ring.position.y = 1 + i * 0.3;
-      this.group.add(ring);
-      this.rings[band] = ring;
-    });
+    // Removed frequency rings in favor of particle-only visualization
   }
 
   private createFrequencyGrid(): void {
@@ -243,15 +222,16 @@ class AnalysisSpectrum extends BasePreset {
 
   private createDbLabels(): void {
     this.dbLabels = new THREE.Group();
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d')!;
-    canvas.width = 64;
-    canvas.height = 32;
 
     const dbLevels = ['-60dB', '-40dB', '-20dB', '0dB'];
     const yPositions = [0.5, 1.5, 2.5, 3.5];
 
     dbLevels.forEach((db, i) => {
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d')!;
+      canvas.width = 64;
+      canvas.height = 32;
+
       context.clearRect(0, 0, 64, 32);
       context.shadowColor = '#884C3A';
       context.shadowBlur = 8;
@@ -467,10 +447,12 @@ class AnalysisSpectrum extends BasePreset {
     if (this.pointLight) this.scene.remove(this.pointLight);
     if (this.starField) this.scene.remove(this.starField);
 
-    (Object.values(this.rings) as THREE.Mesh[]).forEach(r => {
-      this.group.remove(r);
-      r.geometry.dispose();
-      (r.material as THREE.Material).dispose();
+    Object.values(this.rings).forEach(r => {
+      if (r) {
+        this.group.remove(r);
+        r.geometry.dispose();
+        (r.material as THREE.Material).dispose();
+      }
     });
 
     this.camera.position.copy(this.initialCameraPosition);

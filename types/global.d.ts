@@ -9,6 +9,7 @@ interface Window {
     writeTextFile: (path: string, contents: string) => Promise<void>;
     createDir: (dir: string) => Promise<void>;
     exists: (path: string) => Promise<boolean>;
+    tcpRequest: (command: object, port?: number, host?: string) => Promise<any>;
   };
 }
 
