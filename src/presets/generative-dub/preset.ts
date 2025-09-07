@@ -178,7 +178,8 @@ class GenerativeDubPreset extends BasePreset {
         }
       `
     });
-    this.randomizePalette(material);
+    // Inicializar con parámetros y paleta aleatorios desde el comienzo
+    this.randomize(material);
     this.mesh = new THREE.Mesh(geometry, material);
     this.scene.add(this.mesh);
     this.lastChange = 0;
