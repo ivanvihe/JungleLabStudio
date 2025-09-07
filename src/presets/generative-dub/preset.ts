@@ -99,7 +99,14 @@ class GenerativeDubPreset extends BasePreset {
       uniforms: {
         uTime: { value: 0 },
         uOpacity: { value: this.opacity },
-        uParams: {
+        uParamsA: {
+          value: new THREE.Vector3(
+            Math.random() * 3 + 1,
+            Math.random() * 5 + 1,
+            Math.random() * 0.2 + 0.05
+          )
+        },
+        uParamsB: {
           value: new THREE.Vector3(
             Math.random() * 3 + 1,
             Math.random() * 5 + 1,
@@ -112,9 +119,12 @@ class GenerativeDubPreset extends BasePreset {
         uAudioLow: { value: 0 },
         uAudioMid: { value: 0 },
         uAudioHigh: { value: 0 },
-        uColor1: { value: new THREE.Color('#0e0e0e') },
-        uColor2: { value: new THREE.Color('#3a506b') },
-        uColor3: { value: new THREE.Color('#5bc0be') }
+        uColor1A: { value: new THREE.Color('#0e0e0e') },
+        uColor2A: { value: new THREE.Color('#3a506b') },
+        uColor3A: { value: new THREE.Color('#5bc0be') },
+        uColor1B: { value: new THREE.Color('#0e0e0e') },
+        uColor2B: { value: new THREE.Color('#3a506b') },
+        uColor3B: { value: new THREE.Color('#5bc0be') }
       },
       vertexShader: `
         varying vec2 vUv;
@@ -128,16 +138,20 @@ class GenerativeDubPreset extends BasePreset {
         varying vec2 vUv;
         uniform float uTime;
         uniform float uOpacity;
-        uniform vec3 uParams;
+        uniform vec3 uParamsA;
+        uniform vec3 uParamsB;
         uniform float uPatternA;
         uniform float uPatternB;
         uniform float uBlend;
         uniform float uAudioLow;
         uniform float uAudioMid;
         uniform float uAudioHigh;
-        uniform vec3 uColor1;
-        uniform vec3 uColor2;
-        uniform vec3 uColor3;
+        uniform vec3 uColor1A;
+        uniform vec3 uColor2A;
+        uniform vec3 uColor3A;
+        uniform vec3 uColor1B;
+        uniform vec3 uColor2B;
+        uniform vec3 uColor3B;
 
         float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
 
@@ -163,9 +177,9 @@ class GenerativeDubPreset extends BasePreset {
           return v;
         }
 
-        float getPattern(float id, vec2 uv){
+        float getPattern(float id, vec2 uv, vec3 params){
           if(id < 0.5){
-            return fbm(uv + uTime * uParams.z);
+            return fbm(uv + uTime * params.z);
           } else if(id < 1.5){
             vec2 p = uv;
             float ang = uTime * 0.2;
@@ -180,13 +194,15 @@ class GenerativeDubPreset extends BasePreset {
             return fbm(p * 3.0 + uTime * 0.5);
           } else if(id < 4.5){
             vec2 p = uv * 2.0 - 1.0;
+            float ang = uTime * 0.1;
+            p = vec2(cos(ang) * p.x - sin(ang) * p.y, sin(ang) * p.x + cos(ang) * p.y);
             for(int i=0;i<3;i++){ p=abs(p)/dot(p,p)-vec2(0.5); }
             return length(p);
           } else if(id < 5.5){
             vec2 p = uv + noise(uv*4.0 + uTime);
             return fract(p.x + p.y);
           } else if(id < 6.5){
-            vec2 p = uv*10.0;
+            vec2 p = uv*10.0 + uTime;
             float n = fract(sin(dot(floor(p), vec2(12.9898,78.233)))*43758.5453);
             return step(0.98, n);
           } else if(id < 7.5){
@@ -203,7 +219,8 @@ class GenerativeDubPreset extends BasePreset {
             float n = fbm(p+uTime);
             return step(0.85, n);
           } else if(id < 10.5){
-            vec2 c = (uv - 0.5) * 3.0;
+            vec2 c = (uv - 0.5) * (3.0 + 0.5*sin(uTime*0.1));
+            c += vec2(0.3*sin(uTime*0.1),0.3*cos(uTime*0.1));
             vec2 z = vec2(0.0);
             float m = 0.0;
             for(int i=0;i<32;i++){
@@ -213,21 +230,21 @@ class GenerativeDubPreset extends BasePreset {
             }
             return m/32.0;
           } else if(id < 11.5){
-            vec2 p = uv*4.0;
+            vec2 p = uv*4.0 + uTime*0.3;
             vec2 ip = floor(p);
             vec2 fp = fract(p);
             float j = step(0.5, sin(ip.x + ip.y));
             float edge = smoothstep(0.3,0.32,max(abs(fp.x-0.5),abs(fp.y-0.5)));
             return j*edge;
           } else if(id < 12.5){
-            vec2 p = uv*6.0;
+            vec2 p = uv*6.0 + uTime*0.2;
             vec2 ip = floor(p);
             vec2 fp = fract(p);
             float checker = mod(ip.x + ip.y, 2.0);
             float d = checker > 0.5 ? fp.x : 1.0 - fp.x;
             return step(fp.y, d);
           } else if(id < 13.5){
-            vec2 p = uv*5.0;
+            vec2 p = uv*5.0 + vec2(uTime*0.2, uTime*0.3);
             vec2 i = floor(p);
             vec2 f = fract(p);
             float res = 8.0;
@@ -249,18 +266,34 @@ class GenerativeDubPreset extends BasePreset {
         }
 
         void main(){
-          vec2 uv = vUv * uParams.x;
-          float pA = getPattern(uPatternA, uv);
-          float pB = getPattern(uPatternB, uv);
-          float pattern = mix(pA, pB, uBlend);
-          vec3 col = mix(uColor1, uColor2, pattern);
-          col = mix(col, uColor3, pattern * pattern);
+          vec2 uvA = vUv * uParamsA.x;
+          vec2 uvB = vUv * uParamsB.x;
+          float pA = getPattern(uPatternA, uvA, uParamsA);
+          float pB = getPattern(uPatternB, uvB, uParamsB);
+          vec3 colA = mix(uColor1A, uColor2A, pA);
+          colA = mix(colA, uColor3A, pA * pA);
+          vec3 colB = mix(uColor1B, uColor2B, pB);
+          colB = mix(colB, uColor3B, pB * pB);
+          vec3 col = mix(colA, colB, uBlend);
           gl_FragColor = vec4(col, uOpacity);
         }
       `
     });
-    
-    // Inicializar con parámetros y paleta aleatorios desde el comienzo
+
+    // Inicializar uniformes de forma coherente
+    const paramsA = material.uniforms.uParamsA.value as THREE.Vector3;
+    const paramsB = material.uniforms.uParamsB.value as THREE.Vector3;
+    paramsB.copy(paramsA);
+    this.randomizePalette(material, 'A');
+    const c1A = material.uniforms.uColor1A.value as THREE.Color;
+    const c2A = material.uniforms.uColor2A.value as THREE.Color;
+    const c3A = material.uniforms.uColor3A.value as THREE.Color;
+    const c1B = material.uniforms.uColor1B.value as THREE.Color;
+    const c2B = material.uniforms.uColor2B.value as THREE.Color;
+    const c3B = material.uniforms.uColor3B.value as THREE.Color;
+    c1B.copy(c1A);
+    c2B.copy(c2A);
+    c3B.copy(c3A);
     this.randomize(material);
     this.mesh = new THREE.Mesh(geometry, material);
     // Ajustar el plano para que ocupe toda la ventana según el aspect ratio actual
@@ -274,12 +307,24 @@ class GenerativeDubPreset extends BasePreset {
   }
 
   private randomize(material: THREE.ShaderMaterial): void {
-    material.uniforms.uParams.value.set(
+    const paramsA = material.uniforms.uParamsA.value as THREE.Vector3;
+    const paramsB = material.uniforms.uParamsB.value as THREE.Vector3;
+    paramsA.copy(paramsB);
+    const c1A = material.uniforms.uColor1A.value as THREE.Color;
+    const c2A = material.uniforms.uColor2A.value as THREE.Color;
+    const c3A = material.uniforms.uColor3A.value as THREE.Color;
+    const c1B = material.uniforms.uColor1B.value as THREE.Color;
+    const c2B = material.uniforms.uColor2B.value as THREE.Color;
+    const c3B = material.uniforms.uColor3B.value as THREE.Color;
+    c1A.copy(c1B);
+    c2A.copy(c2B);
+    c3A.copy(c3B);
+    paramsB.set(
       Math.random() * 3 + 1,
       Math.random() * 5 + 1,
       Math.random() * 0.2 + 0.05
     );
-    this.randomizePalette(material);
+    this.randomizePalette(material, 'B');
     this.currentPattern = this.nextPattern;
     let newPattern = this.currentPattern;
     while (newPattern === this.currentPattern) {
@@ -333,6 +378,18 @@ class GenerativeDubPreset extends BasePreset {
       if (blend >= 1) {
         this.currentPattern = this.nextPattern;
         this.nextPattern = this.currentPattern;
+        const paramsA = mat.uniforms.uParamsA.value as THREE.Vector3;
+        const paramsB = mat.uniforms.uParamsB.value as THREE.Vector3;
+        paramsA.copy(paramsB);
+        (mat.uniforms.uColor1A.value as THREE.Color).copy(
+          mat.uniforms.uColor1B.value as THREE.Color
+        );
+        (mat.uniforms.uColor2A.value as THREE.Color).copy(
+          mat.uniforms.uColor2B.value as THREE.Color
+        );
+        (mat.uniforms.uColor3A.value as THREE.Color).copy(
+          mat.uniforms.uColor3B.value as THREE.Color
+        );
         mat.uniforms.uPatternA.value = this.currentPattern;
         mat.uniforms.uPatternB.value = this.nextPattern;
         mat.uniforms.uBlend.value = 0;
@@ -350,13 +407,16 @@ class GenerativeDubPreset extends BasePreset {
     }
   }
 
-  private randomizePalette(material: THREE.ShaderMaterial): void {
+  private randomizePalette(
+    material: THREE.ShaderMaterial,
+    target: 'A' | 'B'
+  ): void {
     const palette = GenerativeDubPreset.PALETTES[
       Math.floor(Math.random() * GenerativeDubPreset.PALETTES.length)
     ];
-    material.uniforms.uColor1.value.copy(palette[0]);
-    material.uniforms.uColor2.value.copy(palette[1]);
-    material.uniforms.uColor3.value.copy(palette[2]);
+    (material.uniforms['uColor1' + target].value as THREE.Color).copy(palette[0]);
+    (material.uniforms['uColor2' + target].value as THREE.Color).copy(palette[1]);
+    (material.uniforms['uColor3' + target].value as THREE.Color).copy(palette[2]);
   }
 
   public dispose(): void {
