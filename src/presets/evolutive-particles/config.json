@@ -183,6 +183,13 @@
       "default": "#96CEB4"
     }
   ],
+  "vfx": {
+    "effects": [
+      {"name": "flash", "label": "Flash"},
+      {"name": "glitch", "label": "Glitch"},
+      {"name": "blur", "label": "Blur"}
+    ]
+  },
   "audioMapping": {
     "low": {
       "description": "Controls particle birth and basic behavior",

@@ -26,6 +26,7 @@ export interface PresetConfig {
     default: any;
     options?: string[];
   }>;
+  vfx?: { effects: Array<{ name: string; label: string }> };
   audioMapping: Record<string, { description: string; frequency: string; effect: string }>;
   performance: {
     complexity: 'low' | 'medium' | 'high';

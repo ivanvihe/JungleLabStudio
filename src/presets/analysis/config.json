@@ -29,6 +29,13 @@
     {"name": "colors.band5", "type": "color", "label": "Band 5 Color", "default": "#f59d70"},
     {"name": "colors.band6", "type": "color", "label": "Band 6 Color", "default": "#ffdfb6"}
   ],
+  "vfx": {
+    "effects": [
+      {"name": "flash", "label": "Flash"},
+      {"name": "glitch", "label": "Glitch"},
+      {"name": "scanlines", "label": "Scanlines"}
+    ]
+  },
   "audioMapping": {
       "band1": {"description": "Very low frequencies", "frequency": "40-200 Hz", "effect": "Particle density band 1"},
       "band2": {"description": "Low frequencies", "frequency": "200-400 Hz", "effect": "Particle density band 2"},

@@ -199,6 +199,17 @@ export class LayerManager {
     setTimeout(() => canvas.classList.remove(`effect-${effect}`), 300);
   }
 
+  public setVFX(layerId: string, effect: string, enabled: boolean): void {
+    const layer = this.layers.get(layerId);
+    if (!layer) return;
+    const canvas = layer.renderer.domElement;
+    canvas.classList.toggle(`vfx-${effect}`, enabled);
+    const staticEffects = ['blur', 'distortion', 'pixelate', 'invert', 'sepia', 'noise', 'scanlines'];
+    if (staticEffects.includes(effect)) {
+      canvas.classList.toggle(`effect-${effect}`, enabled);
+    }
+  }
+
   private getLayerConfigPath(presetId: string, layerId: string): string {
     const loaded = this.presetLoader.getLoadedPresets().find(p => p.id === presetId);
     const folder = loaded?.folderPath ?? `${this.presetLoader.getBasePath()}/${presetId}`;

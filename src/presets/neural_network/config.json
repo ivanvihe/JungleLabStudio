@@ -54,6 +54,13 @@
       "default": "#3498db"
     }
   ],
+  "vfx": {
+    "effects": [
+      {"name": "flash", "label": "Flash"},
+      {"name": "glitch", "label": "Glitch"},
+      {"name": "distortion", "label": "Distortion"}
+    ]
+  },
   "audioMapping": {
     "low": {
       "description": "Controls node pulsing",

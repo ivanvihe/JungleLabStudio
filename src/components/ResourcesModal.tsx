@@ -33,6 +33,7 @@ interface ResourcesModalProps {
   launchpadText?: string;
   onLaunchpadTextChange?: (text: string) => void;
   onTriggerVFX?: (layerId: string, effect: string) => void;
+  onSetVFX?: (layerId: string, effect: string, enabled: boolean) => void;
 }
 
 type NodeKind =
@@ -81,7 +82,8 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
   onToggleLaunchpad,
   launchpadText,
   onLaunchpadTextChange,
-  onTriggerVFX
+  onTriggerVFX,
+  onSetVFX
 }) => {
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set([
@@ -518,7 +520,7 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
             <VFXControls
               preset={preset}
               assignedLayers={assigned}
-              onTrigger={onTriggerVFX || (()=>{})}
+              onToggle={onSetVFX || (()=>{})}
             />
           </div>
         );
