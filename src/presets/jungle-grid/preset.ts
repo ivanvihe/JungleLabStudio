@@ -44,8 +44,15 @@ class AbletonRemoteClient {
     }
   }
 
-  getTracksInfo(): Promise<TrackInfo[]> {
-    return this.request<TrackInfo[]>({ type: "get_tracks_info" });
+  async getTracksInfo(): Promise<TrackInfo[]> {
+    const response = await this.request<{ status?: string; result?: TrackInfo[] }>({ type: "get_tracks_info" });
+    if (response && Array.isArray((response as any).result)) {
+      return (response as any).result as TrackInfo[];
+    }
+    if (Array.isArray(response as any)) {
+      return response as any;
+    }
+    return [];
   }
 }
 
