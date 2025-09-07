@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { PresetLoader, LoadedPreset, AudioData } from './PresetLoader';
-import { LayerManager } from './LayerManager';
+import { LayerManager, LayerState } from './LayerManager';
 import { Compositor } from './Compositor';
 // Using simple path helpers instead of Node's `path` module which is not
 // available in the browser runtime. Node's `path.join` was causing errors
@@ -8,16 +8,6 @@ import { Compositor } from './Compositor';
 // For our use case we only need basic string concatenation to build and
 // inspect paths, so we implement lightweight helpers below.
 import { setNestedValue } from '../utils/objectPath';
-
-interface LayerState {
-  preset: LoadedPreset | null;
-  scene: THREE.Scene;
-  opacity: number;
-  fadeTime: number;
-  isActive: boolean;
-  renderTarget?: THREE.WebGLRenderTarget;
-  material?: THREE.Material;
-}
 
 
 export class AudioVisualizerEngine {
@@ -154,7 +144,8 @@ export class AudioVisualizerEngine {
         presetId,
         layer.scene,
         `${layerId}-${presetId}`,
-        loadedPresetConfig
+        loadedPresetConfig,
+        layer.camera
       );
       if (!presetInstance) {
         console.error(`No se pudo activar preset ${presetId}`);

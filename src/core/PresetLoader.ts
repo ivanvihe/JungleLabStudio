@@ -577,7 +577,8 @@ export class PresetLoader {
     presetId: string,
     scene: THREE.Scene,
     instanceId: string,
-    configOverride?: PresetConfig
+    configOverride?: PresetConfig,
+    cameraOverride?: THREE.Camera
   ): BasePreset | null {
     const loadedPreset = this.loadedPresets.get(presetId);
     if (!loadedPreset) {
@@ -590,7 +591,7 @@ export class PresetLoader {
 
       const presetInstance = loadedPreset.createPreset(
         scene,
-        this.camera,
+        cameraOverride ?? this.camera,
         this.renderer,
         configOverride ?? loadedPreset.config,
         loadedPreset.shaderCode

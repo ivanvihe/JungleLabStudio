@@ -21,6 +21,7 @@ function deepMerge(target: any, source: any): any {
 export interface LayerState {
   preset: LoadedPreset | null;
   scene: THREE.Scene;
+  camera: THREE.PerspectiveCamera;
   opacity: number;
   fadeTime: number;
   isActive: boolean;
@@ -37,7 +38,7 @@ export class LayerManager {
 
   constructor(
     private renderer: THREE.WebGLRenderer,
-    private camera: THREE.PerspectiveCamera,
+    private baseCamera: THREE.PerspectiveCamera,
     private presetLoader: PresetLoader
   ) {
     this.layerOrder.forEach(id => this.createLayer(id));
@@ -47,6 +48,9 @@ export class LayerManager {
     const scene = new THREE.Scene();
     scene.background = null;
     scene.overrideMaterial = null;
+
+    // Clone base camera so each layer has its own independent view
+    const camera = this.baseCamera.clone() as THREE.PerspectiveCamera;
 
     const renderTarget = new THREE.WebGLRenderTarget(1920, 1080, {
       format: THREE.RGBAFormat,
@@ -63,6 +67,7 @@ export class LayerManager {
     const layerState: LayerState = {
       preset: null,
       scene,
+      camera,
       opacity: 1.0,
       fadeTime: 1000,
       isActive: false,
@@ -82,7 +87,9 @@ export class LayerManager {
       this.renderer.clearDepth(); // Clear only depth buffer
       this.renderer.clearStencil(); // Clear only stencil buffer
       // Do NOT clear the color buffer (alpha channel)
-      this.renderer.render(layer.scene, this.camera);
+      this.renderer.render(layer.scene, layer.camera);
+      // Reset state so next layer starts clean
+      this.renderer.resetState();
     });
 
     this.presetLoader.updateActivePresets();
@@ -92,6 +99,8 @@ export class LayerManager {
   public updateSize(width: number, height: number, pixelRatio: number): void {
     this.layers.forEach(layer => {
       layer.renderTarget?.setSize(width * pixelRatio, height * pixelRatio);
+      layer.camera.aspect = width / height;
+      layer.camera.updateProjectionMatrix();
     });
   }
 
@@ -125,7 +134,8 @@ export class LayerManager {
         presetId,
         layer.scene,
         `${layerId}-${presetId}`,
-        loadedPresetConfig
+        loadedPresetConfig,
+        layer.camera
       );
       if (!presetInstance) {
         console.error(`No se pudo activar preset ${presetId}`);
