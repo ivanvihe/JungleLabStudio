@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { LAUNCHPAD_PRESETS, LaunchpadPreset } from '../utils/launchpad';
 import { LoadedPreset } from '../core/PresetLoader';
+import { getPresetThumbnail } from '../utils/presetThumbnails';
 import { PresetControls } from './PresetControls';
 import { setNestedValue } from '../utils/objectPath';
 import { GenLabPresetModal } from './GenLabPresetModal';
@@ -171,22 +172,6 @@ export const ResourcesModal: React.FC<ResourcesModalProps> = ({
       else next.add(id);
       return next;
     });
-  };
-
-  const getPresetThumbnail = (preset: LoadedPreset): string => {
-    const thumbnails: Record<string, string> = {
-      'neural_network': '🧠',
-      'abstract-lines': '📈',
-      'abstract-lines-pro': '📊',
-      'abstract-shapes': '🔷',
-      'evolutive-particles': '✨',
-      'boom-wave': '💥',
-      'plasma-ray': '⚡',
-      'shot-text': '📝',
-      'text-glitch': '🔤',
-      'custom-glitch-text': '📝'
-    };
-    return thumbnails[preset.id] || thumbnails[preset.id.split('-')[0]] || '🎨';
   };
 
   const getLaunchpadThumbnail = (id: LaunchpadPreset): string => {

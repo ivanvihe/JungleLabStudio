@@ -5,8 +5,8 @@
   "type": "module",
   "main": "electron.cjs",
   "scripts": {
-    "dev": "vite",
-    "build": "tauri build",
+    "dev": "tauri dev",
+    "build": "vite build && tauri build",
     "tauri": "tauri",
     "electron": "vite build && electron ./electron.cjs",
     "electron:package": "vite build && electron-builder"
