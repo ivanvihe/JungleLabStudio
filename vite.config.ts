@@ -13,6 +13,12 @@ export default defineConfig({
       input: {
         main: './index.html',
       },
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom'],
+          three: ['three']
+        }
+      },
       // Externalizar las APIs de Tauri para evitar errores de build en Electron
       external: [
         '@tauri-apps/api/event',

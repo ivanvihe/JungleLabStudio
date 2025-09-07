@@ -14,6 +14,7 @@ export class AudioVisualizerEngine {
   private isRunning = false;
   private multiMonitorMode = false;
   private currentBpm: number = 120;
+  private maxFps = 60;
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -83,9 +84,14 @@ export class AudioVisualizerEngine {
     if (this.isRunning) return;
     this.isRunning = true;
 
-    const animate = () => {
+    const frameInterval = 1000 / this.maxFps;
+    let last = performance.now();
+
+    const animate = (time: number) => {
       if (!this.isRunning) return;
       this.animationId = requestAnimationFrame(animate);
+      if (time - last < frameInterval) return;
+      last = time;
 
       this.renderer.clear();
       this.layerManager.renderLayers();
@@ -94,8 +100,12 @@ export class AudioVisualizerEngine {
       this.renderer.resetState();
     };
 
-    animate();
+    this.animationId = requestAnimationFrame(animate);
     console.log('🔄 Render loop started con layers independientes');
+  }
+
+  public setMaxFps(fps: number): void {
+    this.maxFps = fps;
   }
 
   public setMultiMonitorMode(active: boolean): void {

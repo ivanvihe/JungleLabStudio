@@ -63,6 +63,8 @@ export class LayerManager {
       alpha: true,
       premultiplyAlpha: false
     });
+    // Avoid vertical flip when sampling the render target
+    renderTarget.texture.flipY = false;
 
     const layerState: LayerState = {
       preset: null,
