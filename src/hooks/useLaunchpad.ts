@@ -105,11 +105,18 @@ export function useLaunchpad(audioData: AudioData, canvasRef: React.RefObject<HT
   }, [audioData, launchpadRunning, launchpadPreset, launchpadOutput, launchpadSmoothness, launchpadText, canvasRef]);
 
   useEffect(() => {
-    console.log('LaunchPad state change:', {
-      running: launchpadRunning,
-      hasOutput: !!launchpadOutput,
-      outputId: launchpadOutput?.id,
-    });
+    console.log(
+      'LaunchPad state change:',
+      JSON.stringify(
+        {
+          running: launchpadRunning,
+          hasOutput: !!launchpadOutput,
+          outputId: launchpadOutput?.id,
+        },
+        null,
+        2,
+      ),
+    );
 
     if (launchpadRunning && launchpadOutput) {
       try {

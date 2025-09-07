@@ -71,6 +71,10 @@ export function useMidi(options: MidiOptions) {
   const [beatActive, setBeatActive] = useState(false);
   const [midiTrigger, setMidiTrigger] = useState<MidiTrigger | null>(null);
 
+  // Debounce for LaunchPad toggle to avoid rapid retriggers
+  const lastLaunchpadTriggerRef = useRef(0);
+  const LAUNCHPAD_DEBOUNCE_MS = 300;
+
   // Enhanced MIDI clock settings
   const [midiClockSettings, setMidiClockSettings] = useState<MidiClockSettings>(() => ({
     resolution: parseInt(localStorage.getItem('midiClockResolution') || '24'),
@@ -240,12 +244,25 @@ export function useMidi(options: MidiOptions) {
         velocity > 0 &&
         messageType === 0x90
       ) {
-        console.log('🎹 LaunchPad MIDI trigger válido recibido:', {
-          channel,
-          note,
-          velocity,
-          expected: { channel: launchpadChannel, note: launchpadNote },
-        });
+        const now = performance.now();
+        if (now - lastLaunchpadTriggerRef.current < LAUNCHPAD_DEBOUNCE_MS) {
+          return; // Ignorar triggers muy seguidos
+        }
+        lastLaunchpadTriggerRef.current = now;
+
+        console.log(
+          '🎹 LaunchPad MIDI trigger válido recibido:',
+          JSON.stringify(
+            {
+              channel,
+              note,
+              velocity,
+              expected: { channel: launchpadChannel, note: launchpadNote },
+            },
+            null,
+            2,
+          ),
+        );
 
         // Solo entonces activar el toggle
         onLaunchpadToggle?.();
