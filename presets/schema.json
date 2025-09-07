@@ -51,6 +51,24 @@
         }
       }
     },
+    "vfx": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "effects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "label"],
+            "properties": {
+              "name": {"type": "string"},
+              "label": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
     "audioMapping": {
       "type": "object",
       "additionalProperties": false,
