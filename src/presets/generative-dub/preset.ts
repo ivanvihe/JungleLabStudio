@@ -66,6 +66,10 @@ class GenerativeDubPreset extends BasePreset {
     if (this.camera instanceof THREE.PerspectiveCamera) {
       this.camera.position.set(0, 0, 1);
       this.camera.lookAt(0, 0, 0);
+      this.camera.fov = 90;
+      this.camera.aspect =
+        this.renderer.domElement.clientWidth /
+        this.renderer.domElement.clientHeight;
       this.camera.updateProjectionMatrix();
     }
 
@@ -200,6 +204,11 @@ class GenerativeDubPreset extends BasePreset {
     // Inicializar con parámetros y paleta aleatorios desde el comienzo
     this.randomize(material);
     this.mesh = new THREE.Mesh(geometry, material);
+    // Ajustar el plano para que ocupe toda la ventana según el aspect ratio actual
+    const aspect =
+      this.renderer.domElement.clientWidth /
+      this.renderer.domElement.clientHeight;
+    this.mesh.scale.set(aspect, 1, 1);
     this.scene.add(this.mesh);
     this.lastChange = 0;
     this.clock.start();

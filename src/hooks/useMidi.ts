@@ -22,9 +22,10 @@ interface MidiOptions {
   layerEffects: Record<string, LayerEffect>;
   setLayerEffects: React.Dispatch<React.SetStateAction<Record<string, LayerEffect>>>;
   effectMidiNotes: Record<string, number>;
-  launchpadChannel: number;
-  launchpadNote: number;
-  onLaunchpadToggle: () => void;
+  launchpadChannel?: number;
+  launchpadNote?: number;
+  onLaunchpadToggle?: () => void;
+  enableLaunchpadToggle?: boolean;
   engineRef: React.MutableRefObject<AudioVisualizerEngine | null>;
 }
 
@@ -48,6 +49,7 @@ export function useMidi(options: MidiOptions) {
     launchpadChannel,
     launchpadNote,
     onLaunchpadToggle,
+    enableLaunchpadToggle = false,
     engineRef,
   } = options;
 
@@ -237,8 +239,12 @@ export function useMidi(options: MidiOptions) {
       const channel = (status & 0x0f) + 1;
       const messageType = status & 0xf0;
 
-      // Solo procesar LaunchPad toggle si es exactamente el canal y nota configurados
+      // Solo procesar LaunchPad toggle si está habilitado y coinciden canal y nota
       if (
+        enableLaunchpadToggle &&
+        onLaunchpadToggle &&
+        launchpadChannel !== undefined &&
+        launchpadNote !== undefined &&
         channel === launchpadChannel &&
         note === launchpadNote &&
         velocity > 0 &&
@@ -393,6 +399,7 @@ export function useMidi(options: MidiOptions) {
     launchpadChannel,
     launchpadNote,
     onLaunchpadToggle,
+    enableLaunchpadToggle,
     availablePresets,
   ]);
 

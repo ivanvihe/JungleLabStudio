@@ -196,9 +196,6 @@ const App: React.FC = () => {
     layerEffects,
     setLayerEffects,
     effectMidiNotes,
-    launchpadChannel,
-    launchpadNote,
-    onLaunchpadToggle: handleLaunchpadToggle,
     engineRef,
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
