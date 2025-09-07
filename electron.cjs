@@ -5,9 +5,10 @@ let mainWindow;
 // Ventanas usadas para monitores secundarios en fullscreen
 let fullscreenWindows = [];
 let mirrorInterval = null;
-const startUrl = process.env.NODE_ENV === 'development'
-  ? 'http://localhost:3000'  // Cambiado de 5173 a 3000 (puerto de Vite por defecto)
-  : path.join(__dirname, 'dist', 'index.html');
+const isDev = process.env.NODE_ENV === 'development';
+const startUrl = isDev
+  ? 'http://localhost:3000' // Cambiado de 5173 a 3000 (puerto de Vite por defecto)
+  : `file://${path.join(__dirname, 'dist', 'index.html')}`;
 
 function closeFullscreenWindows() {
   fullscreenWindows.forEach(win => {
@@ -37,11 +38,7 @@ function createWindow() {
 
   console.log('Loading URL:', startUrl);
 
-  if (startUrl.startsWith('http')) {
-    mainWindow.loadURL(startUrl);
-  } else {
-    mainWindow.loadFile(startUrl);
-  }
+  mainWindow.loadURL(startUrl);
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
