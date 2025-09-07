@@ -142,7 +142,6 @@ export class PresetLoader {
 
   constructor(
     private camera: THREE.Camera,
-    private renderer: THREE.WebGLRenderer,
     private glitchTextPads: number = 1,
     basePath: string = 'src/presets'
   ) {
@@ -577,8 +576,9 @@ export class PresetLoader {
     presetId: string,
     scene: THREE.Scene,
     instanceId: string,
-    configOverride?: PresetConfig,
-    cameraOverride?: THREE.Camera
+    configOverride: PresetConfig | undefined,
+    cameraOverride: THREE.Camera | undefined,
+    renderer: THREE.WebGLRenderer
   ): BasePreset | null {
     const loadedPreset = this.loadedPresets.get(presetId);
     if (!loadedPreset) {
@@ -592,7 +592,7 @@ export class PresetLoader {
       const presetInstance = loadedPreset.createPreset(
         scene,
         cameraOverride ?? this.camera,
-        this.renderer,
+        renderer,
         configOverride ?? loadedPreset.config,
         loadedPreset.shaderCode
       );

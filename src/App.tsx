@@ -36,6 +36,7 @@ interface MonitorInfo {
 }
 
 const App: React.FC = () => {
+  const playgroundRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<AudioVisualizerEngine | null>(null);
   const broadcastRef = useRef<BroadcastChannel | null>(null);
@@ -409,17 +410,18 @@ const App: React.FC = () => {
   // Inicializar el engine
   useEffect(() => {
     const initEngine = async () => {
-      if (!canvasRef.current) {
-        console.error('❌ Canvas ref is null');
+      if (!playgroundRef.current) {
+        console.error('❌ Playground ref is null');
         return;
       }
 
-      console.log('🔧 Canvas found, initializing engine...');
+      console.log('🔧 Playground found, initializing engine...');
       try {
         setStatus('Loading presets...');
-        const engine = new AudioVisualizerEngine(canvasRef.current, { glitchTextPads, visualsPath });
+        const engine = new AudioVisualizerEngine(playgroundRef.current, { glitchTextPads, visualsPath });
         await engine.initialize();
         engineRef.current = engine;
+        canvasRef.current = engine.getLayerCanvas('A') || null;
         setGenLabBasePreset(engine.getGenLabBasePreset());
         setFractalLabBasePreset(engine.getFractalLabBasePreset());
 
@@ -1060,9 +1062,9 @@ const App: React.FC = () => {
           className="visual-wrapper"
           style={{ background: canvasBackground }}
         >
-          <canvas
-            ref={canvasRef}
-            className={`main-canvas ${activeEffectClasses}`}
+          <div
+            ref={playgroundRef}
+            className={`playground ${activeEffectClasses}`}
             style={{
               filter: `brightness(${canvasBrightness}) saturate(${canvasVibrance})`
             }}

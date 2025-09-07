@@ -22,11 +22,10 @@ export interface LayerState {
   preset: LoadedPreset | null;
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
+  renderer: THREE.WebGLRenderer;
   opacity: number;
   fadeTime: number;
   isActive: boolean;
-  renderTarget?: THREE.WebGLRenderTarget;
-  material?: THREE.Material;
 }
 
 /**
@@ -37,7 +36,7 @@ export class LayerManager {
   private layerOrder: string[] = ['C', 'B', 'A'];
 
   constructor(
-    private renderer: THREE.WebGLRenderer,
+    private container: HTMLElement,
     private baseCamera: THREE.PerspectiveCamera,
     private presetLoader: PresetLoader
   ) {
@@ -49,57 +48,62 @@ export class LayerManager {
     scene.background = null;
     scene.overrideMaterial = null;
 
-    // Clone base camera so each layer has its own independent view
     const camera = this.baseCamera.clone() as THREE.PerspectiveCamera;
 
-    const renderTarget = new THREE.WebGLRenderTarget(1920, 1080, {
-      format: THREE.RGBAFormat,
-      type: THREE.UnsignedByteType,
-      minFilter: THREE.LinearFilter,
-      magFilter: THREE.LinearFilter,
-      generateMipmaps: false,
-      stencilBuffer: false,
-      depthBuffer: true,
+    const canvas = document.createElement('canvas');
+    canvas.className = `layer-canvas layer-${id}`;
+    canvas.style.position = 'absolute';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    const zIndex = this.layerOrder.indexOf(id) + 1;
+    canvas.style.zIndex = zIndex.toString();
+    canvas.style.pointerEvents = 'none';
+    canvas.style.opacity = '0';
+    this.container.appendChild(canvas);
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
       alpha: true,
-      premultiplyAlpha: false
+      powerPreference: 'high-performance',
+      preserveDrawingBuffer: true
     });
-    // Avoid vertical flip when sampling the render target
-    renderTarget.texture.flipY = false;
+    renderer.autoClear = true;
+    renderer.setClearColor(0x000000, 0);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     const layerState: LayerState = {
       preset: null,
       scene,
       camera,
+      renderer,
       opacity: 1.0,
       fadeTime: 1000,
-      isActive: false,
-      renderTarget
+      isActive: false
     };
 
     this.layers.set(id, layerState);
-    console.log(`🔧 Layer ${id} creado con render target`);
+    console.log(`🔧 Layer ${id} creado con canvas propio`);
   }
 
   public renderLayers(): void {
     this.layers.forEach(layer => {
-      if (!layer.isActive || !layer.preset || !layer.renderTarget) return;
-
-      this.renderer.setRenderTarget(layer.renderTarget);
-      this.renderer.setClearColor(0x000000, 0);
-      // Clear color, depth and stencil so each layer starts from a blank buffer
-      this.renderer.clear(true, true, true);
-      this.renderer.render(layer.scene, layer.camera);
-      // Reset state so next layer starts clean
-      this.renderer.resetState();
+      layer.renderer.setClearColor(0x000000, 0);
+      layer.renderer.clear(true, true, true);
+      if (layer.isActive && layer.preset) {
+        layer.renderer.render(layer.scene, layer.camera);
+      }
     });
 
     this.presetLoader.updateActivePresets();
-    this.renderer.setRenderTarget(null);
   }
 
   public updateSize(width: number, height: number, pixelRatio: number): void {
     this.layers.forEach(layer => {
-      layer.renderTarget?.setSize(width * pixelRatio, height * pixelRatio);
+      layer.renderer.setSize(width, height, false);
+      layer.renderer.setPixelRatio(pixelRatio);
       layer.camera.aspect = width / height;
       layer.camera.updateProjectionMatrix();
     });
@@ -136,7 +140,8 @@ export class LayerManager {
         layer.scene,
         `${layerId}-${presetId}`,
         loadedPresetConfig,
-        layer.camera
+        layer.camera,
+        layer.renderer
       );
       if (!presetInstance) {
         console.error(`No se pudo activar preset ${presetId}`);
@@ -145,6 +150,7 @@ export class LayerManager {
 
       layer.preset = { ...loadedPreset, config: loadedPresetConfig };
       layer.isActive = true;
+      layer.renderer.domElement.style.opacity = layer.opacity.toString();
       console.log(`✅ Layer ${layerId} activado con preset ${presetId}`);
       return true;
     } catch (error) {
@@ -164,6 +170,8 @@ export class LayerManager {
     }
 
     layer.isActive = false;
+    layer.renderer.clear();
+    layer.renderer.domElement.style.opacity = '0';
     console.log(`🗑️ Layer ${layerId} desactivado`);
   }
 
@@ -173,6 +181,9 @@ export class LayerManager {
 
     if (config.opacity !== undefined) {
       layer.opacity = config.opacity / 100;
+      layer.renderer.domElement.style.opacity = layer.isActive
+        ? layer.opacity.toString()
+        : '0';
     }
 
     if (config.fadeTime !== undefined) {
@@ -278,8 +289,15 @@ export class LayerManager {
     return status;
   }
 
-  public getLayers(): Map<string, LayerState> {
-    return this.layers;
+  public getLayerCanvas(layerId: string): HTMLCanvasElement | undefined {
+    return this.layers.get(layerId)?.renderer.domElement;
+  }
+
+  public clearAll(): void {
+    this.layers.forEach(layer => {
+      layer.renderer.setClearColor(0x000000, 0);
+      layer.renderer.clear(true, true, true);
+    });
   }
 
   public updateBpm(bpm: number): void {
@@ -301,10 +319,9 @@ export class LayerManager {
       if (layer.preset) {
         this.presetLoader.deactivatePreset(`${layerId}-${layer.preset.id}`);
       }
-      if (layer.renderTarget) {
-        layer.renderTarget.dispose();
-      }
       layer.scene.clear();
+      layer.renderer.dispose();
+      layer.renderer.domElement.remove();
     });
   }
 }

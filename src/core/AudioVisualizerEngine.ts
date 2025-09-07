@@ -1,50 +1,34 @@
 import * as THREE from 'three';
 import { PresetLoader, LoadedPreset, AudioData } from './PresetLoader';
 import { LayerManager } from './LayerManager';
-import { Compositor } from './Compositor';
 
 
 export class AudioVisualizerEngine {
   private camera: THREE.PerspectiveCamera;
-  private renderer: THREE.WebGLRenderer;
   private presetLoader: PresetLoader;
   private layerManager: LayerManager;
-  private compositor: Compositor;
   private animationId: number | null = null;
   private isRunning = false;
   private multiMonitorMode = false;
   private currentBpm: number = 120;
   private maxFps = 60;
 
-  constructor(
-    private canvas: HTMLCanvasElement,
-    options: { glitchTextPads?: number; visualsPath?: string } = {}
-  ) {
-    this.camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-    this.renderer = new THREE.WebGLRenderer({
-      canvas: this.canvas,
-      antialias: true,
-      alpha: true,
-      powerPreference: 'high-performance',
-      preserveDrawingBuffer: true
-    });
+    constructor(
+      private container: HTMLElement,
+      options: { glitchTextPads?: number; visualsPath?: string } = {}
+    ) {
+      this.camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
 
-    this.renderer.autoClear = false;
-    this.renderer.setClearColor(0x000000, 0);
-    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+      this.presetLoader = new PresetLoader(
+        this.camera,
+        options.glitchTextPads ?? 1,
+        options.visualsPath
+      );
+      this.layerManager = new LayerManager(this.container, this.camera, this.presetLoader);
 
-    this.presetLoader = new PresetLoader(
-      this.camera,
-      this.renderer,
-      options.glitchTextPads ?? 1,
-      options.visualsPath
-    );
-    this.layerManager = new LayerManager(this.renderer, this.camera, this.presetLoader);
-    this.compositor = new Compositor(this.renderer);
-
-    this.setupScene();
-    this.setupEventListeners();
-  }
+      this.setupScene();
+      this.setupEventListeners();
+    }
 
   private setupScene(): void {
     this.camera.position.set(0, 0, 3);
@@ -67,11 +51,6 @@ export class AudioVisualizerEngine {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
 
-    this.renderer.setSize(scaledWidth, scaledHeight, false);
-    this.renderer.domElement.style.width = '100%';
-    this.renderer.domElement.style.height = '100%';
-    this.renderer.setPixelRatio(pixelRatio);
-
     this.layerManager.updateSize(scaledWidth, scaledHeight, pixelRatio);
   }
 
@@ -93,11 +72,7 @@ export class AudioVisualizerEngine {
       if (time - last < frameInterval) return;
       last = time;
 
-      this.renderer.clear();
       this.layerManager.renderLayers();
-      this.compositor.composite(this.layerManager.getLayers());
-      // Reset WebGL state to avoid feedback loops with bound textures
-      this.renderer.resetState();
     };
 
     this.animationId = requestAnimationFrame(animate);
@@ -130,10 +105,6 @@ export class AudioVisualizerEngine {
 
   public updateLayerPresetConfig(layerId: string, pathKey: string, value: any): void {
     this.layerManager.updateLayerPresetConfig(layerId, pathKey, value);
-  }
-
-  public setGlobalOpacity(opacity: number): void {
-    this.compositor.setGlobalOpacity(opacity);
   }
 
   public getAvailablePresets(): LoadedPreset[] {
@@ -186,9 +157,12 @@ export class AudioVisualizerEngine {
     return this.layerManager.getLayerStatus();
   }
 
+  public getLayerCanvas(layerId: string): HTMLCanvasElement | undefined {
+    return this.layerManager.getLayerCanvas(layerId);
+  }
+
   public clearRenderer(): void {
-    this.renderer.setClearColor(0x000000, 0);
-    this.renderer.clear(true, true, true);
+    this.layerManager.clearAll();
   }
 
   public updateBpm(bpm: number): void {
@@ -208,9 +182,7 @@ export class AudioVisualizerEngine {
     }
 
     this.layerManager.dispose();
-    this.compositor.dispose();
     this.presetLoader.dispose();
-    this.renderer.dispose();
 
     console.log('🧹 Engine disposed');
   }
