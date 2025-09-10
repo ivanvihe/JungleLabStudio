@@ -1,0 +1,96 @@
+{
+  "name": "Artistic Waveform Pro",
+  "description": "High-resolution waveform visualizer with Touch Designer aesthetics",
+  "author": "AudioVisualizer Pro",
+  "version": "1.0.0",
+  "category": "waveform",
+  "tags": ["waveform", "artistic", "touchdesigner", "professional", "highres"],
+  "thumbnail": "artistic_waveform_pro_thumb.png",
+  "note": 60,
+  "defaultConfig": {
+    "opacity": 1.0,
+    "fadeMs": 150,
+    "waveform": {
+      "resolution": 512,
+      "thickness": 2.5,
+      "smoothing": 0.8,
+      "amplitude": 1.2,
+      "frequency": 1.0,
+      "layers": 5,
+      "displacement": 0.3
+    },
+    "visual": {
+      "blur": 0.4,
+      "glow": 0.6,
+      "chromatic": 0.2,
+      "distortion": 0.15,
+      "feedback": 0.3,
+      "particles": true
+    },
+    "colors": {
+      "primary": "#00F5FF",
+      "secondary": "#FF1493",
+      "tertiary": "#FFD700",
+      "background": "#0A0A0F",
+      "accent": "#FFFFFF"
+    },
+    "animation": {
+      "speed": 1.0,
+      "rotation": 0.2,
+      "scale": 1.0,
+      "morphing": 0.5,
+      "breathing": 0.3
+    }
+  },
+  "controls": [
+    {
+      "name": "waveform.amplitude",
+      "type": "slider",
+      "label": "Wave Amplitude",
+      "min": 0.3,
+      "max": 3.0,
+      "step": 0.1,
+      "default": 1.2
+    },
+    {
+      "name": "waveform.layers",
+      "type": "slider",
+      "label": "Wave Layers",
+      "min": 1,
+      "max": 8,
+      "step": 1,
+      "default": 5
+    },
+    {
+      "name": "visual.glow",
+      "type": "slider",
+      "label": "Glow Intensity",
+      "min": 0.0,
+      "max": 1.5,
+      "step": 0.1,
+      "default": 0.6
+    }
+  ],
+  "audioMapping": {
+    "low": {
+      "description": "Controls waveform amplitude and base layer",
+      "frequency": "20-250 Hz",
+      "effect": "Main waveform intensity and displacement"
+    },
+    "mid": {
+      "description": "Modulates secondary layers and morphing",
+      "frequency": "250-4000 Hz",
+      "effect": "Layer variations and color transitions"
+    },
+    "high": {
+      "description": "Controls particles and high-frequency details",
+      "frequency": "4000+ Hz",
+      "effect": "Particle generation and fine details"
+    }
+  },
+  "performance": {
+    "complexity": "high",
+    "recommendedFPS": 60,
+    "gpuIntensive": true
+  }
+}
