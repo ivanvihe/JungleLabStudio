@@ -235,24 +235,11 @@ class AbletonRemoteClient {
 
         this.ws.addEventListener('message', onMessage);
 
-        const requests = [
-          { command: 'get_tempo' },
-          { action: 'get_tempo' },
-          { type: 'get_tempo' },
-          { request: 'tempo' },
-          { command: 'get_bpm' },
-          { action: 'get_bpm' },
-          { type: 'get_bpm' },
-          { request: 'bpm' },
-        ];
-
-        requests.forEach((request, index) => {
-          setTimeout(() => {
-            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-              this.ws.send(JSON.stringify(request));
-            }
-          }, index * 200);
-        });
+        // Try a single, standard command first.
+        const request = { command: 'get_tempo' };
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+          this.ws.send(JSON.stringify(request));
+        }
       });
     } catch (error) {
       console.error('JungleGrid: Error obteniendo tempo:', error);
@@ -393,7 +380,7 @@ class JungleGridPreset extends BasePreset {
   }
 
   async fetchDataIfNeeded(timeMs: number) {
-    if (timeMs - this.lastFetch >= this.config.defaultConfig.refreshMs) {
+    if (timeMs - this.lastFetch >= 50) { // Faster updates
       this.lastFetch = timeMs;
       
       try {
@@ -504,7 +491,7 @@ class JungleGridPreset extends BasePreset {
           color: '#333333',
           linewidth: 1,
           transparent: true,
-          opacity: 0.3
+          opacity: 0.5
         });
 
         const mesh = new THREE.LineSegments(geometry, material);
@@ -528,9 +515,6 @@ class JungleGridPreset extends BasePreset {
   }
 
   private updateGrid(): void {
-    const kick = Math.min(this.audioData.low || 0, 1);
-    const period = this.bpm ? (60 / this.bpm) * 1000 : this.config.defaultConfig.blink.periodMs;
-
     this.gridCells.forEach(cell => {
       if (cell.trackIndex >= 0 && cell.trackIndex < this.tracks.length) {
         const track = this.tracks[cell.trackIndex];
@@ -551,32 +535,22 @@ class JungleGridPreset extends BasePreset {
           }
 
           if (clip.isPlaying) {
-            // Clip activo - animar con blink
-            const blinkAlpha = this.config.defaultConfig.blink.minAlpha +
-              (this.config.defaultConfig.blink.maxAlpha - this.config.defaultConfig.blink.minAlpha) *
-              (0.5 + 0.5 * Math.sin(this.blinkPhase * 2 * Math.PI / period));
-
             cell.material.color.setHex(parseInt(this.config.defaultConfig.colors.clipActive.replace('#', ''), 16));
-            cell.material.opacity = blinkAlpha * (0.5 + kick * 0.5);
-            if (blinkAlpha > 0.95 && kick > 0.7) {
-              triggerClipFlash(this.renderer.domElement);
-            }
+            cell.material.opacity = 1.0; // Always bright
+            triggerClipFlash(this.renderer.domElement);
           } else {
-            // Clip idle
             cell.material.color.setHex(parseInt(this.config.defaultConfig.colors.clipIdle.replace('#', ''), 16));
-            cell.material.opacity = 0.8;
+            cell.material.opacity = 0.7; // Slightly dimmer
           }
         } else {
-          // No clip
           if (cell.label) cell.label.visible = false;
           cell.material.color.setHex(0x333333);
-          cell.material.opacity = 0.3;
+          cell.material.opacity = 0.5; // Brighter empty cells
         }
       } else {
-        // Grid vacío
         if (cell.label) cell.label.visible = false;
         cell.material.color.setHex(0x222222);
-        cell.material.opacity = 0.2;
+        cell.material.opacity = 0.5; // Brighter empty grid
       }
     });
   }
