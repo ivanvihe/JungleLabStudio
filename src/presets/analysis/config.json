@@ -1,8 +1,8 @@
 {
   "name": "ANALYSIS",
-  "description": "3D audio spectrum with pastel particles, starfield, pulsating rings and extended dB grid.",
+  "description": "3D audio spectrum with pastel particles, starfield, pulsating rings, glowing bursts and extended dB grid.",
   "author": "AudioVisualizer",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "category": "analysis",
   "tags": ["spectrum", "analysis", "particles", "grid", "rings"],
   "thumbnail": "analysis_thumb.png",
@@ -33,7 +33,8 @@
     "effects": [
       {"name": "flash", "label": "Flash"},
       {"name": "glitch", "label": "Glitch"},
-      {"name": "scanlines", "label": "Scanlines"}
+      {"name": "scanlines", "label": "Scanlines"},
+      {"name": "sparkle", "label": "Sparkle"}
     ]
   },
   "audioMapping": {
