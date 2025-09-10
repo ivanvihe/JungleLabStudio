@@ -12,4 +12,7 @@ export function applyVFX(canvas: HTMLCanvasElement, audio: AudioData): void {
     const cls = glitches[Math.floor(Math.random() * glitches.length)];
     triggerEffect(canvas, cls, 500);
   }
+  if (canvas.classList.contains('vfx-sparkle') && intensity > 0.8) {
+    triggerEffect(canvas, 'effect-sparkle', 400);
+  }
 }

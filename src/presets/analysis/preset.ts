@@ -11,9 +11,9 @@ const COLOR_PALETTE = [
 
 export const config: PresetConfig = {
   name: 'ANALYSIS',
-  description: '3D audio spectrum analyzer with smooth pastel particle transitions, starfield, pulsating rings and extended dB grid.',
+  description: '3D audio spectrum analyzer with smooth pastel particle transitions, starfield, pulsating rings, glowing bursts and extended dB grid.',
   author: 'AudioVisualizer',
-  version: '2.3.0',
+  version: '2.4.0',
   category: 'analysis',
   tags: ['spectrum', 'analysis', 'particles', 'grid', 'nature'],
   thumbnail: 'analysis_thumb.png',
@@ -86,6 +86,7 @@ class AnalysisSpectrum extends BasePreset {
   private pointLight?: THREE.PointLight;
   private starField?: THREE.Points;
   private rings: Partial<Record<BandName, THREE.Mesh>> = {};
+  private burstParticles: Particle[] = [];
   private currentConfig: any;
   private initialCameraPosition = this.camera.position.clone();
   private initialCameraQuaternion = this.camera.quaternion.clone();
@@ -109,6 +110,8 @@ class AnalysisSpectrum extends BasePreset {
     this.scene.add(this.group);
 
     this.particleGeometry = new THREE.SphereGeometry(0.05, 16, 16);
+
+    this.burstParticles = [];
 
     this.createFrequencyGrid();
     this.createDbGrid();
@@ -278,6 +281,7 @@ class AnalysisSpectrum extends BasePreset {
 
   private createParticle(colorHex: string, centerX: number): Particle {
     const color = new THREE.Color(colorHex);
+    color.offsetHSL(0, 0, (Math.random() - 0.5) * 0.15);
     const material = new THREE.MeshLambertMaterial({
       color,
       emissive: color.clone().multiplyScalar(0.3),
@@ -437,6 +441,32 @@ class AnalysisSpectrum extends BasePreset {
       }
     });
 
+    const globalIntensity = (this.audioData.low + this.audioData.mid + this.audioData.high) / 3;
+    if (globalIntensity > 0.8 && Math.random() < globalIntensity * deltaTime) {
+      const burst = this.createParticle(COLOR_PALETTE[Math.floor(Math.random() * COLOR_PALETTE.length)], 0);
+      burst.birthTimer = 0;
+      burst.life = 1;
+      burst.scale = 0.3 + globalIntensity * 0.4;
+      burst.mesh.scale.setScalar(burst.scale);
+      const mat = burst.mesh.material as THREE.MeshLambertMaterial;
+      mat.opacity = 1;
+      mat.emissiveIntensity = 1.5;
+      burst.deathTimer = this.DEATH_DURATION;
+      this.burstParticles.push(burst);
+    }
+
+    for (let i = this.burstParticles.length - 1; i >= 0; i--) {
+      const p = this.burstParticles[i];
+      p.deathTimer -= deltaTime;
+      p.mesh.scale.multiplyScalar(1 + deltaTime * 2);
+      const mat = p.mesh.material as THREE.MeshLambertMaterial;
+      mat.opacity = Math.max(0, mat.opacity - deltaTime * 2);
+      if (p.deathTimer <= 0) {
+        this.group.remove(p.mesh);
+        this.burstParticles.splice(i, 1);
+      }
+    }
+
     if (this.starField) {
       this.starField.rotation.y += deltaTime * 0.02;
     }
@@ -484,6 +514,7 @@ class AnalysisSpectrum extends BasePreset {
 
     this.group.clear();
     this.particleGeometry?.dispose();
+    this.burstParticles = [];
 
     Object.keys(this.particleGroups).forEach(key => {
       this.particleGroups[key as BandName] = {
