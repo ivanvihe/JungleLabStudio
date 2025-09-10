@@ -126,10 +126,12 @@ class AbletonRemoteClient {
             const data = JSON.parse(event.data);
             
             // Manejar diferentes tipos de respuesta del remote script
-            if (data.status === 'ok' && 
-                (data.type === 'tracks_info' || 
-                 data.tracks || 
-                 data.result)) {
+            if (data.status === 'ok' &&
+                (data.type === 'tracks_info' ||
+                 data.tracks ||
+                 data.result ||
+                 (data.session && data.session.tracks) ||
+                 (data.project && data.project.tracks))) {
               
               clearTimeout(timeout);
               this.ws?.removeEventListener('message', onMessage);
@@ -139,6 +141,10 @@ class AbletonRemoteClient {
               
               if (data.tracks && Array.isArray(data.tracks)) {
                 tracks = data.tracks;
+              } else if (data.session && Array.isArray(data.session.tracks)) {
+                tracks = data.session.tracks;
+              } else if (data.project && Array.isArray(data.project.tracks)) {
+                tracks = data.project.tracks;
               } else if (data.result && Array.isArray(data.result)) {
                 tracks = data.result;
               } else if (Array.isArray(data)) {
@@ -188,6 +194,68 @@ class AbletonRemoteClient {
     }
   }
 
+  async getTempo(): Promise<number | null> {
+    try {
+      await this.connect();
+
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        return null;
+      }
+
+      return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          this.ws?.removeEventListener('message', onMessage);
+          resolve(null);
+        }, 5000);
+
+        const onMessage = (event: MessageEvent) => {
+          try {
+            const data = JSON.parse(event.data);
+            let tempo: number | null = null;
+
+            if (typeof data.tempo === 'number') {
+              tempo = data.tempo;
+            } else if (data.result && typeof data.result.tempo === 'number') {
+              tempo = data.result.tempo;
+            } else if (typeof data.bpm === 'number') {
+              tempo = data.bpm;
+            } else if (data.song_tempo && typeof data.song_tempo === 'number') {
+              tempo = data.song_tempo;
+            }
+
+            if (tempo !== null) {
+              clearTimeout(timeout);
+              this.ws?.removeEventListener('message', onMessage);
+              resolve(tempo);
+            }
+          } catch (err) {
+            // Ignore parse errors
+          }
+        };
+
+        this.ws.addEventListener('message', onMessage);
+
+        const requests = [
+          { type: 'get_tempo' },
+          { action: 'get_tempo' },
+          { command: 'tempo' },
+          { type: 'tempo_info' }
+        ];
+
+        requests.forEach((request, index) => {
+          setTimeout(() => {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+              this.ws.send(JSON.stringify(request));
+            }
+          }, index * 200);
+        });
+      });
+    } catch (error) {
+      console.error('JungleGrid: Error obteniendo tempo:', error);
+      return null;
+    }
+  }
+
   isConnected(): boolean {
     return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
   }
@@ -229,6 +297,28 @@ interface GridCell {
   material: THREE.LineBasicMaterial;
   trackIndex: number;
   clipIndex: number;
+  label: THREE.Sprite | null;
+}
+
+function createClipLabel(text: string, width: number, height: number): THREE.Sprite {
+  const canvas = document.createElement('canvas');
+  const size = 256;
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  ctx.clearRect(0, 0, size, size);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '48px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, size / 2, size / 2);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+  const sprite = new THREE.Sprite(material);
+  sprite.scale.set(width, height, 1);
+  (sprite as any).userData = { text };
+  return sprite;
 }
 
 class JungleGridPreset extends BasePreset {
@@ -241,6 +331,8 @@ class JungleGridPreset extends BasePreset {
   private connectionStatus = 'connecting';
   private statusUpdateInterval: number | null = null;
   private lastTrackCountLogged = -1;
+  private cellWidth = 0.8;
+  private cellHeight = 0.8;
 
   constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, config: PresetConfig) {
     super(scene, camera, renderer, config);
@@ -284,15 +376,14 @@ class JungleGridPreset extends BasePreset {
 
   async update() {
     const timeMs = performance.now();
-    this.blinkPhase = (this.blinkPhase + this.clock.getDelta() * 1000) % this.config.defaultConfig.blink.periodMs;
-    
+    const period = this.bpm ? (60 / this.bpm) * 1000 : this.config.defaultConfig.blink.periodMs;
+    this.blinkPhase = (this.blinkPhase + this.clock.getDelta() * 1000) % period;
+
     await this.fetchDataIfNeeded(timeMs);
     this.updateGrid();
 
-    // Subtle camera oscillation
-    const oscillationSpeed = 0.00005;
-    const oscillationAmount = 0.3;
-    this.camera.position.x = Math.sin(timeMs * oscillationSpeed) * oscillationAmount;
+    // Mantener cámara perpendicular al grid
+    this.camera.position.x = 0;
 
     applyVFX(this.renderer.domElement, this.audioData);
   }
@@ -302,10 +393,14 @@ class JungleGridPreset extends BasePreset {
       this.lastFetch = timeMs;
       
       try {
-        const tracks = await this.client.getTracksInfo();
+        const [tracks, tempo] = await Promise.all([
+          this.client.getTracksInfo(),
+          this.client.getTempo()
+        ]);
+
         const tracksStr = JSON.stringify(tracks);
         const currentStr = JSON.stringify(this.tracks);
-        
+
         if (tracksStr !== currentStr) {
           this.tracks = Array.isArray(tracks) ? tracks : [];
           this.createGrid();
@@ -314,6 +409,10 @@ class JungleGridPreset extends BasePreset {
             console.log(`JungleGrid: ${this.tracks.length} tracks detectados`);
             this.lastTrackCountLogged = this.tracks.length;
           }
+        }
+
+        if (typeof tempo === 'number' && !isNaN(tempo)) {
+          this.setBpm(tempo);
         }
       } catch (error) {
         console.error('JungleGrid: Error fetching data:', error);
@@ -327,6 +426,11 @@ class JungleGridPreset extends BasePreset {
       this.gridGroup.remove(cell.mesh);
       cell.mesh.geometry.dispose();
       cell.material.dispose();
+      if (cell.label) {
+        this.gridGroup.remove(cell.label);
+        cell.label.material.map?.dispose();
+        (cell.label.material as THREE.SpriteMaterial).dispose();
+      }
     });
     this.gridCells = [];
 
@@ -337,8 +441,8 @@ class JungleGridPreset extends BasePreset {
     
     const maxTracks = Math.min(this.tracks.length, 8);
     const maxClips = 8;
-    const cellWidth = 0.8;
-    const cellHeight = 0.8;
+    const cellWidth = this.cellWidth;
+    const cellHeight = this.cellHeight;
     const spacing = 0.1;
 
     for (let trackIndex = 0; trackIndex < maxTracks; trackIndex++) {
@@ -359,13 +463,21 @@ class JungleGridPreset extends BasePreset {
 
         const mesh = new THREE.LineSegments(geometry, material);
         mesh.position.set(x, y, 0);
+        mesh.rotation.set(0, 0, 0);
         this.gridGroup.add(mesh);
+
+        const clip = track && track.clips ? track.clips[clipIndex] : null;
+        const label = clip ? createClipLabel(clip.name || '', cellWidth, cellHeight) : createClipLabel('', cellWidth, cellHeight);
+        label.position.set(x, y, 0.01);
+        label.visible = !!clip;
+        this.gridGroup.add(label);
 
         this.gridCells.push({
           mesh: mesh as THREE.Line,
           material,
           trackIndex,
-          clipIndex
+          clipIndex,
+          label
         });
       }
     }
@@ -395,32 +507,54 @@ class JungleGridPreset extends BasePreset {
         mesh.position.set(posX, posY, 0);
         this.gridGroup.add(mesh);
 
+        const label = createClipLabel('', cellWidth, cellHeight);
+        label.position.set(posX, posY, 0.01);
+        label.visible = false;
+        this.gridGroup.add(label);
+
         this.gridCells.push({
           mesh: mesh as THREE.Line,
           material,
           trackIndex: -1,
-          clipIndex: -1
+          clipIndex: -1,
+          label
         });
       }
     }
   }
 
   private updateGrid(): void {
+    const kick = Math.min(this.audioData.low || 0, 1);
+    const period = this.bpm ? (60 / this.bpm) * 1000 : this.config.defaultConfig.blink.periodMs;
+
     this.gridCells.forEach(cell => {
       if (cell.trackIndex >= 0 && cell.trackIndex < this.tracks.length) {
         const track = this.tracks[cell.trackIndex];
         const clip = track.clips && track.clips[cell.clipIndex];
-        
+
         if (clip) {
+          if (cell.label) {
+            const current = (cell.label as any).userData?.text || '';
+            if (current !== clip.name) {
+              this.gridGroup.remove(cell.label);
+              cell.label.material.map?.dispose();
+              const newLabel = createClipLabel(clip.name || '', this.cellWidth, this.cellHeight);
+              newLabel.position.copy(cell.label.position);
+              this.gridGroup.add(newLabel);
+              cell.label = newLabel;
+            }
+            cell.label.visible = true;
+          }
+
           if (clip.isPlaying) {
             // Clip activo - animar con blink
-            const blinkAlpha = this.config.defaultConfig.blink.minAlpha + 
-              (this.config.defaultConfig.blink.maxAlpha - this.config.defaultConfig.blink.minAlpha) * 
-              (0.5 + 0.5 * Math.sin(this.blinkPhase * 2 * Math.PI / this.config.defaultConfig.blink.periodMs));
-            
+            const blinkAlpha = this.config.defaultConfig.blink.minAlpha +
+              (this.config.defaultConfig.blink.maxAlpha - this.config.defaultConfig.blink.minAlpha) *
+              (0.5 + 0.5 * Math.sin(this.blinkPhase * 2 * Math.PI / period));
+
             cell.material.color.setHex(parseInt(this.config.defaultConfig.colors.clipActive.replace('#', ''), 16));
-            cell.material.opacity = blinkAlpha;
-            if (blinkAlpha > 0.95) {
+            cell.material.opacity = blinkAlpha * (0.5 + kick * 0.5);
+            if (blinkAlpha > 0.95 && kick > 0.7) {
               triggerClipFlash(this.renderer.domElement);
             }
           } else {
@@ -430,11 +564,13 @@ class JungleGridPreset extends BasePreset {
           }
         } else {
           // No clip
+          if (cell.label) cell.label.visible = false;
           cell.material.color.setHex(0x333333);
           cell.material.opacity = 0.3;
         }
       } else {
         // Grid vacío
+        if (cell.label) cell.label.visible = false;
         cell.material.color.setHex(0x222222);
         cell.material.opacity = 0.2;
       }
@@ -458,6 +594,11 @@ class JungleGridPreset extends BasePreset {
       this.gridGroup.remove(cell.mesh);
       cell.mesh.geometry.dispose();
       cell.material.dispose();
+      if (cell.label) {
+        this.gridGroup.remove(cell.label);
+        cell.label.material.map?.dispose();
+        (cell.label.material as THREE.SpriteMaterial).dispose();
+      }
     });
     
     this.scene.remove(this.gridGroup);
