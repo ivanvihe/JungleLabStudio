@@ -236,10 +236,14 @@ class AbletonRemoteClient {
         this.ws.addEventListener('message', onMessage);
 
         const requests = [
-          { type: 'get_tempo' },
+          { command: 'get_tempo' },
           { action: 'get_tempo' },
-          { command: 'tempo' },
-          { type: 'tempo_info' }
+          { type: 'get_tempo' },
+          { request: 'tempo' },
+          { command: 'get_bpm' },
+          { action: 'get_bpm' },
+          { type: 'get_bpm' },
+          { request: 'bpm' },
         ];
 
         requests.forEach((request, index) => {
