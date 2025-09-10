@@ -1,13 +1,31 @@
-# Jungle Lab Studio
+# JungleLabStudio
 
-A comprehensive music production suite featuring the **AudioVisualizer**: real-time audio visualization engine.
+Bienvenido a JungleLabStudio - tu estudio creativo digital.
 
-## Adding new presets
+## DescripciÃ³n
 
-1. Create a folder inside `src/presets/<preset-name>`.
-2. Include a `config.json` file that follows the schema defined in [`presets/schema.json`](presets/schema.json).
-3. Create a `preset.ts` file that exports `config` and `createPreset`.
-4. Optionally add `shader.wgsl` if the preset uses custom shaders.
-5. Presets can declare optional visual effects under a `vfx` section in their `config.json`.
+JungleLabStudio es una plataforma innovadora para la creaciÃ³n de contenido digital y experiencias interactivas.
 
-The configuration is automatically validated when the application loads using [Ajv](https://ajv.js.org/). If the `config.json` file does not match the schema, the preset will be skipped and an error will be shown in the console.
+## CaracterÃ­sticas
+
+- DiseÃ±o moderno e intuitivo
+- Herramientas de creaciÃ³n avanzadas
+- ColaboraciÃ³n en tiempo real
+- ExportaciÃ³n en mÃºltiples formatos
+
+## InstalaciÃ³n
+
+```bash
+npm install
+npm start
+```
+
+## Contribuir
+
+Las contribuciones son bienvenidas. Por favor, abre un issue primero para discutir los cambios que te gustarÃ­a hacer.
+
+## Licencia
+
+Este proyecto estÃ¡ bajo la Licencia MIT.
+
+Me la como y quÃ©
