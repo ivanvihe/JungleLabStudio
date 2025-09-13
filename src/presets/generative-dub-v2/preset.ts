@@ -195,45 +195,59 @@ class GenerativeDubV2Preset extends BasePreset {
 
         float getPattern(float id, vec2 uv, vec3 params){
           if(id < 0.5){
-            return fbm(uv + uTime * params.z);
+            // wave interference
+            vec2 p = uv * 3.0;
+            return 0.5 + 0.5 * sin(p.x + uTime) * cos(p.y - uTime);
           } else if(id < 1.5){
-            vec2 p = uv;
-            float ang = uTime * 0.2;
-            p = vec2(cos(ang) * p.x - sin(ang) * p.y, sin(ang) * p.x + cos(ang) * p.y);
-            return fbm(p * (1.0 + uAudioMid * 2.0));
-          } else if(id < 2.5){
-            float n = fbm(uv);
-            return step(0.5 + 0.3 * sin(uTime + uAudioHigh * 5.0), n);
-          } else if(id < 3.5){
-            vec2 p = uv;
-            p = abs(fract(p) - 0.5);
-            return fbm(p * 3.0 + uTime * 0.5);
-          } else if(id < 4.5){
-            vec2 p = uv * 2.0 - 1.0;
-            float ang = uTime * 0.1;
-            p = vec2(cos(ang) * p.x - sin(ang) * p.y, sin(ang) * p.x + cos(ang) * p.y);
-            for(int i=0;i<3;i++){ p=abs(p)/dot(p,p)-vec2(0.5); }
-            return length(p);
-          } else if(id < 5.5){
-            vec2 p = uv + noise(uv*4.0 + uTime);
-            return fract(p.x + p.y);
-          } else if(id < 6.5){
-            vec2 p = uv*10.0 + uTime;
-            float n = fract(sin(dot(floor(p), vec2(12.9898,78.233)))*43758.5453);
-            return step(0.98, n);
-          } else if(id < 7.5){
+            // polar spiral
             vec2 p = uv - 0.5;
             float r = length(p);
-            float a = atan(p.y,p.x);
-            return sin(6.2831*r + a*3.0 + uTime);
+            float a = atan(p.y, p.x);
+            return abs(sin(10.0 * r - a * 4.0 + uTime));
+          } else if(id < 2.5){
+            // noisy grid
+            vec2 p = uv * 4.0;
+            p += vec2(fbm(p + uTime), fbm(p - uTime));
+            vec2 g = abs(fract(p) - 0.5);
+            return min(g.x, g.y);
+          } else if(id < 3.5){
+            // kaleidoscope noise
+            vec2 p = uv * 2.0 - 1.0;
+            p = abs(p);
+            p = p.x > p.y ? p.xy : p.yx;
+            return fbm(p * 3.0 + uTime);
+          } else if(id < 4.5){
+            // pulsing rings
+            float r = length(uv - 0.5);
+            float s = sin(6.2831 * r * 5.0 + uTime + uAudioLow * 5.0);
+            return 0.5 + 0.5 * s;
+          } else if(id < 5.5){
+            // voronoi cells
+            vec2 p = uv * 5.0;
+            vec2 i = floor(p);
+            vec2 f = fract(p);
+            float md = 1.0;
+            for(int y=-1;y<=1;y++){
+              for(int x=-1;x<=1;x++){
+                vec2 g = vec2(float(x), float(y));
+                vec2 o = vec2(hash(i+g), hash(i+g+vec2(2.0,8.0)));
+                vec2 r = g + o - f;
+                md = min(md, dot(r,r));
+              }
+            }
+            return sqrt(md);
+          } else if(id < 6.5){
+            // lissajous curves
+            return 0.5 + 0.5 * sin((uv.x + uTime) * 4.0) * sin((uv.y - uTime) * 3.0);
+          } else if(id < 7.5){
+            // diagonal stripes
+            return smoothstep(-0.2, 0.2, sin((uv.x + uv.y + uTime) * 10.0));
           } else if(id < 8.5){
-            vec2 p = uv*3.0;
-            p += vec2(fbm(p+uTime), fbm(p-uTime));
-            return fbm(p);
-          } else if(id < 9.5){
-            vec2 p = uv*5.0;
-            float n = fbm(p+uTime);
-            return step(0.85, n);
+            // starburst
+            vec2 p = uv - 0.5;
+            float a = atan(p.y, p.x);
+            float r = length(p);
+            return abs(sin(a * 12.0 + uTime) * cos(r * 20.0 - uTime));
           } else {
             // Continuous Mandelbrot zoom
             float t = uTime * 0.05;
