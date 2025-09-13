@@ -171,15 +171,20 @@ fn fs_main(@builtin(position) frag_coord: vec4<f32>) -> @location(0) vec4<f32> {
     
     // Renderizar el texto
     let textMask = renderText(glitchedUV, time);
-    
+
     // Color de fondo (negro transparente)
     var backgroundColor = vec3<f32>(0.02, 0.03, 0.05);
-    
-    // Colores para el texto
-    let primaryColor = vec3<f32>(0.0, 1.0, 0.53);    // #00FF88 - Verde ciberpunk
-    let glitchColor1 = vec3<f32>(1.0, 0.27, 0.27);   // #FF4444 - Rojo glitch
-    let glitchColor2 = vec3<f32>(0.27, 0.27, 1.0);   // #4444FF - Azul glitch
-    let accentColor = vec3<f32>(0.53, 1.0, 0.0);     // #88FF00 - Verde acido
+
+    // Paleta dinamica inspirada en neones
+    let hue = time * 0.2 + audioIntensity * 0.4;
+    let primaryColor = vec3<f32>(
+        0.5 + 0.5 * sin(hue),
+        0.5 + 0.5 * sin(hue + 2.094),
+        0.5 + 0.5 * sin(hue + 4.188)
+    );
+    let glitchColor1 = vec3<f32>(1.0, 0.27, 0.27);   // Rojo glitch
+    let glitchColor2 = vec3<f32>(0.27, 0.27, 1.0);   // Azul glitch
+    let accentColor = vec3<f32>(0.75, 0.0, 1.0);     // Magenta electrico
     
     // Aplicar aberracion cromatica durante glitch intenso
     var finalTextColor = primaryColor;
@@ -210,10 +215,16 @@ fn fs_main(@builtin(position) frag_coord: vec4<f32>) -> @location(0) vec4<f32> {
     var finalColor = backgroundColor;
     if (textMask > 0.1) {
         finalColor = mix(backgroundColor, finalTextColor, textMask);
-        
+
         // Efecto de brillo interno
         let glow = smoothstep(0.3, 1.0, textMask) * 0.5;
         finalColor += accentColor * glow * audioIntensity;
+
+        // Chispas electricas aleatorias alrededor del texto
+        let spark = step(0.98, digitalNoise(glitchedUV * 300.0 + time * 50.0));
+        if (spark > 0.0) {
+            finalColor += vec3<f32>(1.0) * spark * 0.3;
+        }
     }
     
     // Aplicar scanlines
