@@ -272,6 +272,9 @@
 .effect-flash {
   animation: vfxFlash 0.3s ease-out;
 }
+.effect-lightning {
+  animation: vfxLightning 0.2s ease-out;
+}
 
 @keyframes glitch1 {
   0%,100% { transform: translate(0); }
@@ -298,6 +301,15 @@
 @keyframes vfxFlash {
   0% {
     filter: brightness(3);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+@keyframes vfxLightning {
+  0% {
+    filter: brightness(5) drop-shadow(0 0 6px #88ccff);
   }
   100% {
     filter: brightness(1);
