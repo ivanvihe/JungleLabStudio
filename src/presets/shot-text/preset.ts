@@ -35,7 +35,8 @@ export const config: PresetConfig = {
     effects: {
       enableGlow: true,
       enablePulse: true,
-      enableSparkle: true
+      enableSparkle: true,
+      enableLightning: true
     }
   },
   controls: [
@@ -85,6 +86,12 @@ export const config: PresetConfig = {
       name: "effects.enableGlow",
       type: "checkbox",
       label: "Glow Effects",
+      default: true
+    },
+    {
+      name: "effects.enableLightning",
+      type: "checkbox",
+      label: "Lightning",
       default: true
     }
   ],
@@ -317,12 +324,49 @@ class RoboticaLetter {
         (child.material as THREE.MeshBasicMaterial).color.copy(color);
       }
     });
-    
+
     this.glowMesh.children.forEach(child => {
       if (child instanceof THREE.Mesh) {
         (child.material as THREE.MeshBasicMaterial).color.copy(color);
       }
     });
+  }
+}
+
+class LightningBolt {
+  public mesh: THREE.Line;
+  private life = 0.2;
+
+  constructor(width: number, height: number, color: THREE.Color) {
+    const segments = 10;
+    const points: THREE.Vector3[] = [];
+    let x = (Math.random() - 0.5) * width;
+    let y = height / 2;
+    const step = height / segments;
+    for (let i = 0; i <= segments; i++) {
+      points.push(new THREE.Vector3(x, y, 0));
+      x += (Math.random() - 0.5) * width * 0.1;
+      y -= step;
+    }
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = new THREE.LineBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 1.0,
+      depthTest: false
+    });
+    this.mesh = new THREE.Line(geometry, material);
+  }
+
+  update(delta: number): boolean {
+    this.life -= delta;
+    (this.mesh.material as THREE.LineBasicMaterial).opacity = Math.max(this.life * 5, 0);
+    return this.life > 0;
+  }
+
+  dispose(): void {
+    this.mesh.geometry.dispose();
+    (this.mesh.material as THREE.Material).dispose();
   }
 }
 
@@ -332,6 +376,9 @@ class RoboticaTextPreset extends BasePreset {
   private currentConfig: any;
   private textGroup: THREE.Group;
   private glowGroup: THREE.Group;
+  private lightnings: LightningBolt[] = [];
+  private textWidth = 0;
+  private textHeight = 0;
 
   constructor(
     scene: THREE.Scene,
@@ -376,6 +423,8 @@ class RoboticaTextPreset extends BasePreset {
       }
     }
     totalWidth -= letterSpacing;
+    this.textWidth = totalWidth;
+    this.textHeight = letterHeight;
 
     const startX = -totalWidth / 2.0;
     let currentX = startX;
@@ -467,6 +516,24 @@ class RoboticaTextPreset extends BasePreset {
     this.textGroup.scale.setScalar(scale);
     this.glowGroup.scale.setScalar(scale);
 
+    if (this.currentConfig.effects?.enableLightning && this.audioData.high > 0.8 && Math.random() < 0.2) {
+      const width = this.textWidth * this.textGroup.scale.x;
+      const height = this.textHeight * this.textGroup.scale.y * 1.5;
+      const color = new THREE.Color(this.currentConfig.colors.glow || '#88ccff');
+      const bolt = new LightningBolt(width, height, color);
+      this.glowGroup.add(bolt.mesh);
+      this.lightnings.push(bolt);
+    }
+
+    this.lightnings = this.lightnings.filter(bolt => {
+      const alive = bolt.update(deltaTime);
+      if (!alive) {
+        bolt.dispose();
+        this.glowGroup.remove(bolt.mesh);
+      }
+      return alive;
+    });
+
     applyVFX(this.renderer.domElement, this.audioData);
   }
 
@@ -530,6 +597,11 @@ class RoboticaTextPreset extends BasePreset {
 
     this.scene.remove(this.textGroup);
     this.scene.remove(this.glowGroup);
+    this.lightnings.forEach(bolt => {
+      bolt.dispose();
+      this.glowGroup.remove(bolt.mesh);
+    });
+    this.lightnings = [];
   }
 }
 

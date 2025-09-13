@@ -37,7 +37,8 @@
     "effects": {
       "enableGlow": true,
       "enablePulse": true,
-      "enableSparkle": true
+      "enableSparkle": true,
+      "enableLightning": true
     }
   },
   "controls": [
@@ -115,6 +116,12 @@
       "type": "checkbox",
       "label": "Sparkles",
       "default": true
+    },
+    {
+      "name": "effects.enableLightning",
+      "type": "checkbox",
+      "label": "Lightning",
+      "default": true
     }
   ],
   "vfx": {
@@ -123,7 +130,8 @@
       {"name": "glitch", "label": "Glitch"},
       {"name": "blur", "label": "Blur"},
       {"name": "distortion", "label": "Distortion"},
-      {"name": "scanlines", "label": "Scanlines"}
+      {"name": "scanlines", "label": "Scanlines"},
+      {"name": "lightning", "label": "Lightning"}
     ]
   },
   "audioMapping": {
@@ -140,7 +148,7 @@
     "high": {
       "description": "Controls sparkles and special effects",
       "frequency": "4000+ Hz",
-      "effect": "Sparkles and special effects"
+      "effect": "Sparkles, lightning and special effects"
     }
   },
   "performance": {

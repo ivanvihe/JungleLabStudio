@@ -18,6 +18,9 @@ export function applyVFX(canvas: HTMLCanvasElement, audio: AudioData): void {
   if (canvas.classList.contains('vfx-distortion') && intensity > 0.7) {
     triggerEffect(canvas, 'effect-distortion', 600);
   }
+  if (canvas.classList.contains('vfx-lightning') && audio.high > 0.9) {
+    triggerEffect(canvas, 'effect-lightning', 300);
+  }
   if (canvas.classList.contains('vfx-scanlines')) {
     canvas.classList.add('effect-scanlines');
   }
