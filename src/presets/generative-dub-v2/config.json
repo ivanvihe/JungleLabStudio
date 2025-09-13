@@ -11,8 +11,8 @@
     "abstract",
     "audio-reactive",
     "fft",
-    "lines",
-    "particles",
+    "fractal",
+    "mandelbrot",
     "cold",
     "grayscale"
   ],
