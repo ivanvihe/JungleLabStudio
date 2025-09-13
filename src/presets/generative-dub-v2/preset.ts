@@ -235,16 +235,19 @@ class GenerativeDubV2Preset extends BasePreset {
             float n = fbm(p+uTime);
             return step(0.85, n);
           } else {
-            vec2 c = (uv - 0.5) * (3.0 + 0.5*sin(uTime*0.1));
-            c += vec2(0.3*sin(uTime*0.1),0.3*cos(uTime*0.1));
+            // Continuous Mandelbrot zoom
+            float t = uTime * 0.05;
+            float zoom = exp(t * 0.3);
+            vec2 offset = vec2(-0.7 + 0.3*sin(t*0.7), 0.27015 + 0.3*cos(t*0.5));
+            vec2 p = (uv - 0.5) / zoom + offset;
             vec2 z = vec2(0.0);
             float m = 0.0;
-            for(int i=0;i<32;i++){
-              z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
+            for(int i=0;i<64;i++){
+              z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + p;
               if(dot(z,z) > 4.0) break;
               m += 1.0;
             }
-            return m/32.0;
+            return m/64.0;
           }
         }
 
