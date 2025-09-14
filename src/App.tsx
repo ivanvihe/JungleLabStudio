@@ -25,7 +25,6 @@ import { useMidi } from './hooks/useMidi';
 import { useLaunchpad } from './hooks/useLaunchpad';
 import './App.css';
 import './AppLayout.css';
-import { availableMonitors, primaryMonitor } from '@tauri-apps/api/window';
 
 interface MonitorInfo {
   id: string;
@@ -383,7 +382,8 @@ const App: React.FC = () => {
             scaleFactor: scale
           };
         });
-      } else {
+      } else if ((window as any).__TAURI__) {
+        const { availableMonitors, primaryMonitor } = await import('@tauri-apps/api/window');
         const [displays, primary] = await Promise.all([
           availableMonitors(),
           primaryMonitor()
@@ -401,6 +401,17 @@ const App: React.FC = () => {
             scaleFactor: d.scaleFactor || 1
           };
         });
+      } else {
+        const width = window.screen.width;
+        const height = window.screen.height;
+        mapped = [{
+          id: 'screen',
+          label: `Screen (${width}x${height})`,
+          position: { x: 0, y: 0 },
+          size: { width, height },
+          isPrimary: true,
+          scaleFactor: window.devicePixelRatio || 1
+        }];
       }
 
       mapped.sort((a, b) => {

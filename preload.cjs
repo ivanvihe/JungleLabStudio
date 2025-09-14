@@ -1,5 +1,11 @@
 const { contextBridge, ipcRenderer } = require('electron');
-const fs = require('fs');
+
+let fs;
+try {
+  fs = require('fs');
+} catch {
+  fs = null;
+}
 
 contextBridge.exposeInMainWorld('electronAPI', {
   applySettings: (settings) => ipcRenderer.send('apply-settings', settings),
@@ -13,9 +19,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onMainLeaveFullscreen: (callback) => ipcRenderer.on('main-leave-fullscreen', callback),
   removeMainLeaveFullscreenListener: () => ipcRenderer.removeAllListeners('main-leave-fullscreen'),
   tcpRequest: (command, port, host) => ipcRenderer.invoke('tcp-request', command, port, host),
-  // Basic filesystem helpers for renderer
-  readTextFile: (path) => fs.promises.readFile(path, 'utf-8'),
-  writeTextFile: (path, contents) => fs.promises.writeFile(path, contents),
-  createDir: (dir) => fs.promises.mkdir(dir, { recursive: true }),
-  exists: (path) => Promise.resolve(fs.existsSync(path))
+  // Basic filesystem helpers for renderer. These will be undefined if the fs
+  // module is not available in the preload context (e.g. in sandboxed
+  // environments). Callers should check for their presence before use.
+  readTextFile: fs ? (path) => fs.promises.readFile(path, 'utf-8') : undefined,
+  writeTextFile: fs ? (path, contents) => fs.promises.writeFile(path, contents) : undefined,
+  createDir: fs ? (dir) => fs.promises.mkdir(dir, { recursive: true }) : undefined,
+  exists: fs ? (path) => Promise.resolve(fs.existsSync(path)) : undefined
 });
