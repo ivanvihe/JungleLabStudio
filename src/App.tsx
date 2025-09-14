@@ -318,7 +318,7 @@ const App: React.FC = () => {
   useEffect(() => {
     (window as any).electronAPI?.applySettings({
       maximize: startMaximized,
-      monitorId: startMonitor ? parseInt(startMonitor, 10) : undefined
+      monitorId: startMonitor || undefined
     });
   }, [startMaximized, startMonitor]);
 
@@ -618,9 +618,9 @@ const App: React.FC = () => {
         .filter(([, role]) => role === 'secondary')
         .map(([id]) => id);
       const ids = [
-        ...(mainId !== undefined ? [parseInt(mainId, 10)] : []),
-        ...secondaryIds.map(id => parseInt(id, 10))
-      ].filter(id => !Number.isNaN(id));
+        ...(mainId ? [mainId] : []),
+        ...secondaryIds
+      ];
       if (ids.length === 0) {
         setStatus('Error: No monitors selected');
         return;

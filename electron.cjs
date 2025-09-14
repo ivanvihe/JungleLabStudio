@@ -76,7 +76,8 @@ ipcMain.on('apply-settings', (event, settings) => {
   if (!mainWindow) return;
   if (settings.monitorId) {
     const displays = screen.getAllDisplays();
-    const target = displays.find(d => d.id === settings.monitorId);
+    // Allow monitor identifiers as strings to avoid precision issues
+    const target = displays.find(d => d.id.toString() === settings.monitorId.toString());
     if (target) {
       mainWindow.setBounds(target.bounds);
     }
@@ -113,7 +114,8 @@ ipcMain.handle('toggle-fullscreen', (event, ids = []) => {
   const displays = screen.getAllDisplays();
 
   ids.forEach((id, index) => {
-    const display = displays.find(d => d.id === id);
+    // Compare using string values to support large identifiers
+    const display = displays.find(d => d.id.toString() === id.toString());
     if (!display) return;
 
     if (index === 0 && mainWindow) {
