@@ -2,9 +2,9 @@
 interface Window {
   __TAURI__?: any;
   electronAPI?: {
-    applySettings: (settings: { maximize?: boolean; monitorId?: number }) => void;
+    applySettings: (settings: { maximize?: boolean; monitorId?: string | number }) => void;
     getDisplays: () => Promise<{ id: number; label: string; bounds: { x: number; y: number; width: number; height: number }; scaleFactor: number; primary: boolean; }[]>;
-    toggleFullscreen: (ids: number[]) => Promise<void>;
+    toggleFullscreen: (ids: string[]) => Promise<void>;
     readTextFile: (path: string) => Promise<string>;
     writeTextFile: (path: string, contents: string) => Promise<void>;
     createDir: (dir: string) => Promise<void>;
