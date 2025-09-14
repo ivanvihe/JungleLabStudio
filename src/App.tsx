@@ -363,49 +363,54 @@ const App: React.FC = () => {
 
 
   // Enumerar monitores disponibles usando Electron
-  useEffect(() => {
-    const loadMonitors = async () => {
-      if ((window as any).electronAPI?.getDisplays) {
-        try {
-          const displays = await (window as any).electronAPI.getDisplays();
-          const mapped: MonitorInfo[] = displays.map((d: any) => {
-            const scale = d.scaleFactor || 1;
-            const width = d.bounds.width * scale;
-            const height = d.bounds.height * scale;
-            return {
-              id: d.id.toString(),
-              label: `${d.label} (${width}x${height})`,
-              position: { x: d.bounds.x, y: d.bounds.y },
-              size: { width, height },
-              isPrimary: d.primary,
-              scaleFactor: scale
-            };
+  const refreshMonitors = useCallback(async () => {
+    if ((window as any).electronAPI?.getDisplays) {
+      try {
+        const displays = await (window as any).electronAPI.getDisplays();
+        const mapped: MonitorInfo[] = displays.map((d: any) => {
+          const scale = d.scaleFactor || 1;
+          const width = d.bounds.width * scale;
+          const height = d.bounds.height * scale;
+          return {
+            id: d.id.toString(),
+            label: `${d.label} (${width}x${height})`,
+            position: { x: d.bounds.x, y: d.bounds.y },
+            size: { width, height },
+            isPrimary: d.primary,
+            scaleFactor: scale
+          };
+        });
+        mapped.sort((a, b) => {
+          if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
+          return a.position.x - b.position.x;
+        });
+        setMonitors(mapped);
+        setMonitorRoles(prev => {
+          const roles: Record<string, 'main' | 'secondary' | 'none'> = {};
+          mapped.forEach(m => {
+            roles[m.id] = prev[m.id] || 'none';
           });
-          mapped.sort((a, b) => {
-            if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
-            return a.position.x - b.position.x;
-          });
-          setMonitors(mapped);
-          setMonitorRoles(prev => {
-            const roles: Record<string, 'main' | 'secondary' | 'none'> = {};
-            mapped.forEach(m => {
-              roles[m.id] = prev[m.id] || 'none';
-            });
-            if (!Object.values(roles).some(r => r === 'main')) {
-              const primary = mapped.find(m => m.isPrimary) || mapped[0];
-              if (primary) roles[primary.id] = 'main';
-            }
-            const newMain = Object.entries(roles).find(([, r]) => r === 'main')?.[0];
-            if (newMain) setStartMonitor(newMain);
-            return roles;
-          });
-        } catch (e) {
-          console.warn('Error loading monitors:', e);
-        }
+          if (!Object.values(roles).some(r => r === 'main')) {
+            const primary = mapped.find(m => m.isPrimary) || mapped[0];
+            if (primary) roles[primary.id] = 'main';
+          }
+          const newMain = Object.entries(roles).find(([, r]) => r === 'main')?.[0];
+          if (newMain) setStartMonitor(newMain);
+          return roles;
+        });
+      } catch (e) {
+        console.warn('Error loading monitors:', e);
       }
-    };
-    loadMonitors();
+    }
   }, []);
+
+  useEffect(() => {
+    refreshMonitors();
+  }, [refreshMonitors]);
+
+  useEffect(() => {
+    if (isSettingsOpen) refreshMonitors();
+  }, [isSettingsOpen, refreshMonitors]);
 
   useEffect(() => {
     const handler = () => {
