@@ -25,6 +25,7 @@ import { useMidi } from './hooks/useMidi';
 import { useLaunchpad } from './hooks/useLaunchpad';
 import './App.css';
 import './AppLayout.css';
+import { availableMonitors, primaryMonitor } from '@tauri-apps/api/window';
 
 interface MonitorInfo {
   id: string;
@@ -362,12 +363,14 @@ const App: React.FC = () => {
   }, [effectMidiNotes]);
 
 
-  // Enumerar monitores disponibles usando Electron
+  // Enumerar monitores disponibles usando Electron o Tauri
   const refreshMonitors = useCallback(async () => {
-    if ((window as any).electronAPI?.getDisplays) {
-      try {
+    try {
+      let mapped: MonitorInfo[] = [];
+
+      if ((window as any).electronAPI?.getDisplays) {
         const displays = await (window as any).electronAPI.getDisplays();
-        const mapped: MonitorInfo[] = displays.map((d: any) => {
+        mapped = displays.map((d: any) => {
           const scale = d.scaleFactor || 1;
           const width = d.bounds.width * scale;
           const height = d.bounds.height * scale;
@@ -380,27 +383,47 @@ const App: React.FC = () => {
             scaleFactor: scale
           };
         });
-        mapped.sort((a, b) => {
-          if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
-          return a.position.x - b.position.x;
+      } else {
+        const [displays, primary] = await Promise.all([
+          availableMonitors(),
+          primaryMonitor()
+        ]);
+        mapped = displays.map((d: any, index: number) => {
+          const width = d.size.width;
+          const height = d.size.height;
+          const id = `${d.name || 'monitor'}-${index}`;
+          return {
+            id,
+            label: `${d.name || `Monitor ${index + 1}`} (${width}x${height})`,
+            position: { x: d.position.x, y: d.position.y },
+            size: { width, height },
+            isPrimary: primary ? d.name === primary.name : index === 0,
+            scaleFactor: d.scaleFactor || 1
+          };
         });
-        setMonitors(mapped);
-        setMonitorRoles(prev => {
-          const roles: Record<string, 'main' | 'secondary' | 'none'> = {};
-          mapped.forEach(m => {
-            roles[m.id] = prev[m.id] || 'none';
-          });
-          if (!Object.values(roles).some(r => r === 'main')) {
-            const primary = mapped.find(m => m.isPrimary) || mapped[0];
-            if (primary) roles[primary.id] = 'main';
-          }
-          const newMain = Object.entries(roles).find(([, r]) => r === 'main')?.[0];
-          if (newMain) setStartMonitor(newMain);
-          return roles;
-        });
-      } catch (e) {
-        console.warn('Error loading monitors:', e);
       }
+
+      mapped.sort((a, b) => {
+        if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
+        return a.position.x - b.position.x;
+      });
+
+      setMonitors(mapped);
+      setMonitorRoles(prev => {
+        const roles: Record<string, 'main' | 'secondary' | 'none'> = {};
+        mapped.forEach(m => {
+          roles[m.id] = prev[m.id] || 'none';
+        });
+        if (!Object.values(roles).some(r => r === 'main')) {
+          const primary = mapped.find(m => m.isPrimary) || mapped[0];
+          if (primary) roles[primary.id] = 'main';
+        }
+        const newMain = Object.entries(roles).find(([, r]) => r === 'main')?.[0];
+        if (newMain) setStartMonitor(newMain);
+        return roles;
+      });
+    } catch (e) {
+      console.warn('Error loading monitors:', e);
     }
   }, []);
 
