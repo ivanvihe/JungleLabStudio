@@ -5,12 +5,22 @@ interface DragTarget {
   index: number;
 }
 
+const getExplorerWidth = () => {
+  if (typeof document === 'undefined') {
+    return 0;
+  }
+  const widthAttr = document.body?.getAttribute('data-explorer-width');
+  const parsed = widthAttr ? parseInt(widthAttr, 10) : 0;
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 export const usePresetGrid = () => {
   const SLOT_WIDTH = 98;
   const SIDEBAR_WIDTH = 100;
 
   const calculateSlots = () => {
-    const available = window.innerWidth - SIDEBAR_WIDTH - 40; // padding
+    const explorerWidth = getExplorerWidth();
+    const available = window.innerWidth - SIDEBAR_WIDTH - explorerWidth - 40; // padding
     return Math.max(1, Math.floor(available / SLOT_WIDTH));
   };
 
