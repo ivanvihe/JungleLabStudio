@@ -18,8 +18,6 @@ interface TopBarProps {
   onClearAll: () => void;
   onOpenSettings: () => void;
   onOpenResources: () => void;
-  onToggleExplorer: () => void;
-  isExplorerOpen: boolean;
   launchpadAvailable: boolean;
   launchpadOutput: any | null;
   launchpadRunning: boolean;
@@ -46,8 +44,6 @@ export const TopBar: React.FC<TopBarProps> = ({
   onClearAll,
   onOpenSettings,
   onOpenResources,
-  onToggleExplorer,
-  isExplorerOpen,
   launchpadAvailable,
   launchpadOutput,
   launchpadRunning,
@@ -112,12 +108,6 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Center section - Actions and resources */}
         <div className="actions-section">
-          <button
-            onClick={onToggleExplorer}
-            className={`action-button ${isExplorerOpen ? 'active' : ''}`}
-            title={isExplorerOpen ? 'Ocultar explorador de recursos' : 'Mostrar explorador de recursos'}
-            aria-label="Toggle resource explorer"
-          >📂</button>
           <button
             onClick={onOpenResources}
             className="action-button"

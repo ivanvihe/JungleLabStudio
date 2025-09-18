@@ -63,20 +63,6 @@ const App: React.FC = () => {
   const [activeLayers, setActiveLayers] = useState<Record<string, string>>({});
   const [selectedPreset, setSelectedPreset] = useState<LoadedPreset | null>(null);
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
-  const [isControlsOpen, setIsControlsOpen] = useState(() => {
-    const stored = localStorage.getItem('sidebarCollapsed');
-    if (stored === null) return false;
-    return stored !== 'true';
-  });
-  const [isResourceExplorerOpen, setResourceExplorerOpen] = useState(() => {
-    try {
-      const stored = localStorage.getItem('resourceExplorerOpen');
-      if (stored === null) return true;
-      return stored === 'true';
-    } catch {
-      return true;
-    }
-  });
   const [layerPresetConfigs, setLayerPresetConfigs] = useState<Record<string, Record<string, any>>>(() => {
     try {
       const stored = localStorage.getItem('layerPresetConfigs');
@@ -166,26 +152,6 @@ const App: React.FC = () => {
 
   const layerVideoSettingsRef = useRef(layerVideoSettings);
   const videoGalleryRef = useRef(videoGallery);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('resourceExplorerOpen', isResourceExplorerOpen.toString());
-    } catch {
-      /* ignore */
-    }
-  }, [isResourceExplorerOpen]);
-
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    const width = isResourceExplorerOpen ? RESOURCE_EXPLORER_WIDTH : 0;
-    if (document.body) {
-      document.body.setAttribute('data-explorer-width', `${width}`);
-    }
-    document.documentElement?.style.setProperty('--resource-explorer-width', `${width}px`);
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('resize'));
-    }
-  }, [isResourceExplorerOpen]);
 
   // Top bar & settings state
   const [layerChannels, setLayerChannels] = useState<Record<string, number>>(() => {
@@ -1295,7 +1261,6 @@ const App: React.FC = () => {
   return (
     <div
       className={`app-container audiovisualizer-app ${isUiHidden ? 'ui-hidden' : ''} ${
-        isResourceExplorerOpen ? 'explorer-open' : ''
       }`}
     >
       <TopBar
@@ -1314,8 +1279,6 @@ const App: React.FC = () => {
         onClearAll={handleClearAll}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenResources={() => setResourcesOpen(true)}
-        onToggleExplorer={() => setResourceExplorerOpen(prev => !prev)}
-        isExplorerOpen={isResourceExplorerOpen}
         launchpadAvailable={launchpadAvailable}
         launchpadOutput={launchpadOutput}
         launchpadRunning={launchpadRunning}
@@ -1328,11 +1291,9 @@ const App: React.FC = () => {
 
       <div className="workspace">
         <ResourceExplorer
-          isOpen={isResourceExplorerOpen}
           width={RESOURCE_EXPLORER_WIDTH}
           presets={availablePresets}
           videos={videoGallery}
-          onToggle={() => setResourceExplorerOpen(prev => !prev)}
           onOpenLibrary={() => setResourcesOpen(true)}
           onRefreshVideos={() => refreshVideoGallery(true)}
           isRefreshingVideos={isRefreshingVideos}
@@ -1477,7 +1438,7 @@ const App: React.FC = () => {
           layerEffects={layerEffects}
                 onLayerEffectChange={handleLayerEffectChange}
                 onLayerEffectToggle={handleLayerEffectToggle}
-                onOpenResources={() => setResourceExplorerOpen(true)}
+                onOpenResources={() => setResourcesOpen(true)}
                 bpm={bpm}
               />
             </Suspense>
@@ -1500,53 +1461,39 @@ const App: React.FC = () => {
               </div>
             </div>
             {!isResourcesOpen && (
-              <div className={`controls-panel ${isControlsOpen ? '' : 'collapsed'}`}>
-                <button
-                  className="toggle-sidebar"
-                  onClick={() =>
-                    setIsControlsOpen(prev => {
-                      const next = !prev;
-                      localStorage.setItem('sidebarCollapsed', (!next).toString());
-                      return next;
-                    })
-                  }
-                >
-                  {isControlsOpen ? '✕' : '⚙️'}
-                </button>
-                {isControlsOpen && (
-                  <div className="controls-panel-content">
-                    {selectedVideo && selectedVideoLayer && (
-                      <VideoControls
-                        video={selectedVideo}
-                        settings={layerVideoSettings[selectedVideoLayer] || DEFAULT_VIDEO_PLAYBACK_SETTINGS}
-                        onChange={handleVideoSettingsChange}
+              <div className="controls-panel">
+                <div className="controls-panel-content">
+                  {selectedVideo && selectedVideoLayer && (
+                    <VideoControls
+                      video={selectedVideo}
+                      settings={layerVideoSettings[selectedVideoLayer] || DEFAULT_VIDEO_PLAYBACK_SETTINGS}
+                      onChange={handleVideoSettingsChange}
+                    />
+                  )}
+                  {!selectedVideo && selectedPreset && (
+                    <Suspense fallback={<div>Loading controls...</div>}>
+                      <PresetControls
+                        preset={selectedPreset}
+                        config={layerPresetConfigs[selectedLayer!]?.[selectedPreset.id]}
+                        onChange={(path, value) => {
+                          if (engineRef.current && selectedLayer && selectedPreset) {
+                            engineRef.current.updateLayerPresetConfig(selectedLayer, path, value);
+                            setLayerPresetConfigs(prev => {
+                              const layerMap = { ...(prev[selectedLayer] || {}) };
+                              const cfg = { ...(layerMap[selectedPreset.id] || {}) };
+                              setNestedValue(cfg, path, value);
+                              layerMap[selectedPreset.id] = cfg;
+                              return { ...prev, [selectedLayer]: layerMap };
+                            });
+                          }
+                        }}
                       />
-                    )}
-                    {!selectedVideo && selectedPreset && (
-                      <Suspense fallback={<div>Loading controls...</div>}>
-                        <PresetControls
-                          preset={selectedPreset}
-                          config={layerPresetConfigs[selectedLayer!]?.[selectedPreset.id]}
-                          onChange={(path, value) => {
-                            if (engineRef.current && selectedLayer && selectedPreset) {
-                              engineRef.current.updateLayerPresetConfig(selectedLayer, path, value);
-                              setLayerPresetConfigs(prev => {
-                                const layerMap = { ...(prev[selectedLayer] || {}) };
-                                const cfg = { ...(layerMap[selectedPreset.id] || {}) };
-                                setNestedValue(cfg, path, value);
-                                layerMap[selectedPreset.id] = cfg;
-                                return { ...prev, [selectedLayer]: layerMap };
-                              });
-                            }
-                          }}
-                        />
-                      </Suspense>
-                    )}
-                    {!selectedPreset && !selectedVideo && (
-                      <div className="no-preset-selected">Selecciona un preset</div>
-                    )}
-                  </div>
-                )}
+                    </Suspense>
+                  )}
+                  {!selectedPreset && !selectedVideo && (
+                    <div className="no-preset-selected">Selecciona un preset</div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -1628,11 +1575,6 @@ const App: React.FC = () => {
         onGlitchPadChange={handleCustomTextCountChange}
         startMaximized={startMaximized}
         onStartMaximizedChange={setStartMaximized}
-        sidebarCollapsed={!isControlsOpen}
-        onSidebarCollapsedChange={(value) => {
-          localStorage.setItem('sidebarCollapsed', value.toString());
-          setIsControlsOpen(!value);
-        }}
         hideUiHotkey={hideUiHotkey}
         onHideUiHotkeyChange={(key) => {
           setHideUiHotkey(key);
