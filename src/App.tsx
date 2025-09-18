@@ -1485,17 +1485,19 @@ const App: React.FC = () => {
 
           {/* Seccion inferior con visuales y controles */}
           <div className="bottom-section">
-            <div
-              className="visual-wrapper"
-              style={{ background: canvasBackground }}
-            >
+            <div className="visual-stage">
               <div
-                ref={playgroundRef}
-                className={`playground ${activeEffectClasses}`}
-                style={{
-                  filter: `brightness(${canvasBrightness}) saturate(${canvasVibrance})`
-                }}
-              />
+                className="visual-wrapper"
+                style={{ background: canvasBackground }}
+              >
+                <div
+                  ref={playgroundRef}
+                  className={`playground ${activeEffectClasses}`}
+                  style={{
+                    filter: `brightness(${canvasBrightness}) saturate(${canvasVibrance})`
+                  }}
+                />
+              </div>
             </div>
             {!isResourcesOpen && (
               <div className={`controls-panel ${isControlsOpen ? '' : 'collapsed'}`}>
@@ -1511,35 +1513,39 @@ const App: React.FC = () => {
                 >
                   {isControlsOpen ? '✕' : '⚙️'}
                 </button>
-                {isControlsOpen && selectedVideo && selectedVideoLayer && (
-                  <VideoControls
-                    video={selectedVideo}
-                    settings={layerVideoSettings[selectedVideoLayer] || DEFAULT_VIDEO_PLAYBACK_SETTINGS}
-                    onChange={handleVideoSettingsChange}
-                  />
-                )}
-                {isControlsOpen && !selectedVideo && selectedPreset && (
-                  <Suspense fallback={<div>Loading controls...</div>}>
-                    <PresetControls
-                      preset={selectedPreset}
-                      config={layerPresetConfigs[selectedLayer!]?.[selectedPreset.id]}
-                      onChange={(path, value) => {
-                        if (engineRef.current && selectedLayer && selectedPreset) {
-                          engineRef.current.updateLayerPresetConfig(selectedLayer, path, value);
-                          setLayerPresetConfigs(prev => {
-                            const layerMap = { ...(prev[selectedLayer] || {}) };
-                            const cfg = { ...(layerMap[selectedPreset.id] || {}) };
-                            setNestedValue(cfg, path, value);
-                            layerMap[selectedPreset.id] = cfg;
-                            return { ...prev, [selectedLayer]: layerMap };
-                          });
-                        }
-                      }}
-                    />
-                  </Suspense>
-                )}
-                {isControlsOpen && !selectedPreset && !selectedVideo && (
-                  <div className="no-preset-selected">Selecciona un preset</div>
+                {isControlsOpen && (
+                  <div className="controls-panel-content">
+                    {selectedVideo && selectedVideoLayer && (
+                      <VideoControls
+                        video={selectedVideo}
+                        settings={layerVideoSettings[selectedVideoLayer] || DEFAULT_VIDEO_PLAYBACK_SETTINGS}
+                        onChange={handleVideoSettingsChange}
+                      />
+                    )}
+                    {!selectedVideo && selectedPreset && (
+                      <Suspense fallback={<div>Loading controls...</div>}>
+                        <PresetControls
+                          preset={selectedPreset}
+                          config={layerPresetConfigs[selectedLayer!]?.[selectedPreset.id]}
+                          onChange={(path, value) => {
+                            if (engineRef.current && selectedLayer && selectedPreset) {
+                              engineRef.current.updateLayerPresetConfig(selectedLayer, path, value);
+                              setLayerPresetConfigs(prev => {
+                                const layerMap = { ...(prev[selectedLayer] || {}) };
+                                const cfg = { ...(layerMap[selectedPreset.id] || {}) };
+                                setNestedValue(cfg, path, value);
+                                layerMap[selectedPreset.id] = cfg;
+                                return { ...prev, [selectedLayer]: layerMap };
+                              });
+                            }
+                          }}
+                        />
+                      </Suspense>
+                    )}
+                    {!selectedPreset && !selectedVideo && (
+                      <div className="no-preset-selected">Selecciona un preset</div>
+                    )}
+                  </div>
                 )}
               </div>
             )}
