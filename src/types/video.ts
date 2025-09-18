@@ -10,6 +10,8 @@ export interface VideoResource {
   duration?: number;
   provider: string;
   author?: string;
+  width?: number;
+  height?: number;
 }
 
 export interface VideoPlaybackSettings {

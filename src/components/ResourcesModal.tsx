@@ -721,6 +721,11 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
                 <li><strong>Provider:</strong> {video.provider}</li>
                 {video.author && <li><strong>Author:</strong> {video.author}</li>}
                 {video.duration && <li><strong>Duration:</strong> {Math.round(video.duration)}s</li>}
+                {video.width != null && video.height != null && (
+                  <li>
+                    <strong>Resolution:</strong> {video.width}×{video.height}
+                  </li>
+                )}
               </ul>
               <button
                 className="refresh-button"

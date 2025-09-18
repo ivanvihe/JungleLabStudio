@@ -11,6 +11,12 @@
   font-weight: 500;
 }
 
+.video-controls-meta {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
 .video-controls-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

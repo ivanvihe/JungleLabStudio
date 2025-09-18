@@ -12,6 +12,9 @@ const VideoControls: React.FC<VideoControlsProps> = ({ video, settings, onChange
   return (
     <div className="video-controls">
       <h3 className="video-controls-title">🎬 {video.title}</h3>
+      {video.width != null && video.height != null && (
+        <p className="video-controls-meta">{video.width}×{video.height}</p>
+      )}
       <div className="video-controls-grid">
         <label className="video-control checkbox">
           <input
