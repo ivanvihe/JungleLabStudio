@@ -26,6 +26,7 @@ import { useLaunchpad } from './hooks/useLaunchpad';
 import './App.css';
 import './AppLayout.css';
 import VideoControls from './components/VideoControls';
+import ResourceExplorer from './components/ResourceExplorer';
 import {
   VideoResource,
   VideoPlaybackSettings,
@@ -48,6 +49,8 @@ interface MonitorInfo {
   scaleFactor: number;
 }
 
+const RESOURCE_EXPLORER_WIDTH = 320;
+
 const App: React.FC = () => {
   const playgroundRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -64,6 +67,15 @@ const App: React.FC = () => {
     const stored = localStorage.getItem('sidebarCollapsed');
     if (stored === null) return false;
     return stored !== 'true';
+  });
+  const [isResourceExplorerOpen, setResourceExplorerOpen] = useState(() => {
+    try {
+      const stored = localStorage.getItem('resourceExplorerOpen');
+      if (stored === null) return true;
+      return stored === 'true';
+    } catch {
+      return true;
+    }
   });
   const [layerPresetConfigs, setLayerPresetConfigs] = useState<Record<string, Record<string, any>>>(() => {
     try {
@@ -154,6 +166,26 @@ const App: React.FC = () => {
 
   const layerVideoSettingsRef = useRef(layerVideoSettings);
   const videoGalleryRef = useRef(videoGallery);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('resourceExplorerOpen', isResourceExplorerOpen.toString());
+    } catch {
+      /* ignore */
+    }
+  }, [isResourceExplorerOpen]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const width = isResourceExplorerOpen ? RESOURCE_EXPLORER_WIDTH : 0;
+    if (document.body) {
+      document.body.setAttribute('data-explorer-width', `${width}`);
+    }
+    document.documentElement?.style.setProperty('--resource-explorer-width', `${width}px`);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('resize'));
+    }
+  }, [isResourceExplorerOpen]);
 
   // Top bar & settings state
   const [layerChannels, setLayerChannels] = useState<Record<string, number>>(() => {
@@ -1261,7 +1293,11 @@ const App: React.FC = () => {
   const audioLevel = Math.min((audioData.low + audioData.mid + audioData.high) / 3, 1);
 
   return (
-    <div className={`app-container audiovisualizer-app ${isUiHidden ? 'ui-hidden' : ''}`}>
+    <div
+      className={`app-container audiovisualizer-app ${isUiHidden ? 'ui-hidden' : ''} ${
+        isResourceExplorerOpen ? 'explorer-open' : ''
+      }`}
+    >
       <TopBar
         midiActive={midiActive}
         midiDeviceName={midiDeviceName}
@@ -1278,6 +1314,8 @@ const App: React.FC = () => {
         onClearAll={handleClearAll}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenResources={() => setResourcesOpen(true)}
+        onToggleExplorer={() => setResourceExplorerOpen(prev => !prev)}
+        isExplorerOpen={isResourceExplorerOpen}
         launchpadAvailable={launchpadAvailable}
         launchpadOutput={launchpadOutput}
         launchpadRunning={launchpadRunning}
@@ -1288,14 +1326,26 @@ const App: React.FC = () => {
         onLaunchpadPresetChange={setLaunchpadPreset}
       />
 
-      {/* Grid de capas */}
-      <div className="layer-grid-container">
-        <Suspense fallback={<div>Loading layers...</div>}>
-          <LayerGrid
-            presets={availablePresets}
-            videos={videoGallery}
-            externalTrigger={midiTrigger}
-            onPresetActivate={(layerId, presetId, velocity) => {
+      <div className="workspace">
+        <ResourceExplorer
+          isOpen={isResourceExplorerOpen}
+          width={RESOURCE_EXPLORER_WIDTH}
+          presets={availablePresets}
+          videos={videoGallery}
+          onToggle={() => setResourceExplorerOpen(prev => !prev)}
+          onOpenLibrary={() => setResourcesOpen(true)}
+          onRefreshVideos={() => refreshVideoGallery(true)}
+          isRefreshingVideos={isRefreshingVideos}
+        />
+        <div className="main-panel">
+          {/* Grid de capas */}
+          <div className="layer-grid-container">
+            <Suspense fallback={<div>Loading layers...</div>}>
+              <LayerGrid
+                presets={availablePresets}
+                videos={videoGallery}
+                externalTrigger={midiTrigger}
+                onPresetActivate={(layerId, presetId, velocity) => {
               (async () => {
                 if (!engineRef.current) return;
                 const isVideo = presetId.startsWith('video:');
@@ -1425,74 +1475,76 @@ const App: React.FC = () => {
           clearAllSignal={clearSignal}
           layerChannels={layerChannels}
           layerEffects={layerEffects}
-            onLayerEffectChange={handleLayerEffectChange}
-            onLayerEffectToggle={handleLayerEffectToggle}
-            onOpenResources={() => setResourcesOpen(true)}
-            bpm={bpm}
-          />
-        </Suspense>
-      </div>
-
-      {/* Seccion inferior con visuales y controles */}
-      <div className="bottom-section">
-        <div
-          className="visual-wrapper"
-          style={{ background: canvasBackground }}
-        >
-          <div
-            ref={playgroundRef}
-            className={`playground ${activeEffectClasses}`}
-            style={{
-              filter: `brightness(${canvasBrightness}) saturate(${canvasVibrance})`
-            }}
-          />
-        </div>
-        {!isResourcesOpen && (
-          <div className={`controls-panel ${isControlsOpen ? '' : 'collapsed'}`}>
-            <button
-              className="toggle-sidebar"
-              onClick={() =>
-                setIsControlsOpen(prev => {
-                  const next = !prev;
-                  localStorage.setItem('sidebarCollapsed', (!next).toString());
-                  return next;
-                })
-              }
-            >
-              {isControlsOpen ? '✕' : '⚙️'}
-            </button>
-            {isControlsOpen && selectedVideo && selectedVideoLayer && (
-              <VideoControls
-                video={selectedVideo}
-                settings={layerVideoSettings[selectedVideoLayer] || DEFAULT_VIDEO_PLAYBACK_SETTINGS}
-                onChange={handleVideoSettingsChange}
+                onLayerEffectChange={handleLayerEffectChange}
+                onLayerEffectToggle={handleLayerEffectToggle}
+                onOpenResources={() => setResourceExplorerOpen(true)}
+                bpm={bpm}
               />
-            )}
-            {isControlsOpen && !selectedVideo && selectedPreset && (
-              <Suspense fallback={<div>Loading controls...</div>}>
-                <PresetControls
-                  preset={selectedPreset}
-                  config={layerPresetConfigs[selectedLayer!]?.[selectedPreset.id]}
-                  onChange={(path, value) => {
-                    if (engineRef.current && selectedLayer && selectedPreset) {
-                      engineRef.current.updateLayerPresetConfig(selectedLayer, path, value);
-                      setLayerPresetConfigs(prev => {
-                        const layerMap = { ...(prev[selectedLayer] || {}) };
-                        const cfg = { ...(layerMap[selectedPreset.id] || {}) };
-                        setNestedValue(cfg, path, value);
-                        layerMap[selectedPreset.id] = cfg;
-                        return { ...prev, [selectedLayer]: layerMap };
-                      });
-                    }
-                  }}
-                />
-              </Suspense>
-            )}
-            {isControlsOpen && !selectedPreset && !selectedVideo && (
-              <div className="no-preset-selected">Selecciona un preset</div>
+            </Suspense>
+          </div>
+
+          {/* Seccion inferior con visuales y controles */}
+          <div className="bottom-section">
+            <div
+              className="visual-wrapper"
+              style={{ background: canvasBackground }}
+            >
+              <div
+                ref={playgroundRef}
+                className={`playground ${activeEffectClasses}`}
+                style={{
+                  filter: `brightness(${canvasBrightness}) saturate(${canvasVibrance})`
+                }}
+              />
+            </div>
+            {!isResourcesOpen && (
+              <div className={`controls-panel ${isControlsOpen ? '' : 'collapsed'}`}>
+                <button
+                  className="toggle-sidebar"
+                  onClick={() =>
+                    setIsControlsOpen(prev => {
+                      const next = !prev;
+                      localStorage.setItem('sidebarCollapsed', (!next).toString());
+                      return next;
+                    })
+                  }
+                >
+                  {isControlsOpen ? '✕' : '⚙️'}
+                </button>
+                {isControlsOpen && selectedVideo && selectedVideoLayer && (
+                  <VideoControls
+                    video={selectedVideo}
+                    settings={layerVideoSettings[selectedVideoLayer] || DEFAULT_VIDEO_PLAYBACK_SETTINGS}
+                    onChange={handleVideoSettingsChange}
+                  />
+                )}
+                {isControlsOpen && !selectedVideo && selectedPreset && (
+                  <Suspense fallback={<div>Loading controls...</div>}>
+                    <PresetControls
+                      preset={selectedPreset}
+                      config={layerPresetConfigs[selectedLayer!]?.[selectedPreset.id]}
+                      onChange={(path, value) => {
+                        if (engineRef.current && selectedLayer && selectedPreset) {
+                          engineRef.current.updateLayerPresetConfig(selectedLayer, path, value);
+                          setLayerPresetConfigs(prev => {
+                            const layerMap = { ...(prev[selectedLayer] || {}) };
+                            const cfg = { ...(layerMap[selectedPreset.id] || {}) };
+                            setNestedValue(cfg, path, value);
+                            layerMap[selectedPreset.id] = cfg;
+                            return { ...prev, [selectedLayer]: layerMap };
+                          });
+                        }
+                      }}
+                    />
+                  </Suspense>
+                )}
+                {isControlsOpen && !selectedPreset && !selectedVideo && (
+                  <div className="no-preset-selected">Selecciona un preset</div>
+                )}
+              </div>
             )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Barra de estado */}
