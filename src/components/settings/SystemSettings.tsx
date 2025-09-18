@@ -15,8 +15,6 @@ interface SystemSettingsProps {
   monitors: MonitorInfo[];
   startMonitor: string | null;
   onStartMonitorChange: (id: string | null) => void;
-  sidebarCollapsed: boolean;
-  onSidebarCollapsedChange: (value: boolean) => void;
   visualsPath: string;
   onVisualsPathChange: (value: string) => void;
 }
@@ -27,8 +25,6 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({
   monitors,
   startMonitor,
   onStartMonitorChange,
-  sidebarCollapsed,
-  onSidebarCollapsedChange,
   visualsPath,
   onVisualsPathChange,
 }) => {
@@ -155,17 +151,6 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({
               </option>
             ))}
           </select>
-        </label>
-      </div>
-
-      <div className="setting-group">
-        <label className="setting-checkbox">
-          <input
-            type="checkbox"
-            checked={sidebarCollapsed}
-            onChange={(e) => onSidebarCollapsedChange(e.target.checked)}
-          />
-          <span>Collapse sidebar on start</span>
         </label>
       </div>
 

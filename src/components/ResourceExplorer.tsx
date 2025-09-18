@@ -5,11 +5,9 @@ import { getPresetThumbnail } from '../utils/presetThumbnails';
 import './ResourceExplorer.css';
 
 interface ResourceExplorerProps {
-  isOpen: boolean;
   width: number;
   presets: LoadedPreset[];
   videos: VideoResource[];
-  onToggle: () => void;
   onOpenLibrary: () => void;
   onRefreshVideos?: () => void;
   isRefreshingVideos?: boolean;
@@ -43,11 +41,9 @@ type ResourceNode = ResourceFolderNode | ResourcePresetNode | ResourceVideoNode;
 const PANEL_MIN_WIDTH = 240;
 
 const ResourceExplorer: React.FC<ResourceExplorerProps> = ({
-  isOpen,
   width,
   presets,
   videos,
-  onToggle,
   onOpenLibrary,
   onRefreshVideos,
   isRefreshingVideos = false
@@ -230,20 +226,12 @@ const ResourceExplorer: React.FC<ResourceExplorerProps> = ({
 
   return (
     <aside
-      className={`resource-explorer ${isOpen ? 'open' : 'collapsed'}`}
+      className="resource-explorer"
       style={{
-        width: isOpen ? Math.max(width, PANEL_MIN_WIDTH) : 0,
-        minWidth: isOpen ? Math.max(width, PANEL_MIN_WIDTH) : 0
+        width: Math.max(width, PANEL_MIN_WIDTH),
+        minWidth: Math.max(width, PANEL_MIN_WIDTH)
       }}
     >
-      <button
-        type="button"
-        className="resource-explorer__toggle"
-        onClick={onToggle}
-        aria-label={isOpen ? 'Ocultar explorador de recursos' : 'Mostrar explorador de recursos'}
-      >
-        {isOpen ? '⮜' : '⮞'}
-      </button>
       <div className="resource-explorer__content">
         <div className="resource-explorer__header">
           <h2>Recursos</h2>

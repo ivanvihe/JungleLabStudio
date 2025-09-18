@@ -97,9 +97,17 @@ export class LayerManager {
     video.preload = 'auto';
     video.crossOrigin = 'anonymous';
     video.controls = false;
+    video.defaultPlaybackRate = 1;
     if ('disablePictureInPicture' in video) {
       try {
         (video as HTMLVideoElement & { disablePictureInPicture?: boolean }).disablePictureInPicture = true;
+      } catch {
+        /* ignore */
+      }
+    }
+    if ('disableRemotePlayback' in video) {
+      try {
+        (video as HTMLVideoElement & { disableRemotePlayback?: boolean }).disableRemotePlayback = true;
       } catch {
         /* ignore */
       }
@@ -143,9 +151,11 @@ export class LayerManager {
     const clearRecovery = () => this.clearVideoRecovery(layerState);
     video.addEventListener('waiting', recoverPlayback);
     video.addEventListener('stalled', recoverPlayback);
-    video.addEventListener('suspend', recoverPlayback);
-    video.addEventListener('pause', recoverPlayback);
+    video.addEventListener('error', recoverPlayback);
     video.addEventListener('playing', clearRecovery);
+    video.addEventListener('canplay', clearRecovery);
+    video.addEventListener('canplaythrough', clearRecovery);
+    video.addEventListener('loadeddata', clearRecovery);
     console.log(`🔧 Layer ${id} creado con canvas propio`);
   }
 
@@ -217,33 +227,46 @@ export class LayerManager {
       }
     };
 
-    if (video.paused && !video.seeking) {
-      attemptResume();
-    }
     if (layer.videoStallRecoveryTimeout !== null) {
-      return;
+      clearTimeout(layer.videoStallRecoveryTimeout);
+      layer.videoStallRecoveryTimeout = null;
     }
 
-    layer.videoStallRecoveryTimeout = setTimeout(() => {
+    if (video.paused || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+      attemptResume();
+    }
+
+    layer.videoStallRecoveryTimeout = window.setTimeout(() => {
       layer.videoStallRecoveryTimeout = null;
       if (!layer.activeVideoId || !layer.videoReady) {
+        return;
+      }
+      if (layer.videoPlaybackRaf !== null) {
+        return;
+      }
+      if (layer.videoSettings.reverse || layer.videoSettings.loopMode === 'pingpong') {
         return;
       }
       if (video.ended) {
         return;
       }
-      if (
-        video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA &&
-        !video.seeking
-      ) {
+
+      if (video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA && !video.seeking) {
         try {
-          video.currentTime = Math.max(0, video.currentTime - 0.05);
+          if (typeof (video as any).fastSeek === 'function') {
+            (video as HTMLVideoElement & { fastSeek?: (time: number) => void }).fastSeek?.(video.currentTime);
+          } else {
+            const duration = video.duration || 0;
+            const clamped = Math.min(Math.max(video.currentTime, 0), duration > 0 ? duration - 0.001 : 0);
+            video.currentTime = clamped;
+          }
         } catch {
           /* ignore seek errors */
         }
       }
+
       attemptResume();
-    }, 120);
+    }, 200);
   }
 
   private waitForVideoReady(

@@ -82,8 +82,6 @@ interface GlobalSettingsModalProps {
   onFullscreenByDefaultChange: (value: boolean) => void;
   startMaximized: boolean;
   onStartMaximizedChange: (value: boolean) => void;
-  sidebarCollapsed: boolean;
-  onSidebarCollapsedChange: (value: boolean) => void;
   canvasBrightness: number;
   onCanvasBrightnessChange: (value: number) => void;
   canvasVibrance: number;
@@ -151,8 +149,6 @@ const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   onFullscreenByDefaultChange,
   startMaximized,
   onStartMaximizedChange,
-  sidebarCollapsed,
-  onSidebarCollapsedChange,
   canvasBrightness,
   onCanvasBrightnessChange,
   canvasVibrance,
@@ -301,8 +297,6 @@ const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                 monitors={monitors}
                 startMonitor={startMonitor}
                 onStartMonitorChange={onStartMonitorChange}
-                sidebarCollapsed={sidebarCollapsed}
-                onSidebarCollapsedChange={onSidebarCollapsedChange}
                 visualsPath={visualsPath}
                 onVisualsPathChange={onVisualsPathChange}
               />
