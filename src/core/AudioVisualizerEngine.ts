@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { PresetLoader, LoadedPreset, AudioData } from './PresetLoader';
 import { LayerManager } from './LayerManager';
+import { VideoResource, VideoPlaybackSettings } from '../types/video';
 
 
 export class AudioVisualizerEngine {
@@ -99,6 +100,10 @@ export class AudioVisualizerEngine {
     this.layerManager.updateLayerConfig(layerId, config);
   }
 
+  public updateLayerVideoSettings(layerId: string, settings: Partial<VideoPlaybackSettings>): void {
+    this.layerManager.updateLayerVideoSettings(layerId, settings);
+  }
+
   public getLayerPresetConfig(layerId: string, presetId: string): Promise<any> {
     return this.layerManager.getLayerPresetConfig(layerId, presetId);
   }
@@ -159,6 +164,10 @@ export class AudioVisualizerEngine {
 
   public getLayerCanvas(layerId: string): HTMLCanvasElement | undefined {
     return this.layerManager.getLayerCanvas(layerId);
+  }
+
+  public setVideoRegistry(videos: VideoResource[]): void {
+    this.layerManager.setVideoRegistry(videos);
   }
 
   public clearRenderer(): void {

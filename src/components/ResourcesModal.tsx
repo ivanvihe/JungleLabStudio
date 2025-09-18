@@ -8,6 +8,7 @@ import { GenLabPresetModal } from './GenLabPresetModal';
 import { FractalLabPresetModal } from './FractalLabPresetModal';
 import './ResourcesModal.css';
 import VFXControls from './VFXControls';
+import { VideoResource } from '../types/video';
 
 interface ResourcesModalProps {
   isOpen: boolean;
@@ -40,6 +41,11 @@ interface ResourcesModalProps {
     enabled: boolean
   ) => void;
   layerVFX?: Record<string, Record<string, string[]>>;
+  videos?: VideoResource[];
+  onAddVideoToLayer?: (videoId: string, layerId: string) => void;
+  onRemoveVideoFromLayer?: (videoId: string, layerId: string) => void;
+  onRefreshVideos?: () => void;
+  isRefreshingVideos?: boolean;
 }
 
 type NodeKind =
@@ -52,7 +58,9 @@ type NodeKind =
   | 'genlab-item'
   | 'fractallab-folder'
   | 'fractallab-item'
-  | 'launchpad';
+  | 'launchpad'
+  | 'video-folder'
+  | 'video-item';
 
 interface TreeNode {
   id: string;
@@ -63,6 +71,7 @@ interface TreeNode {
   launchpadId?: LaunchpadPreset;
   genLabIndex?: number;
   fractalLabIndex?: number;
+  video?: VideoResource;
 }
 
 const ResourcesModal: React.FC<ResourcesModalProps> = ({
@@ -90,7 +99,12 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
   onLaunchpadTextChange,
   onTriggerVFX,
   onSetVFX,
-  layerVFX
+  layerVFX,
+  videos = [],
+  onAddVideoToLayer,
+  onRemoveVideoFromLayer,
+  onRefreshVideos,
+  isRefreshingVideos = false
 }) => {
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set([
@@ -101,7 +115,8 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
     'template-genlab',
     'template-fractallab',
     'launchpad',
-    'vfx'
+    'vfx',
+    'video-gallery'
   ]));
   const [sidebarWidth, setSidebarWidth] = useState(220);
   const [isResizing, setIsResizing] = useState(false);
@@ -434,6 +449,17 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
         kind: 'launchpad',
         launchpadId: lp.id
       }))
+    },
+    {
+      id: 'video-gallery',
+      label: 'Video gallery',
+      kind: 'video-folder',
+      children: videos.map(video => ({
+        id: `video-${video.id}`,
+        label: video.title,
+        kind: 'video-item',
+        video
+      }))
     }
   ];
 
@@ -441,7 +467,8 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
     const isFolder =
       node.kind === 'folder' ||
       node.kind === 'genlab-folder' ||
-      node.kind === 'fractallab-folder';
+      node.kind === 'fractallab-folder' ||
+      node.kind === 'video-folder';
     const expandedNode = expanded.has(node.id);
     return (
       <div key={node.id}>
@@ -463,7 +490,15 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
               }
             }}
           >
-            {isFolder ? '📁' : node.kind === 'launchpad' ? getLaunchpadThumbnail(node.launchpadId!) : node.kind === 'preset' ? getPresetThumbnail(node.preset!) : '📄'}{' '}
+            {isFolder
+              ? '📁'
+              : node.kind === 'launchpad'
+              ? getLaunchpadThumbnail(node.launchpadId!)
+              : node.kind === 'preset'
+              ? getPresetThumbnail(node.preset!)
+              : node.kind === 'video-item'
+              ? '🎬'
+              : '📄'}{' '}
             {node.label}
           </span>
         </div>
@@ -550,6 +585,96 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
           </div>
         );
       }
+      case 'video-item': {
+        const video = selectedNode.video!;
+        const assigned = ['A', 'B', 'C'].filter(layer =>
+          layerAssignments[layer].has(`video:${video.id}`)
+        );
+        return (
+          <div className="gallery-controls-panel">
+            <div className="controls-header">
+              <h3>{video.title}</h3>
+              <span className="preset-category-badge">{video.provider}</span>
+            </div>
+            <div className="layer-button-group">
+              {['A', 'B', 'C'].map(layer => {
+                const storageId = `video:${video.id}`;
+                const isActive = layerAssignments[layer].has(storageId);
+                return (
+                  <button
+                    key={layer}
+                    className={`layer-button ${isActive ? 'active' : ''}`}
+                    onClick={() => {
+                      setLayerAssignments(prev => {
+                        const next = { ...prev };
+                        const set = new Set(next[layer]);
+                        if (set.has(storageId)) {
+                          onRemoveVideoFromLayer?.(video.id, layer);
+                          onRemovePresetFromLayer?.(storageId, layer);
+                          set.delete(storageId);
+                        } else {
+                          onAddVideoToLayer?.(video.id, layer);
+                          onAddPresetToLayer?.(storageId, layer);
+                          set.add(storageId);
+                        }
+                        next[layer] = set;
+                        return next;
+                      });
+                    }}
+                  >
+                    {layer}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="video-preview">
+              <video
+                src={video.previewUrl}
+                controls
+                muted
+                loop
+                playsInline
+                poster={video.thumbnail}
+              />
+            </div>
+            <div className="video-meta">
+              {video.description && <p>{video.description}</p>}
+              <ul>
+                <li><strong>Provider:</strong> {video.provider}</li>
+                {video.author && <li><strong>Author:</strong> {video.author}</li>}
+                {video.duration && <li><strong>Duration:</strong> {Math.round(video.duration)}s</li>}
+              </ul>
+              <button
+                className="refresh-button"
+                onClick={() => onRefreshVideos?.()}
+                disabled={isRefreshingVideos}
+              >
+                {isRefreshingVideos ? 'Refreshing…' : 'Refresh gallery'}
+              </button>
+            </div>
+            <div className="assignment-info">
+              <strong>Assigned to:</strong>{' '}
+              {assigned.length > 0 ? assigned.join(', ') : 'None'}
+            </div>
+          </div>
+        );
+      }
+      case 'video-folder':
+        return (
+          <div className="preset-gallery-placeholder">
+            <div className="placeholder-content">
+              <div className="placeholder-icon">🎬</div>
+              <h3>Select a video to assign it</h3>
+              <button
+                className="refresh-button"
+                onClick={() => onRefreshVideos?.()}
+                disabled={isRefreshingVideos}
+              >
+                {isRefreshingVideos ? 'Refreshing…' : 'Refresh gallery'}
+              </button>
+            </div>
+          </div>
+        );
       case 'empty-template': {
         return (
           <div className="template-controls-panel">

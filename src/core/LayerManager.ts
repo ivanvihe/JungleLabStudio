@@ -1,6 +1,12 @@
 import * as THREE from 'three';
 import { PresetLoader, LoadedPreset } from './PresetLoader';
 import { setNestedValue } from '../utils/objectPath';
+import {
+  VideoResource,
+  VideoPlaybackSettings,
+  DEFAULT_VIDEO_PLAYBACK_SETTINGS,
+} from '../types/video';
+import { getCachedVideoUrl, releaseCachedUrl } from '../utils/videoCache';
 
 function deepMerge(target: any, source: any): any {
   const result = { ...target };
@@ -26,6 +32,12 @@ export interface LayerState {
   opacity: number;
   fadeTime: number;
   isActive: boolean;
+  videoElement: HTMLVideoElement;
+  activeVideoId: string | null;
+  videoObjectUrl?: string;
+  videoSettings: VideoPlaybackSettings;
+  videoPlaybackRaf: number | null;
+  videoPlaybackDirection: 1 | -1;
 }
 
 /**
@@ -34,6 +46,7 @@ export interface LayerState {
 export class LayerManager {
   private layers: Map<string, LayerState> = new Map();
   private layerOrder: string[] = ['C', 'B', 'A'];
+  private videoRegistry: Map<string, VideoResource> = new Map();
 
   constructor(
     private container: HTMLElement,
@@ -63,6 +76,23 @@ export class LayerManager {
     canvas.style.opacity = '0';
     this.container.appendChild(canvas);
 
+    const video = document.createElement('video');
+    video.className = `layer-video layer-${id}`;
+    video.style.position = 'absolute';
+    video.style.top = '0';
+    video.style.left = '0';
+    video.style.width = '100%';
+    video.style.height = '100%';
+    video.style.objectFit = 'cover';
+    video.style.opacity = '0';
+    video.style.pointerEvents = 'none';
+    video.style.zIndex = zIndex.toString();
+    video.style.mixBlendMode = 'normal';
+    video.playsInline = true;
+    video.muted = true;
+    video.crossOrigin = 'anonymous';
+    this.container.appendChild(video);
+
     const renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
@@ -81,11 +111,211 @@ export class LayerManager {
       renderer,
       opacity: 1.0,
       fadeTime: 1000,
-      isActive: false
+      isActive: false,
+      videoElement: video,
+      activeVideoId: null,
+      videoSettings: { ...DEFAULT_VIDEO_PLAYBACK_SETTINGS },
+      videoPlaybackRaf: null,
+      videoPlaybackDirection: 1,
     };
 
     this.layers.set(id, layerState);
     console.log(`🔧 Layer ${id} creado con canvas propio`);
+  }
+
+  public setVideoRegistry(videos: VideoResource[]): void {
+    this.videoRegistry.clear();
+    videos.forEach(video => this.videoRegistry.set(video.id, video));
+  }
+
+  private stopVideoPlayback(layer: LayerState): void {
+    const video = layer.videoElement;
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+    video.style.opacity = '0';
+    video.style.mixBlendMode = 'normal';
+    this.stopCustomVideoPlayback(layer);
+    if (layer.videoObjectUrl) {
+      releaseCachedUrl(layer.videoObjectUrl);
+      layer.videoObjectUrl = undefined;
+    }
+    layer.activeVideoId = null;
+  }
+
+  private stopCustomVideoPlayback(layer: LayerState): void {
+    if (layer.videoPlaybackRaf !== null) {
+      cancelAnimationFrame(layer.videoPlaybackRaf);
+      layer.videoPlaybackRaf = null;
+    }
+  }
+
+  private startCustomVideoPlayback(layer: LayerState): void {
+    const settings = layer.videoSettings;
+    const video = layer.videoElement;
+    if (!settings.reverse && settings.loopMode !== 'pingpong') {
+      return;
+    }
+
+    this.stopCustomVideoPlayback(layer);
+
+    const step = (time: number, lastTime: number, direction: 1 | -1) => {
+      if (!layer.activeVideoId) {
+        return;
+      }
+      const delta = (time - lastTime) / 1000;
+      if (video.readyState < 1) {
+        layer.videoPlaybackRaf = requestAnimationFrame(next =>
+          step(next, time, direction)
+        );
+        return;
+      }
+
+      let current = video.currentTime + delta * settings.speed * direction;
+      const duration = video.duration || 0;
+      if (duration <= 0) {
+        layer.videoPlaybackRaf = requestAnimationFrame(next =>
+          step(next, time, direction)
+        );
+        return;
+      }
+
+      let nextDirection: 1 | -1 = direction;
+      if (current <= 0) {
+        if (!settings.loop) {
+          video.currentTime = 0;
+          return;
+        }
+        if (settings.loopMode === 'pingpong') {
+          current = Math.max(0, -current);
+          nextDirection = 1;
+        } else {
+          current = duration;
+        }
+      } else if (current >= duration) {
+        if (!settings.loop) {
+          video.currentTime = duration;
+          return;
+        }
+        if (settings.loopMode === 'pingpong') {
+          current = Math.max(0, duration - (current - duration));
+          nextDirection = -1;
+        } else {
+          current = 0;
+        }
+      }
+
+      video.currentTime = current;
+      layer.videoPlaybackDirection = nextDirection;
+      layer.videoPlaybackRaf = requestAnimationFrame(next =>
+        step(next, time, nextDirection)
+      );
+    };
+
+    video.pause();
+    const initialDirection: 1 | -1 = settings.reverse ? -1 : 1;
+    layer.videoPlaybackDirection = initialDirection;
+    const start = performance.now();
+    layer.videoPlaybackRaf = requestAnimationFrame(next =>
+      step(next, start, initialDirection)
+    );
+  }
+
+  private applyVideoSettings(layer: LayerState): void {
+    const video = layer.videoElement;
+    const settings = layer.videoSettings;
+
+    if (!layer.activeVideoId) {
+      this.stopCustomVideoPlayback(layer);
+      video.style.opacity = '0';
+      return;
+    }
+
+    video.loop = settings.loop && !settings.reverse && settings.loopMode === 'restart';
+    video.playbackRate = Math.abs(settings.speed);
+
+    if (settings.blackAlpha > 0) {
+      video.style.mixBlendMode = 'screen';
+      const brightness = 1 + settings.blackAlpha * 0.4;
+      const contrast = 1 + settings.blackAlpha * 0.6;
+      video.style.filter = `brightness(${brightness}) contrast(${contrast})`;
+    } else {
+      video.style.mixBlendMode = 'normal';
+      video.style.filter = 'none';
+    }
+
+    video.style.opacity = layer.opacity.toString();
+
+    this.stopCustomVideoPlayback(layer);
+    if (settings.reverse || settings.loopMode === 'pingpong') {
+      this.startCustomVideoPlayback(layer);
+    } else {
+      video
+        .play()
+        .catch(err => console.warn('Unable to start video playback', err));
+    }
+  }
+
+  private async activateVideoPreset(layerId: string, presetId: string): Promise<boolean> {
+    const layer = this.layers.get(layerId);
+    if (!layer) {
+      console.error(`Layer ${layerId} no encontrado`);
+      return false;
+    }
+
+    const videoId = presetId.replace(/^video:/, '');
+    const videoResource = this.videoRegistry.get(videoId);
+    if (!videoResource) {
+      console.error(`Video ${videoId} no encontrado en registry`);
+      return false;
+    }
+
+    if (layer.preset) {
+      this.presetLoader.deactivatePreset(`${layerId}-${layer.preset.id}`);
+      layer.scene.clear();
+      layer.preset = null;
+    }
+
+    if (layer.activeVideoId) {
+      this.stopVideoPlayback(layer);
+    }
+
+    let sourceUrl: string = videoResource.previewUrl;
+    try {
+      const cachedUrl = await getCachedVideoUrl(videoResource);
+      sourceUrl = cachedUrl;
+      if (cachedUrl.startsWith('blob:')) {
+        layer.videoObjectUrl = cachedUrl;
+      }
+    } catch (error) {
+      console.warn(`Falling back to remote URL for video ${videoId}`, error);
+    }
+
+    const videoEl = layer.videoElement;
+    videoEl.src = sourceUrl;
+    videoEl.muted = true;
+    videoEl.currentTime = 0;
+    videoEl.style.opacity = layer.opacity.toString();
+    videoEl.style.visibility = 'visible';
+
+    layer.activeVideoId = videoResource.id;
+    layer.isActive = true;
+    layer.renderer.domElement.style.opacity = '0';
+
+    const playWithSettings = () => {
+      this.applyVideoSettings(layer);
+    };
+
+    if (videoEl.readyState >= 2) {
+      playWithSettings();
+    } else {
+      videoEl.onloadeddata = () => {
+        videoEl.onloadeddata = null;
+        playWithSettings();
+      };
+    }
+
+    return true;
   }
 
   public renderLayers(): void {
@@ -110,6 +340,10 @@ export class LayerManager {
   }
 
   public async activateLayerPreset(layerId: string, presetId: string): Promise<boolean> {
+    if (presetId.startsWith('video:')) {
+      return this.activateVideoPreset(layerId, presetId);
+    }
+
     const layer = this.layers.get(layerId);
     if (!layer) {
       console.error(`Layer ${layerId} no encontrado`);
@@ -117,6 +351,9 @@ export class LayerManager {
     }
 
     try {
+      if (layer.activeVideoId) {
+        this.stopVideoPlayback(layer);
+      }
       if (layer.preset) {
         this.presetLoader.deactivatePreset(`${layerId}-${layer.preset.id}`);
         layer.scene.clear();
@@ -158,6 +395,7 @@ export class LayerManager {
       layer.preset = { ...loadedPreset, config: loadedPresetConfig };
       layer.isActive = true;
       layer.renderer.domElement.style.opacity = layer.opacity.toString();
+      layer.videoElement.style.opacity = '0';
       console.log(`✅ Layer ${layerId} activado con preset ${presetId}`);
       return true;
     } catch (error) {
@@ -176,9 +414,14 @@ export class LayerManager {
       layer.preset = null;
     }
 
+    if (layer.activeVideoId) {
+      this.stopVideoPlayback(layer);
+    }
+
     layer.isActive = false;
     layer.renderer.clear();
     layer.renderer.domElement.style.opacity = '0';
+    layer.videoElement.style.opacity = '0';
     console.log(`🗑️ Layer ${layerId} desactivado`);
   }
 
@@ -191,6 +434,9 @@ export class LayerManager {
       layer.renderer.domElement.style.opacity = layer.isActive
         ? layer.opacity.toString()
         : '0';
+      if (layer.activeVideoId) {
+        layer.videoElement.style.opacity = layer.opacity.toString();
+      }
     }
 
     if (config.fadeTime !== undefined) {
@@ -201,19 +447,19 @@ export class LayerManager {
   public triggerVFX(layerId: string, effect: string): void {
     const layer = this.layers.get(layerId);
     if (!layer) return;
-    const canvas = layer.renderer.domElement;
-    canvas.classList.add(`effect-${effect}`);
-    setTimeout(() => canvas.classList.remove(`effect-${effect}`), 300);
+    const target = layer.activeVideoId ? layer.videoElement : layer.renderer.domElement;
+    target.classList.add(`effect-${effect}`);
+    setTimeout(() => target.classList.remove(`effect-${effect}`), 300);
   }
 
   public setVFX(layerId: string, effect: string, enabled: boolean): void {
     const layer = this.layers.get(layerId);
     if (!layer) return;
-    const canvas = layer.renderer.domElement;
-    canvas.classList.toggle(`vfx-${effect}`, enabled);
+    const target = layer.activeVideoId ? layer.videoElement : layer.renderer.domElement;
+    target.classList.toggle(`vfx-${effect}`, enabled);
     const staticEffects = ['blur', 'distortion', 'pixelate', 'invert', 'sepia', 'noise', 'scanlines'];
     if (staticEffects.includes(effect)) {
-      canvas.classList.toggle(`effect-${effect}`, enabled);
+      target.classList.toggle(`effect-${effect}`, enabled);
     }
   }
 
@@ -323,6 +569,9 @@ export class LayerManager {
     this.layers.forEach(layer => {
       layer.renderer.setClearColor(0x000000, 0);
       layer.renderer.clear(true, true, true);
+      if (layer.activeVideoId) {
+        this.stopVideoPlayback(layer);
+      }
     });
   }
 
@@ -350,7 +599,19 @@ export class LayerManager {
       layer.scene.clear();
       layer.renderer.dispose();
       layer.renderer.domElement.remove();
+      this.stopVideoPlayback(layer);
+      layer.videoElement.remove();
     });
+  }
+
+  public updateLayerVideoSettings(layerId: string, settings: Partial<VideoPlaybackSettings>): void {
+    const layer = this.layers.get(layerId);
+    if (!layer) return;
+    layer.videoSettings = {
+      ...layer.videoSettings,
+      ...settings,
+    };
+    this.applyVideoSettings(layer);
   }
 }
 

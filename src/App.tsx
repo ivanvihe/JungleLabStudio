@@ -25,6 +25,19 @@ import { useMidi } from './hooks/useMidi';
 import { useLaunchpad } from './hooks/useLaunchpad';
 import './App.css';
 import './AppLayout.css';
+import VideoControls from './components/VideoControls';
+import {
+  VideoResource,
+  VideoPlaybackSettings,
+  DEFAULT_VIDEO_PLAYBACK_SETTINGS,
+} from './types/video';
+import {
+  loadVideoGallery,
+  clearVideoGalleryCache,
+  VideoProviderSettings,
+  VideoProviderId,
+} from './utils/videoProviders';
+import { clearVideoCache } from './utils/videoCache';
 
 interface MonitorInfo {
   id: string;
@@ -78,6 +91,70 @@ const App: React.FC = () => {
   });
   const [fractalLabBasePreset, setFractalLabBasePreset] = useState<LoadedPreset | null>(null);
 
+  const defaultVideoProviderSettings: VideoProviderSettings = {
+    provider: 'pexels',
+    apiKey: '',
+    refreshMinutes: 30,
+    query: 'vj loop',
+  };
+
+  const [videoProviderSettings, setVideoProviderSettings] = useState<VideoProviderSettings>(() => {
+    try {
+      const stored = localStorage.getItem('videoProviderSettings');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return {
+          provider: (parsed.provider as VideoProviderId) || 'pexels',
+          apiKey: parsed.apiKey || '',
+          refreshMinutes: parsed.refreshMinutes || 30,
+          query: parsed.query || 'vj loop',
+        };
+      }
+    } catch (err) {
+      console.warn('Unable to restore video provider settings', err);
+    }
+    return defaultVideoProviderSettings;
+  });
+
+  const [videoGallery, setVideoGallery] = useState<VideoResource[]>(() => {
+    try {
+      const cached = localStorage.getItem('videoGalleryCache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        return Array.isArray(parsed.items) ? parsed.items : [];
+      }
+    } catch {
+      /* ignore */
+    }
+    return [];
+  });
+  const [isRefreshingVideos, setIsRefreshingVideos] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<VideoResource | null>(null);
+  const [selectedVideoLayer, setSelectedVideoLayer] = useState<string | null>(null);
+  const [layerVideoSettings, setLayerVideoSettings] = useState<Record<string, VideoPlaybackSettings>>(() => {
+    try {
+      const stored = localStorage.getItem('layerVideoSettings');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return {
+          A: { ...DEFAULT_VIDEO_PLAYBACK_SETTINGS, ...(parsed.A || {}) },
+          B: { ...DEFAULT_VIDEO_PLAYBACK_SETTINGS, ...(parsed.B || {}) },
+          C: { ...DEFAULT_VIDEO_PLAYBACK_SETTINGS, ...(parsed.C || {}) },
+        };
+      }
+    } catch {
+      /* ignore */
+    }
+    return {
+      A: { ...DEFAULT_VIDEO_PLAYBACK_SETTINGS },
+      B: { ...DEFAULT_VIDEO_PLAYBACK_SETTINGS },
+      C: { ...DEFAULT_VIDEO_PLAYBACK_SETTINGS },
+    };
+  });
+
+  const layerVideoSettingsRef = useRef(layerVideoSettings);
+  const videoGalleryRef = useRef(videoGallery);
+
   // Top bar & settings state
   const [layerChannels, setLayerChannels] = useState<Record<string, number>>(() => {
     const saved = localStorage.getItem('layerMidiChannels');
@@ -130,6 +207,14 @@ const App: React.FC = () => {
     () => new URLSearchParams(window.location.search).get('fullscreen') === 'true'
   );
 
+  useEffect(() => {
+    layerVideoSettingsRef.current = layerVideoSettings;
+  }, [layerVideoSettings]);
+
+  useEffect(() => {
+    videoGalleryRef.current = videoGallery;
+  }, [videoGallery]);
+
   const {
     audioData,
     audioDevices,
@@ -157,6 +242,76 @@ const App: React.FC = () => {
     launchpadText,
     setLaunchpadText,
   } = useLaunchpad(audioData, canvasRef);
+
+  const updateVideoProviderSettings = useCallback(
+    (updates: Partial<VideoProviderSettings>) => {
+      setVideoProviderSettings(prev => ({ ...prev, ...updates }));
+    },
+    []
+  );
+
+  const refreshVideoGallery = useCallback(
+    async (force = false) => {
+      setIsRefreshingVideos(true);
+      try {
+        const videos = await loadVideoGallery(videoProviderSettings, force);
+        setVideoGallery(videos);
+        engineRef.current?.setVideoRegistry(videos);
+        setStatus(`Video gallery updated (${videos.length} items)`);
+      } catch (error) {
+        console.error('Failed to refresh video gallery', error);
+        setStatus('Error loading video gallery');
+      } finally {
+        setIsRefreshingVideos(false);
+      }
+    },
+    [videoProviderSettings]
+  );
+
+  const handleClearVideoCache = useCallback(async () => {
+    try {
+      clearVideoGalleryCache();
+      await clearVideoCache();
+      setVideoGallery([]);
+      setStatus('Video cache cleared');
+      await refreshVideoGallery(true);
+    } catch (error) {
+      console.error('Failed to clear video cache', error);
+      setStatus('Error clearing video cache');
+    }
+  }, [refreshVideoGallery]);
+
+  const handleVideoSettingsChange = useCallback(
+    (updates: Partial<VideoPlaybackSettings>) => {
+      if (!selectedVideoLayer) return;
+      setLayerVideoSettings(prev => {
+        const current = prev[selectedVideoLayer] || DEFAULT_VIDEO_PLAYBACK_SETTINGS;
+        return {
+          ...prev,
+          [selectedVideoLayer]: { ...current, ...updates },
+        };
+      });
+      engineRef.current?.updateLayerVideoSettings(selectedVideoLayer, updates);
+    },
+    [selectedVideoLayer]
+  );
+
+  const handleAddVideoToLayer = useCallback(
+    (videoId: string, layerId: string) => {
+      const video = videoGalleryRef.current.find(item => item.id === videoId);
+      if (video) {
+        setStatus(`${video.title} assigned to Layer ${layerId}`);
+      }
+    },
+    []
+  );
+
+  const handleRemoveVideoFromLayer = useCallback((videoId: string, layerId: string) => {
+    const video = videoGalleryRef.current.find(item => item.id === videoId);
+    if (video) {
+      setStatus(`${video.title} removed from Layer ${layerId}`);
+    }
+  }, []);
 
   const handleLaunchpadToggle = useCallback(() => {
     console.log('🎯 LaunchPad toggle requested');
@@ -302,6 +457,27 @@ const App: React.FC = () => {
   }, [visualsPath]);
 
   useEffect(() => {
+    try {
+      localStorage.setItem('videoProviderSettings', JSON.stringify(videoProviderSettings));
+    } catch (err) {
+      console.warn('Failed to persist video provider settings:', err);
+    }
+  }, [videoProviderSettings]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('layerVideoSettings', JSON.stringify(layerVideoSettings));
+    } catch (err) {
+      console.warn('Failed to persist layer video settings:', err);
+    }
+    if (engineRef.current) {
+      Object.entries(layerVideoSettings).forEach(([layerId, settings]) => {
+        engineRef.current?.updateLayerVideoSettings(layerId, settings);
+      });
+    }
+  }, [layerVideoSettings]);
+
+  useEffect(() => {
     if (!isFullscreenMode && midiTrigger) {
       broadcastRef.current?.postMessage({ type: 'midiTrigger', data: midiTrigger });
     }
@@ -321,6 +497,24 @@ const App: React.FC = () => {
       monitorId: startMonitor || undefined
     });
   }, [startMaximized, startMonitor]);
+
+  useEffect(() => {
+    refreshVideoGallery();
+  }, [refreshVideoGallery]);
+
+  useEffect(() => {
+    if (!videoProviderSettings.refreshMinutes) return;
+    const interval = window.setInterval(() => {
+      refreshVideoGallery();
+    }, videoProviderSettings.refreshMinutes * 60_000);
+    return () => window.clearInterval(interval);
+  }, [videoProviderSettings.refreshMinutes, refreshVideoGallery]);
+
+  useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.setVideoRegistry(videoGallery);
+    }
+  }, [videoGallery]);
 
   // Persist preset configs per layer/visual automatically
   useEffect(() => {
@@ -499,6 +693,11 @@ const App: React.FC = () => {
         canvasRef.current = engine.getLayerCanvas('A') || null;
         setGenLabBasePreset(engine.getGenLabBasePreset());
         setFractalLabBasePreset(engine.getFractalLabBasePreset());
+
+        engine.setVideoRegistry(videoGalleryRef.current);
+        Object.entries(layerVideoSettingsRef.current).forEach(([layerId, settings]) => {
+          engine.updateLayerVideoSettings(layerId, settings);
+        });
 
         const multiMonitor = localStorage.getItem('multiMonitorMode') === 'true';
         engine.setMultiMonitorMode(multiMonitor);
@@ -779,6 +978,8 @@ const App: React.FC = () => {
     setActiveLayers({});
     setSelectedPreset(null);
     setSelectedLayer(null);
+    setSelectedVideo(null);
+    setSelectedVideoLayer(null);
     setClearSignal(prev => prev + 1);
     setStatus('Capas limpiadas');
     setLayerEffects(prev => ({
@@ -1011,9 +1212,16 @@ const App: React.FC = () => {
 
     addFn(layerId, presetId);
 
-    const preset = availablePresets.find(p => p.id === presetId);
-    if (preset) {
-      setStatus(`${preset.config.name} added to Layer ${layerId}`);
+    if (presetId.startsWith('video:')) {
+      const video = videoGallery.find(v => `video:${v.id}` === presetId);
+      if (video) {
+        setStatus(`${video.title} added to Layer ${layerId}`);
+      }
+    } else {
+      const preset = availablePresets.find(p => p.id === presetId);
+      if (preset) {
+        setStatus(`${preset.config.name} added to Layer ${layerId}`);
+      }
     }
   };
 
@@ -1026,13 +1234,23 @@ const App: React.FC = () => {
 
     removeFn(layerId, presetId);
 
-    const preset = availablePresets.find(p => p.id === presetId);
-    if (preset) {
-      setStatus(`${preset.config.name} removed from Layer ${layerId}`);
+    if (presetId.startsWith('video:')) {
+      const video = videoGallery.find(v => `video:${v.id}` === presetId);
+      if (video) {
+        setStatus(`${video.title} removed from Layer ${layerId}`);
+      }
+    } else {
+      const preset = availablePresets.find(p => p.id === presetId);
+      if (preset) {
+        setStatus(`${preset.config.name} removed from Layer ${layerId}`);
+      }
     }
   };
 
   const getCurrentPresetName = (): string => {
+    if (selectedVideo && selectedVideoLayer) {
+      return `${selectedVideo.title} (${selectedVideoLayer})`;
+    }
     if (!selectedPreset) return 'None';
     return `${selectedPreset.config.name} (${selectedLayer || 'N/A'})`;
   };
@@ -1075,11 +1293,40 @@ const App: React.FC = () => {
         <Suspense fallback={<div>Loading layers...</div>}>
           <LayerGrid
             presets={availablePresets}
+            videos={videoGallery}
             externalTrigger={midiTrigger}
-          onPresetActivate={(layerId, presetId, velocity) => {
-            (async () => {
-              if (engineRef.current) {
-                await engineRef.current.activateLayerPreset(layerId, presetId);
+            onPresetActivate={(layerId, presetId, velocity) => {
+              (async () => {
+                if (!engineRef.current) return;
+                const isVideo = presetId.startsWith('video:');
+                if (isVideo) {
+                  const videoId = presetId.replace(/^video:/, '');
+                  const video = videoGallery.find(v => v.id === videoId);
+                  if (!video) {
+                    setStatus(`Video ${videoId} unavailable`);
+                    return;
+                  }
+                  const success = await engineRef.current.activateLayerPreset(layerId, presetId);
+                  if (!success) return;
+                  setActiveLayers(prev => ({ ...prev, [layerId]: presetId }));
+
+                  const savedVfx = layerVFX[layerId]?.[presetId] || [];
+                  savedVfx.forEach(effect =>
+                    engineRef.current?.setLayerVFX(layerId, effect, true)
+                  );
+
+                  setSelectedVideo(video);
+                  setSelectedVideoLayer(layerId);
+                  setSelectedPreset(null);
+                  setSelectedLayer(layerId);
+                  const settings = layerVideoSettings[layerId] || DEFAULT_VIDEO_PLAYBACK_SETTINGS;
+                  engineRef.current.updateLayerVideoSettings(layerId, settings);
+                  setStatus(`${video.title} loaded on Layer ${layerId}`);
+                  return;
+                }
+
+                const success = await engineRef.current.activateLayerPreset(layerId, presetId);
+                if (!success) return;
                 setActiveLayers(prev => ({ ...prev, [layerId]: presetId }));
 
                 const savedVfx = layerVFX[layerId]?.[presetId] || [];
@@ -1101,10 +1348,13 @@ const App: React.FC = () => {
                   }
                   setSelectedPreset(preset);
                   setSelectedLayer(layerId);
+                  if (selectedVideoLayer === layerId) {
+                    setSelectedVideo(null);
+                    setSelectedVideoLayer(null);
+                  }
                 }
-              }
-            })();
-          }}
+              })();
+            }}
           onLayerClear={(layerId) => {
             if (engineRef.current) {
               engineRef.current.deactivateLayerPreset(layerId);
@@ -1117,6 +1367,10 @@ const App: React.FC = () => {
                 setSelectedPreset(null);
                 setSelectedLayer(null);
               }
+              if (selectedVideoLayer === layerId) {
+                setSelectedVideo(null);
+                setSelectedVideoLayer(null);
+              }
             }
           }}
           onLayerConfigChange={(layerId, config) => {
@@ -1128,6 +1382,15 @@ const App: React.FC = () => {
           onPresetSelect={(layerId, presetId) => {
             (async () => {
               if (presetId) {
+                if (presetId.startsWith('video:')) {
+                  const videoId = presetId.replace(/^video:/, '');
+                  const video = videoGallery.find(v => v.id === videoId) || null;
+                  setSelectedVideo(video);
+                  setSelectedVideoLayer(layerId);
+                  setSelectedPreset(null);
+                  setSelectedLayer(layerId);
+                  return;
+                }
                 const preset = availablePresets.find(p => p.id === presetId);
                 if (preset) {
                   const existing = layerPresetConfigs[layerId]?.[presetId];
@@ -1142,10 +1405,20 @@ const App: React.FC = () => {
                   }
                   setSelectedPreset(preset);
                   setSelectedLayer(layerId);
+                  if (selectedVideoLayer === layerId) {
+                    setSelectedVideo(null);
+                    setSelectedVideoLayer(null);
+                  }
                 }
-              } else if (selectedLayer === layerId) {
-                setSelectedPreset(null);
-                setSelectedLayer(null);
+              } else {
+                if (selectedLayer === layerId) {
+                  setSelectedPreset(null);
+                  setSelectedLayer(null);
+                }
+                if (selectedVideoLayer === layerId) {
+                  setSelectedVideo(null);
+                  setSelectedVideoLayer(null);
+                }
               }
             })();
           }}
@@ -1188,7 +1461,14 @@ const App: React.FC = () => {
             >
               {isControlsOpen ? '✕' : '⚙️'}
             </button>
-            {isControlsOpen && selectedPreset && (
+            {isControlsOpen && selectedVideo && selectedVideoLayer && (
+              <VideoControls
+                video={selectedVideo}
+                settings={layerVideoSettings[selectedVideoLayer] || DEFAULT_VIDEO_PLAYBACK_SETTINGS}
+                onChange={handleVideoSettingsChange}
+              />
+            )}
+            {isControlsOpen && !selectedVideo && selectedPreset && (
               <Suspense fallback={<div>Loading controls...</div>}>
                 <PresetControls
                   preset={selectedPreset}
@@ -1208,7 +1488,7 @@ const App: React.FC = () => {
                 />
               </Suspense>
             )}
-            {isControlsOpen && !selectedPreset && (
+            {isControlsOpen && !selectedPreset && !selectedVideo && (
               <div className="no-preset-selected">Selecciona un preset</div>
             )}
           </div>
@@ -1322,7 +1602,16 @@ const App: React.FC = () => {
         canvasBackground={canvasBackground}
         onCanvasBackgroundChange={setCanvasBackground}
         visualsPath={visualsPath}
-          onVisualsPathChange={setVisualsPath}
+        onVisualsPathChange={setVisualsPath}
+        videoProvider={videoProviderSettings.provider}
+        videoApiKey={videoProviderSettings.apiKey || ''}
+        videoQuery={videoProviderSettings.query}
+        videoRefreshMinutes={videoProviderSettings.refreshMinutes}
+        onVideoProviderChange={(provider) => updateVideoProviderSettings({ provider })}
+        onVideoApiKeyChange={(value) => updateVideoProviderSettings({ apiKey: value })}
+        onVideoQueryChange={(value) => updateVideoProviderSettings({ query: value })}
+        onVideoRefreshMinutesChange={(value) => updateVideoProviderSettings({ refreshMinutes: value })}
+        onVideoCacheClear={handleClearVideoCache}
         />
       </Suspense>
 
@@ -1354,6 +1643,11 @@ const App: React.FC = () => {
           onTriggerVFX={handleTriggerVFX}
           onSetVFX={handleSetVFX}
           layerVFX={layerVFX}
+          videos={videoGallery}
+          onAddVideoToLayer={handleAddVideoToLayer}
+          onRemoveVideoFromLayer={handleRemoveVideoFromLayer}
+          onRefreshVideos={() => refreshVideoGallery(true)}
+          isRefreshingVideos={isRefreshingVideos}
         />
       </Suspense>
     </div>

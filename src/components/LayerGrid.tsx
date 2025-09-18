@@ -4,6 +4,7 @@ import { AVAILABLE_EFFECTS } from '../utils/effects';
 import { usePresetGrid } from '../hooks/usePresetGrid';
 import { getPresetThumbnail } from '../utils/presetThumbnails';
 import './LayerGrid.css';
+import { VideoResource } from '../types/video';
 
 
 interface LayerConfig {
@@ -26,6 +27,7 @@ interface LayerConfig {
 
 interface LayerGridProps {
   presets: LoadedPreset[];
+  videos: VideoResource[];
   onPresetActivate: (layerId: string, presetId: string, velocity?: number) => void;
   onLayerClear: (layerId: string) => void;
   onLayerConfigChange: (layerId: string, config: Partial<LayerConfig>) => void;
@@ -42,6 +44,7 @@ interface LayerGridProps {
 
 const LayerGrid: React.FC<LayerGridProps> = ({
   presets,
+  videos,
   onPresetActivate,
   onLayerClear,
   onLayerConfigChange,
@@ -95,7 +98,9 @@ const LayerGrid: React.FC<LayerGridProps> = ({
     const cellKey = `${layerId}-${presetId}-${index}`;
     const layer = layers.find(l => l.id === layerId);
     const wasActive = layer?.activePreset === presetId;
-    const preset = presets.find(p => p.id === presetId);
+    const isVideo = presetId.startsWith('video:');
+    const preset = isVideo ? undefined : presets.find(p => p.id === presetId);
+    const video = isVideo ? videos.find(v => `video:${v.id}` === presetId) : undefined;
     const isOneShot = preset?.config.category === 'one-shot';
     const opacityFromVelocity = velocity !== undefined
       ? Math.max(1, Math.round((velocity / 127) * 100))
@@ -117,6 +122,10 @@ const LayerGrid: React.FC<LayerGridProps> = ({
     if (!wasActive || isOneShot) {
       onPresetActivate(layerId, presetId, velocity);
     }
+    if (isVideo && !video) {
+      return;
+    }
+
     onPresetSelect(layerId, presetId);
   };
 
@@ -393,11 +402,56 @@ const LayerGrid: React.FC<LayerGridProps> = ({
               }
 
               // Slot con preset
+              const isVideo = presetId.startsWith('video:');
+              if (isVideo) {
+                const video = videos.find(v => `video:${v.id}` === presetId);
+                if (!video) return null;
+
+                const cellKey = `${layer.id}-${presetId}-${idx}`;
+                const isActive = layer.activePreset === presetId;
+                const isClicked = clickedCell === cellKey;
+                const isDragOver = dragTarget?.layerId === layer.id && dragTarget.index === idx;
+
+                return (
+                  <div
+                    key={cellKey}
+                    className={`preset-cell video-cell ${isActive ? 'active' : ''} ${isClicked ? 'clicked' : ''} ${isDragOver ? 'drag-over' : ''}`}
+                    onClick={() => handlePresetClick(layer.id, presetId, idx)}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, layer.id, idx)}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={handleDragOver}
+                    onDragEnter={(e) => handleDragEnter(e, layer.id, idx)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, layer.id, idx)}
+                    style={{
+                      '--layer-color': layer.color,
+                      '--layer-color-alpha': layer.color + '20'
+                    } as React.CSSProperties}
+                  >
+                    <div className="video-thumb" style={{ backgroundImage: `url(${video.thumbnail})` }} />
+                    <div className="preset-info">
+                      <div className="preset-name">{video.title}</div>
+                      <div className="preset-details">
+                        <span className="preset-category">Video · {video.provider}</span>
+                      </div>
+                    </div>
+                    <div className="video-badge">🎬</div>
+                    {isActive && (
+                      <div
+                        className="active-indicator"
+                        style={{ backgroundColor: layer.color }}
+                      />
+                    )}
+                  </div>
+                );
+              }
+
               const preset = presets.find(p => p.id === presetId);
               if (!preset) return null;
-              
+
               const cellKey = `${layer.id}-${preset.id}-${idx}`;
-              const isActive = layer.activePreset === preset.id;
+              const isActive = layer.activePreset === presetId;
               const isClicked = clickedCell === cellKey;
               const isDragOver = dragTarget?.layerId === layer.id && dragTarget.index === idx;
 

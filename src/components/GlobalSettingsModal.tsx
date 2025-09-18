@@ -8,6 +8,8 @@ import { VideoSettings } from './settings/VideoSettings';
 import { FullscreenSettings } from './settings/FullscreenSettings';
 import { VisualSettings } from './settings/VisualSettings';
 import { SystemSettings } from './settings/SystemSettings';
+import { VideoProviderSettings as VideoProviderSettingsSection } from './settings/VideoProviderSettings';
+import { VideoProviderId } from '../utils/videoProviders';
 
 interface DeviceOption {
   id: string;
@@ -90,6 +92,15 @@ interface GlobalSettingsModalProps {
   onCanvasBackgroundChange: (value: string) => void;
   visualsPath: string;
   onVisualsPathChange: (value: string) => void;
+  videoProvider: VideoProviderId;
+  videoApiKey: string;
+  videoQuery: string;
+  videoRefreshMinutes: number;
+  onVideoProviderChange: (provider: VideoProviderId) => void;
+  onVideoApiKeyChange: (value: string) => void;
+  onVideoQueryChange: (value: string) => void;
+  onVideoRefreshMinutesChange: (value: number) => void;
+  onVideoCacheClear: () => void;
 }
 
 const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
@@ -150,6 +161,15 @@ const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   onCanvasBackgroundChange,
   visualsPath,
   onVisualsPathChange,
+  videoProvider,
+  videoApiKey,
+  videoQuery,
+  videoRefreshMinutes,
+  onVideoProviderChange,
+  onVideoApiKeyChange,
+  onVideoQueryChange,
+  onVideoRefreshMinutesChange,
+  onVideoCacheClear,
 }) => {
   const [activeTab, setActiveTab] = useState('audio');
 
@@ -169,6 +189,7 @@ const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
               { id: 'audio', label: 'Audio', icon: '🎵' },
               { id: 'hardware', label: 'MIDI Hardware', icon: '🎛️' },
               { id: 'video', label: 'Performance', icon: '🎮' },
+              { id: 'videos', label: 'Videos', icon: '🎞️' },
               { id: 'fullscreen', label: 'Monitors', icon: '🖥️' },
               { id: 'visual', label: 'Visuals', icon: '🎨' },
               { id: 'system', label: 'System', icon: '🔧' },
@@ -228,6 +249,20 @@ const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
             )}
 
             {activeTab === 'video' && <VideoSettings />}
+
+            {activeTab === 'videos' && (
+              <VideoProviderSettingsSection
+                provider={videoProvider}
+                apiKey={videoApiKey}
+                refreshMinutes={videoRefreshMinutes}
+                query={videoQuery}
+                onProviderChange={onVideoProviderChange}
+                onApiKeyChange={onVideoApiKeyChange}
+                onRefreshMinutesChange={onVideoRefreshMinutesChange}
+                onQueryChange={onVideoQueryChange}
+                onClearCache={onVideoCacheClear}
+              />
+            )}
 
             {activeTab === 'fullscreen' && (
               <FullscreenSettings

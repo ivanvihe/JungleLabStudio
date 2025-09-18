@@ -175,6 +175,12 @@
   gap: 10px;
 }
 
+.setting-description {
+  margin: -12px 0 16px 0;
+  color: #bbb;
+  font-size: 13px;
+}
+
 /* Setting Groups */
 .setting-group {
   margin-bottom: 20px;
