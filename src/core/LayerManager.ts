@@ -38,6 +38,9 @@ export interface LayerState {
   videoSettings: VideoPlaybackSettings;
   videoPlaybackRaf: number | null;
   videoPlaybackDirection: 1 | -1;
+  videoReady: boolean;
+  videoLoadToken: number;
+  videoStallRecoveryTimeout: ReturnType<typeof setTimeout> | null;
 }
 
 /**
@@ -90,7 +93,20 @@ export class LayerManager {
     video.style.mixBlendMode = 'normal';
     video.playsInline = true;
     video.muted = true;
+    video.autoplay = true;
+    video.preload = 'auto';
     video.crossOrigin = 'anonymous';
+    video.controls = false;
+    if ('disablePictureInPicture' in video) {
+      try {
+        (video as HTMLVideoElement & { disablePictureInPicture?: boolean }).disablePictureInPicture = true;
+      } catch {
+        /* ignore */
+      }
+    }
+    video.setAttribute('muted', '');
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
     this.container.appendChild(video);
 
     const renderer = new THREE.WebGLRenderer({
@@ -117,15 +133,29 @@ export class LayerManager {
       videoSettings: { ...DEFAULT_VIDEO_PLAYBACK_SETTINGS },
       videoPlaybackRaf: null,
       videoPlaybackDirection: 1,
+      videoReady: false,
+      videoLoadToken: 0,
+      videoStallRecoveryTimeout: null,
     };
 
     this.layers.set(id, layerState);
+    const recoverPlayback = () => this.handleVideoStall(layerState);
+    video.addEventListener('waiting', recoverPlayback);
+    video.addEventListener('stalled', recoverPlayback);
+    video.addEventListener('suspend', recoverPlayback);
     console.log(`🔧 Layer ${id} creado con canvas propio`);
   }
 
   public setVideoRegistry(videos: VideoResource[]): void {
     this.videoRegistry.clear();
     videos.forEach(video => this.videoRegistry.set(video.id, video));
+  }
+
+  private clearVideoRecovery(layer: LayerState): void {
+    if (layer.videoStallRecoveryTimeout !== null) {
+      clearTimeout(layer.videoStallRecoveryTimeout);
+      layer.videoStallRecoveryTimeout = null;
+    }
   }
 
   private stopVideoPlayback(layer: LayerState): void {
@@ -136,11 +166,14 @@ export class LayerManager {
     video.style.opacity = '0';
     video.style.mixBlendMode = 'normal';
     this.stopCustomVideoPlayback(layer);
+    this.clearVideoRecovery(layer);
     if (layer.videoObjectUrl) {
       releaseCachedUrl(layer.videoObjectUrl);
       layer.videoObjectUrl = undefined;
     }
     layer.activeVideoId = null;
+    layer.videoReady = false;
+    layer.videoLoadToken++;
   }
 
   private stopCustomVideoPlayback(layer: LayerState): void {
@@ -150,10 +183,109 @@ export class LayerManager {
     }
   }
 
+  private startNativeVideoPlayback(layer: LayerState): void {
+    const video = layer.videoElement;
+    this.clearVideoRecovery(layer);
+    const playResult = video.play();
+    if (playResult && typeof playResult.catch === 'function') {
+      playResult.catch(err => console.warn('Unable to start video playback', err));
+    }
+  }
+
+  private handleVideoStall(layer: LayerState): void {
+    if (!layer.activeVideoId || !layer.videoReady) {
+      return;
+    }
+    if (layer.videoPlaybackRaf !== null) {
+      return;
+    }
+    if (layer.videoStallRecoveryTimeout !== null) {
+      return;
+    }
+
+    layer.videoStallRecoveryTimeout = setTimeout(() => {
+      layer.videoStallRecoveryTimeout = null;
+      if (!layer.activeVideoId || !layer.videoReady) {
+        return;
+      }
+      const video = layer.videoElement;
+      if (video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
+        try {
+          video.currentTime = Math.max(0, video.currentTime - 0.05);
+        } catch {
+          /* ignore seek errors */
+        }
+      }
+      this.startNativeVideoPlayback(layer);
+    }, 150);
+  }
+
+  private waitForVideoReady(
+    layer: LayerState,
+    video: HTMLVideoElement,
+    loadToken: number
+  ): Promise<void> {
+    if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      let settled = false;
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+      const cleanup = () => {
+        video.removeEventListener('canplaythrough', onReady);
+        video.removeEventListener('canplay', onReady);
+        video.removeEventListener('loadeddata', onReady);
+        video.removeEventListener('error', onError);
+        if (timeoutId !== null) {
+          clearTimeout(timeoutId);
+        }
+      };
+
+      const onReady = () => {
+        if (settled || layer.videoLoadToken !== loadToken) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        resolve();
+      };
+
+      const onError = () => {
+        if (settled || layer.videoLoadToken !== loadToken) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        const mediaError = video.error;
+        reject(mediaError || new Error('Video playback error'));
+      };
+
+      video.addEventListener('canplaythrough', onReady);
+      video.addEventListener('canplay', onReady);
+      video.addEventListener('loadeddata', onReady);
+      video.addEventListener('error', onError);
+
+      timeoutId = setTimeout(() => {
+        if (settled || layer.videoLoadToken !== loadToken) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        resolve();
+      }, 4000);
+    });
+  }
+
   private startCustomVideoPlayback(layer: LayerState): void {
     const settings = layer.videoSettings;
     const video = layer.videoElement;
     if (!settings.reverse && settings.loopMode !== 'pingpong') {
+      return;
+    }
+
+    if (!layer.videoReady) {
       return;
     }
 
@@ -227,6 +359,7 @@ export class LayerManager {
 
     if (!layer.activeVideoId) {
       this.stopCustomVideoPlayback(layer);
+      this.clearVideoRecovery(layer);
       video.style.opacity = '0';
       return;
     }
@@ -247,12 +380,14 @@ export class LayerManager {
     video.style.opacity = layer.opacity.toString();
 
     this.stopCustomVideoPlayback(layer);
+    if (!layer.videoReady) {
+      return;
+    }
+
     if (settings.reverse || settings.loopMode === 'pingpong') {
       this.startCustomVideoPlayback(layer);
     } else {
-      video
-        .play()
-        .catch(err => console.warn('Unable to start video playback', err));
+      this.startNativeVideoPlayback(layer);
     }
   }
 
@@ -292,9 +427,13 @@ export class LayerManager {
     }
 
     const videoEl = layer.videoElement;
+    const loadToken = ++layer.videoLoadToken;
+    layer.videoReady = false;
     videoEl.src = sourceUrl;
     videoEl.muted = true;
     videoEl.currentTime = 0;
+    videoEl.preload = 'auto';
+    videoEl.load();
     videoEl.style.opacity = layer.opacity.toString();
     videoEl.style.visibility = 'visible';
 
@@ -302,18 +441,18 @@ export class LayerManager {
     layer.isActive = true;
     layer.renderer.domElement.style.opacity = '0';
 
-    const playWithSettings = () => {
-      this.applyVideoSettings(layer);
-    };
-
-    if (videoEl.readyState >= 2) {
-      playWithSettings();
-    } else {
-      videoEl.onloadeddata = () => {
-        videoEl.onloadeddata = null;
-        playWithSettings();
-      };
+    try {
+      await this.waitForVideoReady(layer, videoEl, loadToken);
+    } catch (error) {
+      console.warn(`Video ${videoId} did not reach ready state`, error);
     }
+
+    if (layer.videoLoadToken !== loadToken) {
+      return true;
+    }
+
+    layer.videoReady = videoEl.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
+    this.applyVideoSettings(layer);
 
     return true;
   }
