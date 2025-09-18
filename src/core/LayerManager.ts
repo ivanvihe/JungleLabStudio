@@ -140,9 +140,12 @@ export class LayerManager {
 
     this.layers.set(id, layerState);
     const recoverPlayback = () => this.handleVideoStall(layerState);
+    const clearRecovery = () => this.clearVideoRecovery(layerState);
     video.addEventListener('waiting', recoverPlayback);
     video.addEventListener('stalled', recoverPlayback);
     video.addEventListener('suspend', recoverPlayback);
+    video.addEventListener('pause', recoverPlayback);
+    video.addEventListener('playing', clearRecovery);
     console.log(`🔧 Layer ${id} creado con canvas propio`);
   }
 
@@ -199,6 +202,24 @@ export class LayerManager {
     if (layer.videoPlaybackRaf !== null) {
       return;
     }
+    if (layer.videoSettings.reverse || layer.videoSettings.loopMode === 'pingpong') {
+      return;
+    }
+    const video = layer.videoElement;
+    if (video.ended) {
+      return;
+    }
+
+    const attemptResume = () => {
+      const playResult = video.play();
+      if (playResult && typeof playResult.catch === 'function') {
+        playResult.catch(err => console.warn('Unable to resume stalled video', err));
+      }
+    };
+
+    if (video.paused && !video.seeking) {
+      attemptResume();
+    }
     if (layer.videoStallRecoveryTimeout !== null) {
       return;
     }
@@ -208,16 +229,21 @@ export class LayerManager {
       if (!layer.activeVideoId || !layer.videoReady) {
         return;
       }
-      const video = layer.videoElement;
-      if (video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
+      if (video.ended) {
+        return;
+      }
+      if (
+        video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA &&
+        !video.seeking
+      ) {
         try {
           video.currentTime = Math.max(0, video.currentTime - 0.05);
         } catch {
           /* ignore seek errors */
         }
       }
-      this.startNativeVideoPlayback(layer);
-    }, 150);
+      attemptResume();
+    }, 120);
   }
 
   private waitForVideoReady(
