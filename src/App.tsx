@@ -1260,8 +1260,7 @@ const App: React.FC = () => {
 
   return (
     <div
-      className={`app-container audiovisualizer-app ${isUiHidden ? 'ui-hidden' : ''} ${
-      }`}
+      className={`app-container audiovisualizer-app ${isUiHidden ? 'ui-hidden' : ''}`}
     >
       <TopBar
         midiActive={midiActive}
