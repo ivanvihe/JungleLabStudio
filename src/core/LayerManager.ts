@@ -672,9 +672,12 @@ export class LayerManager {
           }
         } else if ((window as any).electronAPI) {
           const api = (window as any).electronAPI;
-          if (await api.exists(cfgPath)) {
-            const content = await api.readTextFile(cfgPath);
-            return JSON.parse(content);
+          if (typeof api.exists === 'function' && (await api.exists(cfgPath))) {
+            const reader = api.readTextFile;
+            if (typeof reader === 'function') {
+              const content = await reader(cfgPath);
+              return JSON.parse(content);
+            }
           }
         }
       }
@@ -701,8 +704,12 @@ export class LayerManager {
           await writeFile({ path: cfgPath, contents: JSON.stringify(cfg, null, 2) });
         } else if ((window as any).electronAPI) {
           const api = (window as any).electronAPI;
-          await api.createDir(dir);
-          await api.writeTextFile(cfgPath, JSON.stringify(cfg, null, 2));
+          if (typeof api.createDir === 'function') {
+            await api.createDir(dir);
+          }
+          if (typeof api.writeTextFile === 'function') {
+            await api.writeTextFile(cfgPath, JSON.stringify(cfg, null, 2));
+          }
         }
       }
     } catch (err) {
