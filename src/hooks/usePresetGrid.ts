@@ -184,6 +184,23 @@ export const usePresetGrid = () => {
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+
+    const effectAllowed = e.dataTransfer.effectAllowed?.toLowerCase() || '';
+
+    if (
+      effectAllowed === 'uninitialized' ||
+      effectAllowed === 'all' ||
+      effectAllowed.includes('move')
+    ) {
+      e.dataTransfer.dropEffect = 'move';
+      return;
+    }
+
+    if (effectAllowed.includes('copy')) {
+      e.dataTransfer.dropEffect = 'copy';
+      return;
+    }
+
     e.dataTransfer.dropEffect = 'move';
   };
 
