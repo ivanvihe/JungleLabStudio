@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { LAUNCHPAD_PRESETS, LaunchpadPreset } from '../utils/launchpad';
 import { LoadedPreset } from '../core/PresetLoader';
 import { getPresetThumbnail } from '../utils/presetThumbnails';
@@ -74,6 +74,10 @@ interface TreeNode {
   video?: VideoResource;
 }
 
+const LAYER_IDS = ['A', 'B', 'C'] as const;
+type LayerId = typeof LAYER_IDS[number];
+type LayerSelectValue = LayerId | 'none' | 'multiple';
+
 const ResourcesModal: React.FC<ResourcesModalProps> = ({
   isOpen,
   onClose,
@@ -131,7 +135,7 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
   });
   const [emptyCount, setEmptyCount] = useState(emptyTemplateCount);
 
-  const [layerAssignments, setLayerAssignments] = useState<Record<string, Set<string>>>(() => ({
+  const [layerAssignments, setLayerAssignments] = useState<Record<LayerId, Set<string>>>(() => ({
     A: new Set(),
     B: new Set(),
     C: new Set()
@@ -175,6 +179,63 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
       }
     }
   }, [isOpen]);
+
+  const handleVideoLayerToggle = useCallback(
+    (video: VideoResource, layer: LayerId) => {
+      const storageId = `video:${video.id}`;
+      setLayerAssignments(prev => {
+        const next: Record<LayerId, Set<string>> = {
+          A: new Set(prev.A),
+          B: new Set(prev.B),
+          C: new Set(prev.C)
+        };
+        const assignments = next[layer];
+        if (assignments.has(storageId)) {
+          onRemoveVideoFromLayer?.(video.id, layer);
+          onRemovePresetFromLayer?.(storageId, layer);
+          assignments.delete(storageId);
+        } else {
+          onAddVideoToLayer?.(video.id, layer);
+          onAddPresetToLayer?.(storageId, layer);
+          assignments.add(storageId);
+        }
+        return next;
+      });
+    },
+    [onAddPresetToLayer, onAddVideoToLayer, onRemovePresetFromLayer, onRemoveVideoFromLayer]
+  );
+
+  const handleVideoLayerSelect = useCallback(
+    (video: VideoResource, layer: LayerId | 'none') => {
+      const storageId = `video:${video.id}`;
+      setLayerAssignments(prev => {
+        const next: Record<LayerId, Set<string>> = {
+          A: new Set(prev.A),
+          B: new Set(prev.B),
+          C: new Set(prev.C)
+        };
+
+        LAYER_IDS.forEach(layerId => {
+          const assignments = next[layerId];
+          const hasAssignment = assignments.has(storageId);
+          const shouldAssign = layer !== 'none' && layerId === layer;
+
+          if (shouldAssign && !hasAssignment) {
+            onAddVideoToLayer?.(video.id, layerId);
+            onAddPresetToLayer?.(storageId, layerId);
+            assignments.add(storageId);
+          } else if (!shouldAssign && hasAssignment) {
+            onRemoveVideoFromLayer?.(video.id, layerId);
+            onRemovePresetFromLayer?.(storageId, layerId);
+            assignments.delete(storageId);
+          }
+        });
+
+        return next;
+      });
+    },
+    [onAddPresetToLayer, onAddVideoToLayer, onRemovePresetFromLayer, onRemoveVideoFromLayer]
+  );
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -316,7 +377,7 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
     });
   };
 
-  const toggleLayer = (presetId: string, layerId: string) => {
+  const toggleLayer = (presetId: string, layerId: LayerId) => {
     setLayerAssignments(prev => {
       const set = new Set(prev[layerId]);
       if (set.has(presetId)) {
@@ -526,7 +587,7 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
     switch (selectedNode.kind) {
       case 'preset': {
         const preset = selectedNode.preset!;
-        const assigned = ['A', 'B', 'C'].filter(layer =>
+        const assigned = LAYER_IDS.filter(layer =>
           layerAssignments[layer].has(preset.id)
         );
         return (
@@ -536,7 +597,7 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
               <span className="preset-category-badge">{preset.config.category}</span>
             </div>
             <div className="layer-button-group">
-              {['A', 'B', 'C'].map(layer => (
+              {LAYER_IDS.map(layer => (
                 <button
                   key={layer}
                   className={`layer-button ${layerAssignments[layer].has(preset.id) ? 'active' : ''}`}
@@ -568,7 +629,7 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
       }
       case 'vfx-preset': {
         const preset = selectedNode.preset!;
-        const assigned = ['A', 'B', 'C'].filter(layer =>
+        const assigned = LAYER_IDS.filter(layer =>
           layerAssignments[layer].has(preset.id)
         );
         return (
@@ -587,9 +648,14 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
       }
       case 'video-item': {
         const video = selectedNode.video!;
-        const assigned = ['A', 'B', 'C'].filter(layer =>
-          layerAssignments[layer].has(`video:${video.id}`)
-        );
+        const storageId = `video:${video.id}`;
+        const assigned = LAYER_IDS.filter(layer => layerAssignments[layer].has(storageId));
+        const selectValue: LayerSelectValue =
+          assigned.length === 0
+            ? 'none'
+            : assigned.length === 1
+            ? assigned[0]
+            : 'multiple';
         return (
           <div className="gallery-controls-panel">
             <div className="controls-header">
@@ -597,35 +663,47 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
               <span className="preset-category-badge">{video.provider}</span>
             </div>
             <div className="layer-button-group">
-              {['A', 'B', 'C'].map(layer => {
-                const storageId = `video:${video.id}`;
+              {LAYER_IDS.map(layer => {
                 const isActive = layerAssignments[layer].has(storageId);
                 return (
                   <button
                     key={layer}
                     className={`layer-button ${isActive ? 'active' : ''}`}
-                    onClick={() => {
-                      setLayerAssignments(prev => {
-                        const next = { ...prev };
-                        const set = new Set(next[layer]);
-                        if (set.has(storageId)) {
-                          onRemoveVideoFromLayer?.(video.id, layer);
-                          onRemovePresetFromLayer?.(storageId, layer);
-                          set.delete(storageId);
-                        } else {
-                          onAddVideoToLayer?.(video.id, layer);
-                          onAddPresetToLayer?.(storageId, layer);
-                          set.add(storageId);
-                        }
-                        next[layer] = set;
-                        return next;
-                      });
-                    }}
+                    onClick={() => handleVideoLayerToggle(video, layer)}
                   >
                     {layer}
                   </button>
                 );
               })}
+            </div>
+            <div className="video-layer-select">
+              <label htmlFor={`video-layer-${video.id}`}>Assign to layer</label>
+              <select
+                id={`video-layer-${video.id}`}
+                value={selectValue}
+                onChange={event => {
+                  const value = event.target.value as LayerSelectValue;
+                  if (value === 'multiple') {
+                    return;
+                  }
+                  handleVideoLayerSelect(video, value === 'none' ? 'none' : (value as LayerId));
+                }}
+              >
+                <option value="none">Unassigned</option>
+                {LAYER_IDS.map(layerId => (
+                  <option key={layerId} value={layerId}>
+                    Layer {layerId}
+                  </option>
+                ))}
+                {selectValue === 'multiple' && (
+                  <option value="multiple" disabled>
+                    Multiple layers selected
+                  </option>
+                )}
+              </select>
+              {selectValue === 'multiple' && (
+                <span className="video-layer-hint">Manage multi-layer assignments with the buttons above</span>
+              )}
             </div>
             <div className="video-preview">
               <video
