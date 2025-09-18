@@ -429,7 +429,14 @@ const LayerGrid: React.FC<LayerGridProps> = ({
                       '--layer-color-alpha': layer.color + '20'
                     } as React.CSSProperties}
                   >
-                    <div className="video-thumb" style={{ backgroundImage: `url(${video.thumbnail})` }} />
+                    <div className="video-thumb-wrapper">
+                      {video.width != null && video.height != null && (
+                        <span className="video-resolution-badge">
+                          {video.width}×{video.height}
+                        </span>
+                      )}
+                      <div className="video-thumb" style={{ backgroundImage: `url(${video.thumbnail})` }} />
+                    </div>
                     <div className="preset-info">
                       <div className="preset-name">{video.title}</div>
                       <div className="preset-details">

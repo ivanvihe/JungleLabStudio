@@ -45,6 +45,8 @@ const fetchFromPexels = async (settings: VideoProviderSettings): Promise<VideoRe
       duration: video.duration,
       provider: 'pexels',
       author: video.user?.name,
+      width: file?.width,
+      height: file?.height,
     };
   });
 };
@@ -73,6 +75,8 @@ const fetchFromPixabay = async (settings: VideoProviderSettings): Promise<VideoR
       duration: hit.duration,
       provider: 'pixabay',
       author: hit.user,
+      width: hd?.width || hit.videos?.tiny?.width,
+      height: hd?.height || hit.videos?.tiny?.height,
     };
   });
 };
@@ -96,6 +100,8 @@ const fetchFromArchive = async (settings: VideoProviderSettings): Promise<VideoR
       previewUrl: base,
       downloadUrl: base,
       provider: 'archive',
+      width: doc.width,
+      height: doc.height,
     };
   });
 };
