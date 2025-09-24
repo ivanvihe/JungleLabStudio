@@ -63,23 +63,193 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
 interface MainChatProps {
   header?: React.ReactNode;
+  title?: string;
+  subtitle?: string;
+  status?: React.ReactNode;
+  toolbar?: React.ReactNode;
+  actions?: React.ReactNode;
   children: React.ReactNode;
+  footer?: React.ReactNode;
   className?: string;
 }
 
-export const MainChat: React.FC<MainChatProps> = ({ header, children, className }) => {
+export const MainChat: React.FC<MainChatProps> = ({
+  header,
+  title,
+  subtitle,
+  status,
+  toolbar,
+  actions,
+  children,
+  footer,
+  className,
+}) => {
   const classes = ['proxmox-mainchat'];
   if (className) {
     classes.push(className);
   }
 
+  const resolvedHeader = header ?? (
+    <MainChatHeader
+      title={title}
+      subtitle={subtitle}
+      status={status}
+      toolbar={toolbar}
+      actions={actions}
+    />
+  );
+
   return (
     <section className={classes.join(' ')}>
-      {header && <div className="mainchat-header">{header}</div>}
-      <div className="mainchat-body">{children}</div>
+      {resolvedHeader && <div className="mainchat-header">{resolvedHeader}</div>}
+      <div className="mainchat-body">
+        <div className="mainchat-scroll">{children}</div>
+        {footer && <div className="mainchat-footer">{footer}</div>}
+      </div>
     </section>
   );
 };
+
+interface MainChatHeaderProps {
+  title?: string;
+  subtitle?: string;
+  status?: React.ReactNode;
+  actions?: React.ReactNode;
+  toolbar?: React.ReactNode;
+  breadcrumbs?: React.ReactNode;
+  className?: string;
+}
+
+export const MainChatHeader: React.FC<MainChatHeaderProps> = ({
+  title,
+  subtitle,
+  status,
+  actions,
+  toolbar,
+  breadcrumbs,
+  className,
+}) => {
+  if (!title && !subtitle && !status && !toolbar && !actions && !breadcrumbs) {
+    return null;
+  }
+
+  const classes = ['mainchat-header__inner'];
+  if (className) {
+    classes.push(className);
+  }
+
+  return (
+    <div className={classes.join(' ')}>
+      <div className="mainchat-header__headline">
+        <div className="mainchat-header__titles">
+          {breadcrumbs && <div className="mainchat-header__breadcrumbs">{breadcrumbs}</div>}
+          {title && <h1 className="mainchat-header__title">{title}</h1>}
+          {subtitle && <p className="mainchat-header__subtitle">{subtitle}</p>}
+        </div>
+        <div className="mainchat-header__side">
+          {status && <div className="mainchat-header__status">{status}</div>}
+          {actions && <div className="mainchat-header__actions">{actions}</div>}
+        </div>
+      </div>
+      {toolbar && <div className="mainchat-header__toolbar">{toolbar}</div>}
+    </div>
+  );
+};
+
+interface ChatSearchBarProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  icon?: React.ReactNode;
+  suffix?: React.ReactNode;
+}
+
+export const ChatSearchBar: React.FC<ChatSearchBarProps> = ({ icon, suffix, ...props }) => {
+  return (
+    <div className="chat-search">
+      {icon && <span className="chat-search__icon">{icon}</span>}
+      <input className="chat-search__input" {...props} />
+      {suffix && <span className="chat-search__suffix">{suffix}</span>}
+    </div>
+  );
+};
+
+interface ChatMessageListProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export const ChatMessageList: React.FC<ChatMessageListProps> = ({ children, className }) => {
+  const classes = ['chat-thread'];
+  if (className) {
+    classes.push(className);
+  }
+
+  return <div className={classes.join(' ')}>{children}</div>;
+};
+
+interface ChatMessageProps {
+  author: string;
+  role?: 'user' | 'assistant' | 'system';
+  timestamp: string;
+  content: React.ReactNode;
+  variant?: 'inbound' | 'outbound';
+  avatar?: React.ReactNode;
+  meta?: React.ReactNode;
+  actions?: React.ReactNode;
+  status?: React.ReactNode;
+  attachments?: React.ReactNode;
+}
+
+export const ChatMessage: React.FC<ChatMessageProps> = ({
+  author,
+  role = 'user',
+  timestamp,
+  content,
+  variant = 'inbound',
+  avatar,
+  meta,
+  actions,
+  status,
+  attachments,
+}) => {
+  const classes = ['chat-message', `chat-message--${variant}`, `chat-message--${role}`];
+
+  return (
+    <article className={classes.join(' ')}>
+      {avatar && <div className="chat-message__avatar">{avatar}</div>}
+      <div className="chat-message__bubble">
+        <header className="chat-message__header">
+          <div className="chat-message__identity">
+            <span className="chat-message__author">{author}</span>
+            <span className="chat-message__timestamp">{timestamp}</span>
+            {meta && <span className="chat-message__meta">{meta}</span>}
+          </div>
+          {actions && <div className="chat-message__actions">{actions}</div>}
+        </header>
+        <div className="chat-message__content">{content}</div>
+        {attachments && <div className="chat-message__attachments">{attachments}</div>}
+        {status && <footer className="chat-message__status">{status}</footer>}
+      </div>
+    </article>
+  );
+};
+
+interface ChatTimelineMarkerProps {
+  label: string;
+  icon?: React.ReactNode;
+}
+
+export const ChatTimelineMarker: React.FC<ChatTimelineMarkerProps> = ({ label, icon }) => (
+  <div className="chat-marker">
+    {icon && <span className="chat-marker__icon">{icon}</span>}
+    <span className="chat-marker__label">{label}</span>
+  </div>
+);
+
+export interface PanelTabDescriptor {
+  id: string;
+  label: string;
+  badge?: string | number;
+  content: React.ReactNode;
+}
 
 interface CollapsiblePanelProps {
   title: string;
@@ -88,6 +258,9 @@ interface CollapsiblePanelProps {
   toolbar?: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
+  tabs?: PanelTabDescriptor[];
+  defaultTabId?: string;
+  onTabChange?: (tabId: string) => void;
 }
 
 export const TaskActivityPanel: React.FC<CollapsiblePanelProps> = ({
@@ -97,6 +270,9 @@ export const TaskActivityPanel: React.FC<CollapsiblePanelProps> = ({
   toolbar,
   children,
   className,
+  tabs,
+  defaultTabId,
+  onTabChange,
 }) => {
   const classes = ['proxmox-task-panel'];
   if (collapsed) {
@@ -105,6 +281,69 @@ export const TaskActivityPanel: React.FC<CollapsiblePanelProps> = ({
   if (className) {
     classes.push(className);
   }
+
+  const [activeTab, setActiveTab] = React.useState(() => {
+    if (tabs && tabs.length > 0) {
+      return defaultTabId && tabs.some(tab => tab.id === defaultTabId)
+        ? defaultTabId
+        : tabs[0].id;
+    }
+    return '';
+  });
+
+  React.useEffect(() => {
+    if (!tabs || tabs.length === 0) return;
+    const fallback = defaultTabId && tabs.some(tab => tab.id === defaultTabId)
+      ? defaultTabId
+      : tabs[0].id;
+    if (!activeTab || !tabs.some(tab => tab.id === activeTab)) {
+      setActiveTab(fallback);
+    }
+  }, [tabs, defaultTabId, activeTab]);
+
+  const handleTabClick = (tabId: string) => {
+    setActiveTab(tabId);
+    onTabChange?.(tabId);
+  };
+
+  const renderPanelBody = () => {
+    if (!tabs || tabs.length === 0) {
+      return children;
+    }
+
+    const current = tabs.find(tab => tab.id === activeTab) ?? tabs[0];
+
+    return (
+      <div className="panel-tabs">
+        <div className="panel-tablist" role="tablist" aria-label={title}>
+          {tabs.map(tab => {
+            const tabClasses = ['panel-tab'];
+            if (tab.id === current.id) {
+              tabClasses.push('is-active');
+            }
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                className={tabClasses.join(' ')}
+                aria-selected={tab.id === current.id}
+                onClick={() => handleTabClick(tab.id)}
+              >
+                <span className="panel-tab__label">{tab.label}</span>
+                {tab.badge !== undefined && tab.badge !== null && (
+                  <span className="panel-tab__badge">{tab.badge}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <div className="panel-tabpanes" role="tabpanel">
+          {current.content}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <aside className={classes.join(' ')}>
@@ -125,7 +364,7 @@ export const TaskActivityPanel: React.FC<CollapsiblePanelProps> = ({
           )}
         </div>
       </div>
-      <div className="panel-body">{children}</div>
+      <div className="panel-body">{renderPanelBody()}</div>
     </aside>
   );
 };
