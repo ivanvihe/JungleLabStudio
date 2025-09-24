@@ -24,15 +24,9 @@ import { useAudio } from './hooks/useAudio';
 import { useMidi } from './hooks/useMidi';
 import { useLaunchpad } from './hooks/useLaunchpad';
 import './App.css';
+import './AppLayout.css';
 import VideoControls from './components/VideoControls';
 import ResourceExplorer from './components/ResourceExplorer';
-import {
-  ProxmoxShell,
-  Sidebar as ProxmoxSidebar,
-  MainChat as ProxmoxMainArea,
-  TaskActivityPanel,
-  FooterPanel,
-} from './components/layout/ProxmoxLayout';
 import {
   VideoResource,
   VideoPlaybackSettings,
@@ -367,8 +361,6 @@ const App: React.FC = () => {
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isResourcesOpen, setResourcesOpen] = useState(false);
-  const [isTaskPanelCollapsed, setTaskPanelCollapsed] = useState(false);
-  const [isFooterCollapsed, setFooterCollapsed] = useState(false);
   const [monitors, setMonitors] = useState<MonitorInfo[]>([]);
   const [monitorRoles, setMonitorRoles] = useState<Record<string, 'main' | 'secondary' | 'none'>>(() => {
     try {
@@ -1267,16 +1259,36 @@ const App: React.FC = () => {
   const audioLevel = Math.min((audioData.low + audioData.mid + audioData.high) / 3, 1);
 
   return (
-    <ProxmoxShell className={`audiovisualizer-app ${isUiHidden ? 'ui-hidden' : ''}`}>
-      <ProxmoxSidebar
-        title="Jungle Lab Studio"
-        subtitle="Proxmox Edition"
-        footer={(
-          <span>
-            <strong>Preset</strong> · {getCurrentPresetName()}
-          </span>
-        )}
-      >
+    <div
+      className={`app-container audiovisualizer-app ${isUiHidden ? 'ui-hidden' : ''}`}
+    >
+      <TopBar
+        midiActive={midiActive}
+        midiDeviceName={midiDeviceName}
+        midiDeviceCount={midiDevices.length}
+        bpm={bpm}
+        beatActive={beatActive}
+        audioDeviceName={audioDeviceName}
+        audioDeviceCount={audioDevices.length}
+        audioGain={audioGain}
+        onAudioGainChange={setAudioGain}
+        audioLevel={audioLevel}
+        onFullScreen={handleFullScreen}
+        onToggleUi={handleToggleUi}
+        onClearAll={handleClearAll}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenResources={() => setResourcesOpen(true)}
+        launchpadAvailable={launchpadAvailable}
+        launchpadOutput={launchpadOutput}
+        launchpadRunning={launchpadRunning}
+        launchpadPreset={launchpadPreset}
+        onToggleLaunchpad={handleLaunchpadToggle}
+        launchpadText={launchpadText}
+        onLaunchpadTextChange={setLaunchpadText}
+        onLaunchpadPresetChange={setLaunchpadPreset}
+      />
+
+      <div className="workspace">
         <ResourceExplorer
           width={RESOURCE_EXPLORER_WIDTH}
           presets={availablePresets}
@@ -1285,73 +1297,25 @@ const App: React.FC = () => {
           onRefreshVideos={() => refreshVideoGallery(true)}
           isRefreshingVideos={isRefreshingVideos}
         />
-      </ProxmoxSidebar>
-
-      <ProxmoxMainArea
-        header={(
-          <TopBar
-            midiActive={midiActive}
-            midiDeviceName={midiDeviceName}
-            midiDeviceCount={midiDevices.length}
-            bpm={bpm}
-            beatActive={beatActive}
-            audioDeviceName={audioDeviceName}
-            audioDeviceCount={audioDevices.length}
-            audioGain={audioGain}
-            onAudioGainChange={setAudioGain}
-            audioLevel={audioLevel}
-            onFullScreen={handleFullScreen}
-            onToggleUi={handleToggleUi}
-            onClearAll={handleClearAll}
-            onOpenSettings={() => setIsSettingsOpen(true)}
-            onOpenResources={() => setResourcesOpen(true)}
-            launchpadAvailable={launchpadAvailable}
-            launchpadOutput={launchpadOutput}
-            launchpadRunning={launchpadRunning}
-            launchpadPreset={launchpadPreset}
-            onToggleLaunchpad={handleLaunchpadToggle}
-            launchpadText={launchpadText}
-            onLaunchpadTextChange={setLaunchpadText}
-            onLaunchpadPresetChange={setLaunchpadPreset}
-          />
-        )}
-      >
-        <div className="layer-grid-container">
-          <Suspense fallback={<div>Loading layers...</div>}>
-            <LayerGrid
-              presets={availablePresets}
-              videos={videoGallery}
-              externalTrigger={midiTrigger}
-              onPresetActivate={(layerId, presetId, velocity) => {
-                (async () => {
-                  if (!engineRef.current) return;
-                  const isVideo = presetId.startsWith('video:');
-                  if (isVideo) {
-                    const videoId = presetId.replace(/^video:/, '');
-                    const video = videoGallery.find(v => v.id === videoId);
-                    if (!video) {
-                      setStatus(`Video ${videoId} unavailable`);
-                      return;
-                    }
-                    const success = await engineRef.current.activateLayerPreset(layerId, presetId);
-                    if (!success) return;
-                    setActiveLayers(prev => ({ ...prev, [layerId]: presetId }));
-
-                    const savedVfx = layerVFX[layerId]?.[presetId] || [];
-                    savedVfx.forEach(effect =>
-                      engineRef.current?.setLayerVFX(layerId, effect, true)
-                    );
-
-                    setSelectedVideo(video);
-                    setSelectedVideoLayer(layerId);
-                    setSelectedPreset(null);
-                    setSelectedLayer(layerId);
-                    const settings = layerVideoSettings[layerId] || DEFAULT_VIDEO_PLAYBACK_SETTINGS;
-                    engineRef.current.updateLayerVideoSettings(layerId, settings);
-                    setStatus(`${video.title} loaded on Layer ${layerId}`);
+        <div className="main-panel">
+          {/* Grid de capas */}
+          <div className="layer-grid-container">
+            <Suspense fallback={<div>Loading layers...</div>}>
+              <LayerGrid
+                presets={availablePresets}
+                videos={videoGallery}
+                externalTrigger={midiTrigger}
+                onPresetActivate={(layerId, presetId, velocity) => {
+              (async () => {
+                if (!engineRef.current) return;
+                const isVideo = presetId.startsWith('video:');
+                if (isVideo) {
+                  const videoId = presetId.replace(/^video:/, '');
+                  const video = videoGallery.find(v => v.id === videoId);
+                  if (!video) {
+                    setStatus(`Video ${videoId} unavailable`);
                     return;
                   }
-
                   const success = await engineRef.current.activateLayerPreset(layerId, presetId);
                   if (!success) return;
                   setActiveLayers(prev => ({ ...prev, [layerId]: presetId }));
@@ -1361,184 +1325,187 @@ const App: React.FC = () => {
                     engineRef.current?.setLayerVFX(layerId, effect, true)
                   );
 
-                  const preset = availablePresets.find(p => p.id === presetId);
-                  if (preset) {
-                    const existing = layerPresetConfigs[layerId]?.[presetId];
-                    if (existing) {
-                      applyPresetConfig(engineRef.current, layerId, existing);
-                    } else {
-                      const cfg = await engineRef.current.getLayerPresetConfig(layerId, presetId);
-                      setLayerPresetConfigs(prev => ({
-                        ...prev,
-                        [layerId]: { ...(prev[layerId] || {}), [presetId]: cfg }
-                      }));
-                    }
-                    setSelectedPreset(preset);
-                    setSelectedLayer(layerId);
-                    if (selectedVideoLayer === layerId) {
-                      setSelectedVideo(null);
-                      setSelectedVideoLayer(null);
-                    }
+                  setSelectedVideo(video);
+                  setSelectedVideoLayer(layerId);
+                  setSelectedPreset(null);
+                  setSelectedLayer(layerId);
+                  const settings = layerVideoSettings[layerId] || DEFAULT_VIDEO_PLAYBACK_SETTINGS;
+                  engineRef.current.updateLayerVideoSettings(layerId, settings);
+                  setStatus(`${video.title} loaded on Layer ${layerId}`);
+                  return;
+                }
+
+                const success = await engineRef.current.activateLayerPreset(layerId, presetId);
+                if (!success) return;
+                setActiveLayers(prev => ({ ...prev, [layerId]: presetId }));
+
+                const savedVfx = layerVFX[layerId]?.[presetId] || [];
+                savedVfx.forEach(effect =>
+                  engineRef.current?.setLayerVFX(layerId, effect, true)
+                );
+
+                const preset = availablePresets.find(p => p.id === presetId);
+                if (preset) {
+                  const existing = layerPresetConfigs[layerId]?.[presetId];
+                  if (existing) {
+                    applyPresetConfig(engineRef.current, layerId, existing);
+                  } else {
+                    const cfg = await engineRef.current.getLayerPresetConfig(layerId, presetId);
+                    setLayerPresetConfigs(prev => ({
+                      ...prev,
+                      [layerId]: { ...(prev[layerId] || {}), [presetId]: cfg }
+                    }));
                   }
-                })();
-              }}
-              onLayerClear={(layerId) => {
-                if (engineRef.current) {
-                  engineRef.current.deactivateLayerPreset(layerId);
-                  setActiveLayers(prev => {
-                    const newLayers = { ...prev };
-                    delete newLayers[layerId];
-                    return newLayers;
-                  });
-                  if (selectedLayer === layerId) {
-                    setSelectedPreset(null);
-                    setSelectedLayer(null);
-                  }
+                  setSelectedPreset(preset);
+                  setSelectedLayer(layerId);
                   if (selectedVideoLayer === layerId) {
                     setSelectedVideo(null);
                     setSelectedVideoLayer(null);
                   }
                 }
-              }}
-              onLayerConfigChange={(layerId, config) => {
-                if (engineRef.current) {
-                  engineRef.current.updateLayerConfig(layerId, config);
+              })();
+            }}
+          onLayerClear={(layerId) => {
+            if (engineRef.current) {
+              engineRef.current.deactivateLayerPreset(layerId);
+              setActiveLayers(prev => {
+                const newLayers = { ...prev };
+                delete newLayers[layerId];
+                return newLayers;
+              });
+              if (selectedLayer === layerId) {
+                setSelectedPreset(null);
+                setSelectedLayer(null);
+              }
+              if (selectedVideoLayer === layerId) {
+                setSelectedVideo(null);
+                setSelectedVideoLayer(null);
+              }
+            }
+          }}
+          onLayerConfigChange={(layerId, config) => {
+            if (engineRef.current) {
+              engineRef.current.updateLayerConfig(layerId, config);
+            }
+            broadcastRef.current?.postMessage({ type: 'layerConfig', layerId, config });
+          }}
+          onPresetSelect={(layerId, presetId) => {
+            (async () => {
+              if (presetId) {
+                if (presetId.startsWith('video:')) {
+                  const videoId = presetId.replace(/^video:/, '');
+                  const video = videoGallery.find(v => v.id === videoId) || null;
+                  setSelectedVideo(video);
+                  setSelectedVideoLayer(layerId);
+                  setSelectedPreset(null);
+                  setSelectedLayer(layerId);
+                  return;
                 }
-                broadcastRef.current?.postMessage({ type: 'layerConfig', layerId, config });
-              }}
-              onPresetSelect={(layerId, presetId) => {
-                (async () => {
-                  if (presetId) {
-                    if (presetId.startsWith('video:')) {
-                      const videoId = presetId.replace(/^video:/, '');
-                      const video = videoGallery.find(v => v.id === videoId) || null;
-                      setSelectedVideo(video);
-                      setSelectedVideoLayer(layerId);
-                      setSelectedPreset(null);
-                      setSelectedLayer(layerId);
-                      return;
-                    }
-                    const preset = availablePresets.find(p => p.id === presetId);
-                    if (preset) {
-                      const existing = layerPresetConfigs[layerId]?.[presetId];
-                      if (!existing) {
-                        const cfg = await engineRef.current?.getLayerPresetConfig(layerId, presetId);
-                        if (cfg) {
-                          setLayerPresetConfigs(prev => ({
-                            ...prev,
-                            [layerId]: { ...(prev[layerId] || {}), [presetId]: cfg }
-                          }));
-                        }
-                      }
-                      setSelectedPreset(preset);
-                      setSelectedLayer(layerId);
-                      if (selectedVideoLayer === layerId) {
-                        setSelectedVideo(null);
-                        setSelectedVideoLayer(null);
-                      }
-                    }
-                  } else {
-                    if (selectedLayer === layerId) {
-                      setSelectedPreset(null);
-                      setSelectedLayer(null);
-                    }
-                    if (selectedVideoLayer === layerId) {
-                      setSelectedVideo(null);
-                      setSelectedVideoLayer(null);
+                const preset = availablePresets.find(p => p.id === presetId);
+                if (preset) {
+                  const existing = layerPresetConfigs[layerId]?.[presetId];
+                  if (!existing) {
+                    const cfg = await engineRef.current?.getLayerPresetConfig(layerId, presetId);
+                    if (cfg) {
+                      setLayerPresetConfigs(prev => ({
+                        ...prev,
+                        [layerId]: { ...(prev[layerId] || {}), [presetId]: cfg }
+                      }));
                     }
                   }
-                })();
-              }}
-              clearAllSignal={clearSignal}
-              layerChannels={layerChannels}
-              layerEffects={layerEffects}
-              onLayerEffectChange={handleLayerEffectChange}
-              onLayerEffectToggle={handleLayerEffectToggle}
-              onOpenResources={() => setResourcesOpen(true)}
-              bpm={bpm}
-            />
-          </Suspense>
-        </div>
-
-        <div className="bottom-section">
-          <div className="visual-stage">
-            <div
-              className="visual-wrapper"
-              style={{ background: canvasBackground }}
-            >
-              <div
-                ref={playgroundRef}
-                className={`playground ${activeEffectClasses}`}
-                style={{
-                  filter: `brightness(${canvasBrightness}) saturate(${canvasVibrance})`
-                }}
+                  setSelectedPreset(preset);
+                  setSelectedLayer(layerId);
+                  if (selectedVideoLayer === layerId) {
+                    setSelectedVideo(null);
+                    setSelectedVideoLayer(null);
+                  }
+                }
+              } else {
+                if (selectedLayer === layerId) {
+                  setSelectedPreset(null);
+                  setSelectedLayer(null);
+                }
+                if (selectedVideoLayer === layerId) {
+                  setSelectedVideo(null);
+                  setSelectedVideoLayer(null);
+                }
+              }
+            })();
+          }}
+          clearAllSignal={clearSignal}
+          layerChannels={layerChannels}
+          layerEffects={layerEffects}
+                onLayerEffectChange={handleLayerEffectChange}
+                onLayerEffectToggle={handleLayerEffectToggle}
+                onOpenResources={() => setResourcesOpen(true)}
+                bpm={bpm}
               />
-            </div>
+            </Suspense>
           </div>
-        </div>
-      </ProxmoxMainArea>
 
-      <TaskActivityPanel
-        title="Panel de tareas y controles"
-        collapsed={isTaskPanelCollapsed}
-        onToggle={() => setTaskPanelCollapsed(prev => !prev)}
-        toolbar={<span className="panel-meta">Sesión en vivo</span>}
-      >
-        <div className="controls-panel">
-          <div className="controls-panel-content">
-            {isResourcesOpen ? (
-              <div className="no-preset-selected">Explorando biblioteca de recursos…</div>
-            ) : (
-              <>
-                {selectedVideo && selectedVideoLayer && (
-                  <VideoControls
-                    video={selectedVideo}
-                    settings={layerVideoSettings[selectedVideoLayer] || DEFAULT_VIDEO_PLAYBACK_SETTINGS}
-                    onChange={handleVideoSettingsChange}
-                  />
-                )}
-                {!selectedVideo && selectedPreset && (
-                  <Suspense fallback={<div>Loading controls...</div>}>
-                    <PresetControls
-                      preset={selectedPreset}
-                      config={layerPresetConfigs[selectedLayer!]?.[selectedPreset.id]}
-                      onChange={(path, value) => {
-                        if (engineRef.current && selectedLayer && selectedPreset) {
-                          engineRef.current.updateLayerPresetConfig(selectedLayer, path, value);
-                          setLayerPresetConfigs(prev => {
-                            const layerMap = { ...(prev[selectedLayer] || {}) };
-                            const cfg = { ...(layerMap[selectedPreset.id] || {}) };
-                            setNestedValue(cfg, path, value);
-                            layerMap[selectedPreset.id] = cfg;
-                            return { ...prev, [selectedLayer]: layerMap };
-                          });
-                        }
-                      }}
+          {/* Seccion inferior con visuales y controles */}
+          <div className="bottom-section">
+            <div className="visual-stage">
+              <div
+                className="visual-wrapper"
+                style={{ background: canvasBackground }}
+              >
+                <div
+                  ref={playgroundRef}
+                  className={`playground ${activeEffectClasses}`}
+                  style={{
+                    filter: `brightness(${canvasBrightness}) saturate(${canvasVibrance})`
+                  }}
+                />
+              </div>
+            </div>
+            {!isResourcesOpen && (
+              <div className="controls-panel">
+                <div className="controls-panel-content">
+                  {selectedVideo && selectedVideoLayer && (
+                    <VideoControls
+                      video={selectedVideo}
+                      settings={layerVideoSettings[selectedVideoLayer] || DEFAULT_VIDEO_PLAYBACK_SETTINGS}
+                      onChange={handleVideoSettingsChange}
                     />
-                  </Suspense>
-                )}
-                {!selectedPreset && !selectedVideo && (
-                  <div className="no-preset-selected">Selecciona un preset</div>
-                )}
-              </>
+                  )}
+                  {!selectedVideo && selectedPreset && (
+                    <Suspense fallback={<div>Loading controls...</div>}>
+                      <PresetControls
+                        preset={selectedPreset}
+                        config={layerPresetConfigs[selectedLayer!]?.[selectedPreset.id]}
+                        onChange={(path, value) => {
+                          if (engineRef.current && selectedLayer && selectedPreset) {
+                            engineRef.current.updateLayerPresetConfig(selectedLayer, path, value);
+                            setLayerPresetConfigs(prev => {
+                              const layerMap = { ...(prev[selectedLayer] || {}) };
+                              const cfg = { ...(layerMap[selectedPreset.id] || {}) };
+                              setNestedValue(cfg, path, value);
+                              layerMap[selectedPreset.id] = cfg;
+                              return { ...prev, [selectedLayer]: layerMap };
+                            });
+                          }
+                        }}
+                      />
+                    </Suspense>
+                  )}
+                  {!selectedPreset && !selectedVideo && (
+                    <div className="no-preset-selected">Selecciona un preset</div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </div>
-      </TaskActivityPanel>
+      </div>
 
-      <FooterPanel
-        title="Estado del sistema"
-        collapsed={isFooterCollapsed}
-        onToggle={() => setFooterCollapsed(prev => !prev)}
-        toolbar={<span className="panel-meta">Monitor de audio</span>}
-      >
-        <StatusBar
-          status={status}
-          fps={fps}
-          currentPreset={getCurrentPresetName()}
-          audioData={audioData}
-        />
-      </FooterPanel>
+      {/* Barra de estado */}
+      <StatusBar
+        status={status}
+        fps={fps}
+        currentPreset={getCurrentPresetName()}
+        audioData={audioData}
+      />
 
       {/* Modal de configuracion global */}
       <Suspense fallback={null}>
@@ -1682,7 +1649,7 @@ const App: React.FC = () => {
           isRefreshingVideos={isRefreshingVideos}
         />
       </Suspense>
-    </ProxmoxShell>
+    </div>
   );
 };
 
