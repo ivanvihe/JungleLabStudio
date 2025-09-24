@@ -358,48 +358,6 @@ const App: React.FC = () => {
     [activeLayers]
   );
 
-  const routingSummaries = useMemo<SidebarCardEntry[]>(() => {
-    const midiDescription = midiActive
-      ? midiDeviceName || 'Dispositivo MIDI activo'
-      : 'Sin dispositivo conectado';
-    const midiChips: SidebarChipMeta[] = [
-      { label: midiActive ? 'Activo' : 'Inactivo', accent: midiActive },
-      { label: `${midiDevices.length} detectados` },
-    ];
-
-    const audioDescription = audioDeviceName || 'Salida por defecto del sistema';
-    const audioChips: SidebarChipMeta[] = [
-      { label: `Ganancia ${Math.round(audioGain * 100)}%` },
-      { label: `${audioDevices.length} dispositivos` },
-    ];
-
-    const launchpadDescription = launchpadRunning
-      ? (launchpadOutput as any)?.name || 'Launchpad activo'
-      : 'Launchpad inactivo';
-    const launchpadChips: SidebarChipMeta[] = [
-      {
-        label: launchpadRunning ? `Preset ${launchpadPreset || 'Default'}` : 'No sincronizado',
-        accent: launchpadRunning,
-      },
-    ];
-
-    return [
-      { id: 'midi', title: 'MIDI', description: midiDescription, chips: midiChips },
-      { id: 'audio', title: 'Audio', description: audioDescription, chips: audioChips },
-      { id: 'launchpad', title: 'Launchpad', description: launchpadDescription, chips: launchpadChips },
-    ];
-  }, [
-    midiActive,
-    midiDeviceName,
-    midiDevices.length,
-    audioDeviceName,
-    audioDevices.length,
-    audioGain,
-    launchpadRunning,
-    launchpadOutput,
-    launchpadPreset,
-  ]);
-
   const videoProviderSummary = useMemo<SidebarCardEntry>(
     () => ({
       id: 'video-provider',
@@ -502,6 +460,64 @@ const App: React.FC = () => {
     launchpadText,
     setLaunchpadText,
   } = useLaunchpad(audioData, canvasRef);
+
+  const midiDeviceName = useMemo(
+    () =>
+      midiDeviceId
+        ? midiDevices.find((d: any) => d.id === midiDeviceId)?.name || null
+        : null,
+    [midiDevices, midiDeviceId]
+  );
+
+  const audioDeviceName = useMemo(
+    () =>
+      audioDeviceId
+        ? audioDevices.find(device => device.deviceId === audioDeviceId)?.label || null
+        : null,
+    [audioDevices, audioDeviceId]
+  );
+
+  const routingSummaries = useMemo<SidebarCardEntry[]>(() => {
+    const midiDescription = midiActive
+      ? midiDeviceName || 'Dispositivo MIDI activo'
+      : 'Sin dispositivo conectado';
+    const midiChips: SidebarChipMeta[] = [
+      { label: midiActive ? 'Activo' : 'Inactivo', accent: midiActive },
+      { label: `${midiDevices.length} detectados` },
+    ];
+
+    const audioDescription = audioDeviceName || 'Salida por defecto del sistema';
+    const audioChips: SidebarChipMeta[] = [
+      { label: `Ganancia ${Math.round(audioGain * 100)}%` },
+      { label: `${audioDevices.length} dispositivos` },
+    ];
+
+    const launchpadDescription = launchpadRunning
+      ? (launchpadOutput as any)?.name || 'Launchpad activo'
+      : 'Launchpad inactivo';
+    const launchpadChips: SidebarChipMeta[] = [
+      {
+        label: launchpadRunning ? `Preset ${launchpadPreset || 'Default'}` : 'No sincronizado',
+        accent: launchpadRunning,
+      },
+    ];
+
+    return [
+      { id: 'midi', title: 'MIDI', description: midiDescription, chips: midiChips },
+      { id: 'audio', title: 'Audio', description: audioDescription, chips: audioChips },
+      { id: 'launchpad', title: 'Launchpad', description: launchpadDescription, chips: launchpadChips },
+    ];
+  }, [
+    midiActive,
+    midiDeviceName,
+    midiDevices,
+    audioDeviceName,
+    audioDevices,
+    audioGain,
+    launchpadRunning,
+    launchpadOutput,
+    launchpadPreset,
+  ]);
 
   const updateVideoProviderSettings = useCallback(
     (updates: Partial<VideoProviderSettings>) => {
@@ -1517,9 +1533,7 @@ const App: React.FC = () => {
     return `${selectedPreset.config.name} (${selectedLayer || 'N/A'})`;
   };
 
-  const midiDeviceName = midiDeviceId ? midiDevices.find((d: any) => d.id === midiDeviceId)?.name || null : null;
   const launchpadAvailable = launchpadOutputs.length > 0;
-  const audioDeviceName = audioDeviceId ? audioDevices.find(d => d.deviceId === audioDeviceId)?.label || null : null;
   const audioLevel = Math.min((audioData.low + audioData.mid + audioData.high) / 3, 1);
 
   const shellClassName = `audiovisualizer-app${isUiHidden ? ' ui-hidden' : ''}${
