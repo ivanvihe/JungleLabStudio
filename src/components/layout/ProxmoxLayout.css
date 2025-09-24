@@ -1,8 +1,10 @@
 /* Proxmox-inspired layout styles */
 
 .proxmox-shell {
+  --sidebar-width: 260px;
+  --task-panel-width: 360px;
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr) 360px;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr) var(--task-panel-width);
   grid-template-rows: auto 1fr auto;
   grid-template-areas:
     'sidebar main task'
@@ -13,6 +15,10 @@
   background: var(--proxmox-bg);
   color: var(--proxmox-text);
   overflow: hidden;
+}
+
+.proxmox-shell.sidebar-collapsed {
+  --sidebar-width: 72px;
 }
 
 .proxmox-shell.ui-hidden .top-bar,
@@ -45,6 +51,13 @@
   min-width: 0;
   overflow: hidden;
   box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.25);
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  transition: width var(--transition-medium), min-width var(--transition-medium);
+}
+
+.proxmox-sidebar.is-collapsed {
+  align-items: center;
 }
 
 .sidebar-scroll {
@@ -88,6 +101,12 @@
   gap: 8px;
 }
 
+.sidebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .sidebar-toolbar button {
   background: transparent;
   border: 1px solid var(--proxmox-border);
@@ -109,6 +128,39 @@
   background: rgba(240, 130, 54, 0.1);
 }
 
+.sidebar-collapse {
+  flex-shrink: 0;
+}
+
+.proxmox-sidebar.is-collapsed .sidebar-brand,
+.proxmox-sidebar.is-collapsed .sidebar-toolbar,
+.proxmox-sidebar.is-collapsed .sidebar-footer,
+.proxmox-sidebar.is-collapsed .sidebar-content {
+  display: none;
+}
+
+.proxmox-sidebar.is-collapsed .sidebar-header {
+  justify-content: center;
+}
+
+.proxmox-sidebar.is-collapsed .sidebar-navigation {
+  border-bottom: none;
+  width: 100%;
+}
+
+.proxmox-sidebar.is-collapsed .sidebar-navigation__inner {
+  padding: 12px 8px;
+  align-items: center;
+}
+
+.proxmox-sidebar.is-collapsed .sidebar-nav__section {
+  align-items: center;
+}
+
+.proxmox-sidebar.is-collapsed .sidebar-nav__title {
+  display: none;
+}
+
 .sidebar-navigation {
   border-bottom: 1px solid var(--proxmox-border);
   background: rgba(21, 26, 30, 0.9);
@@ -126,6 +178,10 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+
+.sidebar-nav.is-collapsed {
+  gap: 12px;
 }
 
 .sidebar-nav__section {
@@ -161,6 +217,11 @@
   transition: background var(--transition-fast), border-color var(--transition-fast),
     box-shadow var(--transition-fast), transform var(--transition-fast);
   text-align: left;
+}
+
+.sidebar-nav.is-collapsed .sidebar-nav__item {
+  justify-content: center;
+  padding: 10px;
 }
 
 .sidebar-nav__item:hover {
@@ -201,6 +262,11 @@
   gap: 2px;
 }
 
+.sidebar-nav.is-collapsed .sidebar-nav__content,
+.sidebar-nav.is-collapsed .sidebar-nav__badge {
+  display: none;
+}
+
 .sidebar-nav__label {
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-medium);
@@ -213,17 +279,7 @@
 }
 
 .sidebar-nav__badge {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--proxmox-text-muted);
-}
-
-.sidebar-nav__item.is-active .sidebar-nav__badge {
-  background: rgba(240, 130, 54, 0.22);
-  color: var(--proxmox-text-strong);
+  margin-left: auto;
 }
 
 .sidebar-content {
@@ -236,96 +292,6 @@
   flex-direction: column;
   gap: 16px;
   padding: 20px 18px 24px;
-}
-
-.sidebar-card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  background: var(--proxmox-panel-alt);
-  border: 1px solid var(--proxmox-border);
-  border-radius: var(--radius-md);
-  padding: 16px 18px;
-  box-shadow: var(--shadow-soft);
-}
-
-.sidebar-card__header {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.sidebar-card__title {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-  color: var(--proxmox-text-strong);
-}
-
-.sidebar-card__subtitle {
-  font-size: var(--font-size-xs);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--proxmox-text-muted);
-}
-
-.sidebar-card__body {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.sidebar-card__meta {
-  font-size: var(--font-size-sm);
-  color: var(--proxmox-text-muted);
-}
-
-.sidebar-card__list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.sidebar-card__list-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--proxmox-border-soft);
-  background: rgba(0, 0, 0, 0.12);
-}
-
-.sidebar-card__list-item strong {
-  font-size: var(--font-size-sm);
-  color: var(--proxmox-text-strong);
-}
-
-.sidebar-card__list-item span {
-  font-size: var(--font-size-xs);
-  color: var(--proxmox-text-muted);
-}
-
-.sidebar-card__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.sidebar-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  font-size: var(--font-size-xs);
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--proxmox-text-muted);
-}
-
-.sidebar-chip--accent {
-  background: rgba(240, 130, 54, 0.18);
-  color: var(--proxmox-text-strong);
 }
 
 .sidebar-footer {
@@ -909,7 +875,8 @@
 /* Responsive behaviour */
 @media (max-width: 1440px) {
   .proxmox-shell {
-    grid-template-columns: 240px minmax(0, 1fr) 320px;
+    --sidebar-width: 240px;
+    --task-panel-width: 320px;
   }
 
   .controls-panel {
@@ -919,7 +886,8 @@
 
 @media (max-width: 1200px) {
   .proxmox-shell {
-    grid-template-columns: 220px minmax(0, 1fr);
+    --sidebar-width: 220px;
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
     grid-template-areas:
       'sidebar main'
       'sidebar task'

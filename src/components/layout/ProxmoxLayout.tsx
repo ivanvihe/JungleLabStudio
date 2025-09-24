@@ -1,5 +1,6 @@
 import React from 'react';
 import './ProxmoxLayout.css';
+import { IconButton, Badge } from '../ui';
 
 interface ProxmoxShellProps {
   children: React.ReactNode;
@@ -23,6 +24,9 @@ interface SidebarProps {
   children: React.ReactNode;
   className?: string;
   navigation?: React.ReactNode;
+  collapsible?: boolean;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -33,10 +37,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
   children,
   className,
   navigation,
+  collapsible = false,
+  collapsed = false,
+  onToggleCollapse,
 }) => {
   const classes = ['proxmox-sidebar'];
   if (className) {
     classes.push(className);
+  }
+  if (collapsed) {
+    classes.push('is-collapsed');
   }
 
   return (
@@ -46,7 +56,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <span className="sidebar-title">{title}</span>
           {subtitle && <span className="sidebar-subtitle">{subtitle}</span>}
         </div>
-        {toolbar && <div className="sidebar-toolbar">{toolbar}</div>}
+        <div className="sidebar-actions">
+          {toolbar && <div className="sidebar-toolbar">{toolbar}</div>}
+          {collapsible && (
+            <IconButton
+              icon={collapsed ? '⤢' : '⤡'}
+              label={collapsed ? 'Expandir panel lateral' : 'Colapsar panel lateral'}
+              variant="ghost"
+              size="sm"
+              onClick={onToggleCollapse}
+              className="sidebar-collapse"
+            />
+          )}
+        </div>
       </div>
       <div className="sidebar-scroll">
         {navigation && (
@@ -437,6 +459,7 @@ interface SidebarNavigationProps {
   activeId: string;
   onSelect: (itemId: string) => void;
   className?: string;
+  isCollapsed?: boolean;
 }
 
 export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
@@ -444,10 +467,14 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
   activeId,
   onSelect,
   className,
+  isCollapsed = false,
 }) => {
   const classes = ['sidebar-nav'];
   if (className) {
     classes.push(className);
+  }
+  if (isCollapsed) {
+    classes.push('is-collapsed');
   }
 
   return (
@@ -467,6 +494,8 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                   type="button"
                   className={itemClasses.join(' ')}
                   onClick={() => onSelect(item.id)}
+                  title={item.label}
+                  aria-label={item.label}
                 >
                   <span className="sidebar-nav__icon">{item.icon}</span>
                   <span className="sidebar-nav__content">
@@ -476,7 +505,9 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                     )}
                   </span>
                   {item.badge !== undefined && item.badge !== null && (
-                    <span className="sidebar-nav__badge">{item.badge}</span>
+                    <Badge className="sidebar-nav__badge" tone={item.id === activeId ? 'accent' : 'muted'}>
+                      {item.badge}
+                    </Badge>
                   )}
                 </button>
               );

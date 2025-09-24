@@ -1,0 +1,53 @@
+.px-sidebar-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--proxmox-panel-alt);
+  border: 1px solid var(--proxmox-border);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-soft);
+}
+
+.px-sidebar-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.px-sidebar-card__title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--proxmox-text-strong);
+}
+
+.px-sidebar-card__subtitle {
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--proxmox-text-muted);
+}
+
+.px-sidebar-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.px-sidebar-card__meta {
+  font-size: var(--font-size-sm);
+  color: var(--proxmox-text-muted);
+}
+
+.px-sidebar-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.px-sidebar-card__footer {
+  padding-top: 8px;
+  border-top: 1px solid var(--proxmox-border);
+  font-size: var(--font-size-xs);
+  color: var(--proxmox-text-muted);
+}
