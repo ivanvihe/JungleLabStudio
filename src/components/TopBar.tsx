@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { LAUNCHPAD_PRESETS } from '../utils/launchpad';
 import './TopBar.css';
-import { IconButton } from './ui';
 
 interface TopBarProps {
   midiActive: boolean;
@@ -27,8 +26,6 @@ interface TopBarProps {
   launchpadText?: string;
   onLaunchpadTextChange?: (text: string) => void;
   onLaunchpadPresetChange?: (preset: string) => void;
-  onToggleSidebar?: () => void;
-  isSidebarCollapsed?: boolean;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -54,9 +51,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onToggleLaunchpad,
   onLaunchpadPresetChange,
   launchpadText,
-  onLaunchpadTextChange,
-  onToggleSidebar,
-  isSidebarCollapsed,
+  onLaunchpadTextChange
 }) => {
   const [activeLed, setActiveLed] = useState(0);
 
@@ -68,37 +63,20 @@ export const TopBar: React.FC<TopBarProps> = ({
 
   return (
     <div className="top-bar">
-      <div className="top-bar__cluster">
-        {onToggleSidebar && (
-          <IconButton
-            icon={isSidebarCollapsed ? '☰' : '☰'}
-            label={
-              isSidebarCollapsed
-                ? 'Expandir panel lateral'
-                : 'Colapsar panel lateral'
-            }
-            variant="ghost"
-            size="sm"
-            onClick={onToggleSidebar}
-            className="top-bar__menu-toggle"
-          />
-        )}
+      <div className="midi-section">
+        <div className={`midi-led ${midiActive ? 'active' : ''}`}></div>
+        <span className="midi-device">
+          {midiDeviceName || `${midiDeviceCount} MIDI devices`}
+        </span>
+      </div>
 
-        <div className="midi-section">
-          <div className={`midi-led ${midiActive ? 'active' : ''}`}></div>
-          <span className="midi-device">
-            {midiDeviceName || `${midiDeviceCount} MIDI devices`}
-          </span>
-        </div>
+      <div className="separator" />
 
-        <div className="separator" />
-
-        <div className="bpm-section">
-          <span>BPM: {bpm ? bpm.toFixed(1) : '--'}</span>
-          <div className="metronome">
-            <div className={`metronome-led ${activeLed === 0 ? 'active' : ''}`}></div>
-            <div className={`metronome-led ${activeLed === 1 ? 'active' : ''}`}></div>
-          </div>
+      <div className="bpm-section">
+        <span>BPM: {bpm ? bpm.toFixed(1) : '--'}</span>
+        <div className="metronome">
+          <div className={`metronome-led ${activeLed === 0 ? 'active' : ''}`}></div>
+          <div className={`metronome-led ${activeLed === 1 ? 'active' : ''}`}></div>
         </div>
       </div>
 
@@ -125,85 +103,86 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
       </div>
 
-      <div className="top-bar-spacer" />
+        {/* Flexible spacer to center the actions section */}
+        <div className="top-bar-spacer"></div>
 
-      <div className="actions-section">
-        <IconButton
-          icon="🗂️"
-          label="Abrir galería completa"
-          onClick={onOpenResources}
-          variant="ghost"
-          size="sm"
-        />
-        <IconButton
-          icon="🗑️"
-          label="Limpiar todo"
-          onClick={onClearAll}
-          variant="danger"
-          size="sm"
-        />
-        <IconButton
-          icon="🙈"
-          label="Ocultar controles (F10)"
-          onClick={onToggleUi}
-          variant="ghost"
-          size="sm"
-        />
-        <IconButton
-          icon="⛶"
-          label="Pantalla completa"
-          onClick={onFullScreen}
-          variant="ghost"
-          size="sm"
-        />
-        <IconButton
-          icon="⚙️"
-          label="Preferencias"
-          onClick={onOpenSettings}
-          variant="ghost"
-          size="sm"
-        />
-      </div>
+        {/* Center section - Actions and resources */}
+        <div className="actions-section">
+          <button
+            onClick={onOpenResources}
+            className="action-button"
+            title="Abrir galería completa"
+            aria-label="Open resource library"
+          >🗂️</button>
+          <button
+            onClick={onClearAll}
+            className="action-button"
+            title="Clear all"
+            aria-label="Clear all"
+          >🗑️</button>
+          <button
+            onClick={onToggleUi}
+            className="action-button"
+            title="Hide controls (F10)"
+            aria-label="Hide controls"
+          >🙈</button>
+          <button
+            onClick={onFullScreen}
+            className="action-button"
+            title="Full screen"
+            aria-label="Full screen"
+          >⛶</button>
+          <button
+            onClick={onOpenSettings}
+            className="action-button"
+            title="Settings"
+            aria-label="Settings"
+          >⚙️</button>
+        </div>
 
-      <div className="top-bar-spacer" />
+        {/* Flexible spacer to push Launchpad controls to the right */}
+        <div className="top-bar-spacer"></div>
 
-      {launchpadAvailable && (
-        <>
-          <div className="separator" />
-          <div className="launchpad-controls">
-            <select
-              value={launchpadPreset}
-              onChange={(e) => onLaunchpadPresetChange?.(e.target.value)}
-              className="launchpad-preset-select"
-            >
-              {LAUNCHPAD_PRESETS.map(p => (
-                <option key={p.id} value={p.id}>{p.label}</option>
-              ))}
-            </select>
-            {launchpadPreset === 'custom-text' && (
-              <input
-                type="text"
-                value={launchpadText || ''}
-                onChange={(e) => onLaunchpadTextChange?.(e.target.value)}
-              />
-            )}
-            <IconButton
-              icon={launchpadRunning ? '⏹️' : '▶️'}
-              label={launchpadRunning ? 'Detener LaunchPad' : 'Iniciar LaunchPad'}
-              onClick={() => onToggleLaunchpad?.()}
-              variant={launchpadRunning ? 'accent' : 'ghost'}
-              size="sm"
-              disabled={!launchpadOutput}
-              className={`launchpad-button ${launchpadRunning ? 'running' : ''}`}
-              title={
-                launchpadOutput
-                  ? `Toggle LaunchPad (${launchpadOutput.name})`
-                  : 'No LaunchPad device available'
-              }
-            />
-          </div>
-        </>
-      )}
-    </div>
+        {/* Right section - Launchpad controls */}
+        {launchpadAvailable && (
+          <>
+            <div className="separator" />
+            <div className="launchpad-controls">
+              <select
+                value={launchpadPreset}
+                onChange={(e) => onLaunchpadPresetChange?.(e.target.value)}
+                className="launchpad-preset-select"
+              >
+                {LAUNCHPAD_PRESETS.map(p => (
+                  <option key={p.id} value={p.id}>{p.label}</option>
+                ))}
+              </select>
+              {launchpadPreset === 'custom-text' && (
+                <input
+                  type="text"
+                  value={launchpadText || ''}
+                  onChange={(e) => onLaunchpadTextChange?.(e.target.value)}
+                />
+              )}
+              <button
+                onClick={() => {
+                  console.log('🖱️ LaunchPad button clicked manually by user');
+                  onToggleLaunchpad?.();
+                }}
+                className={`launchpad-button ${launchpadRunning ? 'running' : ''}`}
+                type="button"
+                disabled={!launchpadOutput}
+                title={
+                  launchpadOutput
+                    ? `Toggle LaunchPad (${launchpadOutput.name})`
+                    : 'No LaunchPad device available'
+                }
+              >
+                {launchpadRunning ? '⏹️ Stop LaunchPad' : '▶️ Go LaunchPad'}
+              </button>
+            </div>
+          </>
+        )}
+        </div>
   );
 };
