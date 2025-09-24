@@ -7,7 +7,6 @@ import React, {
   useCallback,
   Suspense,
   lazy,
-  useMemo,
 } from 'react';
 import { AudioVisualizerEngine } from './core/AudioVisualizerEngine';
 import { StatusBar } from './components/StatusBar';
@@ -33,8 +32,6 @@ import {
   MainChat as ProxmoxMainArea,
   TaskActivityPanel,
   FooterPanel,
-  SidebarNavigation,
-  SidebarNavSection,
 } from './components/layout/ProxmoxLayout';
 import {
   VideoResource,
@@ -48,51 +45,6 @@ import {
   VideoProviderId,
 } from './utils/videoProviders';
 import { clearVideoCache } from './utils/videoCache';
-
-const NAV_ICONS = {
-  resources: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 7h6l1.8 2.5H21a1.5 1.5 0 0 1 1.5 1.6l-.7 8a2 2 0 0 1-2 1.9H4.2a2 2 0 0 1-2-1.8L2 8.8A2 2 0 0 1 3.9 7Z" />
-      <path d="M3 7V5.2A2.2 2.2 0 0 1 5.2 3h3.4a2 2 0 0 1 1.6.8L12 6.4" />
-    </svg>
-  ),
-  layers: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 4 4 8l8 4 8-4-8-4Z" />
-      <path d="m4 12 8 4 8-4" />
-      <path d="m4 16 8 4 8-4" />
-    </svg>
-  ),
-  routing: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="6" cy="6" r="2.5" />
-      <circle cx="18" cy="6" r="2.5" />
-      <circle cx="6" cy="18" r="2.5" />
-      <circle cx="18" cy="18" r="2.5" />
-      <path d="M8.8 6h6.4" />
-      <path d="M6 8.8v6.4" />
-      <path d="M18 8.8v6.4" />
-      <path d="M8.8 18h6.4" />
-    </svg>
-  ),
-} as const;
-
-type SidebarSectionId = 'resources' | 'layers' | 'routing';
-
-interface SidebarChipMeta {
-  label: string;
-  accent?: boolean;
-}
-
-interface SidebarCardEntry {
-  id: string;
-  title: string;
-  description: string;
-  meta?: string;
-  chips: SidebarChipMeta[];
-}
-
-const LAYER_IDS = ['A', 'B', 'C'] as const;
 
 interface MonitorInfo {
   id: string;
@@ -247,8 +199,6 @@ const App: React.FC = () => {
     };
   });
 
-  const [activeSidebarSection, setActiveSidebarSection] = useState<SidebarSectionId>('resources');
-
   const [layerVFX, setLayerVFX] = useState<Record<string, Record<string, string[]>>>(() => {
     try {
       const stored = localStorage.getItem('layerVFX');
@@ -256,169 +206,6 @@ const App: React.FC = () => {
     } catch {}
     return { A: {}, B: {}, C: {} };
   });
-
-  const resolveResourceLabel = useCallback(
-    (resourceId: string | null | undefined) => {
-      if (!resourceId) {
-        return 'Sin asignar';
-      }
-      if (resourceId.startsWith('video:')) {
-        const videoId = resourceId.replace(/^video:/, '');
-        const video = videoGallery.find(item => item.id === videoId);
-        return video ? video.title : 'Video no disponible';
-      }
-      const preset = availablePresets.find(item => item.id === resourceId);
-      return preset ? preset.config.name : 'Preset no disponible';
-    },
-    [availablePresets, videoGallery]
-  );
-
-  const activeLayerSummaries = useMemo<SidebarCardEntry[]>(() => {
-    return LAYER_IDS.map(layerId => {
-      const presetId = activeLayers[layerId] || null;
-      const layerEffect = layerEffects[layerId] || { effect: 'none', alwaysOn: false, active: false };
-      const midiChannel = layerChannels[layerId];
-      const chips: SidebarChipMeta[] = [];
-      const metaParts: string[] = [];
-
-      if (presetId) {
-        const isVideo = presetId.startsWith('video:');
-        chips.push({ label: isVideo ? 'Video' : 'Preset', accent: isVideo });
-        metaParts.push(isVideo ? 'Video activo' : 'Preset activo');
-      } else {
-        metaParts.push('Sin contenido asignado');
-      }
-
-      if (typeof midiChannel === 'number') {
-        chips.push({ label: `Canal ${midiChannel}` });
-        metaParts.push(`Canal MIDI ${midiChannel}`);
-      } else {
-        chips.push({ label: 'Canal —' });
-      }
-
-      if (layerEffect.effect && layerEffect.effect !== 'none') {
-        const label = layerEffect.alwaysOn ? `FX ${layerEffect.effect} · Auto` : `FX ${layerEffect.effect}`;
-        chips.push({ label, accent: layerEffect.active || layerEffect.alwaysOn });
-      }
-
-      return {
-        id: layerId,
-        title: presetId ? `${layerId} · ${resolveResourceLabel(presetId)}` : `${layerId} · Disponible`,
-        description: metaParts.join(' · '),
-        chips,
-      };
-    });
-  }, [activeLayers, layerChannels, layerEffects, resolveResourceLabel]);
-
-  const activeLayerCount = useMemo(
-    () => LAYER_IDS.filter(layerId => Boolean(activeLayers[layerId])).length,
-    [activeLayers]
-  );
-
-  const routingSummaries = useMemo<SidebarCardEntry[]>(() => {
-    const midiDescription = midiActive
-      ? midiDeviceName || 'Dispositivo MIDI activo'
-      : 'Sin dispositivo conectado';
-    const midiChips: SidebarChipMeta[] = [
-      { label: midiActive ? 'Activo' : 'Inactivo', accent: midiActive },
-      { label: `${midiDevices.length} detectados` },
-    ];
-
-    const audioDescription = audioDeviceName || 'Salida por defecto del sistema';
-    const audioChips: SidebarChipMeta[] = [
-      { label: `Ganancia ${Math.round(audioGain * 100)}%` },
-      { label: `${audioDevices.length} dispositivos` },
-    ];
-
-    const launchpadDescription = launchpadRunning
-      ? (launchpadOutput as any)?.name || 'Launchpad activo'
-      : 'Launchpad inactivo';
-    const launchpadChips: SidebarChipMeta[] = [
-      {
-        label: launchpadRunning ? `Preset ${launchpadPreset || 'Default'}` : 'No sincronizado',
-        accent: launchpadRunning,
-      },
-    ];
-
-    return [
-      { id: 'midi', title: 'MIDI', description: midiDescription, chips: midiChips },
-      { id: 'audio', title: 'Audio', description: audioDescription, chips: audioChips },
-      { id: 'launchpad', title: 'Launchpad', description: launchpadDescription, chips: launchpadChips },
-    ];
-  }, [
-    midiActive,
-    midiDeviceName,
-    midiDevices.length,
-    audioDeviceName,
-    audioDevices.length,
-    audioGain,
-    launchpadRunning,
-    launchpadOutput,
-    launchpadPreset,
-  ]);
-
-  const videoProviderSummary = useMemo<SidebarCardEntry>(
-    () => ({
-      id: 'video-provider',
-      title: 'Proveedor de video',
-      description: `Actualización cada ${videoProviderSettings.refreshMinutes} min`,
-      meta: `Consulta: "${videoProviderSettings.query || 'vj loop'}"`,
-      chips: [
-        { label: videoProviderSettings.provider.toUpperCase(), accent: true },
-        { label: isRefreshingVideos ? 'Actualizando…' : `${videoGallery.length} videos` },
-      ],
-    }),
-    [videoProviderSettings, isRefreshingVideos, videoGallery.length]
-  );
-
-  const sidebarNavSections = useMemo<SidebarNavSection[]>(
-    () => [
-      {
-        id: 'library',
-        title: 'Biblioteca',
-        items: [
-          {
-            id: 'resources',
-            icon: NAV_ICONS.resources,
-            label: 'Recursos',
-            description: `${availablePresets.length} presets · ${videoGallery.length} videos`,
-            badge: availablePresets.length + videoGallery.length,
-          },
-        ],
-      },
-      {
-        id: 'monitoring',
-        title: 'Monitoreo',
-        items: [
-          {
-            id: 'layers',
-            icon: NAV_ICONS.layers,
-            label: 'Capas activas',
-            description:
-              activeLayerCount > 0
-                ? `${activeLayerCount} capa${activeLayerCount !== 1 ? 's' : ''} activas`
-                : 'Sin capas activas',
-            badge: activeLayerCount,
-          },
-          {
-            id: 'routing',
-            icon: NAV_ICONS.routing,
-            label: 'Routing',
-            description: `${midiActive ? 'MIDI ON' : 'MIDI OFF'} · ${launchpadRunning ? 'Launchpad ON' : 'Launchpad OFF'}`,
-            badge: midiActive ? 'SYNC' : 'IDLE',
-          },
-        ],
-      },
-    ],
-    [availablePresets.length, videoGallery.length, activeLayerCount, midiActive, launchpadRunning]
-  );
-
-  const handleSidebarSectionSelect = useCallback((sectionId: string) => {
-    if (sectionId === 'resources' || sectionId === 'layers' || sectionId === 'routing') {
-      setActiveSidebarSection(sectionId);
-    }
-  }, []);
-
 
   const [isFullscreenMode, setIsFullscreenMode] = useState(
     () => new URLSearchParams(window.location.search).get('fullscreen') === 'true'
@@ -1484,121 +1271,20 @@ const App: React.FC = () => {
       <ProxmoxSidebar
         title="Jungle Lab Studio"
         subtitle="Proxmox Edition"
-        navigation={(
-          <SidebarNavigation
-            sections={sidebarNavSections}
-            activeId={activeSidebarSection}
-            onSelect={handleSidebarSectionSelect}
-          />
-        )}
         footer={(
           <span>
             <strong>Preset</strong> · {getCurrentPresetName()}
           </span>
         )}
       >
-        {activeSidebarSection === 'resources' && (
-          <ResourceExplorer
-            width={RESOURCE_EXPLORER_WIDTH}
-            presets={availablePresets}
-            videos={videoGallery}
-            onOpenLibrary={() => setResourcesOpen(true)}
-            onRefreshVideos={() => refreshVideoGallery(true)}
-            isRefreshingVideos={isRefreshingVideos}
-          />
-        )}
-
-        {activeSidebarSection === 'layers' && (
-          <div className="sidebar-panel">
-            <div className="sidebar-card">
-              <div className="sidebar-card__header">
-                <span className="sidebar-card__subtitle">Estado en vivo</span>
-                <span className="sidebar-card__title">Capas activas</span>
-              </div>
-              <div className="sidebar-card__body">
-                <p className="sidebar-card__meta">
-                  Monitoriza qué preset o video está cargado en cada capa del motor visual en tiempo real.
-                </p>
-                <div className="sidebar-card__list">
-                  {activeLayerSummaries.map(summary => (
-                    <div key={summary.id} className="sidebar-card__list-item">
-                      <strong>{summary.title}</strong>
-                      <span>{summary.description}</span>
-                      {summary.chips.length > 0 && (
-                        <div className="sidebar-card__chips">
-                          {summary.chips.map(chip => (
-                            <span
-                              key={`${summary.id}-${chip.label}`}
-                              className={`sidebar-chip${chip.accent ? ' sidebar-chip--accent' : ''}`}
-                            >
-                              {chip.label}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeSidebarSection === 'routing' && (
-          <div className="sidebar-panel">
-            <div className="sidebar-card">
-              <div className="sidebar-card__header">
-                <span className="sidebar-card__subtitle">Sincronización</span>
-                <span className="sidebar-card__title">Routing en tiempo real</span>
-              </div>
-              <div className="sidebar-card__body">
-                <div className="sidebar-card__list">
-                  {routingSummaries.map(entry => (
-                    <div key={entry.id} className="sidebar-card__list-item">
-                      <strong>{entry.title}</strong>
-                      <span>{entry.description}</span>
-                      {entry.chips.length > 0 && (
-                        <div className="sidebar-card__chips">
-                          {entry.chips.map(chip => (
-                            <span
-                              key={`${entry.id}-${chip.label}`}
-                              className={`sidebar-chip${chip.accent ? ' sidebar-chip--accent' : ''}`}
-                            >
-                              {chip.label}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="sidebar-card">
-              <div className="sidebar-card__header">
-                <span className="sidebar-card__subtitle">Librería multimedia</span>
-                <span className="sidebar-card__title">Proveedor de video</span>
-              </div>
-              <div className="sidebar-card__body">
-                <p className="sidebar-card__meta">{videoProviderSummary.description}</p>
-                {videoProviderSummary.meta && (
-                  <p className="sidebar-card__meta">{videoProviderSummary.meta}</p>
-                )}
-                <div className="sidebar-card__chips">
-                  {videoProviderSummary.chips.map(chip => (
-                    <span
-                      key={`video-${chip.label}`}
-                      className={`sidebar-chip${chip.accent ? ' sidebar-chip--accent' : ''}`}
-                    >
-                      {chip.label}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <ResourceExplorer
+          width={RESOURCE_EXPLORER_WIDTH}
+          presets={availablePresets}
+          videos={videoGallery}
+          onOpenLibrary={() => setResourcesOpen(true)}
+          onRefreshVideos={() => refreshVideoGallery(true)}
+          isRefreshingVideos={isRefreshingVideos}
+        />
       </ProxmoxSidebar>
 
       <ProxmoxMainArea
