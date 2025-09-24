@@ -1,13 +1,4 @@
-:root {
-  --proxmox-bg: #1f2428;
-  --proxmox-panel: #2b333a;
-  --proxmox-panel-alt: #252c32;
-  --proxmox-border: #3a444d;
-  --proxmox-border-strong: #4d5862;
-  --proxmox-accent: #f08236;
-  --proxmox-text: #d5d9dc;
-  --proxmox-text-muted: #aab4bc;
-}
+/* Proxmox-inspired layout styles */
 
 .proxmox-shell {
   display: grid;
@@ -30,7 +21,7 @@
 .proxmox-shell.ui-hidden .proxmox-task-panel,
 .proxmox-shell.ui-hidden .proxmox-footer,
 .proxmox-shell.ui-hidden .sidebar-header,
-.proxmox-shell.ui-hidden .sidebar-content,
+.proxmox-shell.ui-hidden .sidebar-scroll,
 .proxmox-shell.ui-hidden .sidebar-footer {
   display: none !important;
 }
@@ -56,6 +47,14 @@
   box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.25);
 }
 
+.sidebar-scroll {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .sidebar-header {
   display: flex;
   align-items: center;
@@ -76,7 +75,7 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: #ffffff;
+  color: var(--proxmox-text-strong);
 }
 
 .sidebar-subtitle {
@@ -100,7 +99,8 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+  transition: border-color var(--transition-fast), color var(--transition-fast),
+    background var(--transition-fast);
 }
 
 .sidebar-toolbar button:hover {
@@ -109,9 +109,223 @@
   background: rgba(240, 130, 54, 0.1);
 }
 
+.sidebar-navigation {
+  border-bottom: 1px solid var(--proxmox-border);
+  background: rgba(21, 26, 30, 0.9);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+}
+
+.sidebar-navigation__inner {
+  padding: 18px 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.sidebar-nav__section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebar-nav__title {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--proxmox-text-muted);
+}
+
+.sidebar-nav__items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--proxmox-text);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast),
+    box-shadow var(--transition-fast), transform var(--transition-fast);
+  text-align: left;
+}
+
+.sidebar-nav__item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+  transform: translateX(2px);
+}
+
+.sidebar-nav__item.is-active {
+  background: var(--proxmox-accent-soft);
+  border-color: rgba(240, 130, 54, 0.45);
+  box-shadow: 0 0 0 1px rgba(240, 130, 54, 0.35);
+  color: var(--proxmox-text-strong);
+}
+
+.sidebar-nav__item.is-active .sidebar-nav__icon {
+  color: var(--proxmox-accent-strong);
+}
+
+.sidebar-nav__icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--proxmox-text-muted);
+}
+
+.sidebar-nav__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.sidebar-nav__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-nav__label {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: inherit;
+}
+
+.sidebar-nav__description {
+  font-size: var(--font-size-xs);
+  color: var(--proxmox-text-muted);
+}
+
+.sidebar-nav__badge {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--proxmox-text-muted);
+}
+
+.sidebar-nav__item.is-active .sidebar-nav__badge {
+  background: rgba(240, 130, 54, 0.22);
+  color: var(--proxmox-text-strong);
+}
+
 .sidebar-content {
   flex: 1;
   overflow: hidden auto;
+}
+
+.sidebar-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 18px 24px;
+}
+
+.sidebar-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--proxmox-panel-alt);
+  border: 1px solid var(--proxmox-border);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-soft);
+}
+
+.sidebar-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-card__title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--proxmox-text-strong);
+}
+
+.sidebar-card__subtitle {
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--proxmox-text-muted);
+}
+
+.sidebar-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebar-card__meta {
+  font-size: var(--font-size-sm);
+  color: var(--proxmox-text-muted);
+}
+
+.sidebar-card__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebar-card__list-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--proxmox-border-soft);
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.sidebar-card__list-item strong {
+  font-size: var(--font-size-sm);
+  color: var(--proxmox-text-strong);
+}
+
+.sidebar-card__list-item span {
+  font-size: var(--font-size-xs);
+  color: var(--proxmox-text-muted);
+}
+
+.sidebar-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.sidebar-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--proxmox-text-muted);
+}
+
+.sidebar-chip--accent {
+  background: rgba(240, 130, 54, 0.18);
+  color: var(--proxmox-text-strong);
 }
 
 .sidebar-footer {
@@ -399,7 +613,7 @@
     min-width: 220px;
   }
 
-  .sidebar-content {
+  .sidebar-scroll {
     flex: 1;
     max-height: 260px;
   }
@@ -438,7 +652,7 @@
     flex-direction: column;
   }
 
-  .sidebar-content {
+  .sidebar-scroll {
     max-height: none;
   }
 }
