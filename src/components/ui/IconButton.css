@@ -1,0 +1,98 @@
+.px-icon-button {
+  --px-icon-button-size: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--px-icon-button-size);
+  height: var(--px-icon-button-size);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--proxmox-border);
+  background: rgba(21, 26, 30, 0.85);
+  color: var(--proxmox-text);
+  cursor: pointer;
+  transition: transform var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.px-icon-button:hover,
+.px-icon-button:focus-visible {
+  border-color: var(--proxmox-accent);
+  color: var(--proxmox-accent);
+  background: rgba(240, 130, 54, 0.12);
+  box-shadow: 0 0 0 1px rgba(240, 130, 54, 0.28);
+}
+
+.px-icon-button:active {
+  transform: translateY(1px);
+}
+
+.px-icon-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+  color: var(--proxmox-text-muted);
+}
+
+.px-icon-button.is-active {
+  border-color: rgba(240, 130, 54, 0.6);
+  background: rgba(240, 130, 54, 0.18);
+  color: var(--proxmox-text-strong);
+  box-shadow: 0 0 0 1px rgba(240, 130, 54, 0.35);
+}
+
+.px-icon-button--accent {
+  background: linear-gradient(180deg, rgba(240, 130, 54, 0.95) 0%, rgba(240, 130, 54, 0.7) 100%);
+  border-color: rgba(240, 130, 54, 0.8);
+  color: #1d1209;
+}
+
+.px-icon-button--accent:hover,
+.px-icon-button--accent:focus-visible {
+  color: #1d1209;
+  background: linear-gradient(180deg, rgba(240, 130, 54, 1) 0%, rgba(255, 151, 69, 0.95) 100%);
+}
+
+.px-icon-button--danger {
+  border-color: rgba(255, 82, 82, 0.6);
+  color: #ff8585;
+}
+
+.px-icon-button--danger:hover,
+.px-icon-button--danger:focus-visible {
+  background: rgba(255, 82, 82, 0.14);
+  color: #ffaaaa;
+  box-shadow: 0 0 0 1px rgba(255, 82, 82, 0.2);
+}
+
+.px-icon-button--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--proxmox-text-muted);
+}
+
+.px-icon-button--ghost:hover,
+.px-icon-button--ghost:focus-visible {
+  border-color: rgba(240, 130, 54, 0.35);
+  background: rgba(240, 130, 54, 0.12);
+  color: var(--proxmox-text-strong);
+}
+
+.px-icon-button--sm {
+  --px-icon-button-size: 28px;
+  border-radius: var(--radius-xs);
+}
+
+.px-icon-button__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.px-icon-button--sm .px-icon-button__icon {
+  font-size: 12px;
+}

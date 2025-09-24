@@ -36,6 +36,7 @@ import {
   SidebarNavigation,
   SidebarNavSection,
 } from './components/layout/ProxmoxLayout';
+import { SidebarCard, StackList, StackListItem, Badge } from './components/ui';
 import {
   VideoResource,
   VideoPlaybackSettings,
@@ -104,6 +105,16 @@ interface MonitorInfo {
 }
 
 const RESOURCE_EXPLORER_WIDTH = 320;
+
+const SIDEBAR_COLLAPSE_STORAGE_KEY = 'ui.sidebarCollapsed';
+
+const getStoredSidebarCollapsed = (): boolean => {
+  try {
+    return localStorage.getItem(SIDEBAR_COLLAPSE_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
 
 const App: React.FC = () => {
   const playgroundRef = useRef<HTMLDivElement>(null);
@@ -256,6 +267,38 @@ const App: React.FC = () => {
     } catch {}
     return { A: {}, B: {}, C: {} };
   });
+
+  const [isSidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => getStoredSidebarCollapsed());
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        SIDEBAR_COLLAPSE_STORAGE_KEY,
+        isSidebarCollapsed ? '1' : '0'
+      );
+    } catch {
+      // Ignored: persistence is best-effort only
+    }
+  }, [isSidebarCollapsed]);
+
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 1200px)');
+
+    const handleChange = (event: MediaQueryListEvent) => {
+      if (event.matches) {
+        setSidebarCollapsed(true);
+      } else {
+        setSidebarCollapsed(getStoredSidebarCollapsed());
+      }
+    };
+
+    if (query.matches) {
+      setSidebarCollapsed(true);
+    }
+
+    query.addEventListener('change', handleChange);
+    return () => query.removeEventListener('change', handleChange);
+  }, []);
 
   const resolveResourceLabel = useCallback(
     (resourceId: string | null | undefined) => {
@@ -1479,8 +1522,12 @@ const App: React.FC = () => {
   const audioDeviceName = audioDeviceId ? audioDevices.find(d => d.deviceId === audioDeviceId)?.label || null : null;
   const audioLevel = Math.min((audioData.low + audioData.mid + audioData.high) / 3, 1);
 
+  const shellClassName = `audiovisualizer-app${isUiHidden ? ' ui-hidden' : ''}${
+    isSidebarCollapsed ? ' sidebar-collapsed' : ''
+  }`;
+
   return (
-    <ProxmoxShell className={`audiovisualizer-app ${isUiHidden ? 'ui-hidden' : ''}`}>
+    <ProxmoxShell className={shellClassName}>
       <ProxmoxSidebar
         title="Jungle Lab Studio"
         subtitle="Proxmox Edition"
@@ -1489,6 +1536,7 @@ const App: React.FC = () => {
             sections={sidebarNavSections}
             activeId={activeSidebarSection}
             onSelect={handleSidebarSectionSelect}
+            isCollapsed={isSidebarCollapsed}
           />
         )}
         footer={(
@@ -1496,6 +1544,9 @@ const App: React.FC = () => {
             <strong>Preset</strong> · {getCurrentPresetName()}
           </span>
         )}
+        collapsible
+        collapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(prev => !prev)}
       >
         {activeSidebarSection === 'resources' && (
           <ResourceExplorer
@@ -1510,93 +1561,57 @@ const App: React.FC = () => {
 
         {activeSidebarSection === 'layers' && (
           <div className="sidebar-panel">
-            <div className="sidebar-card">
-              <div className="sidebar-card__header">
-                <span className="sidebar-card__subtitle">Estado en vivo</span>
-                <span className="sidebar-card__title">Capas activas</span>
-              </div>
-              <div className="sidebar-card__body">
-                <p className="sidebar-card__meta">
-                  Monitoriza qué preset o video está cargado en cada capa del motor visual en tiempo real.
-                </p>
-                <div className="sidebar-card__list">
-                  {activeLayerSummaries.map(summary => (
-                    <div key={summary.id} className="sidebar-card__list-item">
-                      <strong>{summary.title}</strong>
-                      <span>{summary.description}</span>
-                      {summary.chips.length > 0 && (
-                        <div className="sidebar-card__chips">
-                          {summary.chips.map(chip => (
-                            <span
-                              key={`${summary.id}-${chip.label}`}
-                              className={`sidebar-chip${chip.accent ? ' sidebar-chip--accent' : ''}`}
-                            >
-                              {chip.label}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <SidebarCard
+              title="Capas activas"
+              subtitle="Estado en vivo"
+              description="Monitoriza qué preset o video está cargado en cada capa del motor visual en tiempo real."
+            >
+              <StackList>
+                {activeLayerSummaries.map(summary => (
+                  <StackListItem
+                    key={summary.id}
+                    title={summary.title}
+                    description={summary.description}
+                    badges={summary.chips}
+                  />
+                ))}
+              </StackList>
+            </SidebarCard>
           </div>
         )}
 
         {activeSidebarSection === 'routing' && (
           <div className="sidebar-panel">
-            <div className="sidebar-card">
-              <div className="sidebar-card__header">
-                <span className="sidebar-card__subtitle">Sincronización</span>
-                <span className="sidebar-card__title">Routing en tiempo real</span>
-              </div>
-              <div className="sidebar-card__body">
-                <div className="sidebar-card__list">
-                  {routingSummaries.map(entry => (
-                    <div key={entry.id} className="sidebar-card__list-item">
-                      <strong>{entry.title}</strong>
-                      <span>{entry.description}</span>
-                      {entry.chips.length > 0 && (
-                        <div className="sidebar-card__chips">
-                          {entry.chips.map(chip => (
-                            <span
-                              key={`${entry.id}-${chip.label}`}
-                              className={`sidebar-chip${chip.accent ? ' sidebar-chip--accent' : ''}`}
-                            >
-                              {chip.label}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <SidebarCard title="Routing en tiempo real" subtitle="Sincronización">
+              <StackList>
+                {routingSummaries.map(entry => (
+                  <StackListItem
+                    key={entry.id}
+                    title={entry.title}
+                    description={entry.description}
+                    badges={entry.chips}
+                  />
+                ))}
+              </StackList>
+            </SidebarCard>
 
-            <div className="sidebar-card">
-              <div className="sidebar-card__header">
-                <span className="sidebar-card__subtitle">Librería multimedia</span>
-                <span className="sidebar-card__title">Proveedor de video</span>
+            <SidebarCard
+              title={videoProviderSummary.title}
+              subtitle="Librería multimedia"
+              description={videoProviderSummary.description}
+              meta={videoProviderSummary.meta}
+            >
+              <div className="px-sidebar-card__chips">
+                {videoProviderSummary.chips.map(chip => (
+                  <Badge
+                    key={`video-${chip.label}`}
+                    tone={chip.accent ? 'accent' : 'muted'}
+                  >
+                    {chip.label}
+                  </Badge>
+                ))}
               </div>
-              <div className="sidebar-card__body">
-                <p className="sidebar-card__meta">{videoProviderSummary.description}</p>
-                {videoProviderSummary.meta && (
-                  <p className="sidebar-card__meta">{videoProviderSummary.meta}</p>
-                )}
-                <div className="sidebar-card__chips">
-                  {videoProviderSummary.chips.map(chip => (
-                    <span
-                      key={`video-${chip.label}`}
-                      className={`sidebar-chip${chip.accent ? ' sidebar-chip--accent' : ''}`}
-                    >
-                      {chip.label}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
+            </SidebarCard>
           </div>
         )}
       </ProxmoxSidebar>
@@ -1627,6 +1642,8 @@ const App: React.FC = () => {
             launchpadText={launchpadText}
             onLaunchpadTextChange={setLaunchpadText}
             onLaunchpadPresetChange={setLaunchpadPreset}
+            onToggleSidebar={() => setSidebarCollapsed(prev => !prev)}
+            isSidebarCollapsed={isSidebarCollapsed}
           />
         )}
       >
