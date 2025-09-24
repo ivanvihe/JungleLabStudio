@@ -22,7 +22,6 @@ interface SidebarProps {
   footer?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
-  navigation?: React.ReactNode;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -32,7 +31,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   footer,
   children,
   className,
-  navigation,
 }) => {
   const classes = ['proxmox-sidebar'];
   if (className) {
@@ -48,14 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
         {toolbar && <div className="sidebar-toolbar">{toolbar}</div>}
       </div>
-      <div className="sidebar-scroll">
-        {navigation && (
-          <div className="sidebar-navigation">
-            <div className="sidebar-navigation__inner">{navigation}</div>
-          </div>
-        )}
-        <div className="sidebar-content">{children}</div>
-      </div>
+      <div className="sidebar-content">{children}</div>
       {footer && <div className="sidebar-footer">{footer}</div>}
     </aside>
   );
@@ -176,75 +167,5 @@ export const FooterPanel: React.FC<FooterPanelProps> = ({
       </div>
       <div className="panel-body">{children}</div>
     </footer>
-  );
-};
-
-export interface SidebarNavItem {
-  id: string;
-  icon: React.ReactNode;
-  label: string;
-  description?: string;
-  badge?: string | number;
-}
-
-export interface SidebarNavSection {
-  id: string;
-  title?: string;
-  items: SidebarNavItem[];
-}
-
-interface SidebarNavigationProps {
-  sections: SidebarNavSection[];
-  activeId: string;
-  onSelect: (itemId: string) => void;
-  className?: string;
-}
-
-export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
-  sections,
-  activeId,
-  onSelect,
-  className,
-}) => {
-  const classes = ['sidebar-nav'];
-  if (className) {
-    classes.push(className);
-  }
-
-  return (
-    <nav className={classes.join(' ')}>
-      {sections.map(section => (
-        <div key={section.id} className="sidebar-nav__section">
-          {section.title && <span className="sidebar-nav__title">{section.title}</span>}
-          <div className="sidebar-nav__items">
-            {section.items.map(item => {
-              const itemClasses = ['sidebar-nav__item'];
-              if (item.id === activeId) {
-                itemClasses.push('is-active');
-              }
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={itemClasses.join(' ')}
-                  onClick={() => onSelect(item.id)}
-                >
-                  <span className="sidebar-nav__icon">{item.icon}</span>
-                  <span className="sidebar-nav__content">
-                    <span className="sidebar-nav__label">{item.label}</span>
-                    {item.description && (
-                      <span className="sidebar-nav__description">{item.description}</span>
-                    )}
-                  </span>
-                  {item.badge !== undefined && item.badge !== null && (
-                    <span className="sidebar-nav__badge">{item.badge}</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-    </nav>
   );
 };
