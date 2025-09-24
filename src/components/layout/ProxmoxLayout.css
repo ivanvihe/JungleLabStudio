@@ -1,0 +1,444 @@
+:root {
+  --proxmox-bg: #1f2428;
+  --proxmox-panel: #2b333a;
+  --proxmox-panel-alt: #252c32;
+  --proxmox-border: #3a444d;
+  --proxmox-border-strong: #4d5862;
+  --proxmox-accent: #f08236;
+  --proxmox-text: #d5d9dc;
+  --proxmox-text-muted: #aab4bc;
+}
+
+.proxmox-shell {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr) 360px;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    'sidebar main task'
+    'sidebar main task'
+    'sidebar footer footer';
+  width: 100vw;
+  height: 100vh;
+  background: var(--proxmox-bg);
+  color: var(--proxmox-text);
+  overflow: hidden;
+}
+
+.proxmox-shell.ui-hidden .top-bar,
+.proxmox-shell.ui-hidden .layer-grid-container,
+.proxmox-shell.ui-hidden .bottom-section,
+.proxmox-shell.ui-hidden .proxmox-task-panel,
+.proxmox-shell.ui-hidden .proxmox-footer,
+.proxmox-shell.ui-hidden .sidebar-header,
+.proxmox-shell.ui-hidden .sidebar-content,
+.proxmox-shell.ui-hidden .sidebar-footer {
+  display: none !important;
+}
+
+.proxmox-shell.ui-hidden .visual-wrapper {
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+}
+
+.proxmox-shell.ui-hidden .mainchat-body {
+  padding: 0;
+}
+
+.proxmox-sidebar {
+  grid-area: sidebar;
+  display: flex;
+  flex-direction: column;
+  background: var(--proxmox-panel);
+  border-right: 1px solid var(--proxmox-border);
+  min-width: 0;
+  overflow: hidden;
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.25);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--proxmox-border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(0, 0, 0, 0.05) 100%);
+}
+
+.sidebar-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+.sidebar-subtitle {
+  font-size: 12px;
+  color: var(--proxmox-text-muted);
+}
+
+.sidebar-toolbar {
+  display: flex;
+  gap: 8px;
+}
+
+.sidebar-toolbar button {
+  background: transparent;
+  border: 1px solid var(--proxmox-border);
+  border-radius: 6px;
+  color: var(--proxmox-text);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.sidebar-toolbar button:hover {
+  border-color: var(--proxmox-accent);
+  color: var(--proxmox-accent);
+  background: rgba(240, 130, 54, 0.1);
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow: hidden auto;
+}
+
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--proxmox-border);
+  font-size: 12px;
+  color: var(--proxmox-text-muted);
+}
+
+.sidebar-footer strong {
+  color: var(--proxmox-accent);
+}
+
+.proxmox-mainchat {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--proxmox-panel-alt);
+  border-right: 1px solid var(--proxmox-border);
+}
+
+.mainchat-header {
+  border-bottom: 1px solid var(--proxmox-border);
+  background: rgba(21, 25, 29, 0.65);
+  backdrop-filter: blur(6px);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.mainchat-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding: 16px 20px 0;
+}
+
+.proxmox-task-panel {
+  grid-area: task;
+  display: flex;
+  flex-direction: column;
+  background: var(--proxmox-panel);
+  border-left: 1px solid var(--proxmox-border);
+  min-width: 0;
+  transition: width 0.3s ease, min-width 0.3s ease;
+}
+
+.proxmox-task-panel.collapsed {
+  width: 56px;
+  min-width: 56px;
+}
+
+.proxmox-task-panel.collapsed .panel-body {
+  display: none;
+}
+
+.proxmox-task-panel.collapsed .panel-title {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  letter-spacing: 0.2em;
+}
+
+.proxmox-footer {
+  grid-area: footer;
+  background: var(--proxmox-panel);
+  border-top: 1px solid var(--proxmox-border);
+  display: flex;
+  flex-direction: column;
+  transition: max-height 0.3s ease;
+  max-height: 220px;
+  overflow: hidden;
+}
+
+.proxmox-footer.collapsed {
+  max-height: 42px;
+}
+
+.proxmox-footer.collapsed .panel-body {
+  display: none;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--proxmox-border);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--proxmox-text);
+}
+
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-meta {
+  font-size: 11px;
+  color: var(--proxmox-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.panel-toggle {
+  background: none;
+  border: 1px solid var(--proxmox-border);
+  color: var(--proxmox-text);
+  border-radius: 4px;
+  padding: 4px 6px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.panel-toggle:hover {
+  border-color: var(--proxmox-accent);
+  color: var(--proxmox-accent);
+  background: rgba(240, 130, 54, 0.12);
+}
+
+.panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.proxmox-task-panel .panel-body,
+.proxmox-footer .panel-body {
+  padding: 16px;
+  overflow: hidden auto;
+}
+
+.layer-grid-container {
+  background: rgba(18, 22, 26, 0.85);
+  border: 1px solid var(--proxmox-border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 20px 35px rgba(0, 0, 0, 0.35);
+}
+
+.bottom-section {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.visual-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.visual-wrapper {
+  position: relative;
+  flex: 1;
+  border-radius: 16px;
+  border: 1px solid var(--proxmox-border-strong);
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 22px 45px rgba(0, 0, 0, 0.5);
+}
+
+.playground {
+  position: absolute;
+  inset: 0;
+  background: #000;
+}
+
+.layer-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.controls-panel {
+  flex: 0 0 340px;
+  background: rgba(18, 22, 26, 0.9);
+  border: 1px solid var(--proxmox-border);
+  border-radius: 12px;
+  padding: 48px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+.controls-panel-content {
+  flex: 1;
+  overflow: auto;
+  padding-right: 6px;
+}
+
+.controls-panel-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.controls-panel-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.controls-panel-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.controls-panel-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.no-preset-selected {
+  color: var(--proxmox-accent);
+  text-align: center;
+  margin-top: 20px;
+}
+
+/* Responsive behaviour */
+@media (max-width: 1440px) {
+  .proxmox-shell {
+    grid-template-columns: 240px minmax(0, 1fr) 320px;
+  }
+
+  .controls-panel {
+    flex-basis: 300px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .proxmox-shell {
+    grid-template-columns: 220px minmax(0, 1fr);
+    grid-template-areas:
+      'sidebar main'
+      'sidebar task'
+      'sidebar footer';
+  }
+
+  .proxmox-task-panel {
+    border-left: none;
+    border-top: 1px solid var(--proxmox-border);
+    min-height: 280px;
+  }
+
+  .proxmox-task-panel.collapsed {
+    min-height: 56px;
+    width: auto;
+    min-width: 0;
+  }
+
+  .proxmox-task-panel.collapsed .panel-title {
+    writing-mode: horizontal-tb;
+    transform: none;
+  }
+}
+
+@media (max-width: 992px) {
+  .proxmox-shell {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'sidebar'
+      'main'
+      'task'
+      'footer';
+  }
+
+  .proxmox-sidebar {
+    flex-direction: row;
+    align-items: stretch;
+    overflow-x: auto;
+  }
+
+  .sidebar-header {
+    flex-direction: row;
+    padding: 12px 16px;
+    min-width: 220px;
+  }
+
+  .sidebar-content {
+    flex: 1;
+    max-height: 260px;
+  }
+
+  .mainchat-body {
+    padding: 12px 16px 0;
+  }
+
+  .bottom-section {
+    flex-direction: column;
+  }
+
+  .controls-panel {
+    flex-basis: auto;
+    width: 100%;
+    padding-top: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .layer-grid-container {
+    padding: 12px;
+  }
+
+  .visual-wrapper {
+    border-radius: 12px;
+  }
+
+  .controls-panel {
+    padding: 20px 14px;
+  }
+}
+
+@media (max-width: 640px) {
+  .proxmox-sidebar {
+    flex-direction: column;
+  }
+
+  .sidebar-content {
+    max-height: none;
+  }
+}
