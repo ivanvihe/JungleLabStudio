@@ -372,6 +372,48 @@ const App: React.FC = () => {
     [videoProviderSettings, isRefreshingVideos, videoGallery.length]
   );
 
+  const sidebarNavSections = useMemo<SidebarNavSection[]>(
+    () => [
+      {
+        id: 'library',
+        title: 'Biblioteca',
+        items: [
+          {
+            id: 'resources',
+            icon: NAV_ICONS.resources,
+            label: 'Recursos',
+            description: `${availablePresets.length} presets · ${videoGallery.length} videos`,
+            badge: availablePresets.length + videoGallery.length,
+          },
+        ],
+      },
+      {
+        id: 'monitoring',
+        title: 'Monitoreo',
+        items: [
+          {
+            id: 'layers',
+            icon: NAV_ICONS.layers,
+            label: 'Capas activas',
+            description:
+              activeLayerCount > 0
+                ? `${activeLayerCount} capa${activeLayerCount !== 1 ? 's' : ''} activas`
+                : 'Sin capas activas',
+            badge: activeLayerCount,
+          },
+          {
+            id: 'routing',
+            icon: NAV_ICONS.routing,
+            label: 'Routing',
+            description: `${midiActive ? 'MIDI ON' : 'MIDI OFF'} · ${launchpadRunning ? 'Launchpad ON' : 'Launchpad OFF'}`,
+            badge: midiActive ? 'SYNC' : 'IDLE',
+          },
+        ],
+      },
+    ],
+    [availablePresets.length, videoGallery.length, activeLayerCount, midiActive, launchpadRunning]
+  );
+
   const handleSidebarSectionSelect = useCallback((sectionId: string) => {
     if (sectionId === 'resources' || sectionId === 'layers' || sectionId === 'routing') {
       setActiveSidebarSection(sectionId);
@@ -418,6 +460,64 @@ const App: React.FC = () => {
     launchpadText,
     setLaunchpadText,
   } = useLaunchpad(audioData, canvasRef);
+
+  const midiDeviceName = useMemo(
+    () =>
+      midiDeviceId
+        ? midiDevices.find((d: any) => d.id === midiDeviceId)?.name || null
+        : null,
+    [midiDevices, midiDeviceId]
+  );
+
+  const audioDeviceName = useMemo(
+    () =>
+      audioDeviceId
+        ? audioDevices.find(device => device.deviceId === audioDeviceId)?.label || null
+        : null,
+    [audioDevices, audioDeviceId]
+  );
+
+  const routingSummaries = useMemo<SidebarCardEntry[]>(() => {
+    const midiDescription = midiActive
+      ? midiDeviceName || 'Dispositivo MIDI activo'
+      : 'Sin dispositivo conectado';
+    const midiChips: SidebarChipMeta[] = [
+      { label: midiActive ? 'Activo' : 'Inactivo', accent: midiActive },
+      { label: `${midiDevices.length} detectados` },
+    ];
+
+    const audioDescription = audioDeviceName || 'Salida por defecto del sistema';
+    const audioChips: SidebarChipMeta[] = [
+      { label: `Ganancia ${Math.round(audioGain * 100)}%` },
+      { label: `${audioDevices.length} dispositivos` },
+    ];
+
+    const launchpadDescription = launchpadRunning
+      ? (launchpadOutput as any)?.name || 'Launchpad activo'
+      : 'Launchpad inactivo';
+    const launchpadChips: SidebarChipMeta[] = [
+      {
+        label: launchpadRunning ? `Preset ${launchpadPreset || 'Default'}` : 'No sincronizado',
+        accent: launchpadRunning,
+      },
+    ];
+
+    return [
+      { id: 'midi', title: 'MIDI', description: midiDescription, chips: midiChips },
+      { id: 'audio', title: 'Audio', description: audioDescription, chips: audioChips },
+      { id: 'launchpad', title: 'Launchpad', description: launchpadDescription, chips: launchpadChips },
+    ];
+  }, [
+    midiActive,
+    midiDeviceName,
+    midiDevices,
+    audioDeviceName,
+    audioDevices,
+    audioGain,
+    launchpadRunning,
+    launchpadOutput,
+    launchpadPreset,
+  ]);
 
   const updateVideoProviderSettings = useCallback(
     (updates: Partial<VideoProviderSettings>) => {
@@ -537,107 +637,6 @@ const App: React.FC = () => {
     effectMidiNotes,
     engineRef,
   });
-
-  const sidebarNavSections = useMemo<SidebarNavSection[]>(
-    () => [
-      {
-        id: 'library',
-        title: 'Biblioteca',
-        items: [
-          {
-            id: 'resources',
-            icon: NAV_ICONS.resources,
-            label: 'Recursos',
-            description: `${availablePresets.length} presets · ${videoGallery.length} videos`,
-            badge: availablePresets.length + videoGallery.length,
-          },
-        ],
-      },
-      {
-        id: 'monitoring',
-        title: 'Monitoreo',
-        items: [
-          {
-            id: 'layers',
-            icon: NAV_ICONS.layers,
-            label: 'Capas activas',
-            description:
-              activeLayerCount > 0
-                ? `${activeLayerCount} capa${activeLayerCount !== 1 ? 's' : ''} activas`
-                : 'Sin capas activas',
-            badge: activeLayerCount,
-          },
-          {
-            id: 'routing',
-            icon: NAV_ICONS.routing,
-            label: 'Routing',
-            description: `${midiActive ? 'MIDI ON' : 'MIDI OFF'} · ${launchpadRunning ? 'Launchpad ON' : 'Launchpad OFF'}`,
-            badge: midiActive ? 'SYNC' : 'IDLE',
-          },
-        ],
-      },
-    ],
-    [availablePresets.length, videoGallery.length, activeLayerCount, midiActive, launchpadRunning]
-  );
-
-  const midiDeviceName = useMemo(
-    () =>
-      midiDeviceId
-        ? midiDevices.find((d: any) => d.id === midiDeviceId)?.name || null
-        : null,
-    [midiDevices, midiDeviceId]
-  );
-
-  const audioDeviceName = useMemo(
-    () =>
-      audioDeviceId
-        ? audioDevices.find(device => device.deviceId === audioDeviceId)?.label || null
-        : null,
-    [audioDevices, audioDeviceId]
-  );
-
-  const routingSummaries = useMemo<SidebarCardEntry[]>(() => {
-    const midiDescription = midiActive
-      ? midiDeviceName || 'Dispositivo MIDI activo'
-      : 'Sin dispositivo conectado';
-    const midiChips: SidebarChipMeta[] = [
-      { label: midiActive ? 'Activo' : 'Inactivo', accent: midiActive },
-      { label: `${midiDevices.length} detectados` },
-    ];
-
-    const audioDescription = audioDeviceName || 'Salida por defecto del sistema';
-    const audioChips: SidebarChipMeta[] = [
-      { label: `Ganancia ${Math.round(audioGain * 100)}%` },
-      { label: `${audioDevices.length} dispositivos` },
-    ];
-
-    const launchpadDescription = launchpadRunning
-      ? (launchpadOutput as any)?.name || 'Launchpad activo'
-      : 'Launchpad inactivo';
-    const launchpadChips: SidebarChipMeta[] = [
-      {
-        label: launchpadRunning ? `Preset ${launchpadPreset || 'Default'}` : 'No sincronizado',
-        accent: launchpadRunning,
-      },
-    ];
-
-    return [
-      { id: 'midi', title: 'MIDI', description: midiDescription, chips: midiChips },
-      { id: 'audio', title: 'Audio', description: audioDescription, chips: audioChips },
-      { id: 'launchpad', title: 'Launchpad', description: launchpadDescription, chips: launchpadChips },
-    ];
-  }, [
-    midiActive,
-    midiDeviceName,
-    midiDevices,
-    audioDeviceName,
-    audioDevices,
-    audioGain,
-    launchpadRunning,
-    launchpadOutput,
-    launchpadPreset,
-  ]);
-
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isResourcesOpen, setResourcesOpen] = useState(false);
   const [isTaskPanelCollapsed, setTaskPanelCollapsed] = useState(false);
