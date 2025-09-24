@@ -83,52 +83,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 };
 
-interface MainChatHeaderProps {
-  title?: string;
-  subtitle?: string;
-  status?: React.ReactNode;
-  actions?: React.ReactNode;
-  toolbar?: React.ReactNode;
-  breadcrumbs?: React.ReactNode;
-  className?: string;
-}
-
-export const MainChatHeader: React.FC<MainChatHeaderProps> = ({
-  title,
-  subtitle,
-  status,
-  actions,
-  toolbar,
-  breadcrumbs,
-  className,
-}) => {
-  if (!title && !subtitle && !status && !toolbar && !actions && !breadcrumbs) {
-    return null;
-  }
-
-  const classes = ['mainchat-header__inner'];
-  if (className) {
-    classes.push(className);
-  }
-
-  return (
-    <div className={classes.join(' ')}>
-      <div className="mainchat-header__headline">
-        <div className="mainchat-header__titles">
-          {breadcrumbs && <div className="mainchat-header__breadcrumbs">{breadcrumbs}</div>}
-          {title && <h1 className="mainchat-header__title">{title}</h1>}
-          {subtitle && <p className="mainchat-header__subtitle">{subtitle}</p>}
-        </div>
-        <div className="mainchat-header__side">
-          {status && <div className="mainchat-header__status">{status}</div>}
-          {actions && <div className="mainchat-header__actions">{actions}</div>}
-        </div>
-      </div>
-      {toolbar && <div className="mainchat-header__toolbar">{toolbar}</div>}
-    </div>
-  );
-};
-
 interface MainChatProps {
   header?: React.ReactNode;
   title?: string;
@@ -175,6 +129,52 @@ export const MainChat: React.FC<MainChatProps> = ({
         {footer && <div className="mainchat-footer">{footer}</div>}
       </div>
     </section>
+  );
+};
+
+interface MainChatHeaderProps {
+  title?: string;
+  subtitle?: string;
+  status?: React.ReactNode;
+  actions?: React.ReactNode;
+  toolbar?: React.ReactNode;
+  breadcrumbs?: React.ReactNode;
+  className?: string;
+}
+
+export const MainChatHeader: React.FC<MainChatHeaderProps> = ({
+  title,
+  subtitle,
+  status,
+  actions,
+  toolbar,
+  breadcrumbs,
+  className,
+}) => {
+  if (!title && !subtitle && !status && !toolbar && !actions && !breadcrumbs) {
+    return null;
+  }
+
+  const classes = ['mainchat-header__inner'];
+  if (className) {
+    classes.push(className);
+  }
+
+  return (
+    <div className={classes.join(' ')}>
+      <div className="mainchat-header__headline">
+        <div className="mainchat-header__titles">
+          {breadcrumbs && <div className="mainchat-header__breadcrumbs">{breadcrumbs}</div>}
+          {title && <h1 className="mainchat-header__title">{title}</h1>}
+          {subtitle && <p className="mainchat-header__subtitle">{subtitle}</p>}
+        </div>
+        <div className="mainchat-header__side">
+          {status && <div className="mainchat-header__status">{status}</div>}
+          {actions && <div className="mainchat-header__actions">{actions}</div>}
+        </div>
+      </div>
+      {toolbar && <div className="mainchat-header__toolbar">{toolbar}</div>}
+    </div>
   );
 };
 
