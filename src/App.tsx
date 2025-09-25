@@ -23,6 +23,7 @@ import { gridIndexToNote, LAUNCHPAD_PRESETS } from './utils/launchpad';
 import { useAudio } from './hooks/useAudio';
 import { useMidi } from './hooks/useMidi';
 import { useLaunchpad } from './hooks/useLaunchpad';
+import { useCronEngine } from './hooks/useCronEngine';
 import './App.css';
 import './AppLayout.css';
 import VideoControls from './components/VideoControls';
@@ -39,6 +40,10 @@ import {
   VideoProviderId,
 } from './utils/videoProviders';
 import { clearVideoCache } from './utils/videoCache';
+import { CronJob, CronJobRunResult } from './types/automation';
+import { ProjectConfig, ProjectValidationResult } from './types/projects';
+import { runCommand, CommandRunResult } from './utils/commandRunner';
+import { validateCronExpression } from './utils/cron';
 
 interface MonitorInfo {
   id: string;
@@ -50,6 +55,11 @@ interface MonitorInfo {
 }
 
 const RESOURCE_EXPLORER_WIDTH = 320;
+
+const createId = (prefix: string) =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 
 const App: React.FC = () => {
   const playgroundRef = useRef<HTMLDivElement>(null);
@@ -205,6 +215,65 @@ const App: React.FC = () => {
     () => new URLSearchParams(window.location.search).get('fullscreen') === 'true'
   );
 
+  const [cronJobs, setCronJobs] = useState<CronJob[]>(() => {
+    try {
+      const stored = localStorage.getItem('cronJobs');
+      if (!stored) {
+        return [];
+      }
+      const parsed = JSON.parse(stored);
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+      return parsed.map((job: any): CronJob => ({
+        id: job?.id || createId('cron'),
+        name: job?.name || 'Cron job',
+        cronExpression: job?.cronExpression || '* * * * *',
+        command: job?.command || '',
+        workingDirectory: job?.workingDirectory || undefined,
+        enabled: job?.enabled !== false,
+        lastRunAt: job?.lastRunAt,
+        lastStatus: job?.lastStatus,
+        lastOutput: job?.lastOutput,
+        lastError: job?.lastError,
+        source: job?.source === 'project' ? 'project' : 'user',
+        projectId: job?.projectId,
+      }));
+    } catch (error) {
+      console.warn('Unable to restore cron jobs', error);
+      return [];
+    }
+  });
+
+  const [projects, setProjects] = useState<ProjectConfig[]>(() => {
+    try {
+      const stored = localStorage.getItem('projects');
+      if (!stored) {
+        return [];
+      }
+      const parsed = JSON.parse(stored);
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+      return parsed.map((project: any): ProjectConfig => ({
+        id: project?.id || createId('project'),
+        name: project?.name || 'Untitled project',
+        localPath: project?.localPath || '',
+        repoUrl: project?.repoUrl || '',
+        defaultBranch: project?.defaultBranch || 'main',
+        personalAccessToken: project?.personalAccessToken || undefined,
+        autoSyncCron: project?.autoSyncCron || undefined,
+        description: project?.description || undefined,
+        lastSyncAt: project?.lastSyncAt,
+        lastSyncStatus: project?.lastSyncStatus || 'idle',
+        lastSyncMessage: project?.lastSyncMessage,
+      }));
+    } catch (error) {
+      console.warn('Unable to restore projects', error);
+      return [];
+    }
+  });
+
   useEffect(() => {
     layerVideoSettingsRef.current = layerVideoSettings;
   }, [layerVideoSettings]);
@@ -212,6 +281,69 @@ const App: React.FC = () => {
   useEffect(() => {
     videoGalleryRef.current = videoGallery;
   }, [videoGallery]);
+
+  useEffect(() => {
+    localStorage.setItem('cronJobs', JSON.stringify(cronJobs));
+  }, [cronJobs]);
+
+  useEffect(() => {
+    localStorage.setItem('projects', JSON.stringify(projects));
+  }, [projects]);
+
+  useEffect(() => {
+    setCronJobs(prevJobs => {
+      const userJobs = prevJobs.filter(job => job.source !== 'project');
+      const existingProjectJobs = prevJobs.filter(job => job.source === 'project');
+
+      const nextProjectJobs: CronJob[] = [];
+
+      projects.forEach(project => {
+        if (!project.autoSyncCron || !project.localPath) {
+          return;
+        }
+        if (validateCronExpression(project.autoSyncCron)) {
+          return;
+        }
+        const existing = existingProjectJobs.find(job => job.projectId === project.id);
+        const jobId = existing?.id || createId('cron');
+        nextProjectJobs.push({
+          id: jobId,
+          name: `Sync ${project.name || project.repoUrl}`,
+          cronExpression: project.autoSyncCron!,
+          command: `git pull origin ${project.defaultBranch || 'main'}`,
+          workingDirectory: project.localPath,
+          enabled: existing?.enabled ?? true,
+          source: 'project',
+          projectId: project.id,
+          lastRunAt: existing?.lastRunAt,
+          lastStatus: existing?.lastStatus,
+          lastOutput: existing?.lastOutput,
+          lastError: existing?.lastError,
+        });
+      });
+
+      const sameLength = existingProjectJobs.length === nextProjectJobs.length;
+      const sameJobs =
+        sameLength &&
+        nextProjectJobs.every(job => {
+          const prev = existingProjectJobs.find(item => item.projectId === job.projectId);
+          return (
+            prev &&
+            prev.cronExpression === job.cronExpression &&
+            prev.command === job.command &&
+            prev.workingDirectory === job.workingDirectory &&
+            prev.enabled === job.enabled
+          );
+        });
+
+      if (sameJobs) {
+        const merged = [...userJobs, ...existingProjectJobs];
+        return merged.length === prevJobs.length ? prevJobs : merged;
+      }
+
+      return [...userJobs, ...nextProjectJobs];
+    });
+  }, [projects]);
 
   const {
     audioData,
@@ -1009,6 +1141,233 @@ const App: React.FC = () => {
     setEffectMidiNotes(prev => ({ ...prev, [effect]: note }));
   };
 
+  const handleCronJobSave = useCallback((job: CronJob) => {
+    setCronJobs(prev => {
+      const sanitized: CronJob = { ...job, source: job.source || 'user' };
+      const index = prev.findIndex(item => item.id === sanitized.id);
+      if (index >= 0) {
+        if (prev[index].source === 'project') {
+          return prev;
+        }
+        const updated = [...prev];
+        updated[index] = { ...updated[index], ...sanitized };
+        return updated;
+      }
+      return [...prev, sanitized];
+    });
+  }, []);
+
+  const handleCronJobDelete = useCallback((jobId: string) => {
+    setCronJobs(prev => prev.filter(job => job.id !== jobId || job.source === 'project'));
+  }, []);
+
+  const handleCronJobToggle = useCallback((jobId: string, enabled: boolean) => {
+    setCronJobs(prev =>
+      prev.map(job =>
+        job.id === jobId && job.source !== 'project' ? { ...job, enabled } : job
+      )
+    );
+  }, []);
+
+  const handleCronJobResult = useCallback(
+    (jobId: string, result: CronJobRunResult) => {
+      setCronJobs(prev =>
+        prev.map(job =>
+          job.id === jobId
+            ? {
+                ...job,
+                lastRunAt: result.ranAt,
+                lastStatus: result.success ? 'success' : 'error',
+                lastOutput: result.stdout || result.stderr,
+                lastError: result.success ? undefined : result.errorMessage || result.stderr,
+              }
+            : job
+        )
+      );
+    },
+    []
+  );
+
+  const { runJobNow } = useCronEngine(cronJobs, { onJobRun: handleCronJobResult });
+
+  const handleCronJobRun = useCallback(
+    (jobId: string) => {
+      runJobNow(jobId);
+    },
+    [runJobNow]
+  );
+
+  const handleProjectSave = useCallback((project: ProjectConfig) => {
+    const id = project.id || createId('project');
+    const payload: ProjectConfig = {
+      ...project,
+      id,
+      lastSyncStatus: project.lastSyncStatus || 'idle',
+    };
+
+    setProjects(prev => {
+      const index = prev.findIndex(item => item.id === id);
+      if (index >= 0) {
+        const current = prev[index];
+        const updated = [...prev];
+        updated[index] = {
+          ...current,
+          ...payload,
+          lastSyncAt: payload.lastSyncAt ?? current.lastSyncAt,
+          lastSyncStatus: payload.lastSyncStatus || current.lastSyncStatus || 'idle',
+          lastSyncMessage: payload.lastSyncMessage ?? current.lastSyncMessage,
+        };
+        return updated;
+      }
+      return [...prev, payload];
+    });
+  }, []);
+
+  const handleProjectDelete = useCallback((projectId: string) => {
+    setProjects(prev => prev.filter(project => project.id !== projectId));
+    setCronJobs(prev => prev.filter(job => job.projectId !== projectId));
+  }, []);
+
+  const handleProjectSync = useCallback(
+    async (projectId: string): Promise<CommandRunResult> => {
+      const project = projects.find(item => item.id === projectId);
+      if (!project) {
+        return {
+          success: false,
+          stdout: '',
+          stderr: 'Project not found',
+          code: -1,
+          executedCommand: '',
+          simulated: true,
+          errorMessage: 'Project not found',
+        };
+      }
+
+      if (!project.localPath) {
+        return {
+          success: false,
+          stdout: '',
+          stderr: 'Project path is required',
+          code: -1,
+          executedCommand: '',
+          simulated: true,
+          errorMessage: 'Project path is required',
+        };
+      }
+
+      const command = `git pull origin ${project.defaultBranch || 'main'}`;
+      const result = await runCommand(command, { cwd: project.localPath });
+      const timestamp = new Date().toISOString();
+
+      setProjects(prev =>
+        prev.map(item =>
+          item.id === projectId
+            ? {
+                ...item,
+                lastSyncAt: timestamp,
+                lastSyncStatus: result.success ? 'success' : 'error',
+                lastSyncMessage:
+                  result.success
+                    ? result.stdout || 'Sync completed'
+                    : result.errorMessage || result.stderr || 'Sync failed',
+              }
+            : item
+        )
+      );
+
+      return result;
+    },
+    [projects]
+  );
+
+  const handleProjectClone = useCallback(
+    async (project: ProjectConfig): Promise<CommandRunResult> => {
+      const targetId = project.id || createId('project');
+      if (!project.repoUrl || !project.localPath) {
+        return {
+          success: false,
+          stdout: '',
+          stderr: 'Repository URL and local path are required',
+          code: -1,
+          executedCommand: '',
+          simulated: true,
+          errorMessage: 'Repository URL and local path are required',
+        };
+      }
+      const command = `git clone ${project.repoUrl} "${project.localPath}"`;
+      const result = await runCommand(command);
+      const timestamp = new Date().toISOString();
+
+      handleProjectSave({
+        ...project,
+        id: targetId,
+        lastSyncAt: timestamp,
+        lastSyncStatus: result.success ? 'success' : 'error',
+        lastSyncMessage:
+          result.success
+            ? result.stdout || 'Clone completed'
+            : result.errorMessage || result.stderr || 'Clone failed',
+      });
+
+      return result;
+    },
+    [handleProjectSave]
+  );
+
+  const handleProjectValidate = useCallback(
+    async (project: ProjectConfig): Promise<ProjectValidationResult> => {
+      const url = project.repoUrl?.trim();
+      if (!url) {
+        return { success: false, message: 'Repository URL is required' };
+      }
+
+      const match = url.match(/github\.com[:/]+([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)(?:\.git)?$/i);
+      if (!match) {
+        return { success: false, message: 'Provide a valid GitHub repository URL' };
+      }
+
+      const [, owner, repo] = match;
+      const headers: Record<string, string> = {
+        Accept: 'application/vnd.github+json',
+      };
+
+      if (project.personalAccessToken) {
+        headers.Authorization = `Bearer ${project.personalAccessToken}`;
+      }
+
+      try {
+        const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+          headers,
+        });
+
+        if (!response.ok) {
+          return {
+            success: false,
+            message: `GitHub responded with status ${response.status}`,
+            repoExists: response.status === 200,
+          };
+        }
+
+        const data = await response.json();
+
+        return {
+          success: true,
+          message: `Repository available. Stars: ${data.stargazers_count ?? 0}`,
+          defaultBranch: data.default_branch,
+          stars: data.stargazers_count,
+          repoExists: true,
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          success: false,
+          message: `Validation failed: ${message}`,
+        };
+      }
+    },
+    []
+  );
+
   const applyPresetConfig = (
     engine: AudioVisualizerEngine,
     layerId: string,
@@ -1611,6 +1970,17 @@ const App: React.FC = () => {
         onVideoQueryChange={(value) => updateVideoProviderSettings({ query: value })}
         onVideoRefreshMinutesChange={(value) => updateVideoProviderSettings({ refreshMinutes: value })}
         onVideoCacheClear={handleClearVideoCache}
+        cronJobs={cronJobs}
+        onCronJobSave={handleCronJobSave}
+        onCronJobDelete={handleCronJobDelete}
+        onCronJobToggle={handleCronJobToggle}
+        onCronJobRun={handleCronJobRun}
+        projects={projects}
+        onProjectSave={handleProjectSave}
+        onProjectDelete={handleProjectDelete}
+        onProjectSync={handleProjectSync}
+        onProjectClone={handleProjectClone}
+        onProjectValidate={handleProjectValidate}
         />
       </Suspense>
 

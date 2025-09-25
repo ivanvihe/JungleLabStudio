@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import './GlobalSettingsModal.css';
 
 import { AudioSettings } from './settings/AudioSettings';
@@ -8,8 +8,13 @@ import { VideoSettings } from './settings/VideoSettings';
 import { FullscreenSettings } from './settings/FullscreenSettings';
 import { VisualSettings } from './settings/VisualSettings';
 import { SystemSettings } from './settings/SystemSettings';
+import { AutomationSettings } from './settings/AutomationSettings';
+import { ProjectSettings } from './settings/ProjectSettings';
 import { VideoProviderSettings as VideoProviderSettingsSection } from './settings/VideoProviderSettings';
 import { VideoProviderId } from '../utils/videoProviders';
+import { CronJob } from '../types/automation';
+import { ProjectConfig, ProjectValidationResult } from '../types/projects';
+import { CommandRunResult } from '../utils/commandRunner';
 
 interface DeviceOption {
   id: string;
@@ -99,6 +104,17 @@ interface GlobalSettingsModalProps {
   onVideoQueryChange: (value: string) => void;
   onVideoRefreshMinutesChange: (value: number) => void;
   onVideoCacheClear: () => void;
+  cronJobs: CronJob[];
+  onCronJobSave: (job: CronJob) => void;
+  onCronJobDelete: (jobId: string) => void;
+  onCronJobToggle: (jobId: string, enabled: boolean) => void;
+  onCronJobRun: (jobId: string) => void;
+  projects: ProjectConfig[];
+  onProjectSave: (project: ProjectConfig) => void;
+  onProjectDelete: (projectId: string) => void;
+  onProjectSync: (projectId: string) => Promise<CommandRunResult>;
+  onProjectClone: (project: ProjectConfig) => Promise<CommandRunResult>;
+  onProjectValidate: (project: ProjectConfig) => Promise<ProjectValidationResult>;
 }
 
 const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
@@ -166,8 +182,161 @@ const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   onVideoQueryChange,
   onVideoRefreshMinutesChange,
   onVideoCacheClear,
+  cronJobs,
+  onCronJobSave,
+  onCronJobDelete,
+  onCronJobToggle,
+  onCronJobRun,
+  projects,
+  onProjectSave,
+  onProjectDelete,
+  onProjectSync,
+  onProjectClone,
+  onProjectValidate,
 }) => {
   const [activeTab, setActiveTab] = useState('audio');
+
+  type PreferenceNode = {
+    id: string;
+    label: string;
+    icon: string;
+    children?: PreferenceNode[];
+    tabId?: string;
+  };
+
+  const preferenceTree = useMemo<PreferenceNode[]>(
+    () => [
+      {
+        id: 'audio-group',
+        label: 'Audio & MIDI',
+        icon: '🎵',
+        children: [
+          { id: 'audio', label: 'Audio engine', icon: '🔊', tabId: 'audio' },
+          {
+            id: 'hardware',
+            label: 'MIDI & Launchpad',
+            icon: '🎛️',
+            tabId: 'hardware',
+          },
+        ],
+      },
+      {
+        id: 'visual-group',
+        label: 'Visual workflow',
+        icon: '🎨',
+        children: [
+          { id: 'video', label: 'Performance', icon: '🎮', tabId: 'video' },
+          {
+            id: 'videos',
+            label: 'Video providers',
+            icon: '🎞️',
+            tabId: 'videos',
+          },
+          {
+            id: 'fullscreen',
+            label: 'Monitors',
+            icon: '🖥️',
+            tabId: 'fullscreen',
+          },
+          { id: 'visual', label: 'Visual tweaks', icon: '🌈', tabId: 'visual' },
+        ],
+      },
+      {
+        id: 'system-group',
+        label: 'System',
+        icon: '🛠️',
+        children: [
+          {
+            id: 'system',
+            label: 'System & maintenance',
+            icon: '🔧',
+            tabId: 'system',
+          },
+        ],
+      },
+      {
+        id: 'automation-group',
+        label: 'Automation',
+        icon: '⏱️',
+        children: [
+          {
+            id: 'automation',
+            label: 'Cron jobs',
+            icon: '🕒',
+            tabId: 'automation',
+          },
+        ],
+      },
+      {
+        id: 'projects-group',
+        label: 'Projects',
+        icon: '📂',
+        children: [
+          {
+            id: 'projects',
+            label: 'GitHub projects',
+            icon: '🐙',
+            tabId: 'projects',
+          },
+        ],
+      },
+    ],
+    []
+  );
+
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(
+    () => new Set(preferenceTree.map((node) => node.id))
+  );
+
+  const toggleNode = (nodeId: string) => {
+    setExpandedNodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) {
+        next.delete(nodeId);
+      } else {
+        next.add(nodeId);
+      }
+      return next;
+    });
+  };
+
+  const renderNode = (node: PreferenceNode, depth = 0): React.ReactNode => {
+    const isLeaf = !node.children || node.children.length === 0;
+    const isExpanded = expandedNodes.has(node.id);
+    const targetTab = node.tabId || node.id;
+    const isActive = isLeaf && activeTab === targetTab;
+
+    return (
+      <li
+        key={node.id}
+        className={`preferences-node ${isLeaf ? 'leaf' : 'branch'}`}
+      >
+        <button
+          type="button"
+          className={`preferences-node__label ${isLeaf && isActive ? 'active' : ''}`}
+          style={{ paddingLeft: `${12 + depth * 12}px` }}
+          onClick={() => {
+            if (isLeaf) {
+              setActiveTab(targetTab);
+            } else {
+              toggleNode(node.id);
+            }
+          }}
+        >
+          {!isLeaf && (
+            <span className="preferences-expander">{isExpanded ? '▼' : '▶'}</span>
+          )}
+          <span className="preferences-node__icon">{node.icon}</span>
+          <span>{node.label}</span>
+        </button>
+        {!isLeaf && isExpanded && node.children && (
+          <ul className="preferences-children">
+            {node.children.map((child) => renderNode(child, depth + 1))}
+          </ul>
+        )}
+      </li>
+    );
+  };
 
   if (!isOpen) return null;
 
@@ -181,24 +350,9 @@ const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
 
         <div className="settings-main">
           <div className="settings-sidebar">
-            {[
-              { id: 'audio', label: 'Audio', icon: '🎵' },
-              { id: 'hardware', label: 'MIDI Hardware', icon: '🎛️' },
-              { id: 'video', label: 'Performance', icon: '🎮' },
-              { id: 'videos', label: 'Videos', icon: '🎞️' },
-              { id: 'fullscreen', label: 'Monitors', icon: '🖥️' },
-              { id: 'visual', label: 'Visuals', icon: '🎨' },
-              { id: 'system', label: 'System', icon: '🔧' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                <span className="tab-icon">{tab.icon}</span>
-                {tab.label}
-              </button>
-            ))}
+            <ul className="preferences-tree">
+              {preferenceTree.map((node) => renderNode(node))}
+            </ul>
           </div>
 
           <div className="settings-content">
@@ -299,6 +453,27 @@ const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                 onStartMonitorChange={onStartMonitorChange}
                 visualsPath={visualsPath}
                 onVisualsPathChange={onVisualsPathChange}
+              />
+            )}
+
+            {activeTab === 'automation' && (
+              <AutomationSettings
+                cronJobs={cronJobs}
+                onSaveJob={onCronJobSave}
+                onDeleteJob={onCronJobDelete}
+                onToggleJob={onCronJobToggle}
+                onRunJob={onCronJobRun}
+              />
+            )}
+
+            {activeTab === 'projects' && (
+              <ProjectSettings
+                projects={projects}
+                onSaveProject={onProjectSave}
+                onDeleteProject={onProjectDelete}
+                onSyncProject={onProjectSync}
+                onCloneProject={onProjectClone}
+                onValidateProject={onProjectValidate}
               />
             )}
           </div>
