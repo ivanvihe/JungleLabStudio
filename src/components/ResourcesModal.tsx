@@ -9,6 +9,13 @@ import { FractalLabPresetModal } from './FractalLabPresetModal';
 import './ResourcesModal.css';
 import VFXControls from './VFXControls';
 import { VideoResource } from '../types/video';
+import ModelGallery from './models/ModelGallery';
+import {
+  AiModelProviderId,
+  InstalledModel,
+  ModelInfo,
+  ModelProviderDefinition,
+} from '../types/models';
 
 interface ResourcesModalProps {
   isOpen: boolean;
@@ -46,6 +53,19 @@ interface ResourcesModalProps {
   onRemoveVideoFromLayer?: (videoId: string, layerId: string) => void;
   onRefreshVideos?: () => void;
   isRefreshingVideos?: boolean;
+  modelProviders?: ModelProviderDefinition[];
+  modelGalleryItems?: ModelInfo[];
+  installedModelsIndex?: Record<string, InstalledModel>;
+  modelGalleryProvider?: AiModelProviderId;
+  modelGalleryQuery?: string;
+  activeModelKey?: string | null;
+  onModelProviderChange?: (provider: AiModelProviderId) => void;
+  onModelQueryChange?: (value: string) => void;
+  onModelRefresh?: () => void;
+  onModelInstall?: (model: ModelInfo) => void;
+  onModelActivate?: (model: ModelInfo) => void;
+  isLoadingModels?: boolean;
+  modelGalleryError?: string | null;
 }
 
 type NodeKind =
@@ -60,7 +80,9 @@ type NodeKind =
   | 'fractallab-item'
   | 'launchpad'
   | 'video-folder'
-  | 'video-item';
+  | 'video-item'
+  | 'model-folder'
+  | 'model-provider';
 
 interface TreeNode {
   id: string;
@@ -72,6 +94,7 @@ interface TreeNode {
   genLabIndex?: number;
   fractalLabIndex?: number;
   video?: VideoResource;
+  providerId?: AiModelProviderId;
 }
 
 const LAYER_IDS = ['A', 'B', 'C'] as const;
@@ -108,7 +131,20 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
   onAddVideoToLayer,
   onRemoveVideoFromLayer,
   onRefreshVideos,
-  isRefreshingVideos = false
+  isRefreshingVideos = false,
+  modelProviders = [],
+  modelGalleryItems = [],
+  installedModelsIndex = {},
+  modelGalleryProvider,
+  modelGalleryQuery = '',
+  activeModelKey = null,
+  onModelProviderChange,
+  onModelQueryChange,
+  onModelRefresh,
+  onModelInstall,
+  onModelActivate,
+  isLoadingModels = false,
+  modelGalleryError = null
 }) => {
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set([
@@ -120,7 +156,8 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
     'template-fractallab',
     'launchpad',
     'vfx',
-    'video-gallery'
+    'video-gallery',
+    'model-gallery'
   ]));
   const [sidebarWidth, setSidebarWidth] = useState(220);
   const [isResizing, setIsResizing] = useState(false);
@@ -161,6 +198,23 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
       setEmptyCount(emptyTemplateCount);
     }
   }, [isOpen, emptyTemplateCount]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (selectedNode?.kind === 'model-provider' && modelGalleryProvider) {
+      if (selectedNode.providerId !== modelGalleryProvider) {
+        const providerDef = modelProviders.find(p => p.id === modelGalleryProvider);
+        if (providerDef) {
+          setSelectedNode({
+            id: `model-${providerDef.id}`,
+            label: providerDef.name,
+            kind: 'model-provider',
+            providerId: providerDef.id,
+          });
+        }
+      }
+    }
+  }, [isOpen, modelGalleryProvider, modelProviders, selectedNode]);
 
   useEffect(() => {
     if (isOpen) {
@@ -521,6 +575,17 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
         kind: 'video-item',
         video
       }))
+    },
+    {
+      id: 'model-gallery',
+      label: 'Model gallery',
+      kind: 'model-folder',
+      children: modelProviders.map(provider => ({
+        id: `model-${provider.id}`,
+        label: provider.name,
+        kind: 'model-provider',
+        providerId: provider.id
+      }))
     }
   ];
 
@@ -529,7 +594,8 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
       node.kind === 'folder' ||
       node.kind === 'genlab-folder' ||
       node.kind === 'fractallab-folder' ||
-      node.kind === 'video-folder';
+      node.kind === 'video-folder' ||
+      node.kind === 'model-folder';
     const expandedNode = expanded.has(node.id);
     return (
       <div key={node.id}>
@@ -548,6 +614,8 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
               setSelectedNode(node);
               if (node.kind === 'launchpad') {
                 onLaunchpadPresetChange?.(node.launchpadId!);
+              } else if (node.kind === 'model-provider' && node.providerId) {
+                onModelProviderChange?.(node.providerId);
               }
             }}
           >
@@ -559,6 +627,8 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
               ? getPresetThumbnail(node.preset!)
               : node.kind === 'video-item'
               ? '🎬'
+              : node.kind === 'model-provider'
+              ? '🧠'
               : '📄'}{' '}
             {node.label}
           </span>
@@ -758,6 +828,40 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
             </div>
           </div>
         );
+      case 'model-provider': {
+        const providerId =
+          modelGalleryProvider || selectedNode.providerId || modelProviders[0]?.id;
+        if (!providerId) {
+          return (
+            <div className="preset-gallery-placeholder">
+              <div className="placeholder-content">
+                <div className="placeholder-icon">🧠</div>
+                <h3>No hay proveedores configurados</h3>
+                <p>Configura al menos un proveedor de modelos para comenzar.</p>
+              </div>
+            </div>
+          );
+        }
+        return (
+          <div className="gallery-controls-panel gallery-controls-panel--wide">
+            <ModelGallery
+              providers={modelProviders}
+              provider={providerId}
+              models={modelGalleryItems}
+              installedIndex={installedModelsIndex}
+              activeModelKey={activeModelKey}
+              query={modelGalleryQuery}
+              isLoading={isLoadingModels}
+              error={modelGalleryError ?? undefined}
+              onProviderChange={onModelProviderChange || (() => {})}
+              onQueryChange={onModelQueryChange || (() => {})}
+              onRefresh={onModelRefresh || (() => {})}
+              onInstall={model => onModelInstall?.(model)}
+              onActivate={model => onModelActivate?.(model)}
+            />
+          </div>
+        );
+      }
       case 'empty-template': {
         return (
           <div className="template-controls-panel">
