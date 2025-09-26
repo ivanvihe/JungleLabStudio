@@ -12,9 +12,6 @@ import { AutomationSettings } from './settings/AutomationSettings';
 import { ProjectSettings } from './settings/ProjectSettings';
 import { VideoProviderSettings as VideoProviderSettingsSection } from './settings/VideoProviderSettings';
 import { VideoProviderId } from '../utils/videoProviders';
-import ModelProviderSettings from './settings/ModelProviderSettings';
-import { MODEL_PROVIDER_DEFINITIONS } from '../utils/aiModelProviders';
-import { AiModelProviderId, ModelProviderConfig } from '../types/models';
 import { CronJob } from '../types/automation';
 import { ProjectConfig, ProjectValidationResult } from '../types/projects';
 import { CommandRunResult } from '../utils/commandRunner';
@@ -118,11 +115,6 @@ interface GlobalSettingsModalProps {
   onProjectSync: (projectId: string) => Promise<CommandRunResult>;
   onProjectClone: (project: ProjectConfig) => Promise<CommandRunResult>;
   onProjectValidate: (project: ProjectConfig) => Promise<ProjectValidationResult>;
-  modelProviderConfigs: Record<AiModelProviderId, ModelProviderConfig>;
-  activeModelKey: string | null;
-  onModelInstallPathChange: (provider: AiModelProviderId, path: string) => void;
-  onModelActivate: (provider: AiModelProviderId, modelId: string) => void;
-  onModelRemove: (provider: AiModelProviderId, modelId: string) => void;
 }
 
 const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
@@ -201,11 +193,6 @@ const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   onProjectSync,
   onProjectClone,
   onProjectValidate,
-  modelProviderConfigs,
-  activeModelKey,
-  onModelInstallPathChange,
-  onModelActivate,
-  onModelRemove,
 }) => {
   const [activeTab, setActiveTab] = useState('audio');
 
@@ -252,19 +239,6 @@ const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
             tabId: 'fullscreen',
           },
           { id: 'visual', label: 'Visual tweaks', icon: '🌈', tabId: 'visual' },
-        ],
-      },
-      {
-        id: 'ai-group',
-        label: 'AI & Models',
-        icon: '🧠',
-        children: [
-          {
-            id: 'models',
-            label: 'Model providers',
-            icon: '🤖',
-            tabId: 'models',
-          },
         ],
       },
       {
@@ -437,17 +411,6 @@ const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                 onRefreshMinutesChange={onVideoRefreshMinutesChange}
                 onQueryChange={onVideoQueryChange}
                 onClearCache={onVideoCacheClear}
-              />
-            )}
-
-            {activeTab === 'models' && (
-              <ModelProviderSettings
-                providers={MODEL_PROVIDER_DEFINITIONS}
-                configs={modelProviderConfigs}
-                activeModelKey={activeModelKey}
-                onInstallPathChange={onModelInstallPathChange}
-                onActivateModel={onModelActivate}
-                onRemoveModel={onModelRemove}
               />
             )}
 

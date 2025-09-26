@@ -5,7 +5,6 @@ import React, {
   useRef,
   useState,
   useCallback,
-  useMemo,
   Suspense,
   lazy,
 } from 'react';
@@ -41,18 +40,6 @@ import {
   VideoProviderId,
 } from './utils/videoProviders';
 import { clearVideoCache } from './utils/videoCache';
-import {
-  MODEL_PROVIDER_DEFINITIONS,
-  loadStoredModelProviderConfigs,
-  fetchModelGallery as fetchModelProviderGallery,
-  addInstalledModel,
-  removeInstalledModel,
-  setActiveModel,
-  setProviderInstallPath,
-  getInstalledModelsIndex,
-  persistModelProviderConfigs,
-} from './utils/aiModelProviders';
-import { AiModelProviderId, ModelInfo, ModelProviderConfig } from './types/models';
 import { CronJob, CronJobRunResult } from './types/automation';
 import { ProjectConfig, ProjectValidationResult } from './types/projects';
 import { runCommand, CommandRunResult } from './utils/commandRunner';
@@ -79,7 +66,6 @@ const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<AudioVisualizerEngine | null>(null);
   const broadcastRef = useRef<BroadcastChannel | null>(null);
-  const initialModelGalleryLoad = useRef(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [availablePresets, setAvailablePresets] = useState<LoadedPreset[]>([]);
   const [fps, setFps] = useState(60);
@@ -137,30 +123,6 @@ const App: React.FC = () => {
     }
     return defaultVideoProviderSettings;
   });
-
-  const [modelProviderConfigs, setModelProviderConfigs] = useState<Record<AiModelProviderId, ModelProviderConfig>>(() => {
-    return loadStoredModelProviderConfigs();
-  });
-  const [modelGalleryProvider, setModelGalleryProvider] = useState<AiModelProviderId>(() => {
-    const first = MODEL_PROVIDER_DEFINITIONS.find((provider) => provider.supportsGallery);
-    return (first ? first.id : 'huggingface') as AiModelProviderId;
-  });
-  const [modelGalleryQuery, setModelGalleryQuery] = useState('jarvis');
-  const [modelGalleryItems, setModelGalleryItems] = useState<ModelInfo[]>([]);
-  const [isLoadingModels, setIsLoadingModels] = useState(false);
-  const [modelGalleryError, setModelGalleryError] = useState<string | null>(null);
-  const [activeModelKey, setActiveModelKey] = useState<string | null>(() => {
-    try {
-      return localStorage.getItem('activeJarvisModelKey');
-    } catch {
-      return null;
-    }
-  });
-
-  const installedModelsIndex = useMemo(
-    () => getInstalledModelsIndex(modelProviderConfigs),
-    [modelProviderConfigs]
-  );
 
   const [videoGallery, setVideoGallery] = useState<VideoResource[]>(() => {
     try {
@@ -449,105 +411,6 @@ const App: React.FC = () => {
     }
   }, [refreshVideoGallery]);
 
-  const refreshModelGallery = useCallback(
-    async (provider: AiModelProviderId, search: string) => {
-      setIsLoadingModels(true);
-      setModelGalleryError(null);
-      try {
-        const items = await fetchModelProviderGallery({
-          provider,
-          query: search.trim() ? search.trim() : undefined,
-          limit: 24,
-        });
-        setModelGalleryItems(items);
-      } catch (error) {
-        console.error('Model gallery request failed', error);
-        setModelGalleryError(
-          error instanceof Error
-            ? error.message
-            : 'No se pudo cargar la galería de modelos'
-        );
-      } finally {
-        setIsLoadingModels(false);
-      }
-    },
-    []
-  );
-
-  const handleModelProviderChange = useCallback(
-    (provider: AiModelProviderId) => {
-      setModelGalleryProvider(provider);
-      refreshModelGallery(provider, modelGalleryQuery);
-    },
-    [modelGalleryQuery, refreshModelGallery]
-  );
-
-  const handleModelQueryChange = useCallback((value: string) => {
-    setModelGalleryQuery(value);
-  }, []);
-
-  const handleModelRefresh = useCallback(() => {
-    refreshModelGallery(modelGalleryProvider, modelGalleryQuery);
-  }, [modelGalleryProvider, modelGalleryQuery, refreshModelGallery]);
-
-  const handleModelInstall = useCallback(
-    (model: ModelInfo) => {
-      setModelProviderConfigs(prev => addInstalledModel(prev, model));
-      setStatus(`${model.name} instalado desde ${model.provider}`);
-    },
-    []
-  );
-
-  const handleModelActivate = useCallback(
-    (provider: AiModelProviderId, modelId: string) => {
-      setModelProviderConfigs(prev => setActiveModel(prev, provider, modelId));
-      const key = `${provider}:${modelId}`;
-      setActiveModelKey(key);
-      try {
-        localStorage.setItem('activeJarvisModelKey', key);
-      } catch (error) {
-        console.warn('Unable to persist active model key', error);
-      }
-      setStatus(`Modelo ${modelId} activo en Jarvis`);
-    },
-    []
-  );
-
-  const handleModelActivateRequest = useCallback(
-    (model: ModelInfo) => {
-      handleModelActivate(model.provider, model.id);
-    },
-    [handleModelActivate]
-  );
-
-  const handleModelRemove = useCallback(
-    (provider: AiModelProviderId, modelId: string) => {
-      setModelProviderConfigs(prev => removeInstalledModel(prev, provider, modelId));
-      const key = `${provider}:${modelId}`;
-      if (activeModelKey === key) {
-        setActiveModelKey(null);
-        try {
-          localStorage.removeItem('activeJarvisModelKey');
-        } catch (error) {
-          console.warn('Unable to clear active model key', error);
-        }
-      }
-      setStatus(`Modelo ${modelId} eliminado`);
-    },
-    [activeModelKey]
-  );
-
-  const handleModelInstallPathChange = useCallback(
-    (provider: AiModelProviderId, path: string) => {
-      setModelProviderConfigs(prev => {
-        const next = setProviderInstallPath(prev, provider, path);
-        persistModelProviderConfigs(next);
-        return next;
-      });
-    },
-    []
-  );
-
   const handleVideoSettingsChange = useCallback(
     (updates: Partial<VideoPlaybackSettings>) => {
       if (!selectedVideoLayer) return;
@@ -768,35 +631,6 @@ const App: React.FC = () => {
   useEffect(() => {
     refreshVideoGallery();
   }, [refreshVideoGallery]);
-
-  useEffect(() => {
-    if (initialModelGalleryLoad.current) {
-      return;
-    }
-    initialModelGalleryLoad.current = true;
-    refreshModelGallery(modelGalleryProvider, modelGalleryQuery);
-  }, [modelGalleryProvider, modelGalleryQuery, refreshModelGallery]);
-
-  useEffect(() => {
-    const activeFromConfig =
-      (Object.entries(modelProviderConfigs) as [AiModelProviderId, ModelProviderConfig][])
-        .map(([provider, config]) =>
-          config.activeModelId ? `${provider}:${config.activeModelId}` : null
-        )
-        .find((key): key is string => Boolean(key)) || null;
-    if (activeFromConfig !== activeModelKey) {
-      setActiveModelKey(activeFromConfig);
-      try {
-        if (activeFromConfig) {
-          localStorage.setItem('activeJarvisModelKey', activeFromConfig);
-        } else {
-          localStorage.removeItem('activeJarvisModelKey');
-        }
-      } catch (error) {
-        console.warn('Unable to sync active model key', error);
-      }
-    }
-  }, [modelProviderConfigs, activeModelKey]);
 
   useEffect(() => {
     if (!videoProviderSettings.refreshMinutes) return;
@@ -2147,15 +1981,10 @@ const App: React.FC = () => {
         onProjectSync={handleProjectSync}
         onProjectClone={handleProjectClone}
         onProjectValidate={handleProjectValidate}
-        modelProviderConfigs={modelProviderConfigs}
-        activeModelKey={activeModelKey}
-        onModelInstallPathChange={handleModelInstallPathChange}
-        onModelActivate={handleModelActivate}
-        onModelRemove={handleModelRemove}
-      />
-    </Suspense>
+        />
+      </Suspense>
 
-    {/* Modal de galeria de presets */}
+      {/* Modal de galeria de presets */}
       <Suspense fallback={null}>
         <ResourcesModal
           isOpen={isResourcesOpen}
@@ -2188,19 +2017,6 @@ const App: React.FC = () => {
           onRemoveVideoFromLayer={handleRemoveVideoFromLayer}
           onRefreshVideos={() => refreshVideoGallery(true)}
           isRefreshingVideos={isRefreshingVideos}
-          modelProviders={MODEL_PROVIDER_DEFINITIONS}
-          modelGalleryItems={modelGalleryItems}
-          installedModelsIndex={installedModelsIndex}
-          modelGalleryProvider={modelGalleryProvider}
-          modelGalleryQuery={modelGalleryQuery}
-          activeModelKey={activeModelKey}
-          onModelProviderChange={handleModelProviderChange}
-          onModelQueryChange={handleModelQueryChange}
-          onModelRefresh={handleModelRefresh}
-          onModelInstall={handleModelInstall}
-          onModelActivate={handleModelActivateRequest}
-          isLoadingModels={isLoadingModels}
-          modelGalleryError={modelGalleryError}
         />
       </Suspense>
     </div>
