@@ -46,6 +46,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   onClearAll,
   onOpenSettings,
   onOpenResources,
+  outputMode = 'standard',
+  onToggleOutputMode,
   launchpadAvailable,
   launchpadOutput,
   launchpadRunning,
