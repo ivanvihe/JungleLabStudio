@@ -525,11 +525,16 @@ export class PresetLoader {
     if (!autoConfig.defaultConfig) {
       autoConfig.defaultConfig = {} as any;
     }
-    if (autoConfig.defaultConfig.width === undefined) {
-      autoConfig.defaultConfig.width = 1920;
-    }
-    if (autoConfig.defaultConfig.height === undefined) {
-      autoConfig.defaultConfig.height = 1080;
+    if (autoConfig.defaultConfig.width === undefined || autoConfig.defaultConfig.height === undefined) {
+      // Get dynamic resolution based on output mode
+      const outputMode = localStorage.getItem('outputMode') || 'standard';
+      if (outputMode === 'vertical') {
+        autoConfig.defaultConfig.width = 1080;
+        autoConfig.defaultConfig.height = 1920;
+      } else {
+        autoConfig.defaultConfig.width = 1920;
+        autoConfig.defaultConfig.height = 1080;
+      }
     }
 
     return autoConfig;

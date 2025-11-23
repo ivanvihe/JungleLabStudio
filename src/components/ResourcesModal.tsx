@@ -419,14 +419,43 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
     p =>
       !p.id.startsWith('custom-glitch-text') &&
       !p.id.startsWith('gen-lab-') &&
-      !p.id.startsWith('fractal-lab-')
+      !p.id.startsWith('fractal-lab-') &&
+      !p.id.startsWith('glitch-project-')
   );
+  const glitchProjectPresets = presets.filter(p => p.id.startsWith('glitch-project-'));
   const customPresets = presets.filter(
     p =>
       p.id.startsWith('custom-glitch-text') ||
       p.id.startsWith('gen-lab-') ||
       p.id.startsWith('fractal-lab-')
   );
+
+  // Group main presets by category
+  const categoryMap = new Map<string, LoadedPreset[]>();
+  mainPresets.forEach(preset => {
+    const category = preset.config.category || 'utility';
+    if (!categoryMap.has(category)) {
+      categoryMap.set(category, []);
+    }
+    categoryMap.get(category)!.push(preset);
+  });
+
+  // Sort categories alphabetically and create category folders
+  const categoryFolders: TreeNode[] = Array.from(categoryMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([category, presets]) => ({
+      id: `category-${category}`,
+      label: category.charAt(0).toUpperCase() + category.slice(1),
+      kind: 'folder' as const,
+      children: presets
+        .sort((a, b) => a.config.name.localeCompare(b.config.name))
+        .map(p => ({
+          id: p.id,
+          label: p.config.name,
+          kind: 'preset' as const,
+          preset: p
+        }))
+    }));
 
   const tree: TreeNode[] = [
     {
@@ -438,7 +467,13 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
           id: 'visual-main',
           label: 'Main presets',
           kind: 'folder',
-          children: mainPresets.map(p => ({
+          children: categoryFolders
+        },
+        {
+          id: 'visual-glitch-project',
+          label: 'Glitch Project',
+          kind: 'folder',
+          children: glitchProjectPresets.map(p => ({
             id: p.id,
             label: p.config.name,
             kind: 'preset',

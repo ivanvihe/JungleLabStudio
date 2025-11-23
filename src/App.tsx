@@ -205,6 +205,11 @@ const App: React.FC = () => {
     () => new URLSearchParams(window.location.search).get('fullscreen') === 'true'
   );
 
+  const [outputMode, setOutputMode] = useState<'standard' | 'vertical'>(() => {
+    const saved = localStorage.getItem('outputMode');
+    return (saved === 'vertical' ? 'vertical' : 'standard') as 'standard' | 'vertical';
+  });
+
   useEffect(() => {
     layerVideoSettingsRef.current = layerVideoSettings;
   }, [layerVideoSettings]);
@@ -846,6 +851,16 @@ const App: React.FC = () => {
   (window as any).debugLaunchpadGrid = debugLaunchpadGrid;
 
   // Handlers
+  const handleToggleOutputMode = useCallback(() => {
+    const newMode = outputMode === 'standard' ? 'vertical' : 'standard';
+    setOutputMode(newMode);
+    localStorage.setItem('outputMode', newMode);
+    if (engineRef.current) {
+      engineRef.current.setOutputMode(newMode);
+    }
+    setStatus(`Output mode: ${newMode === 'vertical' ? '9:16 (Vertical)' : '16:9 (Standard)'}`);
+  }, [outputMode]);
+
   const handleFullScreen = useCallback(async () => {
     if ((window as any).electronAPI) {
       localStorage.setItem('activeLayers', JSON.stringify(activeLayers));
@@ -1278,6 +1293,8 @@ const App: React.FC = () => {
         onClearAll={handleClearAll}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenResources={() => setResourcesOpen(true)}
+        outputMode={outputMode}
+        onToggleOutputMode={handleToggleOutputMode}
         launchpadAvailable={launchpadAvailable}
         launchpadOutput={launchpadOutput}
         launchpadRunning={launchpadRunning}

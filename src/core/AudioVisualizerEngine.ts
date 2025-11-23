@@ -41,9 +41,18 @@ export class AudioVisualizerEngine {
     window.addEventListener('resize', () => this.updateSize());
   }
 
+  private getResolutionForMode(): { width: number; height: number } {
+    const outputMode = localStorage.getItem('outputMode') || 'standard';
+    if (outputMode === 'vertical') {
+      // Instagram Reels format (9:16)
+      return { width: 1080, height: 1920 };
+    }
+    // Standard format (16:9)
+    return { width: 1920, height: 1080 };
+  }
+
   private updateSize(): void {
-    const width = 1920;
-    const height = 1080;
+    const { width, height } = this.getResolutionForMode();
     const pixelRatio = Math.min(window.devicePixelRatio, 2);
     const visualScale = parseFloat(localStorage.getItem('visualScale') || '1');
     const scaledWidth = width * visualScale;
@@ -53,6 +62,11 @@ export class AudioVisualizerEngine {
     this.camera.updateProjectionMatrix();
 
     this.layerManager.updateSize(scaledWidth, scaledHeight, pixelRatio);
+  }
+
+  public setOutputMode(mode: 'standard' | 'vertical'): void {
+    localStorage.setItem('outputMode', mode);
+    this.updateSize();
   }
 
   public async initialize(): Promise<void> {

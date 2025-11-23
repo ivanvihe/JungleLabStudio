@@ -18,6 +18,8 @@ interface TopBarProps {
   onClearAll: () => void;
   onOpenSettings: () => void;
   onOpenResources: () => void;
+  outputMode?: 'standard' | 'vertical';
+  onToggleOutputMode?: () => void;
   launchpadAvailable: boolean;
   launchpadOutput: any | null;
   launchpadRunning: boolean;
