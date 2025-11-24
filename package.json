@@ -2,14 +2,17 @@
   "name": "junglelab-visuals",
   "version": "0.1.0",
   "private": true,
+  "main": "electron/main.mjs",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
+    "dev": "concurrently -k \"npm:build:watch\" \"npm:electron\"",
+    "build": "node scripts/build.mjs",
+    "build:watch": "node scripts/build-watch.mjs",
+    "electron": "electron .",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "electron": "^30.1.1",
     "p5": "^1.9.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
@@ -18,8 +21,8 @@
     "@types/p5": "^1.7.5",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.3.2",
-    "typescript": "^5.5.3",
-    "vite": "^5.3.4"
+    "concurrently": "^8.2.2",
+    "esbuild": "^0.21.5",
+    "typescript": "^5.5.3"
   }
 }

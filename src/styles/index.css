@@ -47,6 +47,16 @@ body {
   background: linear-gradient(145deg, rgba(94, 244, 255, 0.1), rgba(255, 47, 177, 0.06));
   box-shadow: 0 20px 80px rgba(0, 0, 0, 0.45), inset 0 0 40px rgba(255, 255, 255, 0.04);
   min-height: 70vh;
+  aspect-ratio: 16 / 9;
+}
+
+.canvas-shell.portrait {
+  aspect-ratio: 9 / 16;
+}
+
+.canvas-shell canvas {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .canvas-shell .hint {

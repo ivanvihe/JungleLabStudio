@@ -11,7 +11,9 @@ export const useMidiMapping = ({ onValue }: MidiHookOptions) => {
   const [learning, setLearning] = useState<string | null>(null);
   const [enabled, setEnabled] = useState(false);
   const [status, setStatus] = useState('MIDI inactivo');
-  const midiAccessRef = useRef<WebMidi.MIDIAccess | null>(null);
+  const [inputs, setInputs] = useState<MIDIInput[]>([]);
+  const [selectedInputId, setSelectedInputId] = useState<string | null>(null);
+  const midiAccessRef = useRef<MIDIAccess | null>(null);
 
   useEffect(() => {
     return () => {
@@ -19,8 +21,25 @@ export const useMidiMapping = ({ onValue }: MidiHookOptions) => {
     };
   }, []);
 
-  const handleMessage = (parameterKey: string | null) => (event: WebMidi.MIDIMessageEvent) => {
-    const [statusByte, control, value] = event.data;
+  const applyHandlerToInputs = (handler: (event: MIDIMessageEvent) => void) => {
+    if (!midiAccessRef.current) return;
+    midiAccessRef.current.inputs.forEach((input) => {
+      input.onmidimessage = !selectedInputId || input.id === selectedInputId ? handler : null;
+    });
+  };
+
+  const refreshInputs = (access: MIDIAccess) => {
+    const availableInputs = Array.from(access.inputs.values());
+    setInputs(availableInputs);
+    if (!selectedInputId && availableInputs.length) {
+      setSelectedInputId(availableInputs[0].id);
+    }
+  };
+
+  const handleMessage = (parameterKey: string | null) => (event: MIDIMessageEvent) => {
+    const data = event.data;
+    if (!data || data.length < 3) return;
+    const [statusByte, control, value] = data;
     const command = statusByte & 0xf0;
     if (command !== 0xb0) return; // solo CC
     const channel = statusByte & 0x0f;
@@ -31,9 +50,7 @@ export const useMidiMapping = ({ onValue }: MidiHookOptions) => {
       setMappings(mappingsRef.current);
       setLearning(null);
       setStatus(`Asignado CC${control} ch${channel}`);
-      midiAccessRef.current?.inputs.forEach((input) => {
-        input.onmidimessage = handleMessage(null);
-      });
+      applyHandlerToInputs(handleMessage(null));
       return;
     }
 
@@ -45,17 +62,14 @@ export const useMidiMapping = ({ onValue }: MidiHookOptions) => {
   };
 
   const start = async () => {
-    if (enabled) return;
     try {
       const access = await navigator.requestMIDIAccess();
       midiAccessRef.current = access;
-      access.inputs.forEach((input) => {
-        input.onmidimessage = handleMessage(null);
-      });
+      refreshInputs(access);
+      applyHandlerToInputs(handleMessage(null));
       access.onstatechange = () => {
-        access.inputs.forEach((input) => {
-          input.onmidimessage = handleMessage(null);
-        });
+        refreshInputs(access);
+        applyHandlerToInputs(handleMessage(null));
       };
       setEnabled(true);
       setStatus('Escuchando MIDI');
@@ -68,18 +82,33 @@ export const useMidiMapping = ({ onValue }: MidiHookOptions) => {
   const learn = (parameterKey: string) => {
     setLearning(parameterKey);
     if (!midiAccessRef.current) return;
-    midiAccessRef.current.inputs.forEach((input) => {
-      input.onmidimessage = handleMessage(parameterKey);
-    });
+    applyHandlerToInputs(handleMessage(parameterKey));
   };
 
   const stopLearning = () => {
     setLearning(null);
     if (!midiAccessRef.current) return;
-    midiAccessRef.current.inputs.forEach((input) => {
-      input.onmidimessage = handleMessage(null);
-    });
+    applyHandlerToInputs(handleMessage(null));
   };
 
-  return { mappings, learning, enabled, status, start, learn, stopLearning } as const;
+  const selectInput = (id: string) => {
+    setSelectedInputId(id);
+    if (!midiAccessRef.current) return;
+    applyHandlerToInputs(handleMessage(learning));
+    const name = midiAccessRef.current.inputs.get(id)?.name ?? 'MIDI';
+    setStatus(`Escuchando ${name}`);
+  };
+
+  return {
+    mappings,
+    learning,
+    enabled,
+    status,
+    inputs,
+    selectedInputId,
+    start,
+    learn,
+    stopLearning,
+    selectInput,
+  } as const;
 };

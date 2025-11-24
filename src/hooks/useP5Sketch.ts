@@ -21,9 +21,36 @@ export const useP5Sketch = (
       audioLevel: audioRef.current,
     });
 
-    const instance = new p5((p) => preset.init(p, getState), containerRef.current);
+    const container = containerRef.current;
+    const instance = new p5((p) => preset.init(p, getState), container);
+
+    const getSize = () => {
+      const bounds = container.getBoundingClientRect();
+      const width = bounds.width || window.innerWidth;
+      const height = bounds.height || window.innerHeight;
+      return { width, height };
+    };
+
+    const resizeToContainer = () => {
+      const { width, height } = getSize();
+      if (width > 0 && height > 0) {
+        instance.resizeCanvas(width, height, true);
+      }
+    };
+
+    const originalWindowResized = instance.windowResized?.bind(instance);
+    instance.windowResized = () => {
+      resizeToContainer();
+      originalWindowResized?.();
+    };
+
+    resizeToContainer();
+
+    const resizeObserver = new ResizeObserver(() => resizeToContainer());
+    resizeObserver.observe(container);
 
     return () => {
+      resizeObserver.disconnect();
       instance.remove();
     };
   }, [preset, containerRef]);

@@ -4,24 +4,52 @@ export const useAudioLevel = () => {
   const [enabled, setEnabled] = useState(false);
   const [level, setLevel] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const rafRef = useRef<number>();
   const streamRef = useRef<MediaStream | null>(null);
+
+  const refreshDevices = async () => {
+    try {
+      const mediaDevices = await navigator.mediaDevices.enumerateDevices();
+      const audioInputs = mediaDevices.filter((device) => device.kind === 'audioinput');
+      setDevices(audioInputs);
+      if (!selectedDeviceId && audioInputs.length) {
+        setSelectedDeviceId(audioInputs[0].deviceId);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const stop = () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     analyserRef.current?.disconnect();
+    audioContextRef.current?.close();
+    audioContextRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop());
     setEnabled(false);
   };
 
-  useEffect(() => () => stop(), []);
+  useEffect(() => {
+    refreshDevices();
+    return () => stop();
+  }, []);
 
-  const start = async () => {
+  const start = async (deviceId?: string) => {
     try {
-      if (enabled) return;
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      stop();
+      const targetDeviceId = deviceId ?? selectedDeviceId ?? undefined;
+      const constraints =
+        targetDeviceId && targetDeviceId !== 'default'
+          ? { deviceId: { exact: targetDeviceId } }
+          : undefined;
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: constraints ?? true, video: false });
       const audioContext = new AudioContext();
+      audioContextRef.current = audioContext;
       const source = audioContext.createMediaStreamSource(stream);
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 512;
@@ -29,6 +57,10 @@ export const useAudioLevel = () => {
       source.connect(analyser);
       analyserRef.current = analyser;
       streamRef.current = stream;
+      await refreshDevices();
+      const resolvedId =
+        targetDeviceId ?? stream.getAudioTracks()[0]?.getSettings().deviceId ?? selectedDeviceId ?? null;
+      setSelectedDeviceId(resolvedId);
 
       const buffer = new Uint8Array(analyser.frequencyBinCount);
       const tick = () => {
@@ -52,5 +84,22 @@ export const useAudioLevel = () => {
     }
   };
 
-  return { level, enabled, error, start, stop } as const;
+  const selectDevice = (deviceId: string) => {
+    setSelectedDeviceId(deviceId);
+    if (enabled) {
+      start(deviceId);
+    }
+  };
+
+  return {
+    level,
+    enabled,
+    error,
+    devices,
+    selectedDeviceId,
+    start,
+    stop,
+    refreshDevices,
+    selectDevice,
+  } as const;
 };

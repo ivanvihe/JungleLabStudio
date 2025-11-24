@@ -14,6 +14,7 @@ const buildInitialValues = (preset: VisualPreset) =>
 
 export default function App() {
   const [presetId, setPresetId] = useState(presets[0].id);
+  const [orientation, setOrientation] = useState<'landscape' | 'portrait'>('landscape');
   const currentPreset = useMemo(() => presets.find((p) => p.id === presetId) ?? presets[0], [presetId]);
   const [values, setValues] = useState<Record<string, number>>(buildInitialValues(currentPreset));
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -43,7 +44,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <div className="canvas-shell" ref={canvasRef}>
+      <div className={`canvas-shell ${orientation}`} ref={canvasRef}>
         <div className="hint">Soft bloom · neon gradients · audio + MIDI reactive</div>
       </div>
       <ControlPanel
@@ -54,6 +55,8 @@ export default function App() {
         onChange={handleChange}
         midi={midi}
         audio={audio}
+        orientation={orientation}
+        onOrientationChange={setOrientation}
       />
     </div>
   );
