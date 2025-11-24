@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 export const useAudioLevel = () => {
   const [enabled, setEnabled] = useState(false);
   const [level, setLevel] = useState(0);
+  const [bands, setBands] = useState({ bass: 0, mid: 0, treble: 0 });
+  const [beat, setBeat] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
@@ -53,7 +55,7 @@ export const useAudioLevel = () => {
       const source = audioContext.createMediaStreamSource(stream);
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 512;
-      analyser.smoothingTimeConstant = 0.85;
+      analyser.smoothingTimeConstant = 0.8;
       source.connect(analyser);
       analyserRef.current = analyser;
       streamRef.current = stream;
@@ -63,15 +65,39 @@ export const useAudioLevel = () => {
       setSelectedDeviceId(resolvedId);
 
       const buffer = new Uint8Array(analyser.frequencyBinCount);
+      const freq = new Uint8Array(analyser.frequencyBinCount);
+      let beatEnv = 0;
+      let beatDecay = 0.93;
       const tick = () => {
         analyser.getByteTimeDomainData(buffer);
+        analyser.getByteFrequencyData(freq);
         let sum = 0;
         for (let i = 0; i < buffer.length; i += 1) {
           const centered = buffer[i] / 128 - 1;
           sum += centered * centered;
         }
         const rms = Math.sqrt(sum / buffer.length);
-        setLevel(Math.min(1, rms * 1.6));
+        const normalized = Math.min(1, rms * 1.6);
+        setLevel(normalized);
+
+        const bassCount = Math.floor(freq.length * 0.12);
+        const midCount = Math.floor(freq.length * 0.36);
+        const trebleCount = freq.length - bassCount - midCount;
+        const bass = freq.slice(0, bassCount).reduce((a, v) => a + v, 0) / (bassCount * 255);
+        const mid = freq
+          .slice(bassCount, bassCount + midCount)
+          .reduce((a, v) => a + v, 0) /
+          (midCount * 255);
+        const treble = freq.slice(-trebleCount).reduce((a, v) => a + v, 0) / (trebleCount * 255);
+        setBands({
+          bass: Math.min(1, bass * 1.4),
+          mid: Math.min(1, mid * 1.2),
+          treble: Math.min(1, treble * 1.5),
+        });
+
+        beatEnv = Math.max(normalized, beatEnv * beatDecay);
+        const beatLevel = Math.max(0, normalized - beatEnv * 0.6) * 2.4;
+        setBeat(Math.min(1, beatLevel));
         rafRef.current = requestAnimationFrame(tick);
       };
 
@@ -94,6 +120,8 @@ export const useAudioLevel = () => {
   return {
     level,
     enabled,
+    bands,
+    beat,
     error,
     devices,
     selectedDeviceId,

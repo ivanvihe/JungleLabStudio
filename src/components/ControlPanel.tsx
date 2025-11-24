@@ -21,6 +21,8 @@ interface ControlPanelProps {
   audio: {
     enabled: boolean;
     level: number;
+    bands: { bass: number; mid: number; treble: number };
+    beat: number;
     error: string | null;
     devices: MediaDeviceInfo[];
     selectedDeviceId: string | null;

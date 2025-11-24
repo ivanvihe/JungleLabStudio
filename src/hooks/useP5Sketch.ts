@@ -6,12 +6,24 @@ export const useP5Sketch = (
   preset: VisualPreset | undefined,
   params: Record<string, number>,
   audioLevel: number,
+  audioBands: { bass: number; mid: number; treble: number },
+  beat: number,
+  midiPulse: number,
+  orientation: 'landscape' | 'portrait',
   containerRef: MutableRefObject<HTMLDivElement | null>,
 ) => {
   const paramsRef = useRef(params);
   const audioRef = useRef(audioLevel);
+  const bandRef = useRef(audioBands);
+  const beatRef = useRef(beat);
+  const midiRef = useRef(midiPulse);
+  const orientationRef = useRef(orientation);
   paramsRef.current = params;
   audioRef.current = audioLevel;
+  bandRef.current = audioBands;
+  beatRef.current = beat;
+  midiRef.current = midiPulse;
+  orientationRef.current = orientation;
 
   useEffect(() => {
     if (!preset || !containerRef.current) return;
@@ -19,6 +31,10 @@ export const useP5Sketch = (
     const getState = (): SketchState => ({
       params: paramsRef.current,
       audioLevel: audioRef.current,
+      audioBands: bandRef.current,
+      beat: beatRef.current,
+      midiPulse: midiRef.current,
+      orientation: orientationRef.current,
     });
 
     const container = containerRef.current;

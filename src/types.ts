@@ -21,6 +21,10 @@ export interface VisualPreset {
 export interface SketchState {
   params: Record<string, number>;
   audioLevel: number;
+  audioBands: { bass: number; mid: number; treble: number };
+  beat: number;
+  midiPulse: number;
+  orientation: 'landscape' | 'portrait';
 }
 
 export interface MidiMapping {
