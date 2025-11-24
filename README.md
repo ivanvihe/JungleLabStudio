@@ -1,13 +1,26 @@
-# Jungle Lab Studio
+# JungleLab Visuals
 
-A comprehensive music production suite featuring the **AudioVisualizer**: real-time audio visualization engine.
+Aplicación web para crear y visualizar visuales inmersivos con p5.js, controles en tiempo real y mapeo MIDI. Incluye presets con estética de instalación audiovisual (neones, fog volumétrica, partículas, ruido procedural) y reactividad opcional al audio.
 
-## Adding new presets
+## Requisitos
+- Node.js 18+
+- Navegador con soporte WebMIDI y WebAudio (Chrome recomendado)
 
-1. Create a folder inside `src/presets/<preset-name>`.
-2. Include a `config.json` file that follows the schema defined in [`presets/schema.json`](presets/schema.json).
-3. Create a `preset.ts` file that exports `config` and `createPreset`.
-4. Optionally add `shader.wgsl` if the preset uses custom shaders.
-5. Presets can declare optional visual effects under a `vfx` section in their `config.json`.
+## Scripts
+- `npm install` – instala dependencias.
+- `npm run dev` – entorno de desarrollo Vite.
+- `npm run build` – genera la build de producción.
+- `npm run preview` – sirve la build generada.
+- `npm run typecheck` – comprueba tipos de TypeScript.
 
-The configuration is automatically validated when the application loads using [Ajv](https://ajv.js.org/). If the `config.json` file does not match the schema, the preset will be skipped and an error will be shown in the console.
+## Funciones clave
+- Render p5.js con capas de partículas, gradientes holográficos, niebla y deformaciones procedurales.
+- Parámetros visuales editables en tiempo real por preset.
+- Modo "Learn" para mapear CC de MIDI a cualquier parámetro con feedback visual.
+- Reactividad al micrófono para modular intensidad, turbulencia y glow de los shaders simulados.
+- Diseño UI oscuro con panel de control y canvas a pantalla completa.
+
+## Desarrollo
+1. `npm install`
+2. `npm run dev`
+3. Abre `http://localhost:5173` y habilita micrófono/MIDI cuando se solicite.

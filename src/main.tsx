@@ -1,26 +1,16 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import './styles/index.css';
 
-// Ensure global placeholders exist so any late-binding scripts (e.g. from
-// Electron preload) don't hit a ReferenceError before React mounts.
-declare global {
-  interface Window {
-    cronJobs?: unknown;
-    projects?: unknown;
-  }
+const root = document.getElementById('root');
+
+if (!root) {
+  throw new Error('No se encontró el contenedor raíz');
 }
 
-if (typeof window !== 'undefined' && typeof window.cronJobs === 'undefined') {
-  window.cronJobs = [];
-}
-
-if (typeof window !== 'undefined' && typeof window.projects === 'undefined') {
-  window.projects = [];
-}
-
-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+ReactDOM.createRoot(root).render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>
+  </React.StrictMode>,
 );

@@ -1,47 +1,25 @@
 {
-  "name": "jungle-lab-studio",
+  "name": "junglelab-visuals",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "electron.cjs",
   "scripts": {
-    "dev": "tauri dev",
-    "build": "vite build && tauri build",
-    "tauri": "tauri",
-    "electron": "vite build && electron ./electron.cjs",
-    "electron:package": "vite build && electron-builder",
-    "test": "vitest"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@tauri-apps/api": "^1.5.0",
-    "@types/three": "^0.179.0",
-    "ajv": "^8.17.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "three": "^0.179.1"
+    "p5": "^1.9.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^1.5.0",
-    "@testing-library/jest-dom": "^6.1.5",
-    "@testing-library/react": "^14.2.1",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "@vitejs/plugin-react": "^4.2.0",
-    "electron": "^37.3.1",
-    "electron-builder": "^24.6.0",
-    "jsdom": "^24.0.0",
-    "typescript": "^5.2.0",
-    "vite": "^7.1.3",
-    "vitest": "^3.2.4"
-  },
-  "build": {
-    "appId": "com.junglelabstudio.app",
-    "files": [
-      "dist/**/*",
-      "electron.cjs"
-    ],
-    "extraMetadata": {
-      "main": "electron.cjs"
-    }
+    "@types/p5": "^1.7.5",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.2",
+    "typescript": "^5.5.3",
+    "vite": "^5.3.4"
   }
 }
