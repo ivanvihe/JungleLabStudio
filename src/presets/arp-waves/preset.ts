@@ -7,7 +7,7 @@ export const config: PresetConfig = {
   author: 'AudioVisualizer',
   version: '1.0.0',
   category: 'audio-reactive',
-  tags: ['arp','bars','audio'],
+  tags: ['arp', 'bars', 'audio'],
   thumbnail: 'arp_waves_thumb.png',
   note: 72,
   defaultConfig: {
@@ -27,6 +27,8 @@ export const config: PresetConfig = {
 class ArpWavesPreset extends BasePreset {
   private bars: THREE.Mesh[] = [];
   private currentConfig: any;
+  private geometry!: THREE.BoxGeometry;
+  private material!: THREE.MeshBasicMaterial;
 
   constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, cfg: PresetConfig, videoElement: HTMLVideoElement) {
     super(scene, camera, renderer, cfg, videoElement);
@@ -36,3 +38,51 @@ class ArpWavesPreset extends BasePreset {
   init(): void {
     this.createBars();
   }
+
+  private createBars(): void {
+    this.dispose();
+
+    const { barCount, color } = this.currentConfig;
+    this.geometry = new THREE.BoxGeometry(0.4, 1, 0.4);
+    this.material = new THREE.MeshBasicMaterial({ color });
+
+    const spacing = 0.6;
+    const totalWidth = (barCount - 1) * spacing;
+    this.bars = [];
+
+    for (let i = 0; i < barCount; i++) {
+      const mesh = new THREE.Mesh(this.geometry, this.material);
+      mesh.position.x = -totalWidth / 2 + i * spacing;
+      mesh.position.z = -4;
+      this.scene.add(mesh);
+      this.bars.push(mesh);
+    }
+  }
+
+  update(): void {
+    const fft = this.audioData.fft || [];
+    const count = this.bars.length;
+    for (let i = 0; i < count; i++) {
+      const energy = fft[i % fft.length] || 0;
+      const scaleY = 0.5 + energy * 5;
+      this.bars[i].scale.y = scaleY;
+    }
+  }
+
+  dispose(): void {
+    this.bars.forEach(bar => this.scene.remove(bar));
+    this.bars = [];
+    if (this.geometry) this.geometry.dispose();
+    if (this.material) this.material.dispose();
+  }
+}
+
+export function createPreset(
+  scene: THREE.Scene,
+  camera: THREE.Camera,
+  renderer: THREE.WebGLRenderer,
+  cfg: PresetConfig,
+  videoElement: HTMLVideoElement
+): BasePreset {
+  return new ArpWavesPreset(scene, camera, renderer, cfg, videoElement);
+}
