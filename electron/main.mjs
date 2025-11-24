@@ -1,4 +1,4 @@
-import { app, BrowserWindow, nativeTheme } from 'electron';
+import { app, BrowserWindow, dialog, nativeTheme } from 'electron';
 import { existsSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -15,7 +15,12 @@ const ensureDistBuilt = async () => {
 
   console.warn('No se encontró dist/index.html. Generando build del renderer...');
   const buildScript = path.join(__dirname, '..', 'scripts', 'build.mjs');
-  await import(buildScript);
+  try {
+    await import(buildScript);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`La build del renderer falló: ${message}`);
+  }
 
   if (!existsSync(indexPath)) {
     throw new Error('La build del renderer falló: dist/index.html sigue sin existir.');
@@ -43,14 +48,25 @@ const createWindow = (indexPath) => {
   }
 };
 
+const handleFatalError = (error) => {
+  console.error(error);
+  const message = error instanceof Error ? error.message : String(error);
+  dialog.showErrorBox('Error al iniciar JungleLab Visuals', message);
+  app.quit();
+};
+
 app.whenReady().then(async () => {
   nativeTheme.themeSource = 'dark';
-  const indexPath = await ensureDistBuilt();
-  createWindow(indexPath);
+  try {
+    const indexPath = await ensureDistBuilt();
+    createWindow(indexPath);
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow(indexPath);
-  });
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow(indexPath);
+    });
+  } catch (error) {
+    handleFatalError(error);
+  }
 });
 
 app.on('window-all-closed', () => {
