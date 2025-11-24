@@ -178,6 +178,7 @@ const App: React.FC = () => {
 
   const layerVideoSettingsRef = useRef(layerVideoSettings);
   const videoGalleryRef = useRef(videoGallery);
+  const [initError, setInitError] = useState<string | null>(null);
 
   const handleSaveImmersiveTemplate = useCallback((template: ImmersiveTemplate) => {
     setImmersiveTemplates(prev => {
@@ -988,6 +989,7 @@ const AppContent: React.FC<any> = (props) => {
 
   useEffect(() => {
     const initEngine = async () => {
+      setInitError(null);
       if (isControlWindow) {
         console.log('🎛️ Control window: Loading preset list without engine...');
         try {
@@ -1022,6 +1024,7 @@ const AppContent: React.FC<any> = (props) => {
         } catch (error) {
           console.error('❌ Failed to load presets:', error);
           setStatus('Error loading presets');
+          setInitError('No se pudieron cargar los presets. Revisa la ruta de visuales o vuelve a intentarlo.');
         }
         return;
       }
@@ -1070,6 +1073,7 @@ const AppContent: React.FC<any> = (props) => {
       } catch (error) {
         console.error('❌ Failed to initialize engine:', error);
         setStatus('Error during initialization');
+        setInitError('Algo salió mal al iniciar el motor de visuales. Reintenta o verifica tu configuración.');
       }
     };
 
@@ -1847,6 +1851,19 @@ const AppContent: React.FC<any> = (props) => {
             filter: `brightness(${canvasBrightness}) saturate(${canvasVibrance})`
           }}
         />
+        {(!isInitialized || initError) && (
+          <div className="visual-overlay">
+            <div className="visual-overlay-card">
+              <div className="visual-overlay-title">Inicializando...</div>
+              <div className="visual-overlay-message">{initError ?? status}</div>
+              {initError && (
+                <button className="visual-overlay-action" onClick={() => window.location.reload()}>
+                  Reintentar
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         <StatusBar
           status={status}
