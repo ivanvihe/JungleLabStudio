@@ -321,7 +321,17 @@ class AbstractLinesPreset extends BasePreset {
     videoElement: HTMLVideoElement
   ) {
     super(scene, camera, renderer, config, videoElement);
-//...
+    
+    this.currentConfig = { ...config.defaultConfig };
+    this.linePool = new LinePool();
+  public dispose(): void {
+    this.linePool.getActive().forEach(line => {
+      this.scene.remove(line.getMesh());
+    });
+    this.linePool.dispose();
+  }
+}
+
 export function createPreset(
   scene: THREE.Scene,
   camera: THREE.Camera,

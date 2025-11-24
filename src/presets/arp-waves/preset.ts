@@ -32,14 +32,7 @@ class ArpWavesPreset extends BasePreset {
     super(scene, camera, renderer, cfg, videoElement);
     this.currentConfig = { ...cfg.defaultConfig };
   }
-//...
-export function createPreset(
-  scene: THREE.Scene,
-  camera: THREE.Camera,
-  renderer: THREE.WebGLRenderer,
-  cfg: PresetConfig,
-  videoElement: HTMLVideoElement,
-  shaderCode?: string
-): BasePreset {
-  return new ArpWavesPreset(scene, camera, renderer, cfg, videoElement);
-}
+
+  init(): void {
+    this.createBars();
+  }
