@@ -54,9 +54,21 @@
     { "name": "midi.burstDuration", "type": "slider", "label": "MIDI Burst Duration (ms)", "min": 50, "max": 2000, "step": 50, "default": 500 }
   ],
   "audioMapping": {
-    "low": {"description": "Controls glitch and particle intensity", "frequency": "20-250 Hz"},
-    "mid": {"description": "Controls ASCII density and distortion", "frequency": "250-4000 Hz"},
-    "high": {"description": "Controls particle spread and RGB shift", "frequency": "4000+ Hz"}
+    "low": {
+      "description": "Controls glitch and particle intensity",
+      "frequency": "20-250 Hz",
+      "effect": "glitch/payload"
+    },
+    "mid": {
+      "description": "Controls ASCII density and distortion",
+      "frequency": "250-4000 Hz",
+      "effect": "ascii/density"
+    },
+    "high": {
+      "description": "Controls particle spread and RGB shift",
+      "frequency": "4000+ Hz",
+      "effect": "particles/spread"
+    }
   },
   "performance": {"complexity": "high", "recommendedFPS": 60, "gpuIntensive": true}
 }

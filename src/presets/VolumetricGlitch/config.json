@@ -39,9 +39,21 @@
     { "name": "midi.burstDuration", "type": "slider", "label": "MIDI Burst Duration (ms)", "min": 50, "max": 2000, "step": 50, "default": 500 }
   ],
   "audioMapping": {
-    "low": {"description": "Controls volumetric bloom and particle bursts", "frequency": "20-250 Hz"},
-    "mid": {"description": "Controls fluid morphing and distortion waves", "frequency": "250-4000 Hz"},
-    "high": {"description": "Controls color modulation and trail brightness", "frequency": "4000+ Hz"}
+    "low": {
+      "description": "Controls volumetric bloom and particle bursts",
+      "frequency": "20-250 Hz",
+      "effect": "lights/bloom"
+    },
+    "mid": {
+      "description": "Controls fluid morphing and distortion waves",
+      "frequency": "250-4000 Hz",
+      "effect": "fluid/morph"
+    },
+    "high": {
+      "description": "Controls color modulation and trail brightness",
+      "frequency": "4000+ Hz",
+      "effect": "trails/brightness"
+    }
   },
   "performance": {"complexity": "high", "recommendedFPS": 60, "gpuIntensive": true}
 }
