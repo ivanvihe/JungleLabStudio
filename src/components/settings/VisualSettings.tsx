@@ -1,4 +1,5 @@
 import React from 'react';
+import { TouchDesignerSettings } from '../../types/touchDesigner';
 
 interface VisualSettingsProps {
   hideUiHotkey: string;
@@ -17,6 +18,8 @@ interface VisualSettingsProps {
   onCanvasBackgroundChange: (value: string) => void;
   glitchTextPads: number;
   onGlitchPadChange: (value: number) => void;
+  touchDesignerSettings: TouchDesignerSettings;
+  onTouchDesignerSettingsChange: (settings: Partial<TouchDesignerSettings>) => void;
 }
 
 export const VisualSettings: React.FC<VisualSettingsProps> = ({
@@ -36,6 +39,8 @@ export const VisualSettings: React.FC<VisualSettingsProps> = ({
   onCanvasBackgroundChange,
   glitchTextPads,
   onGlitchPadChange,
+  touchDesignerSettings,
+  onTouchDesignerSettingsChange,
 }) => {
   return (
     <div className="settings-section">
@@ -146,6 +151,179 @@ export const VisualSettings: React.FC<VisualSettingsProps> = ({
         </label>
         <small className="setting-hint">Choose a canvas background color</small>
       </div>
+
+      <div className="setting-group">
+        <label className="setting-label">
+          <input
+            type="checkbox"
+            checked={touchDesignerSettings.enabled}
+            onChange={(e) => onTouchDesignerSettingsChange({ enabled: e.target.checked })}
+          />
+          <span>TouchDesigner mode (calidad cinematográfica)</span>
+        </label>
+        <small className="setting-hint">
+          Activa un pipeline de post-procesado tipo TouchDesigner con bloom, aberración y viñeteado.
+        </small>
+      </div>
+
+      {touchDesignerSettings.enabled && (
+        <div className="setting-group">
+          <h4>Profiling pro</h4>
+          <div className="quality-presets">
+            <button
+              className="quality-button"
+              onClick={() =>
+                onTouchDesignerSettingsChange({
+                  bloomStrength: 0.65,
+                  bloomRadius: 0.2,
+                  bloomThreshold: 0.22,
+                  filmGrain: 0.15,
+                  chromaticAberration: 0.0008,
+                  vignetteDarkness: 0.5,
+                  exposure: 1.05,
+                })
+              }
+            >
+              🏃 Directo
+            </button>
+            <button
+              className="quality-button"
+              onClick={() =>
+                onTouchDesignerSettingsChange({
+                  bloomStrength: 0.9,
+                  bloomRadius: 0.35,
+                  bloomThreshold: 0.18,
+                  filmGrain: 0.25,
+                  chromaticAberration: 0.0011,
+                  vignetteDarkness: 0.65,
+                  exposure: 1.12,
+                })
+              }
+            >
+              ⚖️ Balanceado
+            </button>
+            <button
+              className="quality-button"
+              onClick={() =>
+                onTouchDesignerSettingsChange({
+                  bloomStrength: 1.35,
+                  bloomRadius: 0.48,
+                  bloomThreshold: 0.12,
+                  filmGrain: 0.38,
+                  chromaticAberration: 0.0018,
+                  vignetteDarkness: 0.8,
+                  exposure: 1.25,
+                })
+              }
+            >
+              💎 Cinema / TD
+            </button>
+          </div>
+
+          <label className="setting-label">
+            <span>Bloom strength: {touchDesignerSettings.bloomStrength.toFixed(2)}</span>
+            <input
+              type="range"
+              min={0}
+              max={2}
+              step={0.01}
+              value={touchDesignerSettings.bloomStrength}
+              onChange={(e) =>
+                onTouchDesignerSettingsChange({ bloomStrength: parseFloat(e.target.value) })
+              }
+              className="setting-slider"
+            />
+          </label>
+          <label className="setting-label">
+            <span>Bloom radius: {touchDesignerSettings.bloomRadius.toFixed(2)}</span>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={touchDesignerSettings.bloomRadius}
+              onChange={(e) =>
+                onTouchDesignerSettingsChange({ bloomRadius: parseFloat(e.target.value) })
+              }
+              className="setting-slider"
+            />
+          </label>
+          <label className="setting-label">
+            <span>Bloom umbral: {touchDesignerSettings.bloomThreshold.toFixed(2)}</span>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={touchDesignerSettings.bloomThreshold}
+              onChange={(e) =>
+                onTouchDesignerSettingsChange({ bloomThreshold: parseFloat(e.target.value) })
+              }
+              className="setting-slider"
+            />
+          </label>
+
+          <label className="setting-label">
+            <span>Grano cine: {touchDesignerSettings.filmGrain.toFixed(2)}</span>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={touchDesignerSettings.filmGrain}
+              onChange={(e) =>
+                onTouchDesignerSettingsChange({ filmGrain: parseFloat(e.target.value) })
+              }
+              className="setting-slider"
+            />
+          </label>
+
+          <label className="setting-label">
+            <span>Aberración RGB: {touchDesignerSettings.chromaticAberration.toFixed(4)}</span>
+            <input
+              type="range"
+              min={0}
+              max={0.003}
+              step={0.0001}
+              value={touchDesignerSettings.chromaticAberration}
+              onChange={(e) =>
+                onTouchDesignerSettingsChange({ chromaticAberration: parseFloat(e.target.value) })
+              }
+              className="setting-slider"
+            />
+          </label>
+
+          <label className="setting-label">
+            <span>Viñeta: {touchDesignerSettings.vignetteDarkness.toFixed(2)}</span>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={touchDesignerSettings.vignetteDarkness}
+              onChange={(e) =>
+                onTouchDesignerSettingsChange({ vignetteDarkness: parseFloat(e.target.value) })
+              }
+              className="setting-slider"
+            />
+          </label>
+
+          <label className="setting-label">
+            <span>Exposición: {touchDesignerSettings.exposure.toFixed(2)}</span>
+            <input
+              type="range"
+              min={0.6}
+              max={1.6}
+              step={0.01}
+              value={touchDesignerSettings.exposure}
+              onChange={(e) =>
+                onTouchDesignerSettingsChange({ exposure: parseFloat(e.target.value) })
+              }
+              className="setting-slider"
+            />
+          </label>
+        </div>
+      )}
 
       <div className="setting-group">
         <label className="setting-label">

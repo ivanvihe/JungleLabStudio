@@ -15,6 +15,7 @@ import { VideoProviderId } from '../utils/videoProviders';
 import { CronJob } from '../types/automation';
 import { ProjectConfig, ProjectValidationResult } from '../types/projects';
 import { CommandRunResult } from '../utils/commandRunner';
+import { TouchDesignerSettings } from '../types/touchDesigner';
 
 interface DeviceOption {
   id: string;
@@ -115,6 +116,8 @@ interface GlobalSettingsModalProps {
   onProjectSync: (projectId: string) => Promise<CommandRunResult>;
   onProjectClone: (project: ProjectConfig) => Promise<CommandRunResult>;
   onProjectValidate: (project: ProjectConfig) => Promise<ProjectValidationResult>;
+  touchDesignerSettings: TouchDesignerSettings;
+  onTouchDesignerSettingsChange: (settings: Partial<TouchDesignerSettings>) => void;
 }
 
 const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
@@ -193,6 +196,8 @@ const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   onProjectSync,
   onProjectClone,
   onProjectValidate,
+  touchDesignerSettings,
+  onTouchDesignerSettingsChange,
 }) => {
   const [activeTab, setActiveTab] = useState('audio');
 
@@ -440,6 +445,8 @@ const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                 onCanvasBackgroundChange={onCanvasBackgroundChange}
                 glitchTextPads={glitchTextPads}
                 onGlitchPadChange={onGlitchPadChange}
+                touchDesignerSettings={touchDesignerSettings}
+                onTouchDesignerSettingsChange={onTouchDesignerSettingsChange}
               />
             )}
 
