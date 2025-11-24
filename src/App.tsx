@@ -34,6 +34,10 @@ import {
   VideoPlaybackSettings,
   DEFAULT_VIDEO_PLAYBACK_SETTINGS,
 } from './types/video';
+import {
+  DEFAULT_TOUCHDESIGNER_SETTINGS,
+  TouchDesignerSettings,
+} from './types/touchDesigner';
 import type { ImmersiveTemplate } from './components/ImmersivePresetDesigner';
 import {
   loadVideoGallery,
@@ -684,6 +688,17 @@ const AppContent: React.FC<any> = (props) => {
   const [visualsPath, setVisualsPath] = useState(
     () => localStorage.getItem('visualsPath') || './src/presets/'
   );
+  const [touchDesignerSettings, setTouchDesignerSettings] = useState<TouchDesignerSettings>(() => {
+    try {
+      const raw = localStorage.getItem('touchDesignerSettings');
+      if (raw) {
+        return { ...DEFAULT_TOUCHDESIGNER_SETTINGS, ...JSON.parse(raw) };
+      }
+    } catch (err) {
+      console.warn('No se pudo cargar el perfil TouchDesigner', err);
+    }
+    return DEFAULT_TOUCHDESIGNER_SETTINGS;
+  });
 
   useEffect(() => {
     const channel = new BroadcastChannel('av-sync');
@@ -742,6 +757,17 @@ const AppContent: React.FC<any> = (props) => {
   useEffect(() => {
     localStorage.setItem('visualsPath', visualsPath);
   }, [visualsPath]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('touchDesignerSettings', JSON.stringify(touchDesignerSettings));
+    } catch (err) {
+      console.warn('No se pudo guardar el perfil TouchDesigner', err);
+    }
+    if (engineRef.current) {
+      engineRef.current.setTouchDesignerSettings(touchDesignerSettings);
+    }
+  }, [touchDesignerSettings]);
 
   useEffect(() => {
     try {
@@ -968,6 +994,7 @@ const AppContent: React.FC<any> = (props) => {
           setStatus('Loading preset list...');
           const tempDiv = document.createElement('div');
           const engine = new AudioVisualizerEngine(tempDiv, { glitchTextPads, visualsPath });
+          engine.setTouchDesignerSettings(touchDesignerSettings);
           await engine.initialize();
 
           let presets = engine.getAvailablePresets();
@@ -1008,6 +1035,7 @@ const AppContent: React.FC<any> = (props) => {
       try {
         setStatus('Loading presets...');
         const engine = new AudioVisualizerEngine(playgroundRef.current, { glitchTextPads, visualsPath });
+        engine.setTouchDesignerSettings(touchDesignerSettings);
         await engine.initialize();
         engineRef.current = engine;
         canvasRef.current = engine.getLayerCanvas('A') || null;
@@ -2174,6 +2202,10 @@ const AppContent: React.FC<any> = (props) => {
         onCanvasVibranceChange={setCanvasVibrance}
         canvasBackground={canvasBackground}
         onCanvasBackgroundChange={setCanvasBackground}
+        touchDesignerSettings={touchDesignerSettings}
+        onTouchDesignerSettingsChange={(updates) =>
+          setTouchDesignerSettings(prev => ({ ...prev, ...updates }))
+        }
         visualsPath={visualsPath}
         onVisualsPathChange={setVisualsPath}
         videoProvider={videoProviderSettings.provider}

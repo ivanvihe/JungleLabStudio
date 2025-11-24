@@ -7,6 +7,14 @@ import {
   DEFAULT_VIDEO_PLAYBACK_SETTINGS,
 } from '../types/video';
 import { getCachedVideoUrl, releaseCachedUrl } from '../utils/videoCache';
+import { TouchDesignerSettings } from '../types/touchDesigner';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { FilmPass } from 'three/examples/jsm/postprocessing/FilmPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { RGBShiftShader } from 'three/examples/jsm/shaders/RGBShiftShader.js';
+import { VignetteShader } from 'three/examples/jsm/shaders/VignetteShader.js';
 
 function deepMerge(target: any, source: any): any {
   const result = { ...target };
@@ -50,6 +58,8 @@ export class LayerManager {
   private layers: Map<string, LayerState> = new Map();
   private layerOrder: string[] = ['C', 'B', 'A'];
   private videoRegistry: Map<string, VideoResource> = new Map();
+  private touchDesignerSettings: TouchDesignerSettings | null = null;
+  private composers: Map<string, EffectComposer> = new Map();
 
   constructor(
     private container: HTMLElement,
@@ -147,6 +157,9 @@ export class LayerManager {
     };
 
     this.layers.set(id, layerState);
+    if (this.touchDesignerSettings?.enabled) {
+      this.rebuildComposer(id, layerState);
+    }
     const recoverPlayback = () => this.handleVideoStall(layerState);
     const clearRecovery = () => this.clearVideoRecovery(layerState);
     video.addEventListener('waiting', recoverPlayback);
@@ -162,6 +175,53 @@ export class LayerManager {
   public setVideoRegistry(videos: VideoResource[]): void {
     this.videoRegistry.clear();
     videos.forEach(video => this.videoRegistry.set(video.id, video));
+  }
+
+  private rebuildComposer(layerId: string, layer: LayerState): void {
+    const settings = this.touchDesignerSettings;
+    if (!settings || !settings.enabled) {
+      const composer = this.composers.get(layerId);
+      composer?.dispose?.();
+      this.composers.delete(layerId);
+      return;
+    }
+
+    const existingComposer = this.composers.get(layerId);
+    existingComposer?.dispose?.();
+
+    const composer = new EffectComposer(layer.renderer);
+    const size = layer.renderer.getSize(new THREE.Vector2());
+    composer.setSize(size.x, size.y);
+    composer.addPass(new RenderPass(layer.scene, layer.camera));
+
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(layer.renderer.domElement.width, layer.renderer.domElement.height),
+      settings.bloomStrength,
+      settings.bloomRadius,
+      settings.bloomThreshold
+    );
+    composer.addPass(bloomPass);
+
+    if (settings.filmGrain > 0) {
+      const filmPass = new FilmPass(settings.filmGrain, 0.35, 648, false);
+      composer.addPass(filmPass);
+    }
+
+    if (settings.chromaticAberration > 0) {
+      const rgbPass = new ShaderPass(RGBShiftShader);
+      rgbPass.uniforms['amount'].value = settings.chromaticAberration;
+      composer.addPass(rgbPass);
+    }
+
+    const vignettePass = new ShaderPass(VignetteShader);
+    vignettePass.uniforms['darkness'].value = settings.vignetteDarkness;
+    composer.addPass(vignettePass);
+
+    layer.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    layer.renderer.toneMappingExposure = settings.exposure;
+    layer.renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    this.composers.set(layerId, composer);
   }
 
   private clearVideoRecovery(layer: LayerState): void {
@@ -194,6 +254,13 @@ export class LayerManager {
       cancelAnimationFrame(layer.videoPlaybackRaf);
       layer.videoPlaybackRaf = null;
     }
+  }
+
+  public setTouchDesignerMode(settings: TouchDesignerSettings): void {
+    this.touchDesignerSettings = settings;
+    this.layers.forEach((layer, layerId) => {
+      this.rebuildComposer(layerId, layer);
+    });
   }
 
   private startNativeVideoPlayback(layer: LayerState): void {
@@ -507,11 +574,16 @@ export class LayerManager {
   }
 
   public renderLayers(): void {
-    this.layers.forEach(layer => {
+    this.layers.forEach((layer, layerId) => {
       layer.renderer.setClearColor(0x000000, 0);
       layer.renderer.clear(true, true, true);
       if (layer.isActive && layer.preset) {
-        layer.renderer.render(layer.scene, layer.camera);
+        const composer = this.composers.get(layerId);
+        if (composer) {
+          composer.render();
+        } else {
+          layer.renderer.render(layer.scene, layer.camera);
+        }
       }
     });
 
@@ -519,11 +591,13 @@ export class LayerManager {
   }
 
   public updateSize(width: number, height: number, pixelRatio: number): void {
-    this.layers.forEach(layer => {
+    this.layers.forEach((layer, layerId) => {
       layer.renderer.setSize(width, height, false);
       layer.renderer.setPixelRatio(pixelRatio);
       layer.camera.aspect = width / height;
       layer.camera.updateProjectionMatrix();
+      const composer = this.composers.get(layerId);
+      composer?.setSize(width, height);
     });
   }
 
@@ -782,6 +856,8 @@ export class LayerManager {
 
   public dispose(): void {
     this.layers.forEach((layer, layerId) => {
+      const composer = this.composers.get(layerId);
+      composer?.dispose?.();
       if (layer.preset) {
         this.presetLoader.deactivatePreset(`${layerId}-${layer.preset.id}`);
       }
@@ -791,6 +867,7 @@ export class LayerManager {
       this.stopVideoPlayback(layer);
       layer.videoElement.remove();
     });
+    this.composers.clear();
   }
 
   public updateLayerVideoSettings(layerId: string, settings: Partial<VideoPlaybackSettings>): void {

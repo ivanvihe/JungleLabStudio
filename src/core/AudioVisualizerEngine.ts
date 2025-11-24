@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { PresetLoader, LoadedPreset, AudioData } from './PresetLoader';
 import { LayerManager } from './LayerManager';
 import { VideoResource, VideoPlaybackSettings } from '../types/video';
+import { TouchDesignerSettings } from '../types/touchDesigner';
 
 
 export class AudioVisualizerEngine {
@@ -146,6 +147,10 @@ export class AudioVisualizerEngine {
     this.presetLoader.setEmptyPresetCount(count);
     await this.presetLoader.loadAllPresets();
     return this.presetLoader.getLoadedPresets();
+  }
+
+  public setTouchDesignerSettings(settings: TouchDesignerSettings): void {
+    this.layerManager.setTouchDesignerMode(settings);
   }
 
   public async updateGenLabPresets(presets: { name: string; config: any }[]): Promise<LoadedPreset[]> {
