@@ -296,17 +296,6 @@ class RoboticaCinematicPreset extends BasePreset {
     this.currentConfig = { ...config.defaultConfig };
     this.textGroup = new THREE.Group();
   }
-//...
-export function createPreset(
-  scene: THREE.Scene,
-  camera: THREE.Camera,
-  renderer: THREE.WebGLRenderer,
-  config: PresetConfig,
-  videoElement: HTMLVideoElement,
-  shaderCode?: string
-): BasePreset {
-  return new RoboticaCinematicPreset(scene, camera, renderer, config, videoElement);
-}
 
   public init(): void {
     this.createCinematicText();
@@ -320,15 +309,14 @@ export function createPreset(
     const fontFamily = this.currentConfig.text.fontFamily;
     const scale = this.currentConfig.text.scale;
 
-    const letterWidth = fontSize * 0.8; // Aproximacion del ancho de cada letra en px
-    const availableWidth = (this.currentConfig.width || 1920) * 0.9375; // Usar el 94% del ancho
+    const letterWidth = fontSize * 0.8;
+    const availableWidth = (this.currentConfig.width || 1920) * 0.9375;
     const spacing = (availableWidth - letterWidth) / Math.max(letters.length - 1, 1);
     const startX = -availableWidth / 2 + letterWidth / 2;
 
     for (let i = 0; i < letters.length; i++) {
       const char = letters[i];
       const x = startX + i * spacing;
-      // Escalar coordenadas desde pixeles a unidades de Three.js
       const position = new THREE.Vector3((x / 100) * scale, 0, 0);
 
       const letter = new CinematicLetter(char, fontSize, fontFamily, position);
@@ -336,15 +324,13 @@ export function createPreset(
       this.textGroup.add(letter.getMesh());
     }
 
-    // Posicionar el grupo en el centro de la pantalla
     this.textGroup.position.set(0, 0, 0);
   }
 
   private initializeAnimation(): void {
     if (this.animationStartTime === null) {
       this.animationStartTime = this.clock.getElapsedTime();
-      
-      // Configurar tiempos de inicio segun el orden de animacion
+
       const animationOrder = this.currentConfig.animation.animationOrder;
       const letterDelay = this.currentConfig.animation.letterDelay;
 
@@ -364,17 +350,14 @@ export function createPreset(
 
     this.initializeAnimation();
 
-    // Actualizar todas las letras
     this.letters.forEach(letter => {
       letter.update(deltaTime, currentTime, this.currentConfig, this.audioData);
     });
 
-    // Escala global basada en audio (sutil)
     const audioIntensity = (this.audioData.low + this.audioData.mid + this.audioData.high) / 3;
     const globalScale = this.currentConfig.text.scale * (1 + audioIntensity * 0.05);
     this.textGroup.scale.setScalar(globalScale);
 
-    // Aplicar opacidad global
     this.textGroup.children.forEach(child => {
       if (child instanceof THREE.Mesh && child.material instanceof THREE.ShaderMaterial) {
         const currentOpacity = child.material.uniforms.uOpacity.value;
@@ -387,15 +370,13 @@ export function createPreset(
 
   public updateConfig(newConfig: any): void {
     this.currentConfig = this.deepMerge(this.currentConfig, newConfig);
-    
-    // Si cambio configuracion importante, recrear
+
     if (newConfig.text) {
       this.recreateText();
     }
   }
 
   private recreateText(): void {
-    // Limpiar texto existente
     this.letters.forEach(letter => {
       this.textGroup.remove(letter.getMesh());
       letter.dispose();
@@ -403,7 +384,6 @@ export function createPreset(
     this.letters = [];
     this.animationStartTime = null;
 
-    // Recrear texto
     this.createCinematicText();
   }
 

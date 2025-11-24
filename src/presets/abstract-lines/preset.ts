@@ -315,15 +315,58 @@ class AbstractLinesPreset extends BasePreset {
 
   constructor(
     scene: THREE.Scene,
-    camera: THREE.Camera, 
+    camera: THREE.Camera,
     renderer: THREE.WebGLRenderer,
     config: PresetConfig,
     videoElement: HTMLVideoElement
   ) {
     super(scene, camera, renderer, config, videoElement);
-    
+
     this.currentConfig = { ...config.defaultConfig };
     this.linePool = new LinePool();
+    this.colorPalette = Object.values(config.defaultConfig.colors).map((c: string) => new THREE.Color(c));
+  }
+
+  private spawnLine(): void {
+    const color = this.colorPalette[Math.floor(Math.random() * this.colorPalette.length)] ?? new THREE.Color('#ffffff');
+    const thickness = this.currentConfig.geometry.thickness;
+    const segments = this.currentConfig.geometry.segments;
+    const line = this.linePool.acquire(segments, color, thickness);
+    line.getMesh().position.z = -2;
+    this.scene.add(line.getMesh());
+  }
+
+  public init(): void {
+    for (let i = 0; i < 5; i++) {
+      this.spawnLine();
+    }
+  }
+
+  public update(): void {
+    const delta = this.clock.getDelta();
+    const time = this.clock.elapsedTime;
+    this.spawnTimer += delta;
+    const desiredCount = Math.min(
+      this.currentConfig.performance.maxLines,
+      Math.floor(10 + this.audioData.low * 50)
+    );
+    const spawnInterval = 1 / Math.max(1, this.currentConfig.performance.updateFrequency);
+    if (this.linePool.getActive().length < desiredCount && this.spawnTimer >= spawnInterval) {
+      this.spawnLine();
+      this.spawnTimer = 0;
+    }
+
+    this.linePool.getActive().forEach(line => {
+      line.update(delta, time, this.audioData, this.currentConfig);
+      if (line.isDead()) {
+        this.scene.remove(line.getMesh());
+        this.linePool.release(line);
+      }
+    });
+
+    applyVFX(this.renderer.domElement, this.audioData);
+  }
+
   public dispose(): void {
     this.linePool.getActive().forEach(line => {
       this.scene.remove(line.getMesh());

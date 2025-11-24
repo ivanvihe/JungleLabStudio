@@ -342,9 +342,10 @@ class EnergyWaveRay {
 }
 
 class ProfessionalPlasmaRayPreset extends BasePreset {
-  private plasmaRay: EnergyWaveRay;
+  private plasmaRay!: EnergyWaveRay;
   private currentConfig: any;
-  
+  private meshes: THREE.Line[] = [];
+
   constructor(
     scene: THREE.Scene,
     camera: THREE.Camera,
@@ -355,7 +356,42 @@ class ProfessionalPlasmaRayPreset extends BasePreset {
     super(scene, camera, renderer, config, videoElement);
     this.currentConfig = { ...config.defaultConfig };
   }
-//...
+
+  public init(): void {
+    this.currentConfig = { ...this.config.defaultConfig };
+    this.plasmaRay = new EnergyWaveRay(this.currentConfig);
+    this.meshes = this.plasmaRay.getMeshes();
+    this.meshes.forEach(mesh => {
+      mesh.position.z = -5;
+      this.scene.add(mesh);
+    });
+  }
+
+  public update(): void {
+    const delta = this.clock.getDelta();
+    const elapsed = this.clock.elapsedTime;
+    this.plasmaRay.update(delta, elapsed, this.audioData, this.opacity);
+  }
+
+  public updateConfig(newConfig: Partial<PresetConfig>): void {
+    this.config = { ...this.config, ...newConfig } as PresetConfig;
+    this.currentConfig = { ...this.config.defaultConfig };
+    if (this.plasmaRay) {
+      this.plasmaRay.updateConfig(this.currentConfig);
+      if (this.currentConfig.colors) {
+        this.plasmaRay.updateColors(this.currentConfig.colors);
+      }
+    }
+  }
+
+  public dispose(): void {
+    this.meshes.forEach(mesh => this.scene.remove(mesh));
+    if (this.plasmaRay) {
+      this.plasmaRay.dispose();
+    }
+  }
+}
+
 export function createPreset(
   scene: THREE.Scene,
   camera: THREE.Camera,
