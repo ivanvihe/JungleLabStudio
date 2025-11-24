@@ -18,6 +18,8 @@ export default function App() {
   const currentPreset = useMemo(() => presets.find((p) => p.id === presetId) ?? presets[0], [presetId]);
   const [values, setValues] = useState<Record<string, number>>(buildInitialValues(currentPreset));
   const [midiPulse, setMidiPulse] = useState(0);
+  const [midiNote, setMidiNote] = useState(0);
+  const [midiVelocity, setMidiVelocity] = useState(0);
   const canvasRef = useRef<HTMLDivElement | null>(null);
 
   const audio = useAudioLevel();
@@ -31,6 +33,8 @@ export default function App() {
     },
     onNote: (note, velocity) => {
       setMidiPulse((prev) => Math.max(prev, velocity));
+      setMidiNote(note);
+      setMidiVelocity(velocity);
       const reactiveParam = currentPreset.parameters.find((p) => p.key === 'noteReactive');
       if (reactiveParam) {
         const mapped = reactiveParam.min + (reactiveParam.max - reactiveParam.min) * velocity;
@@ -62,6 +66,8 @@ export default function App() {
     audio.bands,
     audio.beat,
     midiPulse,
+    midiNote,
+    midiVelocity,
     orientation,
     canvasRef,
   );

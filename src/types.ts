@@ -10,6 +10,17 @@ export interface Parameter {
   description?: string;
 }
 
+export interface MidiMapping {
+  control: number;
+  channel: number;
+}
+
+export interface AudioBands {
+  bass: number;
+  mid: number;
+  treble: number;
+}
+
 export interface VisualPreset {
   id: string;
   name: string;
@@ -21,13 +32,32 @@ export interface VisualPreset {
 export interface SketchState {
   params: Record<string, number>;
   audioLevel: number;
-  audioBands: { bass: number; mid: number; treble: number };
+  audioBands: AudioBands;
   beat: number;
   midiPulse: number;
+  midiNote: number;
+  midiVelocity: number;
   orientation: 'landscape' | 'portrait';
 }
 
-export interface MidiMapping {
-  control: number;
-  channel: number;
+export interface VisualContext {
+  p: p5;
+  main: p5.Graphics;
+  overlay: p5.Graphics;
+  feedback: p5.Graphics;
+  ascii: p5.Graphics;
+  state: SketchState;
+  delta: number;
+}
+
+export interface VisualModule {
+  id: string;
+  name: string;
+  params: Parameter[];
+  init(context: VisualContext): void;
+  update(context: VisualContext): void;
+  draw(context: VisualContext): void;
+  onMidiNote?(note: number, velocity: number, channel: number, context: VisualContext): void;
+  onMidiCC?(cc: number, value: number, channel: number, context: VisualContext): void;
+  onAudioAnalysis?(context: VisualContext): void;
 }
