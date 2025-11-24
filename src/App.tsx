@@ -213,9 +213,10 @@ const App: React.FC = () => {
     return { A: {}, B: {}, C: {} };
   });
 
-  const [isFullscreenMode, setIsFullscreenMode] = useState(
-    () => new URLSearchParams(window.location.search).get('fullscreen') === 'true'
-  );
+  const [isFullscreenMode, setIsFullscreenMode] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('fullscreen') === 'true' || params.get('mode') === 'visual';
+  });
 
 
   const [cronJobs, setCronJobs] = useState<CronJob[]>(() => {
