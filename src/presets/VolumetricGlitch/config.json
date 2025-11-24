@@ -34,7 +34,7 @@
     { "name": "particles.trailLength", "type": "slider", "label": "Trail Length", "min": 0, "max": 1, "step": 0.05, "default": 0.3 },
     { "name": "fluid.morphSpeed", "type": "slider", "label": "Morph Speed", "min": 0, "max": 1, "step": 0.05, "default": 0.4 },
     { "name": "fluid.expansion", "type": "slider", "label": "Expansion", "min": 0, "max": 1, "step": 0.05, "default": 0.2 },
-    { "name": "midi.note", "type": "midi-note-recorder", "label": "MIDI Note" },
+    { "name": "midi.note", "type": "midi-note-recorder", "label": "MIDI Note", "default": 60 },
     { "name": "midi.burstIntensity", "type": "slider", "label": "MIDI Burst Intensity", "min": 0, "max": 2, "step": 0.1, "default": 0.8 },
     { "name": "midi.burstDuration", "type": "slider", "label": "MIDI Burst Duration (ms)", "min": 50, "max": 2000, "step": 50, "default": 500 }
   ],

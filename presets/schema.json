@@ -24,6 +24,7 @@
       "type": "array",
       "items": {"type": "string"}
     },
+    "usesVideoSource": {"type": "boolean"},
     "thumbnail": {"type": "string"},
     "note": {"type": "number"},
     "defaultConfig": {"type": "object"},
@@ -37,7 +38,7 @@
           "name": {"type": "string"},
           "type": {
             "type": "string",
-            "enum": ["slider", "color", "checkbox", "select", "text"]
+            "enum": ["slider", "color", "checkbox", "select", "text", "midi-note-recorder"]
           },
           "label": {"type": "string"},
           "min": {"type": "number"},

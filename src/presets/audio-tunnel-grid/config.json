@@ -26,7 +26,11 @@
     { "name": "circleCount", "type": "slider", "label": "Circle Mirrors", "min": 3, "max": 12, "step": 1, "default": 6 }
   ],
   "audioMapping": {
-    "bass": "bassResponse"
+    "bass": {
+      "description": "Amplifies tunnel speed and grid response",
+      "frequency": "20-250 Hz",
+      "effect": "bassResponse"
+    }
   },
   "performance": {
     "complexity": "medium",
