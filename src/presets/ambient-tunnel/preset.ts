@@ -32,7 +32,48 @@ class AmbientTunnelPreset extends BasePreset {
     super(scene, camera, renderer, cfg, videoElement);
     this.currentConfig = { ...cfg.defaultConfig };
   }
-//...
+
+  init(): void {
+    for (let i = 0; i < 20; i++) {
+      const geo = new THREE.TorusGeometry(1, 0.05, 16, 64);
+      const mat = new THREE.MeshBasicMaterial({ color: this.currentConfig.color, transparent: true, opacity: 0.3 });
+      const ring = new THREE.Mesh(geo, mat);
+      ring.rotation.x = Math.PI / 2;
+      ring.scale.setScalar(this.currentConfig.height);
+      ring.position.z = -i * 2;
+      this.scene.add(ring);
+      this.rings.push(ring);
+    }
+  }
+
+  update(): void {
+    const delta = this.clock.getDelta();
+    this.rings.forEach(r => {
+      r.position.z += this.currentConfig.speed * delta * 2;
+      if (r.position.z > 2) r.position.z = -40;
+    });
+  }
+
+  updateConfig(newConfig: any): void {
+    this.currentConfig = { ...this.currentConfig, ...newConfig };
+    if (newConfig.color) {
+      this.rings.forEach(r => (r.material as THREE.MeshBasicMaterial).color.set(newConfig.color));
+    }
+    if (newConfig.height !== undefined) {
+      this.rings.forEach(r => r.scale.setScalar(this.currentConfig.height));
+    }
+  }
+
+  dispose(): void {
+    this.rings.forEach(r => {
+      this.scene.remove(r);
+      r.geometry.dispose();
+      (r.material as THREE.Material).dispose();
+    });
+    this.rings = [];
+  }
+}
+
 export function createPreset(
   scene: THREE.Scene,
   camera: THREE.Camera,
