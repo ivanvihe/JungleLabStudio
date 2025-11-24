@@ -14,13 +14,21 @@ interface ControlPanelProps {
     start: () => Promise<void>;
     learn: (key: string) => void;
     stopLearning: () => void;
+    inputs: MIDIInput[];
+    selectedInputId: string | null;
+    selectInput: (id: string) => void;
   };
   audio: {
     enabled: boolean;
     level: number;
     error: string | null;
-    start: () => Promise<void>;
+    devices: MediaDeviceInfo[];
+    selectedDeviceId: string | null;
+    start: (deviceId?: string) => Promise<void>;
+    selectDevice: (deviceId: string) => void;
   };
+  orientation: 'landscape' | 'portrait';
+  onOrientationChange: (orientation: 'landscape' | 'portrait') => void;
 }
 
 const ParameterControl = ({
@@ -67,6 +75,8 @@ export const ControlPanel = ({
   onChange,
   midi,
   audio,
+  orientation,
+  onOrientationChange,
 }: ControlPanelProps) => (
   <aside className="control-panel">
     <div className="header">
@@ -82,9 +92,6 @@ export const ControlPanel = ({
           </option>
         ))}
       </select>
-      <button className="button" onClick={midi.start} disabled={midi.enabled}>
-        {midi.enabled ? 'MIDI listo' : 'Activar MIDI'}
-      </button>
     </div>
 
     <div className="status-row">
@@ -95,13 +102,70 @@ export const ControlPanel = ({
     {audio.error && <div className="subtitle">{audio.error}</div>}
 
     <div className="section">
-      <button className="button" onClick={audio.start} disabled={audio.enabled}>
+      <button className="button" onClick={() => audio.start(audio.selectedDeviceId ?? undefined)} disabled={audio.enabled}>
         {audio.enabled ? 'Micrófono activo' : 'Habilitar micrófono'}
       </button>
+      <div className="select-row">
+        <select
+          value={audio.selectedDeviceId ?? ''}
+          onChange={(e) => audio.selectDevice(e.target.value)}
+          disabled={!audio.devices.length}
+        >
+          {audio.devices.map((device) => (
+            <option key={device.deviceId} value={device.deviceId}>
+              {device.label || device.deviceId}
+            </option>
+          ))}
+        </select>
+        <button className="button" onClick={() => audio.start(audio.selectedDeviceId ?? undefined)}>
+          Reiniciar entrada
+        </button>
+      </div>
       <div className="hint-legend">
         <span><span className="dot" style={{ background: '#5ef4ff' }} /> atmósferas</span>
         <span><span className="dot" style={{ background: '#ff2fb1' }} /> partículas</span>
         <span><span className="dot" style={{ background: '#92ff9f' }} /> cintas/ondas</span>
+      </div>
+    </div>
+
+    <div className="section">
+      <div className="select-row">
+        <select
+          value={midi.selectedInputId ?? ''}
+          onChange={(e) => midi.selectInput(e.target.value)}
+          disabled={!midi.inputs.length}
+        >
+          {midi.inputs.map((input) => (
+            <option key={input.id} value={input.id}>
+              {input.name || input.id}
+            </option>
+          ))}
+        </select>
+        <button className="button" onClick={midi.start} disabled={midi.enabled}>
+          {midi.enabled ? 'MIDI listo' : 'Activar MIDI'}
+        </button>
+      </div>
+    </div>
+
+    <div className="section">
+      <div className="select-row">
+        <div className="title">Orientación</div>
+        <div className="select-row" style={{ gap: '0.5rem' }}>
+          <button
+            className="button"
+            onClick={() => onOrientationChange('landscape')}
+            disabled={orientation === 'landscape'}
+          >
+            Horizontal 16:9
+          </button>
+          <button
+            className="button"
+            onClick={() => onOrientationChange('portrait')}
+            disabled={orientation === 'portrait'}
+          >
+            Vertical 9:16
+          </button>
+        </div>
       </div>
     </div>
 
