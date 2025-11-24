@@ -347,6 +347,10 @@ const App: React.FC = () => {
           setLayerVFX,
           isFullscreenMode,
           setIsFullscreenMode,
+          cronJobs,
+          setCronJobs,
+          projects,
+          setProjects,
         }}
       />
     </MidiContextProvider>
@@ -407,6 +411,10 @@ const AppContent: React.FC<any> = (props) => {
     setLayerVFX,
     isFullscreenMode,
     setIsFullscreenMode,
+    cronJobs,
+    setCronJobs,
+    projects,
+    setProjects,
   } = props;
 
   const urlParams = new URLSearchParams(window.location.search);
