@@ -9,6 +9,8 @@ export const useP5Sketch = (
   audioBands: { bass: number; mid: number; treble: number },
   beat: number,
   midiPulse: number,
+  midiNote: number,
+  midiVelocity: number,
   orientation: 'landscape' | 'portrait',
   containerRef: MutableRefObject<HTMLDivElement | null>,
 ) => {
@@ -17,12 +19,16 @@ export const useP5Sketch = (
   const bandRef = useRef(audioBands);
   const beatRef = useRef(beat);
   const midiRef = useRef(midiPulse);
+  const midiNoteRef = useRef(midiNote);
+  const midiVelocityRef = useRef(midiVelocity);
   const orientationRef = useRef(orientation);
   paramsRef.current = params;
   audioRef.current = audioLevel;
   bandRef.current = audioBands;
   beatRef.current = beat;
   midiRef.current = midiPulse;
+  midiNoteRef.current = midiNote;
+  midiVelocityRef.current = midiVelocity;
   orientationRef.current = orientation;
 
   useEffect(() => {
@@ -34,6 +40,8 @@ export const useP5Sketch = (
       audioBands: bandRef.current,
       beat: beatRef.current,
       midiPulse: midiRef.current,
+      midiNote: midiNoteRef.current,
+      midiVelocity: midiVelocityRef.current,
       orientation: orientationRef.current,
     });
 
