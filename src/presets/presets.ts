@@ -357,4 +357,360 @@ const createChromaticCurrents = (): VisualPreset => ({
   },
 });
 
-export const presets: VisualPreset[] = [createNebulaBloom(), createChromaticCurrents()];
+const createPerformanceLab = (): VisualPreset => ({
+  id: 'performance-lab',
+  name: 'Holographic Performance Lab',
+  description:
+    'Motor modular en tiempo real con partículas volumétricas, glitch, ASCII reactivo, feedback y distorsión tipo VHS.',
+  parameters: [
+    {
+      key: 'intensity',
+      label: 'Brillo / Bloom',
+      min: 0.3,
+      max: 1.8,
+      defaultValue: 1,
+      step: 0.01,
+      description: 'Control global de glow, halos y mezcla aditiva.',
+    },
+    {
+      key: 'noiseFlow',
+      label: 'Flujo / Turbulencia',
+      min: 0,
+      max: 1.4,
+      defaultValue: 0.65,
+      step: 0.01,
+      description: 'Velocidad de los campos de ruido que mueven partículas y cintas.',
+    },
+    {
+      key: 'particleCount',
+      label: 'Cantidad de partículas',
+      min: 0.2,
+      max: 1.6,
+      defaultValue: 1,
+      step: 0.05,
+      description: 'Micro partículas, polvo y destellos volumétricos.',
+    },
+    {
+      key: 'ribbonLayers',
+      label: 'Capas de cintas',
+      min: 2,
+      max: 8,
+      defaultValue: 5,
+      step: 1,
+      description: 'Cintas fluidas con parallax y gradientes holográficos.',
+    },
+    {
+      key: 'holoLines',
+      label: 'Líneas holográficas',
+      min: 0,
+      max: 1,
+      defaultValue: 0.7,
+      step: 0.01,
+      description: 'Estructuras lineales y clusters neon.',
+    },
+    {
+      key: 'asciiDensity',
+      label: 'Densidad ASCII',
+      min: 0.2,
+      max: 1.4,
+      defaultValue: 0.6,
+      step: 0.02,
+      description: 'Cantidad de caracteres y contraste del conversor.',
+    },
+    {
+      key: 'pixelSize',
+      label: 'Pixelación / VHS',
+      min: 1,
+      max: 22,
+      defaultValue: 6,
+      step: 1,
+      description: 'Pixel glitch, distorsión VHS y aberración cromática.',
+    },
+    {
+      key: 'feedback',
+      label: 'Feedback / Trails',
+      min: 0,
+      max: 1,
+      defaultValue: 0.35,
+      step: 0.01,
+      description: 'Cantidad de eco visual, motion blur y retroalimentación.',
+    },
+    {
+      key: 'glitch',
+      label: 'Glitch bursts',
+      min: 0,
+      max: 1,
+      defaultValue: 0.25,
+      step: 0.01,
+      description: 'Distorsión cromática, tearing y estallidos.',
+    },
+    {
+      key: 'fog',
+      label: 'Niebla volumétrica',
+      min: 0,
+      max: 1,
+      defaultValue: 0.55,
+      step: 0.01,
+      description: 'Capas de atmósfera y profundidad.',
+    },
+    {
+      key: 'noteReactive',
+      label: 'Reactivo a nota MIDI',
+      min: 0,
+      max: 1,
+      defaultValue: 0.2,
+      step: 0.01,
+      description: 'Impulso aplicado a explosiones, ASCII y glitch cuando entra una nota.',
+    },
+  ],
+  init: (p: p5, getState: () => SketchState) => {
+    let base: p5.Graphics;
+    let feedback: p5.Graphics;
+    let asciiLayer: p5.Graphics;
+    const particles: FlowParticle[] = [];
+
+    const spawnParticle = (w: number, h: number) => ({
+      pos: p.createVector(p.random(w), p.random(h)),
+      vel: p.createVector(),
+      life: p.random(80, 260),
+    });
+
+    const seed = (w: number, h: number, density: number) => {
+      particles.length = 0;
+      const count = Math.floor(700 * density);
+      for (let i = 0; i < count; i += 1) particles.push(spawnParticle(w, h));
+    };
+
+    p.setup = () => {
+      p.createCanvas(p.windowWidth, p.windowHeight);
+      p.colorMode(p.HSB, 360, 100, 100, 1);
+      base = p.createGraphics(p.width, p.height);
+      feedback = p.createGraphics(p.width, p.height);
+      asciiLayer = p.createGraphics(p.width, p.height);
+      base.colorMode(p.HSB, 360, 100, 100, 1);
+      feedback.colorMode(p.HSB, 360, 100, 100, 1);
+      asciiLayer.colorMode(p.HSB, 360, 100, 100, 1);
+      seed(p.width, p.height, 1);
+    };
+
+    p.windowResized = () => {
+      p.resizeCanvas(p.windowWidth, p.windowHeight);
+      base.resizeCanvas(p.width, p.height);
+      feedback.resizeCanvas(p.width, p.height);
+      asciiLayer.resizeCanvas(p.width, p.height);
+      seed(p.width, p.height, getState().params.particleCount);
+    };
+
+    const drawAtmosphere = (time: number, fog: number, intensity: number, hueShift: number, aspectPush: number) => {
+      const ctx = base.drawingContext as CanvasRenderingContext2D;
+      const grad = ctx.createRadialGradient(
+        base.width * 0.3,
+        base.height * (0.4 + aspectPush * 0.05),
+        base.width * 0.1,
+        base.width * 0.55,
+        base.height * 0.55,
+        base.width,
+      );
+      grad.addColorStop(0, p.color((190 + hueShift * 90) % 360, 90, 20 + 40 * intensity, 0.45).toString());
+      grad.addColorStop(0.6, p.color((320 + hueShift * 80) % 360, 90, 70, 0.35).toString());
+      grad.addColorStop(1, p.color((140 + hueShift * 60) % 360, 70, 35, 0.1).toString());
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, base.width, base.height);
+
+      base.push();
+      base.blendMode(p.SCREEN);
+      for (let i = 0; i < 4; i += 1) {
+        const radius = base.width * (0.25 + i * 0.12);
+        const cx = base.width * (0.2 + i * 0.18 + p.sin(time * 0.12 + i) * 0.04);
+        const cy = base.height * (0.35 + i * 0.08 + p.cos(time * 0.1 + i) * 0.05 + aspectPush * 0.12);
+        const g = ctx.createRadialGradient(cx, cy, radius * 0.1, cx, cy, radius);
+        g.addColorStop(0, p.color((200 + i * 40 + hueShift * 70) % 360, 80, 90, 0.16 * fog).toString());
+        g.addColorStop(1, p.color((260 + i * 55 + hueShift * 120) % 360, 70, 20, 0).toString());
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, base.width, base.height);
+      }
+      base.pop();
+    };
+
+    const drawRibbons = (
+      time: number,
+      layers: number,
+      flow: number,
+      intensity: number,
+      audio: number,
+      bands: { bass: number; mid: number; treble: number },
+      aspectPush: number,
+    ) => {
+      base.push();
+      base.noFill();
+      base.blendMode(p.SCREEN);
+      for (let i = 0; i < layers; i += 1) {
+        const t = i / Math.max(1, layers - 1);
+        const hue = (210 + t * 140 + bands.treble * 60) % 360;
+        base.stroke(hue, 80, 100, 0.35 + 0.2 * intensity * (1 - t));
+        base.strokeWeight(2.4 - t * 1.4 + bands.mid * 1.2);
+        base.beginShape();
+        for (let x = -40; x <= base.width + 40; x += 26) {
+          const n = p.noise(x * 0.002 + i * 0.1, time * 0.4 + flow * 0.8, i * 0.2) - 0.5;
+          const y =
+            base.height * (0.4 + 0.2 * p.sin(time * 0.2 + i) + aspectPush * 0.2) +
+            n * 280 * (0.4 + flow) +
+            p.sin(time * 1.2 + x * 0.004 + i) * 60 * (0.5 + flow) -
+            audio * 140 * (0.3 + t);
+          base.curveVertex(x, y);
+        }
+        base.endShape();
+      }
+      base.pop();
+    };
+
+    const updateParticles = (time: number, density: number, flow: number, intensity: number, bands: any, pulse: number) => {
+      const target = Math.floor(400 + 600 * density);
+      while (particles.length < target) particles.push(spawnParticle(base.width, base.height));
+      while (particles.length > target) particles.pop();
+
+      base.push();
+      base.blendMode(p.ADD);
+      for (const pt of particles) {
+        const angle = p.noise(pt.pos.x * 0.0015, pt.pos.y * 0.0015, time * 0.6) * p.TWO_PI * 2;
+        const speed = 0.6 + flow * 2 + bands.mid * 1.2 + pulse * 1.5;
+        pt.vel.set(p.cos(angle) * speed, p.sin(angle) * speed);
+        pt.pos.add(pt.vel);
+        pt.life -= 1;
+        if (pt.pos.x < 0) pt.pos.x = base.width;
+        if (pt.pos.x > base.width) pt.pos.x = 0;
+        if (pt.pos.y < 0) pt.pos.y = base.height;
+        if (pt.pos.y > base.height) pt.pos.y = 0;
+        if (pt.life < 0) {
+          pt.life = p.random(120, 260);
+        }
+
+        const hue = (p.noise(pt.pos.x * 0.003, time * 0.2) * 160 + 160 + bands.treble * 80) % 360;
+        base.fill(hue, 80, 100, 0.25 * intensity + 0.2 * bands.bass + pulse * 0.4);
+        base.noStroke();
+        base.circle(pt.pos.x, pt.pos.y, 1.5 + density * 2.8 + pulse * 5);
+      }
+      base.pop();
+    };
+
+    const drawHoloLines = (time: number, amount: number, intensity: number, bands: any) => {
+      base.push();
+      base.strokeWeight(1.5 + bands.treble * 1.3);
+      base.stroke((260 + time * 40 + bands.mid * 60) % 360, 90, 90, 0.3 * amount * intensity);
+      for (let i = 0; i < 14; i += 1) {
+        const y = (i / 14) * base.height + p.sin(time * 0.6 + i) * 20;
+        base.line(0, y, base.width, y + p.sin(time * 0.8 + i) * 40 * amount);
+      }
+      base.pop();
+    };
+
+    const drawAscii = (density: number, pulse: number, bands: any) => {
+      asciiLayer.clear();
+      asciiLayer.push();
+      asciiLayer.fill(180 + bands.mid * 80, 30, 100, 0.2 + pulse * 0.5);
+      asciiLayer.noStroke();
+      const grid = Math.max(6, Math.floor(22 - density * 12));
+      asciiLayer.textSize(grid * (0.9 + bands.treble * 0.4 + pulse * 0.6));
+      asciiLayer.textAlign(p.CENTER, p.CENTER);
+      const chars = '░▒▓/\\*+x=<>#%@';
+      for (let y = 0; y < asciiLayer.height; y += grid * 2) {
+        for (let x = 0; x < asciiLayer.width; x += grid * 1.6) {
+          const n = p.noise(x * 0.01, y * 0.01, p.millis() * 0.0008 + pulse * 2 + bands.bass * 0.5);
+          const idx = Math.floor(n * chars.length) % chars.length;
+          asciiLayer.text(chars[idx], x, y + Math.sin(n * p.TWO_PI) * grid * 0.5 * pulse);
+        }
+      }
+      asciiLayer.pop();
+    };
+
+    const drawGlitch = (glitch: number, pixelSize: number, pulse: number, beat: number) => {
+      const ctx = (p.drawingContext as CanvasRenderingContext2D)!;
+      const shift = 6 + pixelSize * 0.8 + pulse * 8 + beat * 10 * glitch;
+      ctx.globalCompositeOperation = 'lighter';
+      p.tint(190, 80, 100, 0.7);
+      p.image(base, shift, 0);
+      p.tint(320, 80, 100, 0.6);
+      p.image(base, -shift, 0);
+      p.noTint();
+
+      if (glitch + pulse + beat > 0.2) {
+        const slices = 8;
+        for (let i = 0; i < slices; i += 1) {
+          const sy = (i / slices) * p.height;
+          const sh = (p.height / slices) * (0.8 + Math.random() * 0.4);
+          const dx = (Math.random() - 0.5) * shift * 1.4;
+          p.copy(base, 0, sy, p.width, sh, dx, sy + Math.random() * 6 - 3, p.width, sh);
+        }
+      }
+    };
+
+    const applyFeedback = (amount: number) => {
+      feedback.push();
+      feedback.clear();
+      const snap = p.get();
+      feedback.image(snap, 0, 0);
+      feedback.tint(0, 0, 100, amount * 0.65);
+      feedback.pop();
+      p.push();
+      p.tint(0, 0, 100, amount * 0.8);
+      p.image(feedback, 0, 0, p.width, p.height);
+      p.pop();
+    };
+
+    const drawPixelation = (pixelSize: number, glitch: number) => {
+      const step = Math.max(1, Math.floor(pixelSize));
+      p.push();
+      p.noSmooth();
+      const w = Math.max(1, Math.floor(p.width / step));
+      const h = Math.max(1, Math.floor(p.height / step));
+      const snapshot = p.get();
+      p.image(snapshot, 0, 0, w, h);
+      const pixelated = p.get(0, 0, w, h);
+      p.image(pixelated, 0, 0, p.width, p.height);
+      p.pop();
+
+      if (glitch > 0.15) {
+        p.push();
+        p.blendMode(p.DIFFERENCE);
+        p.stroke(200, 80, 100, 0.3 * glitch);
+        for (let i = 0; i < 16; i += 1) {
+          const y = Math.random() * p.height;
+          p.line(0, y, p.width, y + Math.sin(i) * 6 * glitch);
+        }
+        p.pop();
+      }
+    };
+
+    p.draw = () => {
+      const { params, audioLevel, audioBands, beat, midiPulse, orientation } = getState();
+      const time = p.millis() * 0.001;
+      const aspectPush = orientation === 'portrait' ? 0.3 : 0;
+      const pulse = Math.max(midiPulse, beat * 0.6, params.noteReactive);
+
+      base.clear();
+      drawAtmosphere(time, params.fog, params.intensity, params.glitch, aspectPush);
+      drawRibbons(time, Math.floor(params.ribbonLayers), params.noiseFlow, params.intensity, audioLevel, audioBands, aspectPush);
+      updateParticles(time, params.particleCount, params.noiseFlow, params.intensity, audioBands, pulse);
+      drawHoloLines(time, params.holoLines, params.intensity, audioBands);
+      drawAscii(params.asciiDensity + pulse * 0.4, pulse, audioBands);
+
+      p.clear();
+      p.blendMode(p.BLEND);
+      p.image(base, 0, 0, p.width, p.height);
+      p.blendMode(p.ADD);
+      p.image(asciiLayer, 0, 0, p.width, p.height);
+
+      drawGlitch(params.glitch, params.pixelSize, pulse, beat);
+      drawPixelation(params.pixelSize, params.glitch + pulse * 0.3);
+      applyFeedback(params.feedback * (0.8 + audioLevel * 0.6));
+
+      p.push();
+      p.noStroke();
+      p.fill(0, 0, 0, 0.08);
+      p.rect(0, 0, p.width, p.height);
+      p.pop();
+    };
+  },
+});
+
+export const presets: VisualPreset[] = [createPerformanceLab(), createNebulaBloom(), createChromaticCurrents()];

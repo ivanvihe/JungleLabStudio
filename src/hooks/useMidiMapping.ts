@@ -3,9 +3,10 @@ import { MidiMapping } from '../types';
 
 interface MidiHookOptions {
   onValue: (parameterKey: string, normalizedValue: number) => void;
+  onNote?: (note: number, velocity: number) => void;
 }
 
-export const useMidiMapping = ({ onValue }: MidiHookOptions) => {
+export const useMidiMapping = ({ onValue, onNote }: MidiHookOptions) => {
   const mappingsRef = useRef<Record<string, MidiMapping>>({});
   const [mappings, setMappings] = useState<Record<string, MidiMapping>>({});
   const [learning, setLearning] = useState<string | null>(null);
@@ -41,8 +42,14 @@ export const useMidiMapping = ({ onValue }: MidiHookOptions) => {
     if (!data || data.length < 3) return;
     const [statusByte, control, value] = data;
     const command = statusByte & 0xf0;
-    if (command !== 0xb0) return; // solo CC
     const channel = statusByte & 0x0f;
+
+    if (command === 0x90 && value > 0) {
+      onNote?.(control, value / 127);
+      return;
+    }
+
+    if (command !== 0xb0) return; // solo CC
 
     if (parameterKey) {
       const mapping = { control, channel } satisfies MidiMapping;
