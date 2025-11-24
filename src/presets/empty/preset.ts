@@ -21,21 +21,17 @@ export const config: PresetConfig = {
 };
 
 class EmptyPreset extends BasePreset {
-  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, cfg: PresetConfig) {
-    super(scene, camera, renderer, cfg);
+  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, cfg: PresetConfig, videoElement: HTMLVideoElement) {
+    super(scene, camera, renderer, cfg, videoElement);
   }
-
-  public init(): void {}
-  public update(): void {}
-  public dispose(): void {}
-}
-
+//...
 export function createPreset(
   scene: THREE.Scene,
   camera: THREE.Camera,
   renderer: THREE.WebGLRenderer,
   cfg: PresetConfig,
+  videoElement: HTMLVideoElement,
   shaderCode?: string
 ): BasePreset {
-  return new EmptyPreset(scene, camera, renderer, cfg);
+  return new EmptyPreset(scene, camera, renderer, cfg, videoElement);
 }

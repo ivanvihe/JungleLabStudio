@@ -97,8 +97,8 @@ class AnalysisSpectrum extends BasePreset {
   private readonly BIRTH_DURATION = 0.1;
   private readonly DEATH_DURATION = 0.5;
 
-  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, cfg: PresetConfig) {
-    super(scene, camera, renderer, cfg);
+  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, cfg: PresetConfig, videoElement: HTMLVideoElement) {
+    super(scene, camera, renderer, cfg, videoElement);
     this.currentConfig = cfg.defaultConfig;
   }
 
@@ -534,7 +534,8 @@ export function createPreset(
   scene: THREE.Scene,
   camera: THREE.Camera,
   renderer: THREE.WebGLRenderer,
-  cfg: PresetConfig
+  cfg: PresetConfig,
+  videoElement: HTMLVideoElement
 ): BasePreset {
-  return new AnalysisSpectrum(scene, camera, renderer, cfg);
+  return new AnalysisSpectrum(scene, camera, renderer, cfg, videoElement);
 }

@@ -54,6 +54,10 @@ class FractalLabPreset extends BasePreset {
   private mesh!: THREE.Mesh;
   private currentConfig: any;
 
+  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, cfg: PresetConfig, videoElement: HTMLVideoElement) {
+    super(scene, camera, renderer, cfg, videoElement);
+  }
+
   public init(): void {
     this.currentConfig = JSON.parse(JSON.stringify(this.config.defaultConfig));
     const width = (this.currentConfig.width || 1920) / 100;
@@ -254,7 +258,8 @@ export function createPreset(
   camera: THREE.Camera,
   renderer: THREE.WebGLRenderer,
   cfg: PresetConfig,
+  videoElement: HTMLVideoElement,
   shaderCode?: string
 ): BasePreset {
-  return new FractalLabPreset(scene, camera, renderer, cfg);
+  return new FractalLabPreset(scene, camera, renderer, cfg, videoElement);
 }

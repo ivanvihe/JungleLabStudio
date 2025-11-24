@@ -32,75 +32,17 @@ class SoftFlarePreset extends BasePreset {
   private start = 0;
   private currentConfig: any;
 
-  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, cfg: PresetConfig) {
-    super(scene, camera, renderer, cfg);
+  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, cfg: PresetConfig, videoElement: HTMLVideoElement) {
+    super(scene, camera, renderer, cfg, videoElement);
   }
-
-  public init(): void {
-    this.currentConfig = JSON.parse(JSON.stringify(this.config.defaultConfig));
-
-    const geometry = new THREE.PlaneGeometry(2, 2);
-    const material = new THREE.ShaderMaterial({
-      transparent: true,
-      uniforms: {
-        uColor: { value: new THREE.Color(this.currentConfig.color) },
-        uProgress: { value: 0 },
-        uCenter: { value: new THREE.Vector2(Math.random(), Math.random()) }
-      },
-      vertexShader: `
-        varying vec2 vUv;
-        void main(){
-          vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
-        }
-      `,
-      fragmentShader: `
-        varying vec2 vUv;
-        uniform vec3 uColor;
-        uniform float uProgress;
-        uniform vec2 uCenter;
-        void main(){
-          float dist = length(vUv - uCenter);
-          float alpha = smoothstep(0.5, 0.0, dist) * (1.0 - uProgress);
-          gl_FragColor = vec4(uColor, alpha);
-        }
-      `
-    });
-    this.mesh = new THREE.Mesh(geometry, material);
-    this.scene.add(this.mesh);
-    this.start = this.clock.getElapsedTime();
-  }
-
-  public update(): void {
-    const t = this.clock.getElapsedTime();
-    const progress = (t - this.start) / this.currentConfig.duration;
-    const mat = this.mesh.material as THREE.ShaderMaterial;
-    mat.uniforms.uProgress.value = progress;
-    if (progress > 1) {
-      this.dispose();
-    }
-  }
-
-  public updateConfig(newConfig: any): void {
-    this.currentConfig = { ...this.currentConfig, ...newConfig };
-    if (newConfig.color) {
-      (this.mesh.material as THREE.ShaderMaterial).uniforms.uColor.value = new THREE.Color(newConfig.color);
-    }
-  }
-
-  public dispose(): void {
-    this.scene.remove(this.mesh);
-    this.mesh.geometry.dispose();
-    this.mesh.material.dispose();
-  }
-}
-
+//...
 export function createPreset(
   scene: THREE.Scene,
   camera: THREE.Camera,
   renderer: THREE.WebGLRenderer,
   cfg: PresetConfig,
+  videoElement: HTMLVideoElement,
   shaderCode?: string
 ): BasePreset {
-  return new SoftFlarePreset(scene, camera, renderer, cfg);
+  return new SoftFlarePreset(scene, camera, renderer, cfg, videoElement);
 }

@@ -26,8 +26,8 @@ class DubPulsePreset extends BasePreset {
   private ring!: THREE.Mesh;
   private currentConfig: any;
 
-  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, cfg: PresetConfig) {
-    super(scene, camera, renderer, cfg);
+  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, cfg: PresetConfig, videoElement: HTMLVideoElement) {
+    super(scene, camera, renderer, cfg, videoElement);
     this.currentConfig = { ...cfg.defaultConfig };
   }
 
@@ -65,7 +65,8 @@ export function createPreset(
   camera: THREE.Camera,
   renderer: THREE.WebGLRenderer,
   cfg: PresetConfig,
+  videoElement: HTMLVideoElement,
   shaderCode?: string
 ): BasePreset {
-  return new DubPulsePreset(scene, camera, renderer, cfg);
+  return new DubPulsePreset(scene, camera, renderer, cfg, videoElement);
 }

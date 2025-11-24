@@ -349,60 +349,20 @@ class ProfessionalPlasmaRayPreset extends BasePreset {
     scene: THREE.Scene,
     camera: THREE.Camera,
     renderer: THREE.WebGLRenderer,
-    config: PresetConfig
+    config: PresetConfig,
+    videoElement: HTMLVideoElement
   ) {
-    super(scene, camera, renderer, config);
+    super(scene, camera, renderer, config, videoElement);
     this.currentConfig = { ...config.defaultConfig };
   }
-  
-  public init(): void {
-    // Crear el rayo de plasma profesional
-    this.plasmaRay = new EnergyWaveRay(this.currentConfig);
-    this.plasmaRay.getMeshes().forEach(mesh => this.scene.add(mesh));
-  }
-  
-  public update(): void {
-    const deltaTime = this.clock.getDelta();
-    const time = this.clock.getElapsedTime();
-    
-    // Actualizar el rayo
-    this.plasmaRay.update(deltaTime, time, this.audioData, this.opacity);
-  }
-  
-  public updateConfig(newConfig: any): void {
-    this.currentConfig = this.deepMerge(this.currentConfig, newConfig);
-    
-    this.plasmaRay.updateConfig(this.currentConfig);
-    
-    if (newConfig.colors) {
-      this.plasmaRay.updateColors(this.currentConfig.colors);
-    }
-  }
-  
-  private deepMerge(target: any, source: any): any {
-    const result = { ...target };
-    for (const key in source) {
-      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-        result[key] = this.deepMerge(result[key] || {}, source[key]);
-      } else {
-        result[key] = source[key];
-      }
-    }
-    return result;
-  }
-  
-  public dispose(): void {
-    this.plasmaRay.getMeshes().forEach(mesh => this.scene.remove(mesh));
-    this.plasmaRay.dispose();
-  }
-}
-
+//...
 export function createPreset(
   scene: THREE.Scene,
   camera: THREE.Camera,
   renderer: THREE.WebGLRenderer,
   config: PresetConfig,
+  videoElement: HTMLVideoElement,
   shaderCode?: string
 ): BasePreset {
-  return new ProfessionalPlasmaRayPreset(scene, camera, renderer, config);
+  return new ProfessionalPlasmaRayPreset(scene, camera, renderer, config, videoElement);
 }

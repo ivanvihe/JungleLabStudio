@@ -539,25 +539,18 @@ export class LayerManager {
     }
 
     try {
-      if (layer.activeVideoId) {
+      const loadedPreset = this.presetLoader.getLoadedPresets().find(p => p.id === presetId);
+      if (!loadedPreset) {
+        console.error(`Loaded preset ${presetId} no encontrado`);
+        return false;
+      }
+
+      if (layer.activeVideoId && !loadedPreset.config.usesVideoSource) {
         this.stopVideoPlayback(layer);
       }
       if (layer.preset) {
         this.presetLoader.deactivatePreset(`${layerId}-${layer.preset.id}`);
         layer.scene.clear();
-      }
-
-      const canvas = layer.renderer.domElement;
-      Array.from(canvas.classList).forEach(cls => {
-        if (cls.startsWith('vfx-') || cls.startsWith('effect-')) {
-          canvas.classList.remove(cls);
-        }
-      });
-
-      const loadedPreset = this.presetLoader.getLoadedPresets().find(p => p.id === presetId);
-      if (!loadedPreset) {
-        console.error(`Loaded preset ${presetId} no encontrado`);
-        return false;
       }
 
         const savedConfig = await this.loadLayerPresetConfig(presetId, layerId);
@@ -573,7 +566,8 @@ export class LayerManager {
         `${layerId}-${presetId}`,
         loadedPresetConfig,
         layer.camera,
-        layer.renderer
+        layer.renderer,
+        layer.videoElement
       );
       if (!presetInstance) {
         console.error(`No se pudo activar preset ${presetId}`);

@@ -41,8 +41,8 @@ class AudioTunnelGridPreset extends BasePreset {
   private currentConfig: any;
   private globalTime: number = 0;
 
-  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, cfg: PresetConfig) {
-    super(scene, camera, renderer, cfg);
+  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, cfg: PresetConfig, videoElement: HTMLVideoElement) {
+    super(scene, camera, renderer, cfg, videoElement);
     this.currentConfig = { ...cfg.defaultConfig };
     this.tunnelGroup = new THREE.Group();
     this.scene.add(this.tunnelGroup);
@@ -226,7 +226,8 @@ export function createPreset(
   camera: THREE.Camera,
   renderer: THREE.WebGLRenderer,
   cfg: PresetConfig,
+  videoElement: HTMLVideoElement,
   shaderCode?: string
 ): BasePreset {
-  return new AudioTunnelGridPreset(scene, camera, renderer, cfg);
+  return new AudioTunnelGridPreset(scene, camera, renderer, cfg, videoElement);
 }

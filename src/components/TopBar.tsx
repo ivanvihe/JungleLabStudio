@@ -137,6 +137,12 @@ export const TopBar: React.FC<TopBarProps> = ({
             aria-label="Full screen"
           >⛶</button>
           <button
+            onClick={onToggleOutputMode}
+            className={`action-button ${outputMode === 'vertical' ? 'active' : ''}`}
+            title={outputMode === 'vertical' ? 'Vertical Output (9:16)' : 'Standard Output (16:9)'}
+            aria-label="Toggle vertical output"
+          >📱</button>
+          <button
             onClick={onOpenSettings}
             className="action-button"
             title="Settings"

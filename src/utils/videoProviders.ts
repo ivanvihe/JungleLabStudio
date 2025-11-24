@@ -1,6 +1,7 @@
 import { VideoResource } from '../types/video';
+import { fetchFromLocal } from './localVideoProvider';
 
-export type VideoProviderId = 'pexels' | 'pixabay' | 'archive';
+export type VideoProviderId = 'pexels' | 'pixabay' | 'archive' | 'local';
 
 export interface VideoProviderSettings {
   provider: VideoProviderId;
@@ -110,6 +111,7 @@ const PROVIDER_FETCHERS: Record<VideoProviderId, (settings: VideoProviderSetting
   pexels: fetchFromPexels,
   pixabay: fetchFromPixabay,
   archive: fetchFromArchive,
+  local: fetchFromLocal,
 };
 
 export const loadVideoGallery = async (

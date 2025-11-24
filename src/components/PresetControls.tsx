@@ -8,6 +8,7 @@ import {
   CheckboxControl,
   SelectControl,
 } from './controls';
+import MidiNoteControl from './controls/MidiNoteControl';
 import './PresetControls.css';
 
 interface ControlRendererProps {
@@ -17,14 +18,16 @@ interface ControlRendererProps {
   onChange: (value: any) => void;
   isReadOnly: boolean;
   isCustomTextPreset?: boolean;
+  path: string;
 }
 
-const CONTROL_RENDERERS: Record<string, React.FC<ControlRendererProps>> = {
+const CONTROL_RENDERERS: Record<string, React.FC<any>> = {
   slider: SliderControl,
   text: TextControl,
   color: ColorControl,
   checkbox: CheckboxControl,
   select: SelectControl,
+  'midi-note-recorder': MidiNoteControl,
 };
 
 
@@ -56,24 +59,24 @@ const PresetControls: React.FC<PresetControlsProps> = ({
 
   const isCustomTextPreset = preset.id.startsWith('custom-glitch-text');
 
-  const renderControl = (control: any) => {
-    const value = getControlValue(control.name, control.default);
-    const controlId = `${preset.id}-${control.name}`;
-    const Renderer = CONTROL_RENDERERS[control.type];
-    if (!Renderer) return null;
-    return (
-      <Renderer
-        key={control.name}
-        control={control}
-        value={value}
-        id={controlId}
-        onChange={(val) => handleControlChange(control.name, val)}
-        isReadOnly={isReadOnly}
-        isCustomTextPreset={isCustomTextPreset}
-      />
-    );
-  };
-
+      const renderControl = (control: any) => {
+      const value = getControlValue(control.name, control.default);
+      const controlId = `${preset.id}-${control.name}`;
+      const Renderer = CONTROL_RENDERERS[control.type];
+      if (!Renderer) return null;
+      return (
+        <Renderer
+          key={control.name}
+          control={control}
+          value={value}
+          id={controlId}
+          onChange={(val) => handleControlChange(control.name, val)}
+          isReadOnly={isReadOnly}
+          isCustomTextPreset={isCustomTextPreset}
+          path={control.name}
+        />
+      );
+    };
   if (!preset.config.controls || preset.config.controls.length === 0) {
     return (
       <div className="preset-controls no-controls">

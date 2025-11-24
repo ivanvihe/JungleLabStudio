@@ -289,12 +289,24 @@ class RoboticaCinematicPreset extends BasePreset {
     scene: THREE.Scene,
     camera: THREE.Camera,
     renderer: THREE.WebGLRenderer,
-    config: PresetConfig
+    config: PresetConfig,
+    videoElement: HTMLVideoElement
   ) {
-    super(scene, camera, renderer, config);
+    super(scene, camera, renderer, config, videoElement);
     this.currentConfig = { ...config.defaultConfig };
     this.textGroup = new THREE.Group();
   }
+//...
+export function createPreset(
+  scene: THREE.Scene,
+  camera: THREE.Camera,
+  renderer: THREE.WebGLRenderer,
+  config: PresetConfig,
+  videoElement: HTMLVideoElement,
+  shaderCode?: string
+): BasePreset {
+  return new RoboticaCinematicPreset(scene, camera, renderer, config, videoElement);
+}
 
   public init(): void {
     this.createCinematicText();

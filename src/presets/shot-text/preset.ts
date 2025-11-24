@@ -385,9 +385,10 @@ class RoboticaTextPreset extends BasePreset {
     camera: THREE.Camera,
     renderer: THREE.WebGLRenderer,
     config: PresetConfig,
+    videoElement: HTMLVideoElement,
     private shaderCode?: string
   ) {
-    super(scene, camera, renderer, config);
+    super(scene, camera, renderer, config, videoElement);
     this.currentConfig = { ...config.defaultConfig };
     this.textGroup = new THREE.Group();
     this.glowGroup = new THREE.Group();
@@ -611,7 +612,8 @@ export function createPreset(
   camera: THREE.Camera,
   renderer: THREE.WebGLRenderer,
   config: PresetConfig,
+  videoElement: HTMLVideoElement,
   shaderCode?: string
 ): BasePreset {
-  return new RoboticaTextPreset(scene, camera, renderer, config, shaderCode);
+  return new RoboticaTextPreset(scene, camera, renderer, config, videoElement, shaderCode);
 }

@@ -67,9 +67,10 @@ class GenLabPreset extends BasePreset {
     camera: THREE.Camera,
     renderer: THREE.WebGLRenderer,
     config: PresetConfig,
+    videoElement: HTMLVideoElement,
     shaderCode?: string
   ) {
-    super(scene, camera, renderer, config);
+    super(scene, camera, renderer, config, videoElement);
     this.shaderCode = shaderCode;
   }
 
@@ -370,7 +371,8 @@ export function createPreset(
   camera: THREE.Camera,
   renderer: THREE.WebGLRenderer,
   cfg: PresetConfig,
+  videoElement: HTMLVideoElement,
   shaderCode?: string
 ): BasePreset {
-  return new GenLabPreset(scene, camera, renderer, cfg, shaderCode);
+  return new GenLabPreset(scene, camera, renderer, cfg, videoElement, shaderCode);
 }

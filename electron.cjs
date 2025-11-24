@@ -1,13 +1,14 @@
 const { app, BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('path');
 
-let mainWindow;
+let controlWindow;  // Ventana de controles
+let visualWindow;   // Ventana de visualización
 // Ventanas usadas para monitores secundarios en fullscreen
 let fullscreenWindows = [];
 let mirrorInterval = null;
 const isDev = process.env.NODE_ENV === 'development';
-const startUrl = isDev
-  ? 'http://localhost:3000' // Cambiado de 5173 a 3000 (puerto de Vite por defecto)
+const baseUrl = isDev
+  ? 'http://localhost:3000'
   : `file://${path.join(__dirname, 'dist', 'index.html')}`;
 
 function closeFullscreenWindows() {
@@ -24,69 +25,122 @@ function closeFullscreenWindows() {
 }
 
 function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+  // Ventana de controles (sin canvas)
+  controlWindow = new BrowserWindow({
+    width: 1400,
+    height: 900,
+    x: 100,
+    y: 100,
+    title: 'Jungle Lab Studio - Controls',
     show: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.cjs')
-      // Removido webSecurity: false
     },
   });
 
-  console.log('Loading URL:', startUrl);
-
-  mainWindow.loadURL(startUrl);
-
-  mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
+  // Ventana de visualización (solo canvas)
+  visualWindow = new BrowserWindow({
+    width: 1920,
+    height: 1080,
+    x: 1500,
+    y: 100,
+    title: 'Jungle Lab Studio - Visual Output',
+    backgroundColor: '#000000',
+    show: false,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.cjs')
+    },
   });
 
-  // Log when the page is ready
-  mainWindow.webContents.once('did-finish-load', () => {
-    console.log('✅ Page loaded successfully');
+  const controlUrl = `${baseUrl}${isDev ? '' : ''}?mode=control`;
+  const visualUrl = `${baseUrl}${isDev ? '' : ''}?mode=visual`;
+
+  console.log('Loading Control URL:', controlUrl);
+  console.log('Loading Visual URL:', visualUrl);
+
+  controlWindow.loadURL(controlUrl);
+  visualWindow.loadURL(visualUrl);
+
+  controlWindow.once('ready-to-show', () => {
+    controlWindow.show();
+  });
+
+  visualWindow.once('ready-to-show', () => {
+    visualWindow.show();
+  });
+
+  // Log when the pages are ready
+  controlWindow.webContents.once('did-finish-load', () => {
+    console.log('✅ Control window loaded successfully');
+  });
+
+  visualWindow.webContents.once('did-finish-load', () => {
+    console.log('✅ Visual window loaded successfully');
   });
 
   // Log errores de carga
-  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-    console.error('❌ Failed to load page:', errorCode, errorDescription);
+  controlWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('❌ Failed to load control window:', errorCode, errorDescription);
   });
 
-  // Log console errors from the page
-  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
-    console.log(`Console [${level}]:`, message);
+  visualWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('❌ Failed to load visual window:', errorCode, errorDescription);
+  });
+
+  // Log console errors from the pages
+  controlWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log(`Control [${level}]:`, message);
+  });
+
+  visualWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log(`Visual [${level}]:`, message);
   });
 
   // Si el usuario sale del modo fullscreen manualmente, cerrar las ventanas
   // secundarias y notificar al renderer para que actualice su estado
-  mainWindow.on('leave-full-screen', () => {
+  controlWindow.on('leave-full-screen', () => {
     closeFullscreenWindows();
-    mainWindow.webContents.send('main-leave-fullscreen');
+    controlWindow.webContents.send('main-leave-fullscreen');
   });
 
-  mainWindow.on('closed', () => {
-    mainWindow = null;
+  controlWindow.on('closed', () => {
+    controlWindow = null;
+    // Cerrar también la ventana visual
+    if (visualWindow && !visualWindow.isDestroyed()) {
+      visualWindow.close();
+    }
     closeFullscreenWindows();
+    app.quit();
+  });
+
+  visualWindow.on('closed', () => {
+    visualWindow = null;
+    // Si cierran la ventana visual, cerrar también la de control
+    if (controlWindow && !controlWindow.isDestroyed()) {
+      controlWindow.close();
+    }
   });
 }
 
 ipcMain.on('apply-settings', (event, settings) => {
-  if (!mainWindow) return;
+  if (!visualWindow) return;
   if (settings.monitorId) {
     const displays = screen.getAllDisplays();
     // Allow monitor identifiers as strings to avoid precision issues
     const target = displays.find(d => d.id.toString() === settings.monitorId.toString());
     if (target) {
-      mainWindow.setBounds(target.bounds);
+      visualWindow.setBounds(target.bounds);
     }
   }
   if (settings.maximize) {
-    mainWindow.maximize();
+    visualWindow.maximize();
   }
-  if (!mainWindow.isVisible()) {
-    mainWindow.show();
+  if (!visualWindow.isVisible()) {
+    visualWindow.show();
   }
 });
 
@@ -101,12 +155,12 @@ ipcMain.handle('get-displays', () => {
 });
 
 ipcMain.handle('toggle-fullscreen', (event, ids = []) => {
-  // Si ya hay ventanas de fullscreen abiertas, cerrar y restaurar principal
+  // Si ya hay ventanas de fullscreen abiertas, cerrar y restaurar visual window
   if (fullscreenWindows.length) {
     closeFullscreenWindows();
-    if (mainWindow) {
-      mainWindow.setFullScreen(false);
-      mainWindow.show();
+    if (visualWindow) {
+      visualWindow.setFullScreen(false);
+      visualWindow.show();
     }
     return;
   }
@@ -118,11 +172,11 @@ ipcMain.handle('toggle-fullscreen', (event, ids = []) => {
     const display = displays.find(d => d.id.toString() === id.toString());
     if (!display) return;
 
-    if (index === 0 && mainWindow) {
-      // Usar la ventana principal para el primer monitor sin recargar
-      mainWindow.setBounds(display.bounds);
-      mainWindow.setFullScreen(true);
-      mainWindow.show();
+    if (index === 0 && visualWindow) {
+      // Usar la ventana visual para el primer monitor sin recargar
+      visualWindow.setBounds(display.bounds);
+      visualWindow.setFullScreen(true);
+      visualWindow.show();
     } else {
       // Ventanas clon para monitores secundarios
       const win = new BrowserWindow({
@@ -144,9 +198,9 @@ ipcMain.handle('toggle-fullscreen', (event, ids = []) => {
 
       win.on('closed', () => {
         fullscreenWindows = fullscreenWindows.filter(w => w !== win);
-        if (fullscreenWindows.length === 0 && mainWindow) {
-          mainWindow.setFullScreen(false);
-          mainWindow.show();
+        if (fullscreenWindows.length === 0 && visualWindow) {
+          visualWindow.setFullScreen(false);
+          visualWindow.show();
           if (mirrorInterval) {
             clearInterval(mirrorInterval);
             mirrorInterval = null;
@@ -158,9 +212,9 @@ ipcMain.handle('toggle-fullscreen', (event, ids = []) => {
     }
   });
 
-  if (fullscreenWindows.length && !mirrorInterval && mainWindow) {
+  if (fullscreenWindows.length && !mirrorInterval && visualWindow) {
     mirrorInterval = setInterval(() => {
-      mainWindow.webContents.capturePage().then(image => {
+      visualWindow.webContents.capturePage().then(image => {
         const buffer = image.toJPEG(70);
         fullscreenWindows.forEach(win => {
           win.webContents.send('receive-frame', buffer);

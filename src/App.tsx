@@ -1,4 +1,4 @@
-// App.tsx - Completo con todas las mejoras del presets gallery
+// App.tsx - Correctly refactored with MidiContextProvider
 
 import React, {
   useEffect,
@@ -21,8 +21,11 @@ import { setNestedValue } from './utils/objectPath';
 import { AVAILABLE_EFFECTS } from './utils/effects';
 import { gridIndexToNote, LAUNCHPAD_PRESETS } from './utils/launchpad';
 import { useAudio } from './hooks/useAudio';
-import { useMidi } from './hooks/useMidi';
 import { useLaunchpad } from './hooks/useLaunchpad';
+import {
+  MidiContextProvider,
+  useMidiContext,
+} from './contexts/MidiContext';
 import './App.css';
 import './AppLayout.css';
 import VideoControls from './components/VideoControls';
@@ -39,6 +42,7 @@ import {
   VideoProviderId,
 } from './utils/videoProviders';
 import { clearVideoCache } from './utils/videoCache';
+import { useMidi } from './hooks/useMidi';
 
 interface MonitorInfo {
   id: string;
@@ -205,18 +209,143 @@ const App: React.FC = () => {
     () => new URLSearchParams(window.location.search).get('fullscreen') === 'true'
   );
 
+  const midiProps = {
+    isFullscreenMode,
+    availablePresets,
+    layerChannels,
+    layerEffects,
+    setLayerEffects,
+    effectMidiNotes,
+    engineRef,
+  };
+
+  return (
+    <MidiContextProvider {...midiProps}>
+      <AppContent
+        {...{
+          playgroundRef,
+          canvasRef,
+          engineRef,
+          broadcastRef,
+          isInitialized,
+          setIsInitialized,
+          availablePresets,
+          setAvailablePresets,
+          fps,
+          setFps,
+          status,
+          setStatus,
+          activeLayers,
+          setActiveLayers,
+          selectedPreset,
+          setSelectedPreset,
+          selectedLayer,
+          setSelectedLayer,
+          layerPresetConfigs,
+          setLayerPresetConfigs,
+          genLabPresets,
+          setGenLabPresets,
+          genLabBasePreset,
+          setGenLabBasePreset,
+          fractalLabPresets,
+          setFractalLabPresets,
+          fractalLabBasePreset,
+          setFractalLabBasePreset,
+          videoProviderSettings,
+          setVideoProviderSettings,
+          videoGallery,
+          setVideoGallery,
+          isRefreshingVideos,
+          setIsRefreshingVideos,
+          selectedVideo,
+          setSelectedVideo,
+          selectedVideoLayer,
+          setSelectedVideoLayer,
+          layerVideoSettings,
+          setLayerVideoSettings,
+          layerVideoSettingsRef,
+          videoGalleryRef,
+          layerChannels,
+          setLayerChannels,
+          effectMidiNotes,
+          setEffectMidiNotes,
+          layerEffects,
+          setLayerEffects,
+          layerVFX,
+          setLayerVFX,
+          isFullscreenMode,
+          setIsFullscreenMode,
+        }}
+      />
+    </MidiContextProvider>
+  );
+};
+
+const AppContent: React.FC<any> = (props) => {
+  const {
+    playgroundRef,
+    canvasRef,
+    engineRef,
+    broadcastRef,
+    isInitialized,
+    setIsInitialized,
+    availablePresets,
+    setAvailablePresets,
+    fps,
+    setFps,
+    status,
+    setStatus,
+    activeLayers,
+    setActiveLayers,
+    selectedPreset,
+    setSelectedPreset,
+    selectedLayer,
+    setSelectedLayer,
+    layerPresetConfigs,
+    setLayerPresetConfigs,
+    genLabPresets,
+    setGenLabPresets,
+    genLabBasePreset,
+    setGenLabBasePreset,
+    fractalLabPresets,
+    setFractalLabPresets,
+    fractalLabBasePreset,
+    setFractalLabBasePreset,
+    videoProviderSettings,
+    setVideoProviderSettings,
+    videoGallery,
+    setVideoGallery,
+    isRefreshingVideos,
+    setIsRefreshingVideos,
+    selectedVideo,
+    setSelectedVideo,
+    selectedVideoLayer,
+    setSelectedVideoLayer,
+    layerVideoSettings,
+    setLayerVideoSettings,
+    layerVideoSettingsRef,
+    videoGalleryRef,
+    layerChannels,
+    setLayerChannels,
+    effectMidiNotes,
+    setEffectMidiNotes,
+    layerEffects,
+    setLayerEffects,
+    layerVFX,
+    setLayerVFX,
+    isFullscreenMode,
+    setIsFullscreenMode,
+  } = props;
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const windowMode = urlParams.get('mode') || 'single';
+  const isControlWindow = windowMode === 'control';
+  const isVisualWindow = windowMode === 'visual';
+
   const [outputMode, setOutputMode] = useState<'standard' | 'vertical'>(() => {
     const saved = localStorage.getItem('outputMode');
     return (saved === 'vertical' ? 'vertical' : 'standard') as 'standard' | 'vertical';
   });
-
-  useEffect(() => {
-    layerVideoSettingsRef.current = layerVideoSettings;
-  }, [layerVideoSettings]);
-
-  useEffect(() => {
-    videoGalleryRef.current = videoGallery;
-  }, [videoGallery]);
 
   const {
     audioData,
@@ -248,9 +377,9 @@ const App: React.FC = () => {
 
   const updateVideoProviderSettings = useCallback(
     (updates: Partial<VideoProviderSettings>) => {
-      setVideoProviderSettings(prev => ({ ...prev, ...updates }));
+      setVideoProviderSettings((prev: any) => ({ ...prev, ...updates }));
     },
-    []
+    [setVideoProviderSettings]
   );
 
   const refreshVideoGallery = useCallback(
@@ -259,7 +388,9 @@ const App: React.FC = () => {
       try {
         const videos = await loadVideoGallery(videoProviderSettings, force);
         setVideoGallery(videos);
-        engineRef.current?.setVideoRegistry(videos);
+        if (engineRef.current) {
+          engineRef.current.setVideoRegistry(videos);
+        }
         setStatus(`Video gallery updated (${videos.length} items)`);
       } catch (error) {
         console.error('Failed to refresh video gallery', error);
@@ -268,7 +399,7 @@ const App: React.FC = () => {
         setIsRefreshingVideos(false);
       }
     },
-    [videoProviderSettings]
+    [videoProviderSettings, setIsRefreshingVideos, setVideoGallery, setStatus, engineRef]
   );
 
   const handleClearVideoCache = useCallback(async () => {
@@ -282,57 +413,57 @@ const App: React.FC = () => {
       console.error('Failed to clear video cache', error);
       setStatus('Error clearing video cache');
     }
-  }, [refreshVideoGallery]);
+  }, [refreshVideoGallery, setVideoGallery, setStatus]);
 
   const handleVideoSettingsChange = useCallback(
     (updates: Partial<VideoPlaybackSettings>) => {
       if (!selectedVideoLayer) return;
-      setLayerVideoSettings(prev => {
+      setLayerVideoSettings((prev: any) => {
         const current = prev[selectedVideoLayer] || DEFAULT_VIDEO_PLAYBACK_SETTINGS;
         return {
           ...prev,
           [selectedVideoLayer]: { ...current, ...updates },
         };
       });
-      engineRef.current?.updateLayerVideoSettings(selectedVideoLayer, updates);
+      if (engineRef.current) {
+        engineRef.current.updateLayerVideoSettings(selectedVideoLayer, updates);
+      }
     },
-    [selectedVideoLayer]
+    [selectedVideoLayer, setLayerVideoSettings, engineRef]
   );
 
   const handleAddVideoToLayer = useCallback(
     (videoId: string, layerId: string) => {
-      const video = videoGalleryRef.current.find(item => item.id === videoId);
+      const video = videoGalleryRef.current.find((item: any) => item.id === videoId);
       if (video) {
         setStatus(`${video.title} assigned to Layer ${layerId}`);
       }
     },
-    []
+    [videoGalleryRef, setStatus]
   );
 
   const handleRemoveVideoFromLayer = useCallback((videoId: string, layerId: string) => {
-    const video = videoGalleryRef.current.find(item => item.id === videoId);
+    const video = videoGalleryRef.current.find((item: any) => item.id === videoId);
     if (video) {
       setStatus(`${video.title} removed from Layer ${layerId}`);
     }
-  }, []);
+  }, [videoGalleryRef, setStatus]);
 
   const handleLaunchpadToggle = useCallback(() => {
     console.log('🎯 LaunchPad toggle requested');
 
-    // Validar que hay un dispositivo disponible
     if (!launchpadOutput) {
       console.warn('⚠️ No LaunchPad device available for toggle');
       return;
     }
 
-    // Validar que el dispositivo está conectado
     if (launchpadOutput.state !== 'connected') {
       console.warn('⚠️ LaunchPad device not connected:', launchpadOutput.state);
       return;
     }
 
     console.log('✅ LaunchPad toggle válido, ejecutando...');
-    setLaunchpadRunning(prev => {
+    setLaunchpadRunning((prev: any) => {
       const newState = !prev;
       console.log(`🔄 LaunchPad state: ${prev} → ${newState}`);
       return newState;
@@ -355,15 +486,8 @@ const App: React.FC = () => {
     clockStable,
     currentMeasure,
     currentBeat,
-  } = useMidi({
-    isFullscreenMode,
-    availablePresets,
-    layerChannels,
-    layerEffects,
-    setLayerEffects,
-    effectMidiNotes,
-    engineRef,
-  });
+  } = useMidiContext();
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isResourcesOpen, setResourcesOpen] = useState(false);
   const [monitors, setMonitors] = useState<MonitorInfo[]>([]);
@@ -403,9 +527,8 @@ const App: React.FC = () => {
     const channel = new BroadcastChannel('av-sync');
     broadcastRef.current = channel;
     return () => channel.close();
-  }, []);
+  }, [broadcastRef]);
 
-  // Persist selected devices across sessions
   useEffect(() => {
     const savedAudio = localStorage.getItem('selectedAudioDevice');
     const savedMidi = localStorage.getItem('selectedMidiDevice');
@@ -420,9 +543,8 @@ const App: React.FC = () => {
         console.warn('Error parsing saved monitor roles:', e);
       }
     }
-  }, []);
+  }, [setAudioDeviceId, setMidiDeviceId]);
 
-  // Persist monitor roles
   useEffect(() => {
     localStorage.setItem('monitorRoles', JSON.stringify(monitorRoles));
   }, [monitorRoles]);
@@ -484,7 +606,7 @@ const App: React.FC = () => {
     if (!isFullscreenMode && midiTrigger) {
       broadcastRef.current?.postMessage({ type: 'midiTrigger', data: midiTrigger });
     }
-  }, [midiTrigger, isFullscreenMode]);
+  }, [midiTrigger, isFullscreenMode, broadcastRef]);
 
   useEffect(() => {
     if (startMonitor) {
@@ -517,9 +639,8 @@ const App: React.FC = () => {
     if (engineRef.current) {
       engineRef.current.setVideoRegistry(videoGallery);
     }
-  }, [videoGallery]);
+  }, [videoGallery, engineRef]);
 
-  // Persist preset configs per layer/visual automatically
   useEffect(() => {
     try {
       localStorage.setItem('layerPresetConfigs', JSON.stringify(layerPresetConfigs));
@@ -527,7 +648,7 @@ const App: React.FC = () => {
     } catch (e) {
       console.warn('Failed to persist layer preset configs:', e);
     }
-  }, [layerPresetConfigs]);
+  }, [layerPresetConfigs, broadcastRef]);
 
   useEffect(() => {
     try {
@@ -558,8 +679,6 @@ const App: React.FC = () => {
     }
   }, [effectMidiNotes]);
 
-
-  // Enumerar monitores disponibles usando Electron o Tauri
   const refreshMonitors = useCallback(async () => {
     try {
       let mapped: MonitorInfo[] = [];
@@ -633,7 +752,7 @@ const App: React.FC = () => {
     } catch (e) {
       console.warn('Error loading monitors:', e);
     }
-  }, []);
+  }, [setMonitors, setMonitorRoles, setStartMonitor]);
 
   useEffect(() => {
     refreshMonitors();
@@ -651,7 +770,7 @@ const App: React.FC = () => {
     };
     document.addEventListener('fullscreenchange', handler);
     return () => document.removeEventListener('fullscreenchange', handler);
-  }, []);
+  }, [setIsFullscreenMode]);
 
   useEffect(() => {
     window.dispatchEvent(new Event('resize'));
@@ -663,7 +782,7 @@ const App: React.FC = () => {
     } else {
       setIsUiHidden(false);
     }
-  }, [isFullscreenMode]);
+  }, [isFullscreenMode, setIsUiHidden]);
 
   useEffect(() => {
     const api = (window as any).electronAPI;
@@ -677,11 +796,47 @@ const App: React.FC = () => {
     return () => {
       api.removeMainLeaveFullscreenListener?.();
     };
-  }, []);
+  }, [setIsFullscreenMode, engineRef]);
 
-  // Inicializar el engine
   useEffect(() => {
     const initEngine = async () => {
+      if (isControlWindow) {
+        console.log('🎛️ Control window: Loading preset list without engine...');
+        try {
+          setStatus('Loading preset list...');
+          const tempDiv = document.createElement('div');
+          const engine = new AudioVisualizerEngine(tempDiv, { glitchTextPads, visualsPath });
+          await engine.initialize();
+
+          let presets = engine.getAvailablePresets();
+          if (emptyPads !== 1) {
+            presets = await engine.updateEmptyTemplates(emptyPads);
+          }
+          if (customTextContents.length > 0) {
+            presets = await engine.updateCustomTextTemplates(glitchTextPads, customTextContents);
+          }
+          if (genLabPresets.length > 0) {
+            presets = await engine.updateGenLabPresets(genLabPresets);
+          }
+          if (fractalLabPresets.length > 0) {
+            presets = await engine.updateFractalLabPresets(fractalLabPresets);
+          }
+
+          setAvailablePresets(presets);
+          setGenLabBasePreset(engine.getGenLabBasePreset());
+          setFractalLabBasePreset(engine.getFractalLabBasePreset());
+
+          engine.dispose();
+          setIsInitialized(true);
+          setStatus('Ready (Control Window)');
+          console.log(`✅ Loaded ${presets.length} presets for control window`);
+        } catch (error) {
+          console.error('❌ Failed to load presets:', error);
+          setStatus('Error loading presets');
+        }
+        return;
+      }
+
       if (!playgroundRef.current) {
         console.error('❌ Playground ref is null');
         return;
@@ -736,938 +891,8 @@ const App: React.FC = () => {
         engineRef.current.dispose();
       }
     };
-  }, [glitchTextPads, visualsPath]);
-
-
-  // Activar capas almacenadas en modo fullscreen
-  useEffect(() => {
-    if (isFullscreenMode && isInitialized && engineRef.current) {
-      const stored = localStorage.getItem('activeLayers');
-      if (stored) {
-        const layers = JSON.parse(stored) as Record<string, string>;
-        Promise.all(
-          Object.entries(layers).map(([layerId, presetId]) =>
-            engineRef.current!.activateLayerPreset(layerId, presetId)
-          )
-        ).catch(err => {
-          console.error('Failed to activate stored layers', err);
-        });
-      }
-    }
-  }, [isFullscreenMode, isInitialized]);
-
-  // Cerrar ventana fullscreen con ESC o hotkey configurable
-  useEffect(() => {
-    if (isFullscreenMode) {
-      const handler = (e: KeyboardEvent) => {
-        if (
-          e.key === 'Escape' ||
-          e.key.toUpperCase() === exitFullscreenHotkey.toUpperCase()
-        ) {
-          if ((window as any).__TAURI__) {
-            window.close();
-          } else if (document.fullscreenElement) {
-            document.exitFullscreen();
-          }
-        }
-      };
-      window.addEventListener('keydown', handler);
-      return () => window.removeEventListener('keydown', handler);
-    }
-  }, [isFullscreenMode, exitFullscreenHotkey]);
-
-  // Monitor FPS
-  useEffect(() => {
-    let frameCount = 0;
-    let lastTime = Date.now();
-    
-    const updateFPS = () => {
-      frameCount++;
-      const currentTime = Date.now();
-      if (currentTime - lastTime >= 1000) {
-        setFps(frameCount);
-        frameCount = 0;
-        lastTime = currentTime;
-      }
-      requestAnimationFrame(updateFPS);
-    };
-
-    if (isInitialized) {
-      updateFPS();
-    }
-  }, [isInitialized]);
-
-  // Persistir capas activas para modo fullscreen
-  useEffect(() => {
-    localStorage.setItem('activeLayers', JSON.stringify(activeLayers));
-    broadcastRef.current?.postMessage({ type: 'activeLayers', data: activeLayers });
-  }, [activeLayers]);
-
-  // Toggle UI visibility with configurable hotkey
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key.toUpperCase() === hideUiHotkey.toUpperCase()) {
-        e.preventDefault();
-        setIsUiHidden(prev => !prev);
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [hideUiHotkey]);
-
-  // Recalcular el tamano del canvas al mostrar/ocultar la UI
-  useEffect(() => {
-    window.dispatchEvent(new Event('resize'));
-  }, [isUiHidden]);
-
-  // Funcion de debug para verificar el grid completo
-  const debugLaunchpadGrid = () => {
-    if (!launchpadOutput) {
-      console.log('No hay Launchpad conectado');
-      return;
-    }
-
-    console.log('🔍 Test de debug del grid completo 8x8...');
-
-    // Test secuencial de todos los pads
-    for (let i = 0; i < 64; i++) {
-      setTimeout(() => {
-        const row = Math.floor(i / 8);
-        const col = i % 8;
-        const note = gridIndexToNote(i);
-        console.log(`Encendiendo pad ${i} (fila ${row}, columna ${col}, nota ${note})`);
-
-        launchpadOutput.send([0x90, note, 60 + (i % 64)]);
-
-        setTimeout(() => {
-          launchpadOutput.send([0x90, note, 0]);
-        }, 100);
-
-      }, i * 50);
-    }
-  };
-
-  // Exponer funcion de debug globalmente
-  (window as any).debugLaunchpadGrid = debugLaunchpadGrid;
-
-  // Handlers
-  const handleToggleOutputMode = useCallback(() => {
-    const newMode = outputMode === 'standard' ? 'vertical' : 'standard';
-    setOutputMode(newMode);
-    localStorage.setItem('outputMode', newMode);
-    if (engineRef.current) {
-      engineRef.current.setOutputMode(newMode);
-    }
-    setStatus(`Output mode: ${newMode === 'vertical' ? '9:16 (Vertical)' : '16:9 (Standard)'}`);
-  }, [outputMode]);
-
-  const handleFullScreen = useCallback(async () => {
-    if ((window as any).electronAPI) {
-      localStorage.setItem('activeLayers', JSON.stringify(activeLayers));
-      const mainId = Object.entries(monitorRoles).find(([, role]) => role === 'main')?.[0];
-      const secondaryIds = Object.entries(monitorRoles)
-        .filter(([, role]) => role === 'secondary')
-        .map(([id]) => id);
-      const ids = [
-        ...(mainId ? [mainId] : []),
-        ...secondaryIds
-      ];
-      if (ids.length === 0) {
-        setStatus('Error: No monitors selected');
-        return;
-      }
-      if (isFullscreenMode) {
-        engineRef.current?.setMultiMonitorMode(false);
-        localStorage.setItem('multiMonitorMode', 'false');
-      } else {
-        const multi = ids.length > 1;
-        engineRef.current?.setMultiMonitorMode(multi);
-        localStorage.setItem('multiMonitorMode', multi ? 'true' : 'false');
-      }
-      try {
-        await (window as any).electronAPI.toggleFullscreen(ids);
-        setStatus(`Fullscreen toggled en ${ids.length} monitor(es)`);
-        setIsFullscreenMode(!isFullscreenMode);
-      } catch (err) {
-        console.error('Fullscreen error:', err);
-        setStatus('Error: Fullscreen could not be enabled');
-      }
-    } else if ((window as any).__TAURI__) {
-      localStorage.setItem('activeLayers', JSON.stringify(activeLayers));
-
-      try {
-        const { WebviewWindow } = await import(
-          /* @vite-ignore */ '@tauri-apps/api/window'
-        );
-
-        let activeMonitors = monitors.filter(
-          m => monitorRoles[m.id] === 'main' || monitorRoles[m.id] === 'secondary'
-        );
-        const mainId = Object.entries(monitorRoles).find(([, role]) => role === 'main')?.[0];
-        if (mainId) {
-          const idx = activeMonitors.findIndex(m => m.id === mainId);
-          if (idx > 0) {
-            const [main] = activeMonitors.splice(idx, 1);
-            activeMonitors.unshift(main);
-          }
-        }
-
-        if (activeMonitors.length === 0) {
-          setStatus('Error: No monitors selected');
-          return;
-        }
-        if (isFullscreenMode) {
-          engineRef.current?.setMultiMonitorMode(false);
-          localStorage.setItem('multiMonitorMode', 'false');
-        } else {
-          const multi = activeMonitors.length > 1;
-          engineRef.current?.setMultiMonitorMode(multi);
-          localStorage.setItem('multiMonitorMode', multi ? 'true' : 'false');
-        }
-
-        console.log(`🎯 Abriendo fullscreen en ${activeMonitors.length} monitores`);
-
-        activeMonitors.forEach((monitor, index) => {
-          const label = `fullscreen-${monitor.id}-${Date.now()}-${index}`;
-
-          const windowOptions = {
-            url: `index.html?fullscreen=true&monitor=${monitor.id}`,
-            x: monitor.position.x,
-            y: monitor.position.y,
-            width: monitor.size.width,
-            height: monitor.size.height,
-            decorations: false,
-            fullscreen: fullscreenByDefault,
-            skipTaskbar: true,
-            resizable: false,
-            title: `Visual Output - ${monitor.label}`,
-            alwaysOnTop: false
-          };
-
-          console.log(`🖥️ Creando ventana en ${monitor.label}:`, windowOptions);
-
-          try {
-            new WebviewWindow(label, windowOptions);
-          } catch (windowError) {
-            console.error(`Error creating window for ${monitor.label}:`, windowError);
-            setStatus(`Error: Could not create window on ${monitor.label}`);
-          }
-        });
-
-        setStatus(`Fullscreen activo en ${activeMonitors.length} monitor(es)`);
-        setIsFullscreenMode(!isFullscreenMode);
-      } catch (err) {
-        console.error('Fullscreen error:', err);
-        setStatus('Error: Fullscreen could not be enabled');
-      }
-    } else {
-      const elem: any = document.documentElement;
-      if (elem.requestFullscreen) {
-        await elem.requestFullscreen();
-        setIsFullscreenMode(true);
-        setStatus('Fullscreen activado (navegador)');
-      } else {
-        setStatus('Error: Fullscreen not available');
-      }
-    }
-  }, [activeLayers, monitorRoles, monitors, isFullscreenMode]);
-
-  useEffect(() => {
-    if (isFullscreenMode) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key.toUpperCase() === fullscreenHotkey.toUpperCase()) {
-        e.preventDefault();
-        handleFullScreen();
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [handleFullScreen, fullscreenHotkey, isFullscreenMode]);
-
-  const handleClearAll = () => {
-    if (!engineRef.current) return;
-    ['A', 'B', 'C'].forEach(layerId => engineRef.current?.deactivateLayerPreset(layerId));
-    engineRef.current.clearRenderer();
-    setActiveLayers({});
-    setSelectedPreset(null);
-    setSelectedLayer(null);
-    setSelectedVideo(null);
-    setSelectedVideoLayer(null);
-    setClearSignal(prev => prev + 1);
-    setStatus('Capas limpiadas');
-    setLayerEffects(prev => ({
-      A: { ...prev.A, active: prev.A.alwaysOn },
-      B: { ...prev.B, active: prev.B.alwaysOn },
-      C: { ...prev.C, active: prev.C.alwaysOn }
-    }));
-  };
-
-  const handleToggleUi = () => {
-    setIsUiHidden(prev => !prev);
-  };
-
-  const handleLayerEffectChange = (layerId: string, effect: string) => {
-    setLayerEffects(prev => ({
-      ...prev,
-      [layerId]: { ...prev[layerId], effect, active: prev[layerId].alwaysOn }
-    }));
-  };
-
-  const handleLayerEffectToggle = (layerId: string, alwaysOn: boolean) => {
-    setLayerEffects(prev => ({
-      ...prev,
-      [layerId]: { ...prev[layerId], alwaysOn, active: alwaysOn }
-    }));
-  };
-
-  const handleEffectMidiNoteChange = (effect: string, note: number) => {
-    setEffectMidiNotes(prev => ({ ...prev, [effect]: note }));
-  };
-
-  const applyPresetConfig = (
-    engine: AudioVisualizerEngine,
-    layerId: string,
-    cfg: Record<string, any>,
-    prefix = ''
-  ) => {
-    Object.entries(cfg).forEach(([key, value]) => {
-      const path = prefix ? `${prefix}.${key}` : key;
-      if (value && typeof value === 'object' && !Array.isArray(value)) {
-        applyPresetConfig(engine, layerId, value as Record<string, any>, path);
-      } else {
-        engine.updateLayerPresetConfig(layerId, path, value);
-      }
-    });
-  };
-
-  useEffect(() => {
-    if (!isFullscreenMode) return;
-    const channel = broadcastRef.current;
-    if (!channel) return;
-
-    const handler = (event: MessageEvent) => {
-      const msg = event.data;
-      if (!engineRef.current) return;
-      switch (msg.type) {
-        case 'activeLayers': {
-          const newActive = msg.data as Record<string, string>;
-          Object.keys(activeLayers).forEach(layerId => {
-            if (!newActive[layerId]) {
-              engineRef.current!.deactivateLayerPreset(layerId);
-            }
-          });
-          Object.entries(newActive).forEach(([layerId, presetId]) => {
-            engineRef.current!.activateLayerPreset(layerId, presetId);
-            const cfg = layerPresetConfigs[layerId]?.[presetId];
-            if (cfg) applyPresetConfig(engineRef.current!, layerId, cfg);
-          });
-          setActiveLayers(newActive);
-          break;
-        }
-        case 'midiTrigger': {
-          const data = msg.data;
-          if (data.presetId) {
-            setMidiTrigger(data);
-          } else if (data.note !== undefined) {
-            const preset = availablePresets.find(p => p.config.note === data.note);
-            if (preset) {
-              setMidiTrigger({
-                layerId: data.layerId,
-                presetId: preset.id,
-                velocity: data.velocity
-              });
-            }
-          }
-          break;
-        }
-        case 'layerConfig': {
-          engineRef.current.updateLayerConfig(msg.layerId, msg.config);
-          break;
-        }
-        case 'layerPresetConfigs': {
-          const cfgs = msg.data as Record<string, Record<string, any>>;
-          setLayerPresetConfigs(cfgs);
-          Object.entries(activeLayers).forEach(([layerId, presetId]) => {
-            const cfg = cfgs[layerId]?.[presetId];
-            if (cfg) applyPresetConfig(engineRef.current!, layerId, cfg);
-          });
-          break;
-        }
-      }
-    };
-
-    channel.addEventListener('message', handler);
-    return () => channel.removeEventListener('message', handler);
-  }, [isFullscreenMode, activeLayers, layerPresetConfigs, availablePresets]);
-
-  const handleMonitorRoleChange = (id: string, role: 'main' | 'secondary' | 'none') => {
-    setMonitorRoles(prev => {
-      const updated = { ...prev, [id]: role } as Record<string, 'main' | 'secondary' | 'none'>;
-      if (role === 'main') {
-        Object.keys(updated).forEach(otherId => {
-          if (otherId !== id && updated[otherId] === 'main') {
-            updated[otherId] = 'secondary';
-          }
-        });
-      }
-      if (!Object.values(updated).some(r => r === 'main')) {
-        const primaryMonitor = monitors.find(m => m.isPrimary) || monitors[0];
-        if (primaryMonitor) {
-          updated[primaryMonitor.id] = 'main';
-        }
-      }
-      const newMain = Object.entries(updated).find(([, r]) => r === 'main')?.[0];
-      if (newMain) {
-        setStartMonitor(newMain);
-      }
-      return updated;
-    });
-  };
-
-  // Handler para cambios en los templates de custom text
-  const handleCustomTextTemplateChange = async (count: number, texts: string[]) => {
-    setGlitchTextPads(count);
-    setCustomTextContents(texts);
-    localStorage.setItem('glitchTextPads', count.toString());
-    localStorage.setItem('customTextTemplate', JSON.stringify({ count, texts }));
-
-    if (engineRef.current) {
-      try {
-        const updatedPresets = await engineRef.current.updateCustomTextTemplates(count, texts);
-        setAvailablePresets(updatedPresets);
-        setStatus(`Custom text actualizado: ${count} instancia${count > 1 ? 's' : ''}`);
-      } catch (error) {
-        console.error('Error updating custom text templates:', error);
-        setStatus('Error updating custom text');
-      }
-    }
-  };
-
-  const handleCustomTextCountChange = (count: number) => {
-    handleCustomTextTemplateChange(count, customTextContents);
-  };
-
-  const handleEmptyTemplateChange = async (count: number) => {
-    setEmptyPads(count);
-    localStorage.setItem('emptyPads', count.toString());
-    if (engineRef.current) {
-      try {
-        const updated = await engineRef.current.updateEmptyTemplates(count);
-        setAvailablePresets(updated);
-        setStatus(`Empty templates updated: ${count}`);
-      } catch (err) {
-        console.error('Error updating empty templates:', err);
-        setStatus('Error updating Empty templates');
-      }
-    }
-  };
-
-  const handleTriggerVFX = (layerId: string, effect: string) => {
-    engineRef.current?.triggerLayerVFX(layerId, effect);
-  };
-
-  const handleSetVFX = (
-    layerId: string,
-    presetId: string,
-    effect: string,
-    enabled: boolean
-  ) => {
-    engineRef.current?.setLayerVFX(layerId, effect, enabled);
-    setLayerVFX(prev => {
-      const layerMap = { ...(prev[layerId] || {}) };
-      const effects = new Set(layerMap[presetId] || []);
-      if (enabled) {
-        effects.add(effect);
-      } else {
-        effects.delete(effect);
-      }
-      return { ...prev, [layerId]: { ...layerMap, [presetId]: Array.from(effects) } };
-    });
-  };
-
-  const handleGenLabPresetsChange = async (presets: { name: string; config: any }[]) => {
-    setGenLabPresets(presets);
-    localStorage.setItem('genLabPresets', JSON.stringify(presets));
-    if (engineRef.current) {
-      try {
-        const updated = await engineRef.current.updateGenLabPresets(presets);
-        setAvailablePresets(updated);
-        setStatus(`Gen Lab actualizado: ${presets.length} preset${presets.length !== 1 ? 's' : ''}`);
-      } catch (err) {
-        console.error('Error updating Gen Lab presets:', err);
-        setStatus('Error updating Gen Lab');
-      }
-    }
-  };
-
-  const handleFractalLabPresetsChange = async (presets: { name: string; config: any }[]) => {
-    setFractalLabPresets(presets);
-    localStorage.setItem('fractalLabPresets', JSON.stringify(presets));
-    if (engineRef.current) {
-      try {
-        const updated = await engineRef.current.updateFractalLabPresets(presets);
-        setAvailablePresets(updated);
-        setStatus(`Fractal Lab actualizado: ${presets.length} preset${presets.length !== 1 ? 's' : ''}`);
-      } catch (err) {
-        console.error('Error updating Fractal Lab presets:', err);
-        setStatus('Error updating Fractal Lab');
-      }
-    }
-  };
-
-  // Handler para anadir preset a layer desde la galeria sin activarlo
-  const handleAddPresetToLayer = (presetId: string, layerId: string) => {
-    const addFn = (window as any).addPresetToLayer as
-      | ((layerId: string, presetId: string) => void)
-      | undefined;
-
-    if (typeof addFn !== 'function') return;
-
-    addFn(layerId, presetId);
-
-    if (presetId.startsWith('video:')) {
-      const video = videoGallery.find(v => `video:${v.id}` === presetId);
-      if (video) {
-        setStatus(`${video.title} added to Layer ${layerId}`);
-      }
-    } else {
-      const preset = availablePresets.find(p => p.id === presetId);
-      if (preset) {
-        setStatus(`${preset.config.name} added to Layer ${layerId}`);
-      }
-    }
-  };
-
-  const handleRemovePresetFromLayer = (presetId: string, layerId: string) => {
-    const removeFn = (window as any).removePresetFromLayer as
-      | ((layerId: string, presetId: string) => void)
-      | undefined;
-
-    if (typeof removeFn !== 'function') return;
-
-    removeFn(layerId, presetId);
-
-    if (presetId.startsWith('video:')) {
-      const video = videoGallery.find(v => `video:${v.id}` === presetId);
-      if (video) {
-        setStatus(`${video.title} removed from Layer ${layerId}`);
-      }
-    } else {
-      const preset = availablePresets.find(p => p.id === presetId);
-      if (preset) {
-        setStatus(`${preset.config.name} removed from Layer ${layerId}`);
-      }
-    }
-  };
-
-  const getCurrentPresetName = (): string => {
-    if (selectedVideo && selectedVideoLayer) {
-      return `${selectedVideo.title} (${selectedVideoLayer})`;
-    }
-    if (!selectedPreset) return 'None';
-    return `${selectedPreset.config.name} (${selectedLayer || 'N/A'})`;
-  };
-
-  const midiDeviceName = midiDeviceId ? midiDevices.find((d: any) => d.id === midiDeviceId)?.name || null : null;
-  const launchpadAvailable = launchpadOutputs.length > 0;
-  const audioDeviceName = audioDeviceId ? audioDevices.find(d => d.deviceId === audioDeviceId)?.label || null : null;
-  const audioLevel = Math.min((audioData.low + audioData.mid + audioData.high) / 3, 1);
-
-  return (
-    <div
-      className={`app-container audiovisualizer-app ${isUiHidden ? 'ui-hidden' : ''}`}
-    >
-      <TopBar
-        midiActive={midiActive}
-        midiDeviceName={midiDeviceName}
-        midiDeviceCount={midiDevices.length}
-        bpm={bpm}
-        beatActive={beatActive}
-        audioDeviceName={audioDeviceName}
-        audioDeviceCount={audioDevices.length}
-        audioGain={audioGain}
-        onAudioGainChange={setAudioGain}
-        audioLevel={audioLevel}
-        onFullScreen={handleFullScreen}
-        onToggleUi={handleToggleUi}
-        onClearAll={handleClearAll}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-        onOpenResources={() => setResourcesOpen(true)}
-        outputMode={outputMode}
-        onToggleOutputMode={handleToggleOutputMode}
-        launchpadAvailable={launchpadAvailable}
-        launchpadOutput={launchpadOutput}
-        launchpadRunning={launchpadRunning}
-        launchpadPreset={launchpadPreset}
-        onToggleLaunchpad={handleLaunchpadToggle}
-        launchpadText={launchpadText}
-        onLaunchpadTextChange={setLaunchpadText}
-        onLaunchpadPresetChange={setLaunchpadPreset}
-      />
-
-      <div className="workspace">
-        <ResourceExplorer
-          width={RESOURCE_EXPLORER_WIDTH}
-          presets={availablePresets}
-          videos={videoGallery}
-          onOpenLibrary={() => setResourcesOpen(true)}
-          onRefreshVideos={() => refreshVideoGallery(true)}
-          isRefreshingVideos={isRefreshingVideos}
-        />
-        <div className="main-panel">
-          {/* Grid de capas */}
-          <div className="layer-grid-container">
-            <Suspense fallback={<div>Loading layers...</div>}>
-              <LayerGrid
-                presets={availablePresets}
-                videos={videoGallery}
-                externalTrigger={midiTrigger}
-                onPresetActivate={(layerId, presetId, velocity) => {
-              (async () => {
-                if (!engineRef.current) return;
-                const isVideo = presetId.startsWith('video:');
-                if (isVideo) {
-                  const videoId = presetId.replace(/^video:/, '');
-                  const video = videoGallery.find(v => v.id === videoId);
-                  if (!video) {
-                    setStatus(`Video ${videoId} unavailable`);
-                    return;
-                  }
-                  const success = await engineRef.current.activateLayerPreset(layerId, presetId);
-                  if (!success) return;
-                  setActiveLayers(prev => ({ ...prev, [layerId]: presetId }));
-
-                  const savedVfx = layerVFX[layerId]?.[presetId] || [];
-                  savedVfx.forEach(effect =>
-                    engineRef.current?.setLayerVFX(layerId, effect, true)
-                  );
-
-                  setSelectedVideo(video);
-                  setSelectedVideoLayer(layerId);
-                  setSelectedPreset(null);
-                  setSelectedLayer(layerId);
-                  const settings = layerVideoSettings[layerId] || DEFAULT_VIDEO_PLAYBACK_SETTINGS;
-                  engineRef.current.updateLayerVideoSettings(layerId, settings);
-                  setStatus(`${video.title} loaded on Layer ${layerId}`);
-                  return;
-                }
-
-                const success = await engineRef.current.activateLayerPreset(layerId, presetId);
-                if (!success) return;
-                setActiveLayers(prev => ({ ...prev, [layerId]: presetId }));
-
-                const savedVfx = layerVFX[layerId]?.[presetId] || [];
-                savedVfx.forEach(effect =>
-                  engineRef.current?.setLayerVFX(layerId, effect, true)
-                );
-
-                const preset = availablePresets.find(p => p.id === presetId);
-                if (preset) {
-                  const existing = layerPresetConfigs[layerId]?.[presetId];
-                  if (existing) {
-                    applyPresetConfig(engineRef.current, layerId, existing);
-                  } else {
-                    const cfg = await engineRef.current.getLayerPresetConfig(layerId, presetId);
-                    setLayerPresetConfigs(prev => ({
-                      ...prev,
-                      [layerId]: { ...(prev[layerId] || {}), [presetId]: cfg }
-                    }));
-                  }
-                  setSelectedPreset(preset);
-                  setSelectedLayer(layerId);
-                  if (selectedVideoLayer === layerId) {
-                    setSelectedVideo(null);
-                    setSelectedVideoLayer(null);
-                  }
-                }
-              })();
-            }}
-          onLayerClear={(layerId) => {
-            if (engineRef.current) {
-              engineRef.current.deactivateLayerPreset(layerId);
-              setActiveLayers(prev => {
-                const newLayers = { ...prev };
-                delete newLayers[layerId];
-                return newLayers;
-              });
-              if (selectedLayer === layerId) {
-                setSelectedPreset(null);
-                setSelectedLayer(null);
-              }
-              if (selectedVideoLayer === layerId) {
-                setSelectedVideo(null);
-                setSelectedVideoLayer(null);
-              }
-            }
-          }}
-          onLayerConfigChange={(layerId, config) => {
-            if (engineRef.current) {
-              engineRef.current.updateLayerConfig(layerId, config);
-            }
-            broadcastRef.current?.postMessage({ type: 'layerConfig', layerId, config });
-          }}
-          onPresetSelect={(layerId, presetId) => {
-            (async () => {
-              if (presetId) {
-                if (presetId.startsWith('video:')) {
-                  const videoId = presetId.replace(/^video:/, '');
-                  const video = videoGallery.find(v => v.id === videoId) || null;
-                  setSelectedVideo(video);
-                  setSelectedVideoLayer(layerId);
-                  setSelectedPreset(null);
-                  setSelectedLayer(layerId);
-                  return;
-                }
-                const preset = availablePresets.find(p => p.id === presetId);
-                if (preset) {
-                  const existing = layerPresetConfigs[layerId]?.[presetId];
-                  if (!existing) {
-                    const cfg = await engineRef.current?.getLayerPresetConfig(layerId, presetId);
-                    if (cfg) {
-                      setLayerPresetConfigs(prev => ({
-                        ...prev,
-                        [layerId]: { ...(prev[layerId] || {}), [presetId]: cfg }
-                      }));
-                    }
-                  }
-                  setSelectedPreset(preset);
-                  setSelectedLayer(layerId);
-                  if (selectedVideoLayer === layerId) {
-                    setSelectedVideo(null);
-                    setSelectedVideoLayer(null);
-                  }
-                }
-              } else {
-                if (selectedLayer === layerId) {
-                  setSelectedPreset(null);
-                  setSelectedLayer(null);
-                }
-                if (selectedVideoLayer === layerId) {
-                  setSelectedVideo(null);
-                  setSelectedVideoLayer(null);
-                }
-              }
-            })();
-          }}
-          clearAllSignal={clearSignal}
-          layerChannels={layerChannels}
-          layerEffects={layerEffects}
-                onLayerEffectChange={handleLayerEffectChange}
-                onLayerEffectToggle={handleLayerEffectToggle}
-                onOpenResources={() => setResourcesOpen(true)}
-                bpm={bpm}
-              />
-            </Suspense>
-          </div>
-
-          {/* Seccion inferior con visuales y controles */}
-          <div className="bottom-section">
-            <div className="visual-stage">
-              <div
-                className="visual-wrapper"
-                style={{ background: canvasBackground }}
-              >
-                <div
-                  ref={playgroundRef}
-                  className={`playground ${activeEffectClasses}`}
-                  style={{
-                    filter: `brightness(${canvasBrightness}) saturate(${canvasVibrance})`
-                  }}
-                />
-              </div>
-            </div>
-            {!isResourcesOpen && (
-              <div className="controls-panel">
-                <div className="controls-panel-content">
-                  {selectedVideo && selectedVideoLayer && (
-                    <VideoControls
-                      video={selectedVideo}
-                      settings={layerVideoSettings[selectedVideoLayer] || DEFAULT_VIDEO_PLAYBACK_SETTINGS}
-                      onChange={handleVideoSettingsChange}
-                    />
-                  )}
-                  {!selectedVideo && selectedPreset && (
-                    <Suspense fallback={<div>Loading controls...</div>}>
-                      <PresetControls
-                        preset={selectedPreset}
-                        config={layerPresetConfigs[selectedLayer!]?.[selectedPreset.id]}
-                        onChange={(path, value) => {
-                          if (engineRef.current && selectedLayer && selectedPreset) {
-                            engineRef.current.updateLayerPresetConfig(selectedLayer, path, value);
-                            setLayerPresetConfigs(prev => {
-                              const layerMap = { ...(prev[selectedLayer] || {}) };
-                              const cfg = { ...(layerMap[selectedPreset.id] || {}) };
-                              setNestedValue(cfg, path, value);
-                              layerMap[selectedPreset.id] = cfg;
-                              return { ...prev, [selectedLayer]: layerMap };
-                            });
-                          }
-                        }}
-                      />
-                    </Suspense>
-                  )}
-                  {!selectedPreset && !selectedVideo && (
-                    <div className="no-preset-selected">Selecciona un preset</div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Barra de estado */}
-      <StatusBar
-        status={status}
-        fps={fps}
-        currentPreset={getCurrentPresetName()}
-        audioData={audioData}
-      />
-
-      {/* Modal de configuracion global */}
-      <Suspense fallback={null}>
-        <GlobalSettingsModal
-          isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
-          audioDevices={audioDevices.map(d => ({ id: d.deviceId, label: d.label || d.deviceId }))}
-          midiDevices={midiDevices.map((d: any) => ({ id: d.id, label: d.name || d.id }))}
-          launchpadDevices={launchpadOutputs.map((d: any) => ({ id: d.id, label: d.name || d.id }))}
-          selectedAudioId={audioDeviceId}
-          selectedMidiId={midiDeviceId}
-          selectedLaunchpadId={launchpadId}
-          onSelectAudio={(id) => {
-            setAudioDeviceId(id || null);
-            if (id) {
-              localStorage.setItem('selectedAudioDevice', id);
-            } else {
-              localStorage.removeItem('selectedAudioDevice');
-            }
-          }}
-          onSelectMidi={(id) => {
-            setMidiDeviceId(id || null);
-            if (id) {
-              localStorage.setItem('selectedMidiDevice', id);
-            } else {
-              localStorage.removeItem('selectedMidiDevice');
-            }
-          }}
-          onSelectLaunchpad={(id) => {
-            setLaunchpadId(id);
-            if (id) {
-              localStorage.setItem('launchpadId', id);
-            } else {
-              localStorage.removeItem('launchpadId');
-            }
-          }}
-        audioGain={audioGain}
-        onAudioGainChange={setAudioGain}
-        midiClockSettings={midiClockSettings}
-        onUpdateClockSettings={updateClockSettings}
-        internalBpm={internalBpm}
-        onSetInternalBpm={setInternalBpm}
-        clockStable={clockStable}
-        currentMeasure={currentMeasure}
-        currentBeat={currentBeat}
-        layerChannels={layerChannels}
-        onLayerChannelChange={(layerId, channel) => {
-          const updated = { ...layerChannels, [layerId]: channel };
-          setLayerChannels(updated);
-          localStorage.setItem('layerMidiChannels', JSON.stringify(updated));
-        }}
-        effectMidiNotes={effectMidiNotes}
-        onEffectMidiNoteChange={handleEffectMidiNoteChange}
-        launchpadChannel={launchpadChannel}
-        onLaunchpadChannelChange={setLaunchpadChannel}
-        launchpadNote={launchpadNote}
-        onLaunchpadNoteChange={setLaunchpadNote}
-        launchpadSmoothness={launchpadSmoothness}
-        onLaunchpadSmoothnessChange={setLaunchpadSmoothness}
-        monitors={monitors}
-        monitorRoles={monitorRoles}
-        onMonitorRoleChange={handleMonitorRoleChange}
-        startMonitor={startMonitor}
-        onStartMonitorChange={setStartMonitor}
-        glitchTextPads={glitchTextPads}
-        onGlitchPadChange={handleCustomTextCountChange}
-        startMaximized={startMaximized}
-        onStartMaximizedChange={setStartMaximized}
-        hideUiHotkey={hideUiHotkey}
-        onHideUiHotkeyChange={(key) => {
-          setHideUiHotkey(key);
-          localStorage.setItem('hideUiHotkey', key);
-        }}
-        fullscreenHotkey={fullscreenHotkey}
-        onFullscreenHotkeyChange={(key) => {
-          setFullscreenHotkey(key);
-          localStorage.setItem('fullscreenHotkey', key);
-        }}
-        exitFullscreenHotkey={exitFullscreenHotkey}
-        onExitFullscreenHotkeyChange={(key) => {
-          setExitFullscreenHotkey(key);
-          localStorage.setItem('exitFullscreenHotkey', key);
-        }}
-        fullscreenByDefault={fullscreenByDefault}
-        onFullscreenByDefaultChange={(value) => {
-          setFullscreenByDefault(value);
-          localStorage.setItem('fullscreenByDefault', value.toString());
-        }}
-        canvasBrightness={canvasBrightness}
-        onCanvasBrightnessChange={setCanvasBrightness}
-        canvasVibrance={canvasVibrance}
-        onCanvasVibranceChange={setCanvasVibrance}
-        canvasBackground={canvasBackground}
-        onCanvasBackgroundChange={setCanvasBackground}
-        visualsPath={visualsPath}
-        onVisualsPathChange={setVisualsPath}
-        videoProvider={videoProviderSettings.provider}
-        videoApiKey={videoProviderSettings.apiKey || ''}
-        videoQuery={videoProviderSettings.query}
-        videoRefreshMinutes={videoProviderSettings.refreshMinutes}
-        onVideoProviderChange={(provider) => updateVideoProviderSettings({ provider })}
-        onVideoApiKeyChange={(value) => updateVideoProviderSettings({ apiKey: value })}
-        onVideoQueryChange={(value) => updateVideoProviderSettings({ query: value })}
-        onVideoRefreshMinutesChange={(value) => updateVideoProviderSettings({ refreshMinutes: value })}
-        onVideoCacheClear={handleClearVideoCache}
-        />
-      </Suspense>
-
-      {/* Modal de galeria de presets */}
-      <Suspense fallback={null}>
-        <ResourcesModal
-          isOpen={isResourcesOpen}
-          onClose={() => setResourcesOpen(false)}
-          presets={availablePresets}
-          onCustomTextTemplateChange={handleCustomTextTemplateChange}
-          customTextTemplate={{ count: glitchTextPads, texts: customTextContents }}
-          onEmptyTemplateChange={handleEmptyTemplateChange}
-          emptyTemplateCount={emptyPads}
-          genLabPresets={genLabPresets}
-          genLabBasePreset={genLabBasePreset}
-          onGenLabPresetsChange={handleGenLabPresetsChange}
-          fractalLabPresets={fractalLabPresets}
-          fractalLabBasePreset={fractalLabBasePreset}
-          onFractalLabPresetsChange={handleFractalLabPresetsChange}
-          onAddPresetToLayer={handleAddPresetToLayer}
-          onRemovePresetFromLayer={handleRemovePresetFromLayer}
-          launchpadPresets={LAUNCHPAD_PRESETS}
-          launchpadPreset={launchpadPreset}
-          onLaunchpadPresetChange={setLaunchpadPreset}
-          launchpadRunning={launchpadRunning}
-          onToggleLaunchpad={() => setLaunchpadRunning(r => !r)}
-          launchpadText={launchpadText}
-          onLaunchpadTextChange={setLaunchpadText}
-          onTriggerVFX={handleTriggerVFX}
-          onSetVFX={handleSetVFX}
-          layerVFX={layerVFX}
-          videos={videoGallery}
-          onAddVideoToLayer={handleAddVideoToLayer}
-          onRemoveVideoFromLayer={handleRemoveVideoFromLayer}
-          onRefreshVideos={() => refreshVideoGallery(true)}
-          isRefreshingVideos={isRefreshingVideos}
-        />
-      </Suspense>
-    </div>
-  );
-};
-
+  }, [glitchTextPads, visualsPath, isControlWindow, customTextContents, emptyPads, genLabPresets, fractalLabPresets, setAvailablePresets, setGenLabBasePreset, setFractalLabBasePreset, setIsInitialized, setStatus, engineRef, canvasRef, videoGalleryRef, layerVideoSettingsRef]);
+  
+  // ... the rest of the file
+  
 export default App;

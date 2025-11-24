@@ -78,6 +78,32 @@
   background: #000;
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Vertical output mode - 9:16 aspect ratio */
+.visual-wrapper.vertical-output {
+  max-width: calc((100vh - 200px) * 9 / 16);
+  margin: 0 auto;
+}
+
+.visual-wrapper.vertical-output .playground {
+  aspect-ratio: 9 / 16;
+  width: 100%;
+  height: auto;
+  max-height: 100%;
+  position: relative;
+}
+
+/* Standard output mode - maintain 16:9 aspect ratio */
+.visual-wrapper.standard-output .playground {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  height: auto;
+  max-height: 100%;
+  position: relative;
 }
 
 .playground {
@@ -175,4 +201,14 @@
   font-size: 14px;
   text-align: center;
   margin-top: 20px;
+}
+
+/* Control Window - expand controls to full width */
+.app-container.control-window .controls-panel {
+  flex: 1;
+  max-width: 100%;
+}
+
+.app-container.control-window .bottom-section {
+  gap: 0;
 }

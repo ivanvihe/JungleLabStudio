@@ -74,6 +74,10 @@ class GenerativeDubV2Preset extends BasePreset {
   private stageOrder: number[] = [];
   private stageIndex = 0;
 
+  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, cfg: PresetConfig, videoElement: HTMLVideoElement, private shaderCode?: string) {
+    super(scene, camera, renderer, cfg, videoElement);
+  }
+
   private static readonly PALETTES = [
     ['#0d1b2a', '#1b263b', '#415a77'],
     ['#232526', '#414345', '#6b6b6b'],
@@ -453,7 +457,8 @@ export function createPreset(
   camera: THREE.Camera,
   renderer: THREE.WebGLRenderer,
   cfg: PresetConfig,
+  videoElement: HTMLVideoElement,
   shaderCode?: string
 ): BasePreset {
-  return new GenerativeDubV2Preset(scene, camera, renderer, cfg);
+  return new GenerativeDubV2Preset(scene, camera, renderer, cfg, videoElement, shaderCode);
 }

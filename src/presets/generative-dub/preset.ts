@@ -64,6 +64,10 @@ class GenerativeDubPreset extends BasePreset {
 
   private static readonly PATTERN_COUNT = 15;
 
+  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, cfg: PresetConfig, videoElement: HTMLVideoElement, private shaderCode?: string) {
+    super(scene, camera, renderer, cfg, videoElement);
+  }
+
   private static readonly PALETTES = [
     ['#0e0e0e', '#3a506b', '#5bc0be'],
     ['#000000', '#1b262c', '#0f4c75'],
@@ -431,7 +435,8 @@ export function createPreset(
   camera: THREE.Camera,
   renderer: THREE.WebGLRenderer,
   cfg: PresetConfig,
+  videoElement: HTMLVideoElement,
   shaderCode?: string
 ): BasePreset {
-  return new GenerativeDubPreset(scene, camera, renderer, cfg);
+  return new GenerativeDubPreset(scene, camera, renderer, cfg, videoElement, shaderCode);
 }

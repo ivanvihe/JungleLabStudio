@@ -70,16 +70,18 @@ export abstract class BasePreset {
   protected camera: THREE.Camera;
   protected renderer: THREE.WebGLRenderer;
   protected config: PresetConfig;
+  protected videoElement: HTMLVideoElement;
   protected audioData: AudioData = { low: 0, mid: 0, high: 0, fft: [] };
   protected clock: THREE.Clock = new THREE.Clock();
   protected opacity: number = 1.0;
   protected bpm: number = 120;
 
-  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, config: PresetConfig) {
+  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, config: PresetConfig, videoElement: HTMLVideoElement) {
     this.scene = scene;
     this.camera = camera;
     this.renderer = renderer;
     this.config = config;
+    this.videoElement = videoElement;
   }
 
   abstract init(): void;
@@ -115,7 +117,7 @@ export abstract class BasePreset {
 export interface LoadedPreset {
   id: string;
   config: PresetConfig;
-  createPreset: (scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, config: PresetConfig, shaderCode?: string) => BasePreset;
+  createPreset: (scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, config: PresetConfig, videoElement: HTMLVideoElement, shaderCode?: string) => BasePreset;
   shaderCode?: string;
   folderPath: string;
 }
@@ -582,7 +584,8 @@ export class PresetLoader {
     instanceId: string,
     configOverride: PresetConfig | undefined,
     cameraOverride: THREE.Camera | undefined,
-    renderer: THREE.WebGLRenderer
+    renderer: THREE.WebGLRenderer,
+    videoElement: HTMLVideoElement
   ): BasePreset | null {
     const loadedPreset = this.loadedPresets.get(presetId);
     if (!loadedPreset) {
@@ -598,6 +601,7 @@ export class PresetLoader {
         cameraOverride ?? this.camera,
         renderer,
         configOverride ?? loadedPreset.config,
+        videoElement,
         loadedPreset.shaderCode
       );
 

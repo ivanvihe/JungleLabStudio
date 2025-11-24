@@ -32,8 +32,8 @@ class AuroraPulsePreset extends BasePreset {
   private start = 0;
   private currentConfig: any;
 
-  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, cfg: PresetConfig) {
-    super(scene, camera, renderer, cfg);
+  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, cfg: PresetConfig, videoElement: HTMLVideoElement) {
+    super(scene, camera, renderer, cfg, videoElement);
   }
 
   public init(): void {
@@ -111,7 +111,8 @@ export function createPreset(
   camera: THREE.Camera,
   renderer: THREE.WebGLRenderer,
   cfg: PresetConfig,
+  videoElement: HTMLVideoElement,
   shaderCode?: string
 ): BasePreset {
-  return new AuroraPulsePreset(scene, camera, renderer, cfg);
+  return new AuroraPulsePreset(scene, camera, renderer, cfg, videoElement);
 }
