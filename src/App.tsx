@@ -1789,6 +1789,28 @@ const AppContent: React.FC<any> = (props) => {
   const audioDeviceName = audioDeviceId ? audioDevices.find(d => d.deviceId === audioDeviceId)?.label || null : null;
   const audioLevel = Math.min((audioData.low + audioData.mid + audioData.high) / 3, 1);
 
+  if (isVisualWindow) {
+    return (
+      <div className="visual-output-window">
+        <div
+          ref={playgroundRef}
+          className={`visual-output-stage ${activeEffectClasses}`}
+          style={{
+            background: canvasBackground,
+            filter: `brightness(${canvasBrightness}) saturate(${canvasVibrance})`
+          }}
+        />
+
+        <StatusBar
+          status={status}
+          fps={fps}
+          currentPreset={getCurrentPresetName()}
+          audioData={audioData}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className={`app-container audiovisualizer-app ${isUiHidden ? 'ui-hidden' : ''}`}
