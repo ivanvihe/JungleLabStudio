@@ -10,6 +10,7 @@ import {
 } from './controls';
 import MidiNoteControl from './controls/MidiNoteControl';
 import './PresetControls.css';
+import { useMidiContext } from '../contexts/MidiContext';
 
 interface ControlRendererProps {
   control: any;
@@ -36,14 +37,25 @@ interface PresetControlsProps {
   config: Record<string, any>;
   onChange?: (path: string, value: any) => void;
   isReadOnly?: boolean;
+  layerId?: string;
 }
 
 const PresetControls: React.FC<PresetControlsProps> = ({
   preset,
   config,
   onChange,
-  isReadOnly = false
+  isReadOnly = false,
+  layerId
 }) => {
+  const {
+    startParameterLearn,
+    cancelParameterLearn,
+    parameterLearnTarget,
+    parameterMappings,
+    mappedParameterEvent,
+    clearParameterMapping,
+  } = useMidiContext();
+
   const handleControlChange = (controlName: string, value: any) => {
     if (isReadOnly || !onChange) return;
     onChange(controlName, value);
@@ -59,14 +71,64 @@ const PresetControls: React.FC<PresetControlsProps> = ({
 
   const isCustomTextPreset = preset.id.startsWith('custom-glitch-text');
 
-      const renderControl = (control: any) => {
-      const value = getControlValue(control.name, control.default);
-      const controlId = `${preset.id}-${control.name}`;
-      const Renderer = CONTROL_RENDERERS[control.type];
-      if (!Renderer) return null;
-      return (
+  const controlTarget = (controlName: string) => {
+    const scope = layerId || 'global';
+    return `${scope}:${preset.id}:${controlName}`;
+  };
+
+  React.useEffect(() => {
+    if (mappedParameterEvent && mappedParameterEvent.target) {
+      const [, , controlName] = mappedParameterEvent.target.split(':');
+      if (controlName && preset.id && controlTarget(controlName) === mappedParameterEvent.target) {
+        handleControlChange(controlName, mappedParameterEvent.value);
+      }
+    }
+  }, [mappedParameterEvent]);
+
+  const renderControl = (control: any) => {
+    const value = getControlValue(control.name, control.default);
+    const controlId = `${preset.id}-${control.name}`;
+    const Renderer = CONTROL_RENDERERS[control.type];
+    if (!Renderer) return null;
+
+    const targetId = controlTarget(control.name);
+    const mapping = parameterMappings[targetId];
+    const isLearning = parameterLearnTarget?.id === targetId;
+
+    return (
+      <div key={control.name} className="control-with-midi">
+        <div className="control-header">
+          <span className="control-title">{control.label}</span>
+          {!isReadOnly && (
+            <div className="midi-map-buttons">
+              <button
+                type="button"
+                className={`midi-learn ${isLearning ? 'learning' : ''}`}
+                onClick={() =>
+                  isLearning
+                    ? cancelParameterLearn()
+                    : startParameterLearn(targetId, {
+                        min: control.min,
+                        max: control.max,
+                        label: control.label,
+                      })
+                }
+              >
+                {isLearning ? 'Asignando CC…' : 'Learn'}
+              </button>
+              {mapping && (
+                <button
+                  type="button"
+                  className="midi-clear"
+                  onClick={() => clearParameterMapping(targetId)}
+                >
+                  CC {mapping.cc}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         <Renderer
-          key={control.name}
           control={control}
           value={value}
           id={controlId}
@@ -75,8 +137,9 @@ const PresetControls: React.FC<PresetControlsProps> = ({
           isCustomTextPreset={isCustomTextPreset}
           path={control.name}
         />
-      );
-    };
+      </div>
+    );
+  };
   if (!preset.config.controls || preset.config.controls.length === 0) {
     return (
       <div className="preset-controls no-controls">

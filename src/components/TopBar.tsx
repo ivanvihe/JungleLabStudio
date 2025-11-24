@@ -18,6 +18,7 @@ interface TopBarProps {
   onClearAll: () => void;
   onOpenSettings: () => void;
   onOpenResources: () => void;
+  onOpenDesigner?: () => void;
   outputMode?: 'standard' | 'vertical';
   onToggleOutputMode?: () => void;
   launchpadAvailable: boolean;
@@ -46,6 +47,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onClearAll,
   onOpenSettings,
   onOpenResources,
+  onOpenDesigner,
   outputMode = 'standard',
   onToggleOutputMode,
   launchpadAvailable,
@@ -118,6 +120,12 @@ export const TopBar: React.FC<TopBarProps> = ({
             title="Abrir galería completa"
             aria-label="Open resource library"
           >🗂️</button>
+          <button
+            onClick={() => onOpenDesigner?.()}
+            className="action-button"
+            title="Diseñador de presets inmersivos"
+            aria-label="Open immersive preset designer"
+          >🎨</button>
           <button
             onClick={onClearAll}
             className="action-button"

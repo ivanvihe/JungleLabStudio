@@ -29,6 +29,9 @@ interface MidiOptions {
   engineRef: React.MutableRefObject<AudioVisualizerEngine | null>;
   onNoteLearned?: (note: number) => void;
   isLearning?: boolean;
+  onControlChange?: (event: { cc: number; value: number; channel: number }) => void;
+  onControlLearned?: (cc: number, channel: number) => void;
+  isControlLearning?: boolean;
 }
 
 interface MidiClockSettings {
@@ -309,6 +312,20 @@ export function useMidi(options: MidiOptions) {
         return;
       }
 
+      // Procesar eventos de control change para MIDI Learn de parámetros
+      if (messageType === 0xb0) {
+        const cc = data[1];
+        const ccValue = data[2];
+
+        if (options.isControlLearning && options.onControlLearned) {
+          options.onControlLearned(cc, channel);
+          return;
+        }
+
+        options.onControlChange?.({ cc, value: ccValue, channel });
+        return;
+      }
+
       // Procesar otros triggers MIDI (layers, efectos, etc.)
       if (messageType === 0x90 || messageType === 0x80) {
         setMidiActive(true);
@@ -408,6 +425,10 @@ export function useMidi(options: MidiOptions) {
     onLaunchpadToggle,
     enableLaunchpadToggle,
     availablePresets,
+    options.onControlChange,
+    options.onControlLearned,
+    options.isControlLearning,
+    options.isLearning,
   ]);
 
   const updateClockSettings = (updates: Partial<MidiClockSettings>) => {

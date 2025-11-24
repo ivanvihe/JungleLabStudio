@@ -28,6 +28,37 @@ interface MidiContextType {
   cancelMidiLearn: () => void;
   midiLearnTarget: string | null;
   lastCapturedNote: { target: string, note: number } | null;
+
+  // MIDI CC Learn for parameters
+  startParameterLearn: (target: string, meta?: MidiLearnMeta) => void;
+  cancelParameterLearn: () => void;
+  parameterLearnTarget: MidiLearnTarget | null;
+  parameterMappings: Record<string, MidiMapping>;
+  mappedParameterEvent: MidiMappedEvent | null;
+  clearParameterMapping: (target: string) => void;
+}
+
+interface MidiMapping {
+  cc: number;
+  channel: number;
+  min?: number;
+  max?: number;
+  label?: string;
+}
+
+interface MidiLearnMeta {
+  min?: number;
+  max?: number;
+  label?: string;
+}
+
+interface MidiLearnTarget extends MidiLearnMeta {
+  id: string;
+}
+
+interface MidiMappedEvent {
+  target: string;
+  value: number;
 }
 
 const MidiContext = createContext<MidiContextType | null>(null);
@@ -58,6 +89,16 @@ export const MidiContextProvider: React.FC<MidiContextProviderProps> = ({
 }) => {
   const [midiLearnTarget, setMidiLearnTarget] = useState<string | null>(null);
   const [lastCapturedNote, setLastCapturedNote] = useState<{target: string, note: number} | null>(null);
+  const [parameterLearnTarget, setParameterLearnTarget] = useState<MidiLearnTarget | null>(null);
+  const [parameterMappings, setParameterMappings] = useState<Record<string, MidiMapping>>(() => {
+    try {
+      const stored = localStorage.getItem('parameterMidiMappings');
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+  const [mappedParameterEvent, setMappedParameterEvent] = useState<MidiMappedEvent | null>(null);
 
   const startMidiLearn = useCallback((target: string) => {
     setMidiLearnTarget(target);
@@ -79,7 +120,50 @@ export const MidiContextProvider: React.FC<MidiContextProviderProps> = ({
     ...midiOptions,
     onNoteLearned,
     isLearning: !!midiLearnTarget,
+    onControlChange: ({ cc, value, channel }) => {
+      if (parameterLearnTarget && midiOptions.isFullscreenMode) return; // avoid mapping while fullscreen prevent accidents
+      const match = Object.entries(parameterMappings).find(
+        ([, mapping]) => mapping.cc === cc && mapping.channel === channel,
+      );
+      if (match) {
+        const [target, mapping] = match;
+        const normalized = value / 127;
+        const scaled = mapping.min !== undefined && mapping.max !== undefined
+          ? mapping.min + normalized * (mapping.max - mapping.min)
+          : normalized;
+        setMappedParameterEvent({ target, value: scaled });
+      }
+    },
+    onControlLearned: (cc, channel) => {
+      if (parameterLearnTarget) {
+        setParameterMappings(prev => {
+          const next = { ...prev, [parameterLearnTarget.id]: { cc, channel, min: parameterLearnTarget.min, max: parameterLearnTarget.max, label: parameterLearnTarget.label } };
+          localStorage.setItem('parameterMidiMappings', JSON.stringify(next));
+          return next;
+        });
+        setMappedParameterEvent({ target: parameterLearnTarget.id, value: parameterLearnTarget.min ?? 0 });
+        setParameterLearnTarget(null);
+      }
+    },
+    isControlLearning: !!parameterLearnTarget,
   });
+
+  const startParameterLearn = useCallback((target: string, meta?: MidiLearnMeta) => {
+    setParameterLearnTarget({ id: target, ...meta });
+  }, []);
+
+  const cancelParameterLearn = useCallback(() => {
+    setParameterLearnTarget(null);
+  }, []);
+
+  const clearParameterMapping = useCallback((target: string) => {
+    setParameterMappings(prev => {
+      const next = { ...prev };
+      delete next[target];
+      localStorage.setItem('parameterMidiMappings', JSON.stringify(next));
+      return next;
+    });
+  }, []);
 
   const value = {
     ...midiData,
@@ -87,6 +171,12 @@ export const MidiContextProvider: React.FC<MidiContextProviderProps> = ({
     cancelMidiLearn,
     midiLearnTarget,
     lastCapturedNote,
+    startParameterLearn,
+    cancelParameterLearn,
+    parameterLearnTarget,
+    parameterMappings,
+    mappedParameterEvent,
+    clearParameterMapping,
   };
 
   return <MidiContext.Provider value={value}>{children}</MidiContext.Provider>;
