@@ -40,6 +40,7 @@ import {
   VideoProviderId,
 } from './utils/videoProviders';
 import { clearVideoCache } from './utils/videoCache';
+import { MidiContextProvider, useMidiContext } from './contexts/MidiContext';
 
 import { CronJob, CronJobRunResult } from './types/automation';
 import { ProjectConfig, ProjectValidationResult } from './types/projects';
@@ -279,6 +280,16 @@ const App: React.FC = () => {
   useEffect(() => {
     layerVideoSettingsRef.current = layerVideoSettings;
   }, [layerVideoSettings]);
+
+  const midiProps = {
+    isFullscreenMode,
+    availablePresets,
+    layerChannels,
+    layerEffects,
+    setLayerEffects,
+    effectMidiNotes,
+    engineRef,
+  };
 
   return (
     <MidiContextProvider {...midiProps}>
