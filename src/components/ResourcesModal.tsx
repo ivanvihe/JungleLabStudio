@@ -647,6 +647,7 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({
               <PresetControls
                 preset={preset}
                 config={preset.config.defaultConfig || {}}
+                layerId="library-preview"
                 onChange={handleDefaultControlChange}
               />
             </div>

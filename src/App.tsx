@@ -16,6 +16,7 @@ const LayerGrid = lazy(() => import('./components/LayerGrid'));
 const PresetControls = lazy(() => import('./components/PresetControls'));
 const ResourcesModal = lazy(() => import('./components/ResourcesModal'));
 const GlobalSettingsModal = lazy(() => import('./components/GlobalSettingsModal'));
+const ImmersivePresetDesigner = lazy(() => import('./components/ImmersivePresetDesigner'));
 import { LoadedPreset } from './core/PresetLoader';
 import { setNestedValue } from './utils/objectPath';
 import { AVAILABLE_EFFECTS } from './utils/effects';
@@ -33,6 +34,7 @@ import {
   VideoPlaybackSettings,
   DEFAULT_VIDEO_PLAYBACK_SETTINGS,
 } from './types/video';
+import type { ImmersiveTemplate } from './components/ImmersivePresetDesigner';
 import {
   loadVideoGallery,
   clearVideoGalleryCache,
@@ -100,6 +102,14 @@ const App: React.FC = () => {
     }
   });
   const [fractalLabBasePreset, setFractalLabBasePreset] = useState<LoadedPreset | null>(null);
+  const [isDesignerOpen, setDesignerOpen] = useState(false);
+  const [immersiveTemplates, setImmersiveTemplates] = useState<ImmersiveTemplate[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('immersiveTemplates') || '[]');
+    } catch {
+      return [];
+    }
+  });
 
   const defaultVideoProviderSettings: VideoProviderSettings = {
     provider: 'pexels',
@@ -164,6 +174,14 @@ const App: React.FC = () => {
 
   const layerVideoSettingsRef = useRef(layerVideoSettings);
   const videoGalleryRef = useRef(videoGallery);
+
+  const handleSaveImmersiveTemplate = useCallback((template: ImmersiveTemplate) => {
+    setImmersiveTemplates(prev => {
+      const next = [...prev, template];
+      localStorage.setItem('immersiveTemplates', JSON.stringify(next));
+      return next;
+    });
+  }, []);
 
   // Top bar & settings state
   const [layerChannels, setLayerChannels] = useState<Record<string, number>>(() => {
@@ -1832,6 +1850,7 @@ const AppContent: React.FC<any> = (props) => {
         onClearAll={handleClearAll}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenResources={() => setResourcesOpen(true)}
+        onOpenDesigner={() => setDesignerOpen(true)}
         launchpadAvailable={launchpadAvailable}
         launchpadOutput={launchpadOutput}
         launchpadRunning={launchpadRunning}
@@ -2028,6 +2047,7 @@ const AppContent: React.FC<any> = (props) => {
                       <PresetControls
                         preset={selectedPreset}
                         config={layerPresetConfigs[selectedLayer!]?.[selectedPreset.id]}
+                        layerId={selectedLayer || undefined}
                         onChange={(path, value) => {
                           if (engineRef.current && selectedLayer && selectedPreset) {
                             engineRef.current.updateLayerPresetConfig(selectedLayer, path, value);
@@ -2208,12 +2228,22 @@ const AppContent: React.FC<any> = (props) => {
           onSetVFX={handleSetVFX}
           layerVFX={layerVFX}
           videos={videoGallery}
-          onAddVideoToLayer={handleAddVideoToLayer}
-          onRemoveVideoFromLayer={handleRemoveVideoFromLayer}
-          onRefreshVideos={() => refreshVideoGallery(true)}
-          isRefreshingVideos={isRefreshingVideos}
-        />
-      </Suspense>
+        onAddVideoToLayer={handleAddVideoToLayer}
+        onRemoveVideoFromLayer={handleRemoveVideoFromLayer}
+        onRefreshVideos={() => refreshVideoGallery(true)}
+        isRefreshingVideos={isRefreshingVideos}
+      />
+    </Suspense>
+
+    <Suspense fallback={null}>
+      <ImmersivePresetDesigner
+        isOpen={isDesignerOpen}
+        onClose={() => setDesignerOpen(false)}
+        presets={availablePresets}
+        templates={immersiveTemplates}
+        onSaveTemplate={handleSaveImmersiveTemplate}
+      />
+    </Suspense>
     </div>
   );
 };

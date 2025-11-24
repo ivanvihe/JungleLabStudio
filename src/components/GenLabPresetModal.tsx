@@ -57,7 +57,12 @@ export const GenLabPresetModal: React.FC<GenLabPresetModalProps> = ({
             onChange={e => setName(e.target.value)}
             placeholder="Preset name"
           />
-          <PresetControls preset={basePreset} config={config} onChange={handleControlChange} />
+          <PresetControls
+            preset={basePreset}
+            config={config}
+            onChange={handleControlChange}
+            layerId="genlab"
+          />
           <div className="genlab-modal-actions">
             <button onClick={handleSave}>Save</button>
           </div>

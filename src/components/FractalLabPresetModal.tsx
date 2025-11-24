@@ -57,7 +57,12 @@ export const FractalLabPresetModal: React.FC<FractalLabPresetModalProps> = ({
             onChange={e => setName(e.target.value)}
             placeholder="Preset name"
           />
-          <PresetControls preset={basePreset} config={config} onChange={handleControlChange} />
+          <PresetControls
+            preset={basePreset}
+            config={config}
+            onChange={handleControlChange}
+            layerId="fractallab"
+          />
           <div className="fractallab-modal-actions">
             <button onClick={handleSave}>Save</button>
           </div>
