@@ -135,8 +135,8 @@ export class InfiniteNeuralNetwork extends BasePreset {
   private originalBackground: THREE.Color | THREE.Texture | null = null;
   private originalOverrideMaterial: THREE.Material | null = null;
 
-  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, config: PresetConfig) {
-    super(scene, camera, renderer, config);
+  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, config: PresetConfig, videoElement: HTMLVideoElement) {
+    super(scene, camera, renderer, config, videoElement);
     this.currentConfig = JSON.parse(JSON.stringify(config.defaultConfig));
   }
 
@@ -305,8 +305,9 @@ export function createPreset(
   scene: THREE.Scene,
   camera: THREE.Camera,
   renderer: THREE.WebGLRenderer,
-  config: PresetConfig
+  config: PresetConfig,
+  videoElement: HTMLVideoElement
 ): BasePreset {
-  return new InfiniteNeuralNetwork(scene, camera, renderer, config);
+  return new InfiniteNeuralNetwork(scene, camera, renderer, config, videoElement);
 }
 

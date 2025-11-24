@@ -18,6 +18,8 @@ interface TopBarProps {
   onClearAll: () => void;
   onOpenSettings: () => void;
   onOpenResources: () => void;
+  outputMode?: 'standard' | 'vertical';
+  onToggleOutputMode?: () => void;
   launchpadAvailable: boolean;
   launchpadOutput: any | null;
   launchpadRunning: boolean;
@@ -44,6 +46,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   onClearAll,
   onOpenSettings,
   onOpenResources,
+  outputMode = 'standard',
+  onToggleOutputMode,
   launchpadAvailable,
   launchpadOutput,
   launchpadRunning,
@@ -132,6 +136,12 @@ export const TopBar: React.FC<TopBarProps> = ({
             title="Full screen"
             aria-label="Full screen"
           >⛶</button>
+          <button
+            onClick={onToggleOutputMode}
+            className={`action-button ${outputMode === 'vertical' ? 'active' : ''}`}
+            title={outputMode === 'vertical' ? 'Vertical Output (9:16)' : 'Standard Output (16:9)'}
+            aria-label="Toggle vertical output"
+          >📱</button>
           <button
             onClick={onOpenSettings}
             className="action-button"

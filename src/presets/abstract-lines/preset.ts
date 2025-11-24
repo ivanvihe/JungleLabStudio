@@ -317,118 +317,18 @@ class AbstractLinesPreset extends BasePreset {
     scene: THREE.Scene,
     camera: THREE.Camera, 
     renderer: THREE.WebGLRenderer,
-    config: PresetConfig
+    config: PresetConfig,
+    videoElement: HTMLVideoElement
   ) {
-    super(scene, camera, renderer, config);
-    
-    this.currentConfig = { ...config.defaultConfig };
-    this.linePool = new LinePool();
-    this.initializeColors();
-  }
-
-  private initializeColors(): void {
-    this.colorPalette = [
-      new THREE.Color(this.currentConfig.colors.primary),
-      new THREE.Color(this.currentConfig.colors.secondary),
-      new THREE.Color(this.currentConfig.colors.detail),
-      new THREE.Color(this.currentConfig.colors.accent)
-    ];
-  }
-
-  public init(): void {
-    // Sin fondo - completamente transparente
-    
-    // Crear lineas iniciales
-    for (let i = 0; i < 20; i++) {
-      this.spawnLine();
-    }
-  }
-
-  private spawnLine(): void {
-    const color = this.colorPalette[Math.floor(Math.random() * this.colorPalette.length)];
-    const line = this.linePool.acquire(
-      this.currentConfig.geometry.segments,
-      color,
-      this.currentConfig.geometry.thickness
-    );
-    
-    this.scene.add(line.getMesh());
-  }
-
-  public update(): void {
-    const deltaTime = this.clock.getDelta();
-    const time = this.clock.getElapsedTime();
-    this.frameCount++;
-
-    // Optimizacion: update solo cada N frames en performance mode
-    const shouldUpdate = this.frameCount % Math.max(1, Math.floor(60 / this.currentConfig.performance.updateFrequency)) === 0;
-    
-    if (shouldUpdate) {
-      // Spawn control basado en audio
-      this.spawnTimer += deltaTime;
-      const spawnRate = 0.5 + this.audioData.low * 2;
-      
-      if (this.spawnTimer > 1 / spawnRate && 
-          this.linePool.getActive().length < this.currentConfig.performance.maxLines) {
-        this.spawnLine();
-        this.spawnTimer = 0;
-      }
-
-      // Update active lines
-      const activeLines = this.linePool.getActive();
-      for (let i = activeLines.length - 1; i >= 0; i--) {
-        const line = activeLines[i];
-        line.update(deltaTime, time, this.audioData, this.currentConfig);
-        
-        if (line.isDead()) {
-          this.scene.remove(line.getMesh());
-          this.linePool.release(line);
-        }
-      }
-    }
-
-    // Actualizar opacidad global
-    this.linePool.getActive().forEach(line => {
-      line.getMesh().material.uniforms.uOpacity.value *= this.opacity;
-    });
-
-    applyVFX(this.renderer.domElement, this.audioData);
-  }
-
-  public updateConfig(newConfig: any): void {
-    this.currentConfig = this.deepMerge(this.currentConfig, newConfig);
-    
-    if (newConfig.colors) {
-      this.initializeColors();
-    }
-  }
-
-  private deepMerge(target: any, source: any): any {
-    const result = { ...target };
-    for (const key in source) {
-      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-        result[key] = this.deepMerge(result[key] || {}, source[key]);
-      } else {
-        result[key] = source[key];
-      }
-    }
-    return result;
-  }
-
-  public dispose(): void {
-    this.linePool.getActive().forEach(line => {
-      this.scene.remove(line.getMesh());
-    });
-    this.linePool.dispose();
-  }
-}
-
+    super(scene, camera, renderer, config, videoElement);
+//...
 export function createPreset(
   scene: THREE.Scene,
   camera: THREE.Camera,
   renderer: THREE.WebGLRenderer,
   config: PresetConfig,
+  videoElement: HTMLVideoElement,
   shaderCode?: string
 ): BasePreset {
-  return new AbstractLinesPreset(scene, camera, renderer, config);
+  return new AbstractLinesPreset(scene, camera, renderer, config, videoElement);
 }

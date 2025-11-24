@@ -1,0 +1,257 @@
+{
+  "name": "Procedural Complex",
+  "description": "Procedural geometry with evolving lines, dynamic particles and 3D point-clouds. Audio-reactive with shader-based distortions, fluid noise, raymarching and SDF shapes. Ultra-smooth motion with dark minimal aesthetic.",
+  "author": "Glitch Project",
+  "version": "1.0.0",
+  "category": "glitch-project",
+  "tags": ["procedural", "advanced", "shader", "raymarching", "particles", "audio-reactive", "volumetric"],
+  "thumbnail": "procedural_complex_thumb.png",
+  "note": 48,
+  "defaultConfig": {
+    "opacity": 1.0,
+    "fadeMs": 300,
+    "geometry": {
+      "lineCount": 80,
+      "pointCloudDensity": 2000,
+      "particleCount": 1500,
+      "complexityLevel": 5,
+      "evolutionSpeed": 0.4
+    },
+    "shaders": {
+      "distortionIntensity": 0.6,
+      "noiseScale": 2.5,
+      "rayMarchSteps": 64,
+      "sdfSmoothing": 0.3,
+      "volumetricDensity": 0.8
+    },
+    "motion": {
+      "flowSpeed": 0.5,
+      "turbulence": 0.7,
+      "smoothness": 0.9,
+      "organicMovement": 0.8
+    },
+    "colors": {
+      "primary": "#0a0a0a",
+      "accent1": "#1a1a2e",
+      "accent2": "#16213e",
+      "highlight": "#0f3460",
+      "glow": "#e94560"
+    },
+    "audioReactivity": {
+      "lowFreqInfluence": 0.8,
+      "midFreqInfluence": 0.7,
+      "highFreqInfluence": 0.6,
+      "beatPulse": 1.2
+    },
+    "effects": {
+      "enableVolumetric": true,
+      "enableRaymarching": true,
+      "enableDistortion": true,
+      "enableGlow": true,
+      "quality": "high"
+    }
+  },
+  "controls": [
+    {
+      "name": "geometry.lineCount",
+      "type": "slider",
+      "label": "Line Count",
+      "min": 20,
+      "max": 150,
+      "step": 10,
+      "default": 80
+    },
+    {
+      "name": "geometry.pointCloudDensity",
+      "type": "slider",
+      "label": "Point Cloud Density",
+      "min": 500,
+      "max": 5000,
+      "step": 100,
+      "default": 2000
+    },
+    {
+      "name": "geometry.particleCount",
+      "type": "slider",
+      "label": "Particle Count",
+      "min": 500,
+      "max": 3000,
+      "step": 100,
+      "default": 1500
+    },
+    {
+      "name": "geometry.complexityLevel",
+      "type": "slider",
+      "label": "Complexity Level",
+      "min": 1,
+      "max": 10,
+      "step": 1,
+      "default": 5
+    },
+    {
+      "name": "shaders.distortionIntensity",
+      "type": "slider",
+      "label": "Distortion Intensity",
+      "min": 0.0,
+      "max": 1.5,
+      "step": 0.1,
+      "default": 0.6
+    },
+    {
+      "name": "shaders.noiseScale",
+      "type": "slider",
+      "label": "Noise Scale",
+      "min": 0.5,
+      "max": 5.0,
+      "step": 0.1,
+      "default": 2.5
+    },
+    {
+      "name": "shaders.rayMarchSteps",
+      "type": "slider",
+      "label": "Ray March Steps",
+      "min": 32,
+      "max": 128,
+      "step": 8,
+      "default": 64
+    },
+    {
+      "name": "motion.flowSpeed",
+      "type": "slider",
+      "label": "Flow Speed",
+      "min": 0.1,
+      "max": 2.0,
+      "step": 0.1,
+      "default": 0.5
+    },
+    {
+      "name": "motion.turbulence",
+      "type": "slider",
+      "label": "Turbulence",
+      "min": 0.0,
+      "max": 1.5,
+      "step": 0.1,
+      "default": 0.7
+    },
+    {
+      "name": "motion.smoothness",
+      "type": "slider",
+      "label": "Smoothness",
+      "min": 0.0,
+      "max": 1.0,
+      "step": 0.05,
+      "default": 0.9
+    },
+    {
+      "name": "audioReactivity.lowFreqInfluence",
+      "type": "slider",
+      "label": "Low Freq Influence",
+      "min": 0.0,
+      "max": 2.0,
+      "step": 0.1,
+      "default": 0.8
+    },
+    {
+      "name": "audioReactivity.midFreqInfluence",
+      "type": "slider",
+      "label": "Mid Freq Influence",
+      "min": 0.0,
+      "max": 2.0,
+      "step": 0.1,
+      "default": 0.7
+    },
+    {
+      "name": "audioReactivity.highFreqInfluence",
+      "type": "slider",
+      "label": "High Freq Influence",
+      "min": 0.0,
+      "max": 2.0,
+      "step": 0.1,
+      "default": 0.6
+    },
+    {
+      "name": "colors.primary",
+      "type": "color",
+      "label": "Primary Color",
+      "default": "#0a0a0a"
+    },
+    {
+      "name": "colors.accent1",
+      "type": "color",
+      "label": "Accent 1",
+      "default": "#1a1a2e"
+    },
+    {
+      "name": "colors.accent2",
+      "type": "color",
+      "label": "Accent 2",
+      "default": "#16213e"
+    },
+    {
+      "name": "colors.highlight",
+      "type": "color",
+      "label": "Highlight",
+      "default": "#0f3460"
+    },
+    {
+      "name": "colors.glow",
+      "type": "color",
+      "label": "Glow Color",
+      "default": "#e94560"
+    },
+    {
+      "name": "effects.enableVolumetric",
+      "type": "checkbox",
+      "label": "Enable Volumetric",
+      "default": true
+    },
+    {
+      "name": "effects.enableRaymarching",
+      "type": "checkbox",
+      "label": "Enable Raymarching",
+      "default": true
+    },
+    {
+      "name": "effects.enableDistortion",
+      "type": "checkbox",
+      "label": "Enable Distortion",
+      "default": true
+    },
+    {
+      "name": "effects.enableGlow",
+      "type": "checkbox",
+      "label": "Enable Glow",
+      "default": true
+    }
+  ],
+  "vfx": {
+    "effects": [
+      {"name": "glitch", "label": "Glitch"},
+      {"name": "chromatic", "label": "Chromatic Aberration"},
+      {"name": "bloom", "label": "Bloom"},
+      {"name": "scanlines", "label": "Scanlines"}
+    ]
+  },
+  "audioMapping": {
+    "low": {
+      "description": "Controls particle density and line evolution",
+      "frequency": "20-250 Hz",
+      "effect": "Geometry morphing and particle spawning"
+    },
+    "mid": {
+      "description": "Modulates shader distortion and flow",
+      "frequency": "250-4000 Hz",
+      "effect": "Fluid noise and organic movement"
+    },
+    "high": {
+      "description": "Affects volumetric lighting and fine details",
+      "frequency": "4000+ Hz",
+      "effect": "Glow intensity and high-frequency distortions"
+    }
+  },
+  "performance": {
+    "complexity": "high",
+    "recommendedFPS": 60,
+    "gpuIntensive": true
+  }
+}

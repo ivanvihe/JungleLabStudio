@@ -325,8 +325,8 @@ class JungleGridPreset extends BasePreset {
   private cellWidth = 0.8;
   private cellHeight = 0.8;
 
-  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, config: PresetConfig) {
-    super(scene, camera, renderer, config);
+  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, config: PresetConfig, videoElement: HTMLVideoElement) {
+    super(scene, camera, renderer, config, videoElement);
 
     this.client = new AbletonRemoteClient();
     this.gridGroup = new THREE.Group();
@@ -590,7 +590,8 @@ export function createPreset(
   camera: THREE.Camera,
   renderer: THREE.WebGLRenderer,
   cfg: PresetConfig,
+  videoElement: HTMLVideoElement,
   shaderCode?: string
 ): BasePreset {
-  return new JungleGridPreset(scene, camera, renderer, cfg);
+  return new JungleGridPreset(scene, camera, renderer, cfg, videoElement);
 }

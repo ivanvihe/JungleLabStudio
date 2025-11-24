@@ -135,8 +135,8 @@ class CustomGlitchTextPreset extends BasePreset {
   private currentConfig: any;
   private start = 0;
 
-  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, cfg: PresetConfig) {
-    super(scene, camera, renderer, cfg);
+  constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer, cfg: PresetConfig, videoElement: HTMLVideoElement) {
+    super(scene, camera, renderer, cfg, videoElement);
   }
 
   public init(): void {
@@ -150,7 +150,8 @@ class CustomGlitchTextPreset extends BasePreset {
     this.disposeMeshes();
     if (this.currentConfig.effect === 'robotica') {
       this.buildRobotica();
-    } else {
+    }
+    else {
       this.buildGlitch();
     }
   }
@@ -179,11 +180,11 @@ class CustomGlitchTextPreset extends BasePreset {
   private buildRobotica(): void {
     this.letters = [];
     const { content, fontSize, fontFamily, letterSpacing } = this.currentConfig.text;
-    const totalWidth = content.length * (fontSize/100 + letterSpacing);
+    const totalWidth = content.length * (fontSize / 100 + letterSpacing);
     for (let i = 0; i < content.length; i++) {
       const char = content[i];
-      const x = i * (fontSize/100 + letterSpacing) - totalWidth/2;
-      const letter = new CinematicLetter(char, fontSize, fontFamily, new THREE.Vector3(x,0,0), this.currentConfig.color, i);
+      const x = i * (fontSize / 100 + letterSpacing) - totalWidth / 2;
+      const letter = new CinematicLetter(char, fontSize, fontFamily, new THREE.Vector3(x, 0, 0), this.currentConfig.color, i);
       this.group.add(letter.mesh);
       this.group.add(letter.glow);
       this.letters.push(letter);
@@ -201,12 +202,12 @@ class CustomGlitchTextPreset extends BasePreset {
   private updateCanvas(): void {
     if (!this.ctx || !this.canvas) return;
     const { content, fontSize, fontFamily } = this.currentConfig.text;
-    this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.ctx.fillStyle = '#ffffff';
     this.ctx.font = `${fontSize}px ${fontFamily}`;
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
-    this.ctx.fillText(content, this.canvas.width/2, this.canvas.height/2);
+    this.ctx.fillText(content, this.canvas.width / 2, this.canvas.height / 2);
     this.texture!.needsUpdate = true;
   }
 
@@ -227,7 +228,8 @@ class CustomGlitchTextPreset extends BasePreset {
       const t = this.clock.getElapsedTime() - this.start;
       const { glowIntensity, pulseSpeed } = this.currentConfig.effects;
       this.letters.forEach(l => l.update(t, this.currentConfig.color, glowIntensity, pulseSpeed));
-    } else {
+    }
+    else {
       const delta = this.clock.getDelta();
       const { intensity, frequency } = this.currentConfig.glitch;
       if (Math.random() < frequency * delta) {
@@ -235,8 +237,9 @@ class CustomGlitchTextPreset extends BasePreset {
         this.mesh!.position.y = (Math.random() - 0.5) * intensity;
         this.mesh!.material.color.setHSL(Math.random(), 1, 0.5);
         this.applyCanvasGlitch();
-      } else {
-        this.mesh!.position.set(0,0,0);
+      }
+      else {
+        this.mesh!.position.set(0, 0, 0);
         this.mesh!.material.color.set(this.currentConfig.color);
         this.updateCanvas();
       }
@@ -249,12 +252,14 @@ class CustomGlitchTextPreset extends BasePreset {
     this.currentConfig = this.deepMerge(this.currentConfig, newConfig);
     if (newConfig.text || newConfig.effect) {
       this.buildEffect();
-    } else if (newConfig.color || newConfig.effects) {
+    }
+    else if (newConfig.color || newConfig.effects) {
       if (this.currentConfig.effect === 'robotica') {
         const t = this.clock.getElapsedTime() - this.start;
         const { glowIntensity, pulseSpeed } = this.currentConfig.effects;
         this.letters.forEach(l => l.update(t, this.currentConfig.color, glowIntensity, pulseSpeed));
-      } else {
+      }
+      else {
         if (newConfig.color) {
           this.mesh!.material.color.set(newConfig.color);
         }
@@ -268,7 +273,8 @@ class CustomGlitchTextPreset extends BasePreset {
     for (const key in source) {
       if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
         result[key] = this.deepMerge(result[key] || {}, source[key]);
-      } else {
+      }
+      else {
         result[key] = source[key];
       }
     }
@@ -298,7 +304,8 @@ export function createPreset(
   camera: THREE.Camera,
   renderer: THREE.WebGLRenderer,
   cfg: PresetConfig,
+  videoElement: HTMLVideoElement,
   shaderCode?: string
 ): BasePreset {
-  return new CustomGlitchTextPreset(scene, camera, renderer, cfg);
+  return new CustomGlitchTextPreset(scene, camera, renderer, cfg, videoElement);
 }

@@ -3,7 +3,7 @@
   "description": "Text with configurable glitch effect",
   "author": "AudioVisualizer",
   "version": "1.1.0",
-  "category": "text",
+  "category": "glitch",
   "tags": ["text", "glitch", "one-shot"],
   "thumbnail": "custom_glitch_text_thumb.png",
   "note": 59,

@@ -27,6 +27,8 @@ interface MidiOptions {
   onLaunchpadToggle?: () => void;
   enableLaunchpadToggle?: boolean;
   engineRef: React.MutableRefObject<AudioVisualizerEngine | null>;
+  onNoteLearned?: (note: number) => void;
+  isLearning?: boolean;
 }
 
 interface MidiClockSettings {
@@ -238,6 +240,11 @@ export function useMidi(options: MidiOptions) {
       const [status, note, velocity] = message.data;
       const channel = (status & 0x0f) + 1;
       const messageType = status & 0xf0;
+
+      if (options.isLearning && messageType === 0x90 && velocity > 0) {
+        options.onNoteLearned?.(note);
+        return;
+      }
 
       // Solo procesar LaunchPad toggle si está habilitado y coinciden canal y nota
       if (

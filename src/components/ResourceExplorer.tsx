@@ -49,13 +49,14 @@ const ResourceExplorer: React.FC<ResourceExplorerProps> = ({
   isRefreshingVideos = false
 }) => {
   const [expanded, setExpanded] = useState<Set<string>>(
-    () => new Set(['presets', 'main-presets', 'custom-presets', 'videos'])
+    () => new Set(['presets', 'main-presets', 'glitch-project', 'custom-presets', 'videos', 'category-glitch'])
   );
   const [searchTerm, setSearchTerm] = useState('');
 
-  const { mainPresets, customPresets } = useMemo(() => {
+  const { mainPresets, customPresets, glitchProjectPresets } = useMemo(() => {
     const main: LoadedPreset[] = [];
     const custom: LoadedPreset[] = [];
+    const glitchProject: LoadedPreset[] = [];
     presets.forEach(preset => {
       if (
         preset.id.startsWith('custom-glitch-text') ||
@@ -63,14 +64,43 @@ const ResourceExplorer: React.FC<ResourceExplorerProps> = ({
         preset.id.startsWith('fractal-lab-')
       ) {
         custom.push(preset);
+      } else if (preset.id.startsWith('glitch-project-')) {
+        glitchProject.push(preset);
       } else {
         main.push(preset);
       }
     });
-    return { mainPresets: main, customPresets: custom };
+    return { mainPresets: main, customPresets: custom, glitchProjectPresets: glitchProject };
   }, [presets]);
 
   const tree = useMemo<ResourceNode[]>(() => {
+    // Group main presets by category
+    const categoryMap = new Map<string, LoadedPreset[]>();
+    mainPresets.forEach(preset => {
+      const category = preset.config.category || 'utility';
+      if (!categoryMap.has(category)) {
+        categoryMap.set(category, []);
+      }
+      categoryMap.get(category)!.push(preset);
+    });
+
+    // Sort categories alphabetically and create category folders
+    const categoryFolders: ResourceNode[] = Array.from(categoryMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([category, presets]) => ({
+        id: `category-${category}`,
+        label: category.charAt(0).toUpperCase() + category.slice(1),
+        kind: 'folder' as const,
+        children: presets
+          .sort((a, b) => a.config.name.localeCompare(b.config.name))
+          .map<ResourceNode>(preset => ({
+            id: preset.id,
+            label: preset.config.name,
+            kind: 'preset',
+            preset
+          }))
+      }));
+
     const nodes: ResourceNode[] = [
       {
         id: 'presets',
@@ -81,7 +111,13 @@ const ResourceExplorer: React.FC<ResourceExplorerProps> = ({
             id: 'main-presets',
             label: 'Main presets',
             kind: 'folder',
-            children: mainPresets
+            children: categoryFolders
+          },
+          {
+            id: 'glitch-project',
+            label: 'Glitch Project',
+            kind: 'folder',
+            children: glitchProjectPresets
               .sort((a, b) => a.config.name.localeCompare(b.config.name))
               .map<ResourceNode>(preset => ({
                 id: preset.id,

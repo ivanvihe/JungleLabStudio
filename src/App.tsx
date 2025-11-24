@@ -1,4 +1,4 @@
-// App.tsx - Completo con todas las mejoras del presets gallery
+// App.tsx - Correctly refactored with MidiContextProvider
 
 import React, {
   useEffect,
@@ -21,8 +21,8 @@ import { setNestedValue } from './utils/objectPath';
 import { AVAILABLE_EFFECTS } from './utils/effects';
 import { gridIndexToNote, LAUNCHPAD_PRESETS } from './utils/launchpad';
 import { useAudio } from './hooks/useAudio';
-import { useMidi } from './hooks/useMidi';
 import { useLaunchpad } from './hooks/useLaunchpad';
+
 import { useCronEngine } from './hooks/useCronEngine';
 import './App.css';
 import './AppLayout.css';
@@ -40,6 +40,7 @@ import {
   VideoProviderId,
 } from './utils/videoProviders';
 import { clearVideoCache } from './utils/videoCache';
+
 import { CronJob, CronJobRunResult } from './types/automation';
 import { ProjectConfig, ProjectValidationResult } from './types/projects';
 import { runCommand, CommandRunResult } from './utils/commandRunner';
@@ -215,6 +216,7 @@ const App: React.FC = () => {
     () => new URLSearchParams(window.location.search).get('fullscreen') === 'true'
   );
 
+
   const [cronJobs, setCronJobs] = useState<CronJob[]>(() => {
     try {
       const stored = localStorage.getItem('cronJobs');
@@ -278,9 +280,133 @@ const App: React.FC = () => {
     layerVideoSettingsRef.current = layerVideoSettings;
   }, [layerVideoSettings]);
 
-  useEffect(() => {
-    videoGalleryRef.current = videoGallery;
-  }, [videoGallery]);
+  return (
+    <MidiContextProvider {...midiProps}>
+      <AppContent
+        {...{
+          playgroundRef,
+          canvasRef,
+          engineRef,
+          broadcastRef,
+          isInitialized,
+          setIsInitialized,
+          availablePresets,
+          setAvailablePresets,
+          fps,
+          setFps,
+          status,
+          setStatus,
+          activeLayers,
+          setActiveLayers,
+          selectedPreset,
+          setSelectedPreset,
+          selectedLayer,
+          setSelectedLayer,
+          layerPresetConfigs,
+          setLayerPresetConfigs,
+          genLabPresets,
+          setGenLabPresets,
+          genLabBasePreset,
+          setGenLabBasePreset,
+          fractalLabPresets,
+          setFractalLabPresets,
+          fractalLabBasePreset,
+          setFractalLabBasePreset,
+          videoProviderSettings,
+          setVideoProviderSettings,
+          videoGallery,
+          setVideoGallery,
+          isRefreshingVideos,
+          setIsRefreshingVideos,
+          selectedVideo,
+          setSelectedVideo,
+          selectedVideoLayer,
+          setSelectedVideoLayer,
+          layerVideoSettings,
+          setLayerVideoSettings,
+          layerVideoSettingsRef,
+          videoGalleryRef,
+          layerChannels,
+          setLayerChannels,
+          effectMidiNotes,
+          setEffectMidiNotes,
+          layerEffects,
+          setLayerEffects,
+          layerVFX,
+          setLayerVFX,
+          isFullscreenMode,
+          setIsFullscreenMode,
+        }}
+      />
+    </MidiContextProvider>
+  );
+};
+
+const AppContent: React.FC<any> = (props) => {
+  const {
+    playgroundRef,
+    canvasRef,
+    engineRef,
+    broadcastRef,
+    isInitialized,
+    setIsInitialized,
+    availablePresets,
+    setAvailablePresets,
+    fps,
+    setFps,
+    status,
+    setStatus,
+    activeLayers,
+    setActiveLayers,
+    selectedPreset,
+    setSelectedPreset,
+    selectedLayer,
+    setSelectedLayer,
+    layerPresetConfigs,
+    setLayerPresetConfigs,
+    genLabPresets,
+    setGenLabPresets,
+    genLabBasePreset,
+    setGenLabBasePreset,
+    fractalLabPresets,
+    setFractalLabPresets,
+    fractalLabBasePreset,
+    setFractalLabBasePreset,
+    videoProviderSettings,
+    setVideoProviderSettings,
+    videoGallery,
+    setVideoGallery,
+    isRefreshingVideos,
+    setIsRefreshingVideos,
+    selectedVideo,
+    setSelectedVideo,
+    selectedVideoLayer,
+    setSelectedVideoLayer,
+    layerVideoSettings,
+    setLayerVideoSettings,
+    layerVideoSettingsRef,
+    videoGalleryRef,
+    layerChannels,
+    setLayerChannels,
+    effectMidiNotes,
+    setEffectMidiNotes,
+    layerEffects,
+    setLayerEffects,
+    layerVFX,
+    setLayerVFX,
+    isFullscreenMode,
+    setIsFullscreenMode,
+  } = props;
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const windowMode = urlParams.get('mode') || 'single';
+  const isControlWindow = windowMode === 'control';
+  const isVisualWindow = windowMode === 'visual';
+
+  const [outputMode, setOutputMode] = useState<'standard' | 'vertical'>(() => {
+    const saved = localStorage.getItem('outputMode');
+    return (saved === 'vertical' ? 'vertical' : 'standard') as 'standard' | 'vertical';
+  });
 
   useEffect(() => {
     localStorage.setItem('cronJobs', JSON.stringify(cronJobs));
@@ -375,9 +501,9 @@ const App: React.FC = () => {
 
   const updateVideoProviderSettings = useCallback(
     (updates: Partial<VideoProviderSettings>) => {
-      setVideoProviderSettings(prev => ({ ...prev, ...updates }));
+      setVideoProviderSettings((prev: any) => ({ ...prev, ...updates }));
     },
-    []
+    [setVideoProviderSettings]
   );
 
   const refreshVideoGallery = useCallback(
@@ -386,7 +512,9 @@ const App: React.FC = () => {
       try {
         const videos = await loadVideoGallery(videoProviderSettings, force);
         setVideoGallery(videos);
-        engineRef.current?.setVideoRegistry(videos);
+        if (engineRef.current) {
+          engineRef.current.setVideoRegistry(videos);
+        }
         setStatus(`Video gallery updated (${videos.length} items)`);
       } catch (error) {
         console.error('Failed to refresh video gallery', error);
@@ -395,7 +523,7 @@ const App: React.FC = () => {
         setIsRefreshingVideos(false);
       }
     },
-    [videoProviderSettings]
+    [videoProviderSettings, setIsRefreshingVideos, setVideoGallery, setStatus, engineRef]
   );
 
   const handleClearVideoCache = useCallback(async () => {
@@ -409,57 +537,57 @@ const App: React.FC = () => {
       console.error('Failed to clear video cache', error);
       setStatus('Error clearing video cache');
     }
-  }, [refreshVideoGallery]);
+  }, [refreshVideoGallery, setVideoGallery, setStatus]);
 
   const handleVideoSettingsChange = useCallback(
     (updates: Partial<VideoPlaybackSettings>) => {
       if (!selectedVideoLayer) return;
-      setLayerVideoSettings(prev => {
+      setLayerVideoSettings((prev: any) => {
         const current = prev[selectedVideoLayer] || DEFAULT_VIDEO_PLAYBACK_SETTINGS;
         return {
           ...prev,
           [selectedVideoLayer]: { ...current, ...updates },
         };
       });
-      engineRef.current?.updateLayerVideoSettings(selectedVideoLayer, updates);
+      if (engineRef.current) {
+        engineRef.current.updateLayerVideoSettings(selectedVideoLayer, updates);
+      }
     },
-    [selectedVideoLayer]
+    [selectedVideoLayer, setLayerVideoSettings, engineRef]
   );
 
   const handleAddVideoToLayer = useCallback(
     (videoId: string, layerId: string) => {
-      const video = videoGalleryRef.current.find(item => item.id === videoId);
+      const video = videoGalleryRef.current.find((item: any) => item.id === videoId);
       if (video) {
         setStatus(`${video.title} assigned to Layer ${layerId}`);
       }
     },
-    []
+    [videoGalleryRef, setStatus]
   );
 
   const handleRemoveVideoFromLayer = useCallback((videoId: string, layerId: string) => {
-    const video = videoGalleryRef.current.find(item => item.id === videoId);
+    const video = videoGalleryRef.current.find((item: any) => item.id === videoId);
     if (video) {
       setStatus(`${video.title} removed from Layer ${layerId}`);
     }
-  }, []);
+  }, [videoGalleryRef, setStatus]);
 
   const handleLaunchpadToggle = useCallback(() => {
     console.log('🎯 LaunchPad toggle requested');
 
-    // Validar que hay un dispositivo disponible
     if (!launchpadOutput) {
       console.warn('⚠️ No LaunchPad device available for toggle');
       return;
     }
 
-    // Validar que el dispositivo está conectado
     if (launchpadOutput.state !== 'connected') {
       console.warn('⚠️ LaunchPad device not connected:', launchpadOutput.state);
       return;
     }
 
     console.log('✅ LaunchPad toggle válido, ejecutando...');
-    setLaunchpadRunning(prev => {
+    setLaunchpadRunning((prev: any) => {
       const newState = !prev;
       console.log(`🔄 LaunchPad state: ${prev} → ${newState}`);
       return newState;
@@ -482,15 +610,8 @@ const App: React.FC = () => {
     clockStable,
     currentMeasure,
     currentBeat,
-  } = useMidi({
-    isFullscreenMode,
-    availablePresets,
-    layerChannels,
-    layerEffects,
-    setLayerEffects,
-    effectMidiNotes,
-    engineRef,
-  });
+  } = useMidiContext();
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isResourcesOpen, setResourcesOpen] = useState(false);
   const [monitors, setMonitors] = useState<MonitorInfo[]>([]);
@@ -530,9 +651,8 @@ const App: React.FC = () => {
     const channel = new BroadcastChannel('av-sync');
     broadcastRef.current = channel;
     return () => channel.close();
-  }, []);
+  }, [broadcastRef]);
 
-  // Persist selected devices across sessions
   useEffect(() => {
     const savedAudio = localStorage.getItem('selectedAudioDevice');
     const savedMidi = localStorage.getItem('selectedMidiDevice');
@@ -547,9 +667,8 @@ const App: React.FC = () => {
         console.warn('Error parsing saved monitor roles:', e);
       }
     }
-  }, []);
+  }, [setAudioDeviceId, setMidiDeviceId]);
 
-  // Persist monitor roles
   useEffect(() => {
     localStorage.setItem('monitorRoles', JSON.stringify(monitorRoles));
   }, [monitorRoles]);
@@ -611,7 +730,7 @@ const App: React.FC = () => {
     if (!isFullscreenMode && midiTrigger) {
       broadcastRef.current?.postMessage({ type: 'midiTrigger', data: midiTrigger });
     }
-  }, [midiTrigger, isFullscreenMode]);
+  }, [midiTrigger, isFullscreenMode, broadcastRef]);
 
   useEffect(() => {
     if (startMonitor) {
@@ -644,9 +763,8 @@ const App: React.FC = () => {
     if (engineRef.current) {
       engineRef.current.setVideoRegistry(videoGallery);
     }
-  }, [videoGallery]);
+  }, [videoGallery, engineRef]);
 
-  // Persist preset configs per layer/visual automatically
   useEffect(() => {
     try {
       localStorage.setItem('layerPresetConfigs', JSON.stringify(layerPresetConfigs));
@@ -654,7 +772,7 @@ const App: React.FC = () => {
     } catch (e) {
       console.warn('Failed to persist layer preset configs:', e);
     }
-  }, [layerPresetConfigs]);
+  }, [layerPresetConfigs, broadcastRef]);
 
   useEffect(() => {
     try {
@@ -685,8 +803,6 @@ const App: React.FC = () => {
     }
   }, [effectMidiNotes]);
 
-
-  // Enumerar monitores disponibles usando Electron o Tauri
   const refreshMonitors = useCallback(async () => {
     try {
       let mapped: MonitorInfo[] = [];
@@ -760,7 +876,7 @@ const App: React.FC = () => {
     } catch (e) {
       console.warn('Error loading monitors:', e);
     }
-  }, []);
+  }, [setMonitors, setMonitorRoles, setStartMonitor]);
 
   useEffect(() => {
     refreshMonitors();
@@ -778,7 +894,7 @@ const App: React.FC = () => {
     };
     document.addEventListener('fullscreenchange', handler);
     return () => document.removeEventListener('fullscreenchange', handler);
-  }, []);
+  }, [setIsFullscreenMode]);
 
   useEffect(() => {
     window.dispatchEvent(new Event('resize'));
@@ -790,7 +906,7 @@ const App: React.FC = () => {
     } else {
       setIsUiHidden(false);
     }
-  }, [isFullscreenMode]);
+  }, [isFullscreenMode, setIsUiHidden]);
 
   useEffect(() => {
     const api = (window as any).electronAPI;
@@ -804,11 +920,47 @@ const App: React.FC = () => {
     return () => {
       api.removeMainLeaveFullscreenListener?.();
     };
-  }, []);
+  }, [setIsFullscreenMode, engineRef]);
 
-  // Inicializar el engine
   useEffect(() => {
     const initEngine = async () => {
+      if (isControlWindow) {
+        console.log('🎛️ Control window: Loading preset list without engine...');
+        try {
+          setStatus('Loading preset list...');
+          const tempDiv = document.createElement('div');
+          const engine = new AudioVisualizerEngine(tempDiv, { glitchTextPads, visualsPath });
+          await engine.initialize();
+
+          let presets = engine.getAvailablePresets();
+          if (emptyPads !== 1) {
+            presets = await engine.updateEmptyTemplates(emptyPads);
+          }
+          if (customTextContents.length > 0) {
+            presets = await engine.updateCustomTextTemplates(glitchTextPads, customTextContents);
+          }
+          if (genLabPresets.length > 0) {
+            presets = await engine.updateGenLabPresets(genLabPresets);
+          }
+          if (fractalLabPresets.length > 0) {
+            presets = await engine.updateFractalLabPresets(fractalLabPresets);
+          }
+
+          setAvailablePresets(presets);
+          setGenLabBasePreset(engine.getGenLabBasePreset());
+          setFractalLabBasePreset(engine.getFractalLabBasePreset());
+
+          engine.dispose();
+          setIsInitialized(true);
+          setStatus('Ready (Control Window)');
+          console.log(`✅ Loaded ${presets.length} presets for control window`);
+        } catch (error) {
+          console.error('❌ Failed to load presets:', error);
+          setStatus('Error loading presets');
+        }
+        return;
+      }
+
       if (!playgroundRef.current) {
         console.error('❌ Playground ref is null');
         return;
@@ -863,6 +1015,7 @@ const App: React.FC = () => {
         engineRef.current.dispose();
       }
     };
+
   }, [glitchTextPads, visualsPath]);
 
 
