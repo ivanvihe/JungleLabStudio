@@ -49,7 +49,7 @@
     { "name": "particles.density", "type": "slider", "label": "Particle Density", "min": 0, "max": 1, "step": 0.05, "default": 0.3 },
     { "name": "particles.color", "type": "color", "label": "Particle Color", "default": "#FFFFFF" },
     { "name": "particles.spread", "type": "slider", "label": "Particle Spread", "min": 0, "max": 1, "step": 0.05, "default": 0.5 },
-    { "name": "midi.note", "type": "midi-note-recorder", "label": "MIDI Note" },
+    { "name": "midi.note", "type": "midi-note-recorder", "label": "MIDI Note", "default": 60 },
     { "name": "midi.burstIntensity", "type": "slider", "label": "MIDI Burst Intensity", "min": 0, "max": 2, "step": 0.1, "default": 0.8 },
     { "name": "midi.burstDuration", "type": "slider", "label": "MIDI Burst Duration (ms)", "min": 50, "max": 2000, "step": 50, "default": 500 }
   ],
