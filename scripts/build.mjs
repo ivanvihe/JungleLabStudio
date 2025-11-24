@@ -25,7 +25,12 @@ await build({
 
 const indexPath = path.join(root, 'index.html');
 const html = await readFile(indexPath, 'utf8');
-const patched = html.replace('/src/main.tsx', './main.js');
+const stylesheetTag = '    <link rel="stylesheet" href="./main.css" />\n';
+
+const patched = html
+  .replace('/src/main.tsx', './main.js')
+  .replace('</head>', `${stylesheetTag}  </head>`);
+
 await writeFile(path.join(outDir, 'index.html'), patched, 'utf8');
 
 console.log('Build listo en', outDir);
