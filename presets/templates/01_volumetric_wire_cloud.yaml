@@ -1,0 +1,129 @@
+# ==============================================================================
+# VOLUMETRIC WIRE CLOUD
+# Organic, flowing volumetric curl noise structures
+# Aesthetic: Minimal, deep ambient, slowly evolving
+# Perfect for: Deep/minimal techno, ambient sets
+# ==============================================================================
+
+preset:
+  name: "Volumetric Wire Cloud"
+  description: "Flowing organic wire structures driven by 3D curl noise"
+  resolution: [1920, 1080]
+  framerate: 60
+
+  nodes:
+    # --- GENERATOR: 3D Curl Noise Field ---
+    - id: curl_field
+      type: shader
+      params:
+        shader_path: src/shaders/generators/volumetric_curl_3d.glsl
+        frequency: 2.0          # Spatial scale
+        amplitude: 1.0          # Intensity
+        octaves: 6              # Detail level (higher = more detail)
+        lacunarity: 2.0         # Frequency multiplier per octave
+        persistence: 0.5        # Amplitude decay per octave
+        warp: 0.3               # Domain warping amount
+        speed: 0.2              # Animation speed (SLOW for ambient)
+        depth: 2.0              # Z-depth range
+        color_a: [0.0, 0.05, 0.1]   # Dark blue-black (deep)
+        color_b: [0.0, 0.8, 1.0]    # Cyan (highlights)
+        glow: 0.7               # Glow intensity
+        density: 0.45           # Threshold for structure visibility
+
+        # Animate warp parameter for organic evolution
+        animate:
+          warp:
+            lfo:
+              type: sine
+              freq: 0.08        # Very slow sine wave (12.5s period)
+              amp: 0.15         # Subtle variation
+          density:
+            lfo:
+              type: random_walk
+              freq: 0.03        # Slow random walk
+              amp: 0.1          # Small density changes
+
+    # --- EFFECT: Add subtle glow bloom ---
+    - id: glow_pass
+      type: glow
+      inputs: ["curl_field"]
+      params:
+        intensity: 0.6
+        threshold: 0.4
+        blur_radius: 8
+
+    # --- EFFECT: Feedback loop for trailing/smearing ---
+    - id: feedback
+      type: feedback
+      inputs: ["glow_pass"]
+      params:
+        mix: 0.92              # 92% previous frame, 8% new
+        decay: 0.98            # Slow fade
+        offset: [1, 0]         # Slight horizontal drift
+
+    # --- COMPOSITE: Blend feedback with current frame ---
+    - id: final_blend
+      type: blend
+      inputs: ["glow_pass", "feedback"]
+      params:
+        mode: add
+        opacity: 0.8
+
+    # --- OUTPUT: Final render ---
+    - id: output
+      type: output
+      inputs: ["final_blend"]
+
+  # --- MIDI MAPPINGS ---
+  midi:
+    mappings:
+      # CC14: Control warp amount (domain warping)
+      - target: "nodes.curl_field.params.warp"
+        trigger: "CC14"
+        range: [0.0, 0.8]
+
+      # CC15: Control density (structure visibility)
+      - target: "nodes.curl_field.params.density"
+        trigger: "CC15"
+        range: [0.2, 0.7]
+
+      # CC16: Control glow intensity
+      - target: "nodes.curl_field.params.glow"
+        trigger: "CC16"
+        range: [0.0, 1.5]
+
+      # CC17: Control animation speed
+      - target: "nodes.curl_field.params.speed"
+        trigger: "CC17"
+        range: [0.0, 0.5]
+
+      # CC18: Control feedback mix (trails)
+      - target: "nodes.feedback.params.mix"
+        trigger: "CC18"
+        range: [0.85, 0.98]
+
+      # Note 60 (C3): Trigger density pulse
+      - target: "nodes.curl_field.params.density"
+        trigger: "NOTE_60"
+
+      # Note 62 (D3): Trigger glow burst
+      - target: "nodes.glow_pass.params.intensity"
+        trigger: "NOTE_62"
+
+# ==============================================================================
+# PERFORMANCE NOTES:
+# - Target: 60 FPS @ 1920x1080 on RTX 2060 / RX 5700
+# - Reduce octaves to 4 if performance issues
+# - Disable feedback for lowest-end hardware
+#
+# AESTHETIC NOTES:
+# - Slow speed (0.2) creates hypnotic, meditative flow
+# - Low frequency (2.0) creates large-scale structures
+# - Subtle warp (0.3) adds organic quality without chaos
+# - Feedback creates ethereal trails and depth
+#
+# USAGE:
+# - Perfect for breakdown sections in minimal techno
+# - Build tension by slowly increasing warp and density
+# - Drop by reducing feedback and increasing glow
+# ==============================================================================

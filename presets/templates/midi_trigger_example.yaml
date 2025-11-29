@@ -1,0 +1,125 @@
+preset:
+  name: MIDI Trigger Example
+  description: Use MIDI pads/notes to trigger different visual generators
+  author: JungleLabStudio
+  version: 1.0.0
+  tags: [midi, trigger, pads, performance]
+
+  settings:
+    bpm: 120.0
+    audio_reactive: false
+    midi_enabled: true
+
+  nodes:
+    # MIDI Listener for Pad 1
+    - id: midi_pad1
+      type: midi.listener
+      position: [100, 100]
+      params:
+        normalize: 1.0
+        smoothing: 0.05  # Quick response
+
+    # Launcher for Pad 1 - On/Off mode
+    - id: launcher_pad1
+      type: midi.launcher
+      position: [300, 100]
+      params:
+        activation_type: 0.0  # ON_OFF mode
+        threshold: 0.5
+        ramp_time: 0.1
+        hold_time: 0.2
+      inputs:
+        midi_value: midi_pad1
+
+    # Generator 1: Checkerboard
+    - id: gen_checker
+      type: generator.checkerboard
+      position: [500, 100]
+      params:
+        size: 16.0
+        rotation: 0.0
+        color_a: [1.0, 0.0, 0.0]
+        color_b: [0.0, 0.0, 0.0]
+        smoothing: 0.1
+        animate:
+          rotation:
+            midi:
+              launcher: launcher_pad1
+              scale: 360.0  # Full rotation when active
+
+    # MIDI Listener for Pad 2
+    - id: midi_pad2
+      type: midi.listener
+      position: [100, 300]
+      params:
+        normalize: 1.0
+        smoothing: 0.05
+
+    # Launcher for Pad 2
+    - id: launcher_pad2
+      type: midi.launcher
+      position: [300, 300]
+      params:
+        activation_type: 2.0  # VELOCITY mode
+        threshold: 0.1
+        ramp_time: 0.05
+        hold_time: 0.0
+      inputs:
+        midi_value: midi_pad2
+
+    # Generator 2: Noise
+    - id: gen_noise
+      type: generator.noise
+      position: [500, 300]
+      params:
+        scale: 8.0
+        octaves: 3.0
+        persistence: 0.6
+        lacunarity: 2.0
+        speed: 2.0
+        color_a: [0.0, 0.2, 0.5]
+        color_b: [0.0, 0.8, 1.0]
+
+    # Blend the two generators
+    - id: blend_001
+      type: composite.blend_modes
+      position: [700, 200]
+      params:
+        mode: 4.0  # ADD mode
+        opacity: 1.0
+      inputs:
+        input0: gen_checker
+        input1: gen_noise
+
+    # Transform - add some movement
+    - id: transform_001
+      type: effect.transform
+      position: [900, 200]
+      params:
+        rotate: 0.0
+        scale_x: 1.0
+        scale_y: 1.0
+        translate_x: 0.0
+        translate_y: 0.0
+        anchor_x: 0.5
+        anchor_y: 0.5
+        animate:
+          scale_x:
+            lfo:
+              type: sine
+              freq: 0.5
+              amp: 0.3
+          scale_y:
+            lfo:
+              type: sine
+              freq: 0.5
+              amp: 0.3
+      inputs:
+        input0: blend_001
+
+    # Output
+    - id: output_001
+      type: output
+      position: [1100, 200]
+      inputs:
+        input0: transform_001

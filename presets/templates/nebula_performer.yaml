@@ -1,0 +1,79 @@
+# ==============================================================================
+# NEBULA PERFORMER
+# Volumetric nebula with warp field and color flash effects
+# Converted from legacy .preset format to YAML DSL
+# ==============================================================================
+
+preset:
+  name: "Nebula Performer"
+  description: "Volumetric nebula with warp field distortion and burst effects"
+  resolution: [1920, 1080]
+  framerate: 60
+
+  nodes:
+    # --- GENERATOR: Nebula volumetric shader ---
+    - id: nebula_gen
+      type: shader
+      params:
+        shader_path: src/shaders/nebula.glsl
+        speed: 0.3
+        warp: 0.0
+        flash: 0.0
+        color_a: [0.1, 0.0, 0.3]
+        color_b: [0.0, 0.4, 0.4]
+        density: 1.0
+        depth: 2.0
+
+        # Subtle organic warp animation
+        animate:
+          warp:
+            lfo:
+              type: sine
+              freq: 0.08
+              amp: 0.2
+
+    # --- OUTPUT ---
+    - id: output
+      type: output
+      inputs: ["nebula_gen"]
+
+  # --- MIDI MAPPINGS ---
+  midi:
+    mappings:
+      # CC14: Warp field strength
+      - target: "nodes.nebula_gen.params.warp"
+        trigger: "CC14"
+        range: [0.0, 2.0]
+
+      # CC15: Flash intensity
+      - target: "nodes.nebula_gen.params.flash"
+        trigger: "CC15"
+        range: [0.0, 1.5]
+
+      # CC16: Density
+      - target: "nodes.nebula_gen.params.density"
+        trigger: "CC16"
+        range: [0.5, 1.5]
+
+      # CC17: Depth
+      - target: "nodes.nebula_gen.params.depth"
+        trigger: "CC17"
+        range: [1.0, 3.0]
+
+      # Note 60: Warp field burst
+      - target: "nodes.nebula_gen.params.warp"
+        trigger: "NOTE_60"
+
+      # Note 62: Flash burst (with color randomization)
+      - target: "nodes.nebula_gen.params.flash"
+        trigger: "NOTE_62"
+
+# ==============================================================================
+# NOTES:
+# - Uses nebula.glsl shader
+# - Warp field affects spatial distortion
+# - Flash creates burst effects
+# - Original had color randomization on flash_burst - simplified here
+# - Audio reactivity via MIDI mappings
+# - Perfect for dark/ambient techno aesthetics
+# ==============================================================================

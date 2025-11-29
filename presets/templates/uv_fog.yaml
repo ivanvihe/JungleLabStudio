@@ -1,0 +1,91 @@
+# ==============================================================================
+# UV FOG
+# Pure volumetric fog with spectral shifts and void pulses
+# Converted from legacy .preset format to YAML DSL
+# ==============================================================================
+
+preset:
+  name: "UV Fog"
+  description: "Dark volumetric fog with glow, density, and color shift controls"
+  resolution: [1920, 1080]
+  framerate: 60
+
+  nodes:
+    # --- GENERATOR: UV fog volume ---
+    - id: fog_gen
+      type: shader
+      params:
+        shader_path: src/shaders/uv_fog.glsl
+        speed: 0.2
+        density_mult: 1.0
+        glow_intensity: 1.2
+        color_shift: 0.0
+        base_color: [0.0, 0.0, 0.0]
+        depth: 2.0
+
+        # Slow organic breathing
+        animate:
+          density_mult:
+            lfo:
+              type: sine
+              freq: 0.04
+              amp: 0.1
+          glow_intensity:
+            lfo:
+              type: random_walk
+              freq: 0.03
+              amp: 0.15
+
+    # --- OUTPUT ---
+    - id: output
+      type: output
+      inputs: ["fog_gen"]
+
+  # --- MIDI MAPPINGS ---
+  midi:
+    mappings:
+      # CC14: Density multiplier
+      - target: "nodes.fog_gen.params.density_mult"
+        trigger: "CC14"
+        range: [0.5, 3.0]
+
+      # CC15: Glow intensity
+      - target: "nodes.fog_gen.params.glow_intensity"
+        trigger: "CC15"
+        range: [0.0, 3.0]
+
+      # CC16: Color shift
+      - target: "nodes.fog_gen.params.color_shift"
+        trigger: "CC16"
+        range: [0.0, 1.0]
+
+      # CC17: Depth
+      - target: "nodes.fog_gen.params.depth"
+        trigger: "CC17"
+        range: [1.0, 3.5]
+
+      # Note 60: Deepen fog (density burst)
+      - target: "nodes.fog_gen.params.density_mult"
+        trigger: "NOTE_60"
+        value: 3.0
+
+      # Note 62: Brighten core (glow burst)
+      - target: "nodes.fog_gen.params.glow_intensity"
+        trigger: "NOTE_62"
+        value: 3.0
+
+      # Note 64: Pulse void (glow drop + density spike)
+      - target: "nodes.fog_gen.params.glow_intensity"
+        trigger: "NOTE_64"
+        value: 0.0
+
+# ==============================================================================
+# NOTES:
+# - Uses uv_fog.glsl shader
+# - Pure volumetric fog aesthetic
+# - Original had 4 actions: deepen_fog, brighten_core, shift_spectrum, pulse_void
+# - Mapped to MIDI notes and CC controls
+# - Minimal glitch/aberration built into shader
+# - Perfect for deep/minimal/hypnotic sets
+# - Breathing animation on density and glow for organic feel
+# ==============================================================================

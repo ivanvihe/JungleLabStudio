@@ -1,0 +1,198 @@
+{
+  "glitch_tunnel": {
+    "name": "glitch_tunnel",
+    "path": "presets/templates/glitch_tunnel.yaml",
+    "kind": "graph",
+    "tags": [
+      "generative"
+    ]
+  },
+  "neon_dream": {
+    "name": "neon_dream",
+    "path": "presets/templates/neon_dream.yaml",
+    "kind": "graph",
+    "tags": [
+      "generative"
+    ]
+  },
+  "neon_volume": {
+    "name": "neon_volume",
+    "path": "presets/templates/neon_volume.yaml",
+    "kind": "graph",
+    "tags": [
+      "generative"
+    ]
+  },
+  "glitch_ribbons": {
+    "name": "glitch_ribbons",
+    "path": "presets/templates/glitch_ribbons.yaml",
+    "kind": "graph",
+    "tags": [
+      "generative"
+    ]
+  },
+  "holo_trails": {
+    "name": "holo_trails",
+    "path": "presets/templates/holo_trails.yaml",
+    "kind": "graph",
+    "tags": [
+      "generative"
+    ]
+  },
+  "mono_void": {
+    "name": "mono_void",
+    "path": "presets/templates/mono_void.yaml",
+    "kind": "graph",
+    "tags": [
+      "generative"
+    ]
+  },
+  "dark_fog": {
+    "name": "dark_fog",
+    "path": "presets/templates/dark_fog.yaml",
+    "kind": "graph",
+    "tags": [
+      "generative"
+    ]
+  },
+  "aurora_field": {
+    "name": "aurora_field",
+    "path": "presets/templates/aurora_field.yaml",
+    "kind": "graph",
+    "tags": [
+      "generative"
+    ]
+  },
+  "volumetric_arcs": {
+    "name": "volumetric_arcs",
+    "path": "presets/templates/volumetric_arcs.yaml",
+    "kind": "graph",
+    "tags": [
+      "generative"
+    ]
+  },
+  "uv_fog": {
+    "name": "uv_fog",
+    "path": "presets/templates/uv_fog.yaml",
+    "kind": "graph",
+    "tags": [
+      "generative"
+    ]
+  },
+  "nebula_performer": {
+    "name": "nebula_performer",
+    "path": "presets/templates/nebula_performer.yaml",
+    "kind": "graph",
+    "tags": [
+      "generative"
+    ]
+  },
+  "particle_conductor": {
+    "name": "particle_conductor",
+    "path": "presets/templates/particle_conductor.yaml",
+    "kind": "graph",
+    "tags": [
+      "generative"
+    ]
+  },
+  "01_volumetric_wire_cloud": {
+    "name": "01_volumetric_wire_cloud",
+    "path": "presets/templates/01_volumetric_wire_cloud.yaml",
+    "kind": "graph",
+    "tags": [
+      "generative"
+    ]
+  },
+  "02_terrain_evolution": {
+    "name": "02_terrain_evolution",
+    "path": "presets/templates/02_terrain_evolution.yaml",
+    "kind": "graph",
+    "tags": [
+      "generative"
+    ]
+  },
+  "ivan": {
+    "name": "ivan",
+    "path": "presets/templates/ivan.yaml",
+    "kind": "graph",
+    "tags": [
+      "generative"
+    ]
+  },
+  "ivan_simple": {
+    "name": "ivan_simple",
+    "path": "presets/templates/ivan_simple.yaml",
+    "kind": "graph",
+    "tags": [
+      "generative"
+    ]
+  },
+  "test_simple": {
+    "name": "test_simple",
+    "path": "presets/templates/test_simple.yaml",
+    "kind": "graph",
+    "tags": [
+      "generative"
+    ]
+  },
+  "crystal_lattice": {
+    "path": "presets/crystal_lattice.preset",
+    "kind": "code"
+  },
+  "wireframe_sphere": {
+    "path": "presets/wireframe_sphere.preset",
+    "kind": "code"
+  },
+  "organic_growth": {
+    "path": "presets/organic_growth.preset",
+    "kind": "code"
+  },
+  "scan_lines": {
+    "path": "presets/scan_lines.preset",
+    "kind": "code"
+  },
+  "gas_clouds": {
+    "path": "presets/gas_clouds.preset",
+    "kind": "code"
+  },
+  "geometric_tunnel": {
+    "path": "presets/geometric_tunnel.preset",
+    "kind": "code"
+  },
+  "liquid_metal": {
+    "path": "presets/liquid_metal.preset",
+    "kind": "code"
+  },
+  "fractal_tree": {
+    "path": "presets/fractal_tree.preset",
+    "kind": "code"
+  },
+  "holographic_data": {
+    "path": "presets/holographic_data.preset",
+    "kind": "code"
+  },
+  "plasma_reactor": {
+    "path": "presets/plasma_reactor.preset",
+    "kind": "code"
+  },
+  "particle_field": {
+    "path": "presets/particle_field.preset",
+    "kind": "code"
+  },
+  "midi_example": {
+    "name": "midi_example",
+    "path": "presets/templates/midi_example.yaml",
+    "kind": "graph",
+    "tags": [
+      "generative"
+    ]
+  },
+  "midi_trigger_example": {
+    "name": "midi_trigger_example",
+    "path": "presets/templates/midi_trigger_example.yaml",
+    "kind": "graph",
+    "tags": [
+      "generative"
+    ]
+  }
+}

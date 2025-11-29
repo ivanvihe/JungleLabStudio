@@ -1,0 +1,21 @@
+# ==============================================================================
+# TEST SIMPLE - Preset de prueba minimalista
+# Solo un gradiente de color para verificar que todo funciona
+# ==============================================================================
+
+preset:
+  name: "Test Simple"
+  description: "Gradiente de colores - test básico"
+  resolution: [1920, 1080]
+  framerate: 60
+
+  nodes:
+    - id: gen
+      type: shader
+      params:
+        shader_path: src/shaders/test_simple.glsl
+        speed: 0.0
+
+    - id: out
+      type: output
+      inputs: ["gen"]

@@ -1,0 +1,38 @@
+preset:
+  name: "GlitchTunnel"
+  resolution: [1280, 720]
+  
+  nodes:
+    - id: bg_video
+      type: video
+      src: media/tunnel.mp4
+
+    - id: plasma
+      type: shader
+      shader: src/shaders/plasma.glsl
+      params:
+        speed: 0.7
+        complexity: 5.0
+
+    - id: distort1
+      type: effect.distort
+      inputs: ["plasma"]
+      params:
+        intensity: 0.8
+        animate:
+          intensity:
+            lfo:
+              type: triangle
+              freq: 0.15
+              amp: 0.3
+
+    - id: blend1
+      type: composite
+      blend: add
+      inputs: ["bg_video", "distort1"]
+      opacity: 0.6
+
+  midi:
+    mappings:
+      - target: "nodes.distort1.intensity"
+        trigger: "CC12"

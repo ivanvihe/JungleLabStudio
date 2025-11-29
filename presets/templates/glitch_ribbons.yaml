@@ -1,0 +1,81 @@
+# ==============================================================================
+# GLITCH RIBBONS
+# Twisted ribbon patterns with glitch aesthetic
+# Converted from legacy .preset format to YAML DSL
+# ==============================================================================
+
+preset:
+  name: "Glitch Ribbons"
+  description: "Twisted ribbon trails with audio-reactive distortion"
+  resolution: [1920, 1080]
+  framerate: 60
+
+  nodes:
+    # --- GENERATOR: Trail ribbons ---
+    - id: ribbons_gen
+      type: shader
+      params:
+        shader_path: src/shaders/trails.glsl
+        speed: 0.5
+        twist: 0.8
+        ribbon_count: 8.0
+        color_a: [1.0, 0.0, 0.5]
+        color_b: [0.0, 0.8, 1.0]
+        distortion: 0.3
+
+        # Animate twist for dynamic motion
+        animate:
+          twist:
+            lfo:
+              type: triangle
+              freq: 0.15
+              amp: 0.3
+          distortion:
+            lfo:
+              type: random_walk
+              freq: 0.05
+              amp: 0.2
+
+    # --- OUTPUT ---
+    - id: output
+      type: output
+      inputs: ["ribbons_gen"]
+
+  # --- MIDI MAPPINGS ---
+  midi:
+    mappings:
+      # CC14: Twist amount
+      - target: "nodes.ribbons_gen.params.twist"
+        trigger: "CC14"
+        range: [0.3, 2.0]
+
+      # CC15: Ribbon count
+      - target: "nodes.ribbons_gen.params.ribbon_count"
+        trigger: "CC15"
+        range: [4.0, 16.0]
+
+      # CC16: Distortion
+      - target: "nodes.ribbons_gen.params.distortion"
+        trigger: "CC16"
+        range: [0.0, 1.0]
+
+      # CC17: Speed
+      - target: "nodes.ribbons_gen.params.speed"
+        trigger: "CC17"
+        range: [0.1, 1.5]
+
+      # Note 60: Twist burst
+      - target: "nodes.ribbons_gen.params.twist"
+        trigger: "NOTE_60"
+
+      # Note 62: Glitch trigger
+      - target: "nodes.ribbons_gen.params.distortion"
+        trigger: "NOTE_62"
+
+# ==============================================================================
+# NOTES:
+# - Uses trails.glsl shader
+# - Glitch aesthetic with high aberration/distortion
+# - Audio-reactive twist parameter
+# - Perfect for experimental/IDM/glitch sets
+# ==============================================================================

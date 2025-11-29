@@ -1,0 +1,34 @@
+preset:
+  name: "NeonDream"
+  
+  nodes:
+    - id: base_noise
+      type: shader
+      shader: src/shaders/neon_volume.glsl
+      params:
+        speed: 0.2
+        
+    - id: layer2
+      type: shader
+      shader: src/shaders/aurora.glsl
+      params:
+        speed: 0.5
+        
+    - id: blend_main
+      type: composite
+      blend: mix
+      inputs: ["base_noise", "layer2"]
+      params:
+        opacity: 0.5
+        animate:
+          opacity:
+            lfo:
+              type: sine
+              freq: 0.1
+              amp: 0.4
+
+    - id: final_distort
+      type: effect.distort
+      inputs: ["blend_main"]
+      params:
+        intensity: 0.2

@@ -1,0 +1,184 @@
+# ==============================================================================
+# TERRAIN EVOLUTION
+# Slowly evolving noise structures inspired by "Joachim Spieth - Terrain"
+# Aesthetic: Textural, subtle, hypnotic, organic
+# Perfect for: Deep techno, dub techno, ambient
+# ==============================================================================
+
+preset:
+  name: "Terrain Evolution"
+  description: "Slowly evolving textural noise in the style of Joachim Spieth"
+  resolution: [1920, 1080]
+  framerate: 60
+
+  nodes:
+    # --- GENERATOR 1: Base FBM Terrain ---
+    - id: base_terrain
+      type: shader
+      params:
+        shader_path: src/shaders/generators/fbm_terrain.glsl
+        frequency: 1.5
+        amplitude: 1.0
+        octaves: 8              # High detail for texture
+        lacunarity: 2.0
+        persistence: 0.55
+        warp: 0.4               # Medium warping for complexity
+        speed: 0.05             # VERY slow evolution
+        height_scale: 1.0
+        color_a: [0.05, 0.05, 0.08]  # Nearly black
+        color_b: [0.15, 0.2, 0.25]    # Dark blue-grey
+        color_c: [0.3, 0.35, 0.4]     # Mid grey-blue
+        glow: 0.3               # Subtle glow
+        contrast: 1.2
+
+        animate:
+          warp:
+            lfo:
+              type: random_walk
+              freq: 0.02        # Extremely slow drift
+              amp: 0.2
+          height_scale:
+            lfo:
+              type: sine
+              freq: 0.05
+              amp: 0.3
+
+    # --- GENERATOR 2: Detail Layer (higher frequency) ---
+    - id: detail_layer
+      type: shader
+      params:
+        shader_path: src/shaders/generators/fbm_terrain.glsl
+        frequency: 4.0          # Higher frequency = fine detail
+        amplitude: 0.5
+        octaves: 5
+        lacunarity: 2.0
+        persistence: 0.5
+        warp: 0.2
+        speed: 0.08             # Slightly faster than base
+        height_scale: 0.6
+        color_a: [0.0, 0.0, 0.0]
+        color_b: [0.2, 0.25, 0.3]
+        color_c: [0.4, 0.45, 0.5]
+        glow: 0.2
+        contrast: 1.0
+
+        animate:
+          frequency:
+            lfo:
+              type: random_walk
+              freq: 0.03
+              amp: 0.5
+
+    # --- COMPOSITE: Layer detail over base ---
+    - id: layered_terrain
+      type: blend
+      inputs: ["base_terrain", "detail_layer"]
+      params:
+        mode: add
+        opacity: 0.4            # Subtle detail layering
+
+    # --- EFFECT: Color grade for deep aesthetic ---
+    - id: color_grade
+      type: color_gradient
+      inputs: ["layered_terrain"]
+      params:
+        gradient:
+          - [0.0, [0.02, 0.02, 0.05]]   # Deep black-blue
+          - [0.3, [0.1, 0.12, 0.15]]     # Dark grey
+          - [0.6, [0.2, 0.25, 0.3]]      # Mid grey-blue
+          - [1.0, [0.4, 0.5, 0.6]]       # Highlight blue-grey
+        contrast: 1.3
+        saturation: 0.7         # Desaturated for deep aesthetic
+
+    # --- EFFECT: Subtle glow on highlights ---
+    - id: glow_pass
+      type: glow
+      inputs: ["color_grade"]
+      params:
+        intensity: 0.4
+        threshold: 0.6
+        blur_radius: 12
+
+    # --- EFFECT: Minimal feedback for continuity ---
+    - id: feedback
+      type: feedback
+      inputs: ["glow_pass"]
+      params:
+        mix: 0.88               # Less feedback than wire cloud
+        decay: 0.97
+        offset: [0, 1]          # Vertical drift
+
+    # --- COMPOSITE: Blend current with feedback ---
+    - id: final_mix
+      type: blend
+      inputs: ["glow_pass", "feedback"]
+      params:
+        mode: mix
+        opacity: 0.7
+
+    # --- EFFECT: Vignette for focus ---
+    - id: vignette
+      type: vignette
+      inputs: ["final_mix"]
+      params:
+        intensity: 0.3
+        extent: 0.8
+
+    # --- OUTPUT ---
+    - id: output
+      type: output
+      inputs: ["vignette"]
+
+  # --- MIDI MAPPINGS ---
+  midi:
+    mappings:
+      # CC14: Control base warp
+      - target: "nodes.base_terrain.params.warp"
+        trigger: "CC14"
+        range: [0.2, 0.6]
+
+      # CC15: Control detail opacity
+      - target: "nodes.layered_terrain.params.opacity"
+        trigger: "CC15"
+        range: [0.2, 0.8]
+
+      # CC16: Control color contrast
+      - target: "nodes.color_grade.params.contrast"
+        trigger: "CC16"
+        range: [1.0, 1.8]
+
+      # CC17: Control animation speed
+      - target: "nodes.base_terrain.params.speed"
+        trigger: "CC17"
+        range: [0.0, 0.15]
+
+      # CC18: Control glow intensity
+      - target: "nodes.glow_pass.params.intensity"
+        trigger: "CC18"
+        range: [0.0, 0.8]
+
+      # Note 60: Freeze/unfreeze evolution
+      - target: "nodes.base_terrain.params.speed"
+        trigger: "NOTE_60"
+
+# ==============================================================================
+# AESTHETIC NOTES:
+# - Inspired by Joachim Spieth's "Terrain" - subtle, textural, hypnotic
+# - Very slow evolution (speed: 0.05) for meditative quality
+# - Desaturated color palette (saturation: 0.7)
+# - High octave count (8) for rich texture
+# - Layered complexity (base + detail)
+# - Minimal glow (0.3-0.4) - not cheesy EDM
+# - Subtle feedback for continuity without distraction
+#
+# PERFORMANCE:
+# - Octaves: 8 (base) + 5 (detail) = moderate GPU load
+# - Reduce base octaves to 6 if needed
+# - Can disable vignette for minor performance gain
+#
+# USAGE:
+# - Perfect for long, hypnotic techno sets
+# - Minimal changes over time = trance-inducing
+# - Increase warp slowly during build-ups
+# - Freeze evolution (speed=0) for static moments
+# ==============================================================================

@@ -1,0 +1,66 @@
+# ==============================================================================
+# AURORA FIELD
+# Audio-reactive aurora-like patterns
+# Converted from legacy .preset format to YAML DSL
+# ==============================================================================
+
+preset:
+  name: "Aurora Field"
+  description: "Audio-reactive flowing aurora patterns with MIDI burst control"
+  resolution: [1920, 1080]
+  framerate: 60
+
+  nodes:
+    # --- GENERATOR: Aurora shader ---
+    - id: aurora_gen
+      type: shader
+      params:
+        shader_path: src/shaders/aurora.glsl
+        speed: 0.5
+        intensity: 1.0
+        color_base: [0.2, 0.0, 0.4]
+        color_accent: [0.0, 0.8, 1.0]
+        glow: 1.2
+
+        # Animate for subtle variation
+        animate:
+          speed:
+            lfo:
+              type: sine
+              freq: 0.08
+              amp: 0.2
+
+    # --- OUTPUT ---
+    - id: output
+      type: output
+      inputs: ["aurora_gen"]
+
+  # --- MIDI MAPPINGS ---
+  midi:
+    mappings:
+      # CC14: Control intensity
+      - target: "nodes.aurora_gen.params.intensity"
+        trigger: "CC14"
+        range: [0.5, 2.0]
+
+      # CC15: Control speed
+      - target: "nodes.aurora_gen.params.speed"
+        trigger: "CC15"
+        range: [0.1, 1.5]
+
+      # CC16: Control glow
+      - target: "nodes.aurora_gen.params.glow"
+        trigger: "CC16"
+        range: [0.5, 2.0]
+
+      # Note 60: Burst trigger
+      - target: "nodes.aurora_gen.params.intensity"
+        trigger: "NOTE_60"
+
+# ==============================================================================
+# NOTES:
+# - Uses existing aurora.glsl shader
+# - Audio reactivity can be added via node parameters
+# - MIDI burst trigger on NOTE_60
+# - Simplified from original complex preset with compute shaders
+# ==============================================================================

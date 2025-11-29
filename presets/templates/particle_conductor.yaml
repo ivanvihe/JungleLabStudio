@@ -1,0 +1,84 @@
+# ==============================================================================
+# PARTICLE CONDUCTOR
+# Aurora-based preset with surge/calm dynamics
+# Converted from legacy .preset format to YAML DSL
+# ==============================================================================
+
+preset:
+  name: "Particle Conductor"
+  description: "Aurora field with surge intensity control and calm transitions"
+  resolution: [1920, 1080]
+  framerate: 60
+
+  nodes:
+    # --- GENERATOR: Aurora field ---
+    - id: aurora_gen
+      type: shader
+      params:
+        shader_path: src/shaders/aurora.glsl
+        speed: 0.35
+        intensity: 0.0
+        wave_speed: 0.6
+        wave_amplitude: 1.0
+        color_base: [0.1, 0.0, 0.2]
+        color_accent: [0.0, 0.8, 0.6]
+        flow: 0.8
+
+        # Breathing animation
+        animate:
+          intensity:
+            lfo:
+              type: sine
+              freq: 0.06
+              amp: 0.3
+          flow:
+            lfo:
+              type: random_walk
+              freq: 0.04
+              amp: 0.2
+
+    # --- OUTPUT ---
+    - id: output
+      type: output
+      inputs: ["aurora_gen"]
+
+  # --- MIDI MAPPINGS ---
+  midi:
+    mappings:
+      # CC14: Intensity
+      - target: "nodes.aurora_gen.params.intensity"
+        trigger: "CC14"
+        range: [0.0, 2.0]
+
+      # CC15: Wave speed
+      - target: "nodes.aurora_gen.params.wave_speed"
+        trigger: "CC15"
+        range: [0.2, 1.5]
+
+      # CC16: Wave amplitude
+      - target: "nodes.aurora_gen.params.wave_amplitude"
+        trigger: "CC16"
+        range: [0.5, 2.0]
+
+      # CC17: Flow
+      - target: "nodes.aurora_gen.params.flow"
+        trigger: "CC17"
+        range: [0.3, 1.5]
+
+      # Note 60: Surge (intensity spike)
+      - target: "nodes.aurora_gen.params.intensity"
+        trigger: "NOTE_60"
+
+      # Note 62: Calm (intensity drop)
+      - target: "nodes.aurora_gen.params.intensity"
+        trigger: "NOTE_62"
+        value: 0.0
+
+# ==============================================================================
+# NOTES:
+# - Uses aurora.glsl shader
+# - Simplified from original ParticleConductor class
+# - Original used aurora shader with dynamic color_base
+# - Surge/calm actions map to intensity control
+# - Perfect for building/releasing tension in live sets
+# ==============================================================================

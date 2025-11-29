@@ -1,0 +1,64 @@
+# ==============================================================================
+# IVAN - Audio Reactive Circle
+# Simple bouncing circle that reacts to bass frequencies
+# ==============================================================================
+
+preset:
+  name: "Ivan Circle Bounce"
+  description: "Single circle in center that bounces with audio bass frequencies"
+  resolution: [1920, 1080]
+  framerate: 60
+
+  nodes:
+    # --- GENERATOR: Circle shader ---
+    - id: circle_gen
+      type: shader
+      params:
+        shader_path: src/shaders/audio_circle.glsl
+        speed: 0.0
+        radius: 0.15
+        position: [0.5, 0.5]
+        color: [1.0, 1.0, 1.0]
+        glow: 0.5
+        bounce_scale: 1.0
+
+        # Audio-reactive bounce scale
+        animate:
+          bounce_scale:
+            audio:
+              band: 0  # Bass frequencies (0=bass, 1=mids, 2=highs)
+              min_value: 1.0  # Minimum scale (no audio)
+              max_value: 2.5  # Maximum scale (loud bass)
+              smoothing: 0.3  # How smooth the reaction is (0=instant, 1=very smooth)
+
+    # --- OUTPUT ---
+    - id: output
+      type: output
+      inputs: ["circle_gen"]
+
+  # --- MIDI MAPPINGS (optional manual control) ---
+  midi:
+    mappings:
+      # CC14: Circle radius
+      - target: "nodes.circle_gen.params.radius"
+        trigger: "CC14"
+        range: [0.05, 0.3]
+
+      # CC15: Glow intensity
+      - target: "nodes.circle_gen.params.glow"
+        trigger: "CC15"
+        range: [0.0, 2.0]
+
+      # Note 60: Manual bounce trigger
+      - target: "nodes.circle_gen.params.bounce_scale"
+        trigger: "NOTE_60"
+        value: 2.5
+
+# ==============================================================================
+# NOTES:
+# - Circle positioned at center (0.5, 0.5)
+# - bounce_scale automatically modulates with bass frequencies (band 0)
+# - White color by default with glow effect
+# - Smoothing 0.3 gives quick but not jarring response to audio
+# - Can also control manually via MIDI if needed
+# ==============================================================================

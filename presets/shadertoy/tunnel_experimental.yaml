@@ -1,0 +1,298 @@
+preset:
+  name: "Tunnel - Experimental Mix"
+  author: "JungleLabStudio"
+  description: |
+    Experimental combination mixing the Shadertoy tunnel
+    with multiple native generators and effects.
+
+    Perfect for VJ performances!
+
+    Features:
+    - Original Shadertoy tunnel
+    - Kaleidoscope pattern overlay
+    - Fractal texture
+    - Multiple blend modes
+    - Feedback trails
+    - Chromatic aberration
+    - Full MIDI control
+
+  nodes:
+    # Original Shadertoy tunnel
+    - id: tunnel_shader
+      type: shadertoy
+      params:
+        shader_code: |
+          #define V vec3
+          #define P(z)     V( 12.* cos( (z)*vec2(.1,.12) ) , z)
+          #define A(F,H,K) abs(dot( sin(F*p*K), H +p-p )) / K
+
+          void mainImage(out vec4 o, vec2 u) {
+              float t=iTime,s,i,d,e,
+                    T = t*4. + 5. + 5.*sin(t*.3);
+              V  c,r = iResolution;
+
+              u = ( u - r.xy/2. ) / r.y;
+              if (abs(u.y) < .37)
+
+              for (V p = P(T),
+                        Z = normalize( P(T+4.) - p),
+                        X = normalize(V(Z.z,0,-Z)),
+                        D = V(u, 1) * mat3(-X, cross(X, Z), Z);
+
+                  i++ < 28.;
+
+                  c += 1./s + V(10,20,50)/max(e, .6)
+              )
+                  p += D * s,
+                  X = P(p.z),
+                  t = sin(t),
+                  e = length(p - V(
+                             X.x,
+                             X.y + t,
+                             6.+T + t)-t)-.01,
+                  s = cos(p.z*.6)*2.+ 4.
+                    - min( length(p.xy - X.x - 6.)
+                         , length((p-X).xy) )
+                    + A(  4., .25, .1)
+                    + A(T+8., .22, 2.),
+                  d += s = min(e,.01+.3*abs(s));
+
+              o.rgb = c*c/1e6;
+          }
+
+    # Add kaleidoscope pattern overlay
+    - id: kaleidoscope
+      type: generator.pattern
+      params:
+        pattern_type: 2  # Kaleidoscope
+        scale: 3.0
+        rotation: 0.0
+        symmetry: 6
+        thickness: 0.1
+        animate: 1.0
+        color_mode: 2  # Rainbow
+        color_a: [0.0, 0.0, 0.0]
+        color_b: [1.0, 1.0, 1.0]
+
+    # Blend kaleidoscope
+    - id: tunnel_kaleido
+      type: effect.blend
+      mode: overlay
+      inputs:
+        a: tunnel_shader
+        b: kaleidoscope
+      params:
+        opacity: 0.3
+
+    # Add fractal detail
+    - id: fractal_detail
+      type: generator.fractal
+      params:
+        fractal_type: 1  # Julia
+        zoom: 3.0
+        center_x: 0.0
+        center_y: 0.0
+        julia_c_x: -0.7
+        julia_c_y: 0.27015
+        max_iterations: 100
+        color_intensity: 0.5
+        color_offset: 0.0
+
+    # Mix fractal
+    - id: tunnel_fractal
+      type: effect.blend
+      mode: multiply
+      inputs:
+        a: tunnel_kaleido
+        b: fractal_detail
+      params:
+        opacity: 0.4
+
+    # Add voronoi cellular pattern
+    - id: voronoi
+      type: generator.voronoi
+      params:
+        scale: 8.0
+        mode: 2  # Edges only
+        color_mode: 0
+        animate: 1.0
+        edge_thickness: 0.08
+        distance_power: 2.0
+
+    # Blend voronoi
+    - id: tunnel_voronoi
+      type: effect.blend
+      mode: add
+      inputs:
+        a: tunnel_fractal
+        b: voronoi
+      params:
+        opacity: 0.2
+
+    # Add bloom
+    - id: bloom
+      type: effect.bloom
+      inputs:
+        source: tunnel_voronoi
+      params:
+        intensity: 1.0
+        threshold: 0.3
+        radius: 3.0
+
+    # Chromatic aberration
+    - id: chromatic
+      type: effect.chromatic_aberration
+      inputs:
+        source: bloom
+      params:
+        amount: 0.005
+        direction: 0.0
+
+    # Color grading
+    - id: color
+      type: effect.color
+      inputs:
+        source: chromatic
+      params:
+        brightness: 1.2
+        contrast: 1.4
+        saturation: 1.5
+        hue_shift: 0.0
+
+    # Feedback trails
+    - id: feedback
+      type: effect.feedback
+      inputs:
+        source: color
+      params:
+        amount: 0.2
+        decay: 0.92
+        scale: 1.02
+        rotation: 0.01
+
+    # Pixelate for retro effect (optional)
+    - id: pixelate
+      type: effect.pixelate
+      inputs:
+        source: feedback
+      params:
+        pixel_size: 1.0  # Set to 4.0+ for chunky pixels
+
+    # Final glitch (optional)
+    - id: glitch
+      type: effect.glitch
+      inputs:
+        source: pixelate
+      params:
+        amount: 0.0  # Increase for glitch effect
+        block_size: 20.0
+
+    - id: output
+      type: output
+      inputs:
+        source: glitch
+
+  # Comprehensive MIDI mappings
+  midi_mappings:
+    # Kaleidoscope control
+    kaleidoscope.symmetry:
+      cc: 1
+      channel: 0
+      min: 2.0
+      max: 12.0
+
+    kaleidoscope.scale:
+      cc: 2
+      channel: 0
+      min: 1.0
+      max: 10.0
+
+    # Fractal control
+    fractal_detail.zoom:
+      cc: 3
+      channel: 0
+      min: 0.5
+      max: 10.0
+
+    fractal_detail.color_offset:
+      cc: 4
+      channel: 0
+      min: 0.0
+      max: 6.28
+
+    # Blend amounts
+    tunnel_kaleido.opacity:
+      cc: 5
+      channel: 0
+      min: 0.0
+      max: 1.0
+
+    tunnel_fractal.opacity:
+      cc: 6
+      channel: 0
+      min: 0.0
+      max: 1.0
+
+    tunnel_voronoi.opacity:
+      cc: 7
+      channel: 0
+      min: 0.0
+      max: 1.0
+
+    # Effects
+    bloom.intensity:
+      cc: 8
+      channel: 0
+      min: 0.0
+      max: 2.0
+
+    chromatic.amount:
+      cc: 9
+      channel: 0
+      min: 0.0
+      max: 0.02
+
+    # Color
+    color.brightness:
+      cc: 10
+      channel: 0
+      min: 0.5
+      max: 2.0
+
+    color.saturation:
+      cc: 11
+      channel: 0
+      min: 0.0
+      max: 2.0
+
+    color.hue_shift:
+      cc: 12
+      channel: 0
+      min: 0.0
+      max: 6.28
+
+    # Feedback
+    feedback.amount:
+      cc: 13
+      channel: 0
+      min: 0.0
+      max: 0.5
+
+    feedback.rotation:
+      cc: 14
+      channel: 0
+      min: -0.1
+      max: 0.1
+
+    # Optional effects
+    pixelate.pixel_size:
+      cc: 15
+      channel: 0
+      min: 1.0
+      max: 20.0
+
+    glitch.amount:
+      cc: 16
+      channel: 0
+      min: 0.0
+      max: 1.0

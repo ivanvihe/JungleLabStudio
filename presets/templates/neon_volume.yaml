@@ -1,0 +1,98 @@
+# ==============================================================================
+# NEON VOLUME
+# Volumetric raymarch with audio reactivity
+# Converted from legacy .preset format to YAML DSL
+# ==============================================================================
+
+preset:
+  name: "Neon Volume"
+  description: "Volumetric raymarch rendering with warp field and palette control"
+  resolution: [1920, 1080]
+  framerate: 60
+
+  nodes:
+    # --- GENERATOR: Volume raymarch shader ---
+    - id: volume_gen
+      type: shader
+      params:
+        shader_path: src/shaders/volume_raymarch.glsl
+        speed: 0.3
+        warp: 1.8
+        density: 0.6
+        step_count: 64.0
+        color_shift: 0.0
+        glow_intensity: 1.0
+
+        # Animate warp for organic motion
+        animate:
+          warp:
+            lfo:
+              type: sine
+              freq: 0.05
+              amp: 0.4
+          color_shift:
+            lfo:
+              type: random_walk
+              freq: 0.03
+              amp: 0.3
+
+    # --- OUTPUT ---
+    - id: output
+      type: output
+      inputs: ["volume_gen"]
+
+  # --- MIDI MAPPINGS ---
+  midi:
+    mappings:
+      # CC14: Warp field strength
+      - target: "nodes.volume_gen.params.warp"
+        trigger: "CC14"
+        range: [1.0, 3.0]
+
+      # CC15: Density
+      - target: "nodes.volume_gen.params.density"
+        trigger: "CC15"
+        range: [0.3, 1.0]
+
+      # CC16: Glow intensity
+      - target: "nodes.volume_gen.params.glow_intensity"
+        trigger: "CC16"
+        range: [0.5, 2.0]
+
+      # CC17: Animation speed
+      - target: "nodes.volume_gen.params.speed"
+        trigger: "CC17"
+        range: [0.1, 0.8]
+
+      # CC18: Color palette shift
+      - target: "nodes.volume_gen.params.color_shift"
+        trigger: "CC18"
+        range: [0.0, 1.0]
+
+      # Note 60: Warp burst
+      - target: "nodes.volume_gen.params.warp"
+        trigger: "NOTE_60"
+
+      # Note 62: Density pulse
+      - target: "nodes.volume_gen.params.density"
+        trigger: "NOTE_62"
+
+# ==============================================================================
+# NOTES:
+# - Simplified from complex original with compute shader particles
+# - Uses volume_raymarch.glsl for main visual
+# - Particle system omitted (can be added as separate node later)
+# - MIDI control for all key parameters
+# - Ray flash effect omitted (can be added as effect node)
+#
+# ORIGINAL ACTIONS:
+# - ray: Ray flash overlay
+# - spawn_particle_burst: Particle emission
+# - warp_field: Warp intensity boost
+# - shift_palette: Color palette change
+#
+# TO RESTORE FULL FUNCTIONALITY:
+# - Add particle system node (compute shader based)
+# - Add ray flash effect node
+# - Connect via composite node
+# ==============================================================================

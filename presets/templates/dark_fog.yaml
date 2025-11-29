@@ -1,0 +1,77 @@
+# ==============================================================================
+# DARK FOG
+# Dark volumetric fog with subtle glow
+# Simplified from complex compute shader version
+# ==============================================================================
+
+preset:
+  name: "Dark Fog"
+  description: "Dark atmospheric volumetric fog"
+  resolution: [1920, 1080]
+  framerate: 60
+
+  nodes:
+    # --- GENERATOR: Dark fog volume ---
+    - id: fog_gen
+      type: shader
+      params:
+        shader_path: src/shaders/dark_fog.glsl
+        speed: 0.25
+        density: 1.0
+        glow_strength: 0.8
+        depth: 2.0
+        color_base: [0.05, 0.02, 0.1]
+        color_accent: [0.9, 0.6, 1.0]
+
+        # Slow organic evolution
+        animate:
+          glow_strength:
+            lfo:
+              type: sine
+              freq: 0.06
+              amp: 0.2
+          density:
+            lfo:
+              type: random_walk
+              freq: 0.04
+              amp: 0.15
+
+    # --- OUTPUT ---
+    - id: output
+      type: output
+      inputs: ["fog_gen"]
+
+  # --- MIDI MAPPINGS ---
+  midi:
+    mappings:
+      # CC14: Glow strength
+      - target: "nodes.fog_gen.params.glow_strength"
+        trigger: "CC14"
+        range: [0.3, 1.5]
+
+      # CC15: Density
+      - target: "nodes.fog_gen.params.density"
+        trigger: "CC15"
+        range: [0.5, 1.5]
+
+      # CC16: Depth
+      - target: "nodes.fog_gen.params.depth"
+        trigger: "CC16"
+        range: [1.0, 3.0]
+
+      # Note 60: Shock distortion (density burst)
+      - target: "nodes.fog_gen.params.density"
+        trigger: "NOTE_60"
+
+      # Note 62: Glow flash
+      - target: "nodes.fog_gen.params.glow_strength"
+        trigger: "NOTE_62"
+
+# ==============================================================================
+# NOTES:
+# - Simplified from complex version with particles
+# - Original used compute shader for 30K particles
+# - This version focuses on volumetric fog visual
+# - Particle layer can be added as separate node later
+# - Perfect for dark/minimal techno
+# ==============================================================================

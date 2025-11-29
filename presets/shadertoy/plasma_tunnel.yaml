@@ -1,0 +1,22 @@
+preset:
+  name: "Plasma Tunnel"
+  author: "JungleLabStudio"
+  description: "Psychedelic tunnel effect using plasma generator"
+
+  nodes:
+    - id: plasma_gen
+      type: generator.plasma
+      params:
+        effect_type: 1  # Tunnel mode
+        frequency: 6.0
+        speed: 1.5
+        distortion: 1.2
+        color_speed: 0.8
+        color_offset: 0.0
+        brightness: 1.2
+        contrast: 1.3
+
+    - id: output
+      type: output
+      inputs:
+        source: plasma_gen

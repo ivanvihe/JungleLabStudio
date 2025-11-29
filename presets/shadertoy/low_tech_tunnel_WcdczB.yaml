@@ -1,0 +1,91 @@
+preset:
+  name: "Low Tech Tunnel"
+  author: "bug (Shadertoy)"
+  description: |
+    Tunnel raymarching effect with moving orb
+    Imported from https://www.shadertoy.com/view/WcdczB
+
+    Features:
+    - Raymarched tunnel with curved path
+    - Animated sphere/orb following the path
+    - Procedural noise texture
+    - Cinema letterbox bars
+    - Only 28 raymarching steps (optimized!)
+
+    Original credits:
+    @FabriceNeyret2, @bug, @HexaPhoenix, @GregRostami
+
+  nodes:
+    - id: tunnel_shader
+      type: shadertoy
+      params:
+        shader_code: |
+          // low tech tunnel
+          // 28 steps
+
+          /*
+              @FabriceNeyret2 -40 chars
+              → 611 (from 651)!
+
+              --
+
+              @bug -27 chars
+              → 584 (from 611)!
+
+              --
+
+              @HexaPhoenix -6 chars
+              → 578 (from 584)!
+
+              --
+
+              @GregRostami, -21 chars
+              → 557 (from 578)!
+
+              ty!!   :D
+
+          */
+
+          #define V vec3
+          #define P(z)     V( 12.* cos( (z)*vec2(.1,.12) ) , z)
+          #define A(F,H,K) abs(dot( sin(F*p*K), H +p-p )) / K
+
+          void mainImage(out vec4 o, vec2 u) {
+              float t=iTime,s,i,d,e,
+                    T = t*4. + 5. + 5.*sin(t*.3);
+              V  c,r = iResolution;
+
+              u = ( u - r.xy/2. ) / r.y;            // scaled coords
+              if (abs(u.y) < .37)                   // cinema bars
+
+              for (V p = P(T),                      // setup ray origin, direction, and look-at
+                        Z = normalize( P(T+4.) - p),
+                        X = normalize(V(Z.z,0,-Z)),
+                        D = V(u, 1) * mat3(-X, cross(X, Z), Z);
+
+                  i++ < 28.;
+
+                  c += 1./s + V(10,20,50)/max(e, .6)
+              )
+                  p += D * s,                       // march
+                  X = P(p.z),                       // get path
+                  t = sin(t),                       // store sine of iTime (not T)
+                  e = length(p - V(                 // orb (sphere with xyz offset by t)
+                             X.x,
+                             X.y + t,
+                             6.+T + t)-t)-.01,
+                  s = cos(p.z*.6)*2.+ 4.            // tunnel with modulating radius
+                    - min( length(p.xy - X.x - 6.)
+                         , length((p-X).xy) )
+                    + A(  4., .25, .1)              // noise, large scoops
+                    + A(T+8., .22, 2.),             // noise, detail texture
+                                                    // (remove "T+" if you don't like the texture moving)
+                  d += s = min(e,.01+.3*abs(s));    // accumulate distance
+
+              o.rgb = c*c/1e6;                      // adjust brightness and saturation
+          }
+
+    - id: output
+      type: output
+      inputs:
+        source: tunnel_shader

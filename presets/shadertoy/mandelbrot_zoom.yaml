@@ -1,0 +1,21 @@
+preset:
+  name: "Mandelbrot Zoom"
+  author: "JungleLabStudio"
+  description: "Animated Mandelbrot fractal with color cycling"
+
+  nodes:
+    - id: fractal
+      type: generator.fractal
+      params:
+        fractal_type: 0  # Mandelbrot
+        zoom: 2.0
+        center_x: -0.5
+        center_y: 0.0
+        max_iterations: 150
+        color_intensity: 2.0
+        color_offset: 0.0
+
+    - id: output
+      type: output
+      inputs:
+        source: fractal

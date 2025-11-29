@@ -1,0 +1,103 @@
+preset:
+  name: MIDI Control Example
+  description: Example preset demonstrating MIDI Listener → Launcher → Generator flow
+  author: JungleLabStudio
+  version: 1.0.0
+  tags: [midi, example, interactive]
+
+  settings:
+    bpm: 120.0
+    audio_reactive: false
+    midi_enabled: true
+
+  nodes:
+    # MIDI Listener - Captures MIDI CC messages
+    - id: midi_listener_001
+      type: midi.listener
+      position: [100, 200]
+      params:
+        device_index: 0.0
+        normalize: 1.0  # Normalize to 0-1
+        smoothing: 0.2
+      # Note: Use MIDI Learn in editor to assign to specific CC/Note
+
+    # Launcher - Processes MIDI and activates generator
+    - id: launcher_001
+      type: midi.launcher
+      position: [300, 200]
+      params:
+        activation_type: 1.0  # RANGE mode
+        threshold: 0.1
+        ramp_time: 0.3
+        hold_time: 0.0
+        input_min: 0.0
+        input_max: 1.0
+        output_min: 0.0
+        output_max: 5.0  # Scale rotation speed
+        curve: 0.0  # Linear
+        invert: 0.0
+      inputs:
+        midi_value: midi_listener_001
+
+    # Noise Generator - Controlled by launcher
+    - id: noise_gen_001
+      type: generator.noise
+      position: [500, 150]
+      params:
+        scale: 5.0
+        octaves: 4.0
+        persistence: 0.5
+        lacunarity: 2.0
+        speed: 1.0  # Will be modulated by MIDI
+        color_a: [0.1, 0.0, 0.3]
+        color_b: [0.8, 0.4, 1.0]
+        # Modulation: launcher_001 controls 'speed' parameter
+        animate:
+          speed:
+            midi:
+              launcher: launcher_001
+              scale: 1.0
+              offset: 0.0
+
+    # Distortion Effect
+    - id: distort_001
+      type: effect.distort
+      position: [700, 150]
+      params:
+        amount: 0.2
+        frequency: 3.0
+        speed: 0.5
+        type: 0.0  # Wave distortion
+      inputs:
+        input0: noise_gen_001
+
+    # Color adjustment  - Add some visual pop
+    - id: color_001
+      type: effect.color
+      position: [900, 150]
+      params:
+        brightness: 1.2
+        contrast: 1.3
+        saturation: 1.5
+        hue: 0.0
+      inputs:
+        input0: distort_001
+
+    # Output
+    - id: output_001
+      type: output
+      position: [1100, 200]
+      inputs:
+        input0: color_001
+
+  # MIDI mappings (for reference)
+  midi:
+    mappings:
+      - launcher: launcher_001
+        target_nodes:
+          - node: noise_gen_001
+            parameters:
+              - name: speed
+                scale: 5.0
+                offset: 0.0
+                curve: linear

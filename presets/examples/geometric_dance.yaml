@@ -1,0 +1,101 @@
+name: "Geometric Dance"
+description: "Animated geometric shapes with LFO modulation"
+author: "YAML DSL"
+version: "1.0"
+tags: ["geometry", "animation", "lfo"]
+
+controls:
+  rotation_speed:
+    type: slider
+    label: "Rotation Speed"
+    min: 0.0
+    max: 5.0
+    default: 1.0
+    step: 0.1
+  scale_amount:
+    type: slider
+    label: "Scale Amount"
+    min: 0.5
+    max: 3.0
+    default: 1.5
+    step: 0.1
+
+nodes:
+  # LFO for rotation
+  rotation_lfo:
+    type: lfo
+    frequency: 0.5
+    phase: 0.0
+    waveform: 0  # sine
+
+  # LFO for scale
+  scale_lfo:
+    type: lfo
+    frequency: 0.8
+    phase: 0.5
+    waveform: 2  # saw
+
+  # Audio trigger for color
+  audio_color:
+    type: audio_trigger
+    band: 2  # high
+    threshold: 0.3
+
+  # Generate a rectangle
+  rect:
+    type: rect
+    width: 0.8
+    height: 0.6
+
+  # Transform with LFO-controlled rotation
+  transform1:
+    type: transform
+    position: [0.0, 0.0, 0.0]
+    rotation: [0.0, 0.0, 1.57]  # 90 degrees
+    scale: 1.0
+    inputs:
+      input: rect
+
+  # Repeat for kaleidoscope effect
+  repeat_geo:
+    type: repeat
+    count: 6
+    offset: [0.0, 0.0, 0.0]
+    rotation_step: 1.047  # 60 degrees in radians
+    inputs:
+      input: transform1
+
+  # Apply twist deformation
+  twist_geo:
+    type: twist
+    amount: 2.0
+    axis: 2
+    inputs:
+      input: repeat_geo
+
+  # Colorize with audio reactivity
+  colorize:
+    type: color
+    color: [0.8, 0.2, 1.0, 1.0]
+    hue_shift: 0.0
+    audio_reactive: true
+    audio_band: high
+    audio_intensity: 2.0
+    inputs:
+      input: twist_geo
+
+  # Add glow
+  glow_effect:
+    type: glow
+    intensity: 1.8
+    radius: 0.2
+    inputs:
+      input: colorize
+
+  # Apply feedback for trails
+  feedback_effect:
+    type: feedback
+    amount: 0.85
+    decay: 0.98
+    inputs:
+      input: glow_effect

@@ -1,0 +1,103 @@
+# ==============================================================================
+# MONO VOID
+# Monochromatic volumetric void with filaments
+# Multi-layer composition
+# ==============================================================================
+
+preset:
+  name: "Mono Void"
+  description: "Monochromatic volumetric rendering with wire filaments overlay"
+  resolution: [1920, 1080]
+  framerate: 60
+
+  nodes:
+    # --- LAYER 1: Mono volume base ---
+    - id: volume_base
+      type: shader
+      params:
+        shader_path: src/shaders/mono_volume.glsl
+        speed: 0.2
+        density: 1.0
+        contrast: 1.3
+        color_mono: [1.0, 1.0, 1.0]
+        depth: 2.5
+
+        # Subtle breathing
+        animate:
+          density:
+            lfo:
+              type: sine
+              freq: 0.05
+              amp: 0.15
+
+    # --- LAYER 2: Wire filaments overlay ---
+    - id: filaments
+      type: shader
+      params:
+        shader_path: src/shaders/filaments.glsl
+        speed: 0.3
+        line_count: 12.0
+        thickness: 1.5
+        brightness: 0.8
+        color: [1.0, 1.0, 1.0]
+
+        # Wire animation
+        animate:
+          line_count:
+            lfo:
+              type: random_walk
+              freq: 0.03
+              amp: 2.0
+
+    # --- COMPOSITE: Blend layers ---
+    - id: composite
+      type: blend
+      inputs: ["volume_base", "filaments"]
+      params:
+        mode: add
+        opacity: 0.6
+
+    # --- OUTPUT ---
+    - id: output
+      type: output
+      inputs: ["composite"]
+
+  # --- MIDI MAPPINGS ---
+  midi:
+    mappings:
+      # CC14: Volume density
+      - target: "nodes.volume_base.params.density"
+        trigger: "CC14"
+        range: [0.5, 1.5]
+
+      # CC15: Filament brightness
+      - target: "nodes.filaments.params.brightness"
+        trigger: "CC15"
+        range: [0.3, 1.5]
+
+      # CC16: Filament line count
+      - target: "nodes.filaments.params.line_count"
+        trigger: "CC16"
+        range: [6.0, 20.0]
+
+      # CC17: Composite opacity
+      - target: "nodes.composite.params.opacity"
+        trigger: "CC17"
+        range: [0.3, 1.0]
+
+      # Note 60: Density burst
+      - target: "nodes.volume_base.params.density"
+        trigger: "NOTE_60"
+
+      # Note 62: Filament flash
+      - target: "nodes.filaments.params.brightness"
+        trigger: "NOTE_62"
+
+# ==============================================================================
+# NOTES:
+# - Two-layer composition: volume + filaments
+# - Monochromatic aesthetic
+# - Original had 45K particles - omitted for simplicity
+# - Filaments provide structural contrast to volume
+# - Perfect for minimal/monochrome techno sets
+# ==============================================================================

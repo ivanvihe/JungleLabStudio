@@ -1,0 +1,72 @@
+# ==============================================================================
+# VOLUMETRIC ARCS
+# Audio-reactive volumetric arc patterns
+# Converted from legacy .preset format to YAML DSL
+# ==============================================================================
+
+preset:
+  name: "Volumetric Arcs"
+  description: "Audio-reactive volumetric arcs with dynamic intensity"
+  resolution: [1920, 1080]
+  framerate: 60
+
+  nodes:
+    # --- GENERATOR: Volumetric arcs shader ---
+    - id: arcs_gen
+      type: shader
+      params:
+        shader_path: src/shaders/vol_arcs.glsl
+        speed: 0.4
+        arc_intensity: 1.0
+        arc_count: 6.0
+        color_primary: [0.0, 0.8, 1.0]
+        color_secondary: [1.0, 0.2, 0.6]
+        glow: 1.1
+
+        # Animate arc rotation
+        animate:
+          speed:
+            lfo:
+              type: triangle
+              freq: 0.1
+              amp: 0.3
+
+    # --- OUTPUT ---
+    - id: output
+      type: output
+      inputs: ["arcs_gen"]
+
+  # --- MIDI MAPPINGS ---
+  midi:
+    mappings:
+      # CC14: Arc intensity
+      - target: "nodes.arcs_gen.params.arc_intensity"
+        trigger: "CC14"
+        range: [0.3, 2.0]
+
+      # CC15: Arc count
+      - target: "nodes.arcs_gen.params.arc_count"
+        trigger: "CC15"
+        range: [3.0, 12.0]
+
+      # CC16: Glow intensity
+      - target: "nodes.arcs_gen.params.glow"
+        trigger: "CC16"
+        range: [0.5, 2.0]
+
+      # CC17: Speed control
+      - target: "nodes.arcs_gen.params.speed"
+        trigger: "CC17"
+        range: [0.1, 1.0]
+
+      # Note 60: Intensity burst
+      - target: "nodes.arcs_gen.params.arc_intensity"
+        trigger: "NOTE_60"
+
+# ==============================================================================
+# NOTES:
+# - Uses existing vol_arcs.glsl shader
+# - Simplified from complex original with particle systems
+# - MIDI control for key parameters
+# - Suitable for minimal techno / deep house
+# ==============================================================================

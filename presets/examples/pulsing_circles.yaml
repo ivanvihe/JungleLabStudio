@@ -1,0 +1,77 @@
+name: "Pulsing Circles"
+description: "Concentric circles that pulse with the bass"
+author: "YAML DSL"
+version: "1.0"
+tags: ["shapes", "audio-reactive", "simple"]
+
+# Define UI controls
+controls:
+  circle_count:
+    type: slider
+    label: "Number of Circles"
+    min: 3
+    max: 20
+    default: 8
+    step: 1
+  base_radius:
+    type: slider
+    label: "Base Radius"
+    min: 0.1
+    max: 2.0
+    default: 0.5
+    step: 0.05
+  pulse_intensity:
+    type: slider
+    label: "Pulse Intensity"
+    min: 0.0
+    max: 2.0
+    default: 0.8
+    step: 0.1
+
+# Node graph
+nodes:
+  # Generate a single circle
+  circle_gen:
+    type: circle
+    radius: 0.3
+    segments: 64
+    audio_reactive: true
+    audio_band: bass
+    audio_intensity: 0.8
+
+  # Repeat the circle multiple times
+  repeat_circles:
+    type: repeat
+    count: 8
+    offset: [0.0, 0.0, 0.0]
+    rotation_step: 0.0
+    inputs:
+      input: circle_gen
+
+  # Scale based on index
+  transform_circles:
+    type: transform
+    scale: 1.0
+    inputs:
+      input: repeat_circles
+
+  # Add color
+  colorize:
+    type: color
+    color: [0.2, 0.8, 1.0, 1.0]
+    hue_shift: 0.0
+    audio_reactive: true
+    audio_band: high
+    audio_intensity: 0.5
+    inputs:
+      input: transform_circles
+
+  # Add glow effect
+  glow_effect:
+    type: glow
+    intensity: 1.5
+    radius: 0.15
+    audio_reactive: true
+    audio_band: mid
+    inputs:
+      input: colorize

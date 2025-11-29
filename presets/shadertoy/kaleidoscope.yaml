@@ -1,0 +1,23 @@
+preset:
+  name: "Rainbow Kaleidoscope"
+  author: "JungleLabStudio"
+  description: "Hypnotic kaleidoscope pattern with rainbow colors"
+
+  nodes:
+    - id: pattern
+      type: generator.pattern
+      params:
+        pattern_type: 2  # Kaleidoscope
+        scale: 3.0
+        rotation: 0.0
+        symmetry: 8
+        thickness: 0.15
+        animate: 1.0
+        color_mode: 2  # Rainbow
+        color_a: [0.0, 0.0, 0.0]
+        color_b: [1.0, 1.0, 1.0]
+
+    - id: output
+      type: output
+      inputs:
+        source: pattern

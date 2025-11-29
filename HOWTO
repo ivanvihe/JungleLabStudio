@@ -1,0 +1,286 @@
+3. Añadir Nuevos Tipos de Nodos o Efectos 🔴 ALTA PRIORIDAD
+
+  Efectos de Post-Procesado Faltantes:
+
+  - Bloom/Glow Avanzado - El actual effect.glow es básico
+  - Chromatic Aberration - Aberración cromática
+  - Depth of Field - Profundidad de campo
+  - Motion Blur - Desenfoque de movimiento
+  - Lens Distortion - Distorsión de lente (barrel, pincushion)
+  - Film Grain - Grano de película
+  - Sharpen - Afilado de imagen
+  - SSAO - Oclusión ambiental en espacio de pantalla
+
+  Generadores de Geometría Faltantes:
+
+  - 3D Primitives - Cubos, esferas, toroides
+  - Particle System Avanzado - El actual es básico
+  - Line/Path Renderer - Renderizado de líneas y paths
+  - SDF Shapes - Signed Distance Fields 2D/3D
+  - L-Systems - Generación procedural de plantas/fractales
+  - Voronoi Patterns - Patrones Voronoi
+
+  Nodos de Composición Avanzados:
+
+  - Alpha Masking - Máscaras alpha avanzadas
+  - Gradient Maps - Mapeo de gradientes
+  - Channel Mixer - Mezcla de canales RGB
+  - LUT (Look-Up Table) - Color grading con LUTs
+  - Multi-Layer Compositor - Compositor de múltiples capas
+  - Displacement Mapping - Mapeo de desplazamiento
+
+  Utilidades y Helpers:
+
+  - Buffer/Feedback Node - Buffer de frames anteriores
+  - Time Delay Node - Retardo temporal de señales
+  - Math Nodes - Operaciones matemáticas (Add, Multiply, Clamp, etc.)
+  - Value Converters - Conversión de rangos/tipos
+
+  ---
+  4. Optimización de Performance 🟡 MEDIA PRIORIDAD
+
+  Problemas Conocidos:
+
+  - Grafos grandes (50+ nodos) no están optimizados
+    - Actualmente se rebuilda todo el grafo en cada cambio
+    - No hay cache de texturas intermedias
+    - No hay culling de nodos no visibles
+
+  Gestión de Memoria de Texturas:
+
+  - Memory pooling - Reutilizar texturas del mismo tamaño
+  - Texture streaming - Cargar/descargar texturas bajo demanda
+  - Mipmap generation - Generar mipmaps para texturas grandes
+  - Compression - Comprimir texturas en GPU cuando sea posible
+
+  LOD para Shaders Complejos:
+
+  - Shader variants - Versiones simplificadas para preview
+  - Adaptive quality - Reducir calidad si FPS < threshold
+  - Resolution scaling - Renderizar a menor resolución y upscale
+
+  Profiling y Benchmarking:
+
+  - GPU profiling - Medir tiempo de cada shader
+  - CPU profiling - Identificar bottlenecks en Python
+  - Memory profiling - Detectar leaks de texturas/buffers
+  - Frame time graph - Visualizar performance en UI
+
+  Optimizaciones Específicas:
+
+  # Archivo: src/editor/graph/executor.py
+  # Problema: Rebuilds completo en cada cambio
+  def needs_rebuild(self, visual_graph: VisualGraph) -> bool:
+      # TODO: Implementar dirty tracking más granular
+      # Solo rebuildar nodos modificados, no todo el grafo
+
+  # Archivo: src/core/graph/graph.py
+  # Problema: No hay cache de texturas
+  class RenderGraph:
+      # TODO: Añadir texture cache pool
+      # TODO: Añadir node culling (no renderizar nodos desconectados)
+
+  ---
+  5. Documentación y Ejemplos 🟢 BAJA PRIORIDAD
+
+  Documentación YAML DSL Faltante:
+
+  - YAML_DSL_REFERENCE.md - Referencia completa de sintaxis YAML
+    - Estructura de presets
+    - Tipos de nodos disponibles
+    - Parámetros de cada nodo
+    - Sistema de animación (LFO, envelopes)
+    - Sistema de triggers (MIDI, audio)
+    - Conexiones entre nodos
+  - NODE_REFERENCE.md - Guía de referencia de cada tipo de nodo
+    - Descripción de cada nodo
+    - Parámetros con rangos válidos
+    - Ejemplos de uso
+    - Screenshots de resultados
+
+  Tutoriales Faltantes:
+
+  - GETTING_STARTED.md - Tutorial básico
+    - Crear primer preset
+    - Añadir nodos y conectarlos
+    - Usar animaciones LFO
+    - Exportar y guardar
+  - SHADER_GUIDE.md - Guía de creación de shaders custom
+    - Estructura de shader nodes
+    - Uniforms disponibles
+    - Ejemplos de shaders
+    - Debugging shaders
+  - ADVANCED_TECHNIQUES.md - Técnicas avanzadas
+    - Multi-pass rendering
+    - Feedback loops
+    - Particle systems
+    - Audio-reactive patterns
+
+  Presets de Demostración Faltantes:
+
+  - Showcase presets usando los nuevos nodos:
+    - presets/showcase/edge_detection_demo.yaml
+    - presets/showcase/blend_modes_demo.yaml
+    - presets/showcase/noise_patterns_demo.yaml
+    - presets/showcase/transform_animations_demo.yaml
+  - Tutorial presets paso a paso:
+    - presets/tutorials/01_basic_generator.yaml
+    - presets/tutorials/02_effects_chain.yaml
+    - presets/tutorials/03_midi_control.yaml
+    - presets/tutorials/04_audio_reactive.yaml
+
+  ---
+  🔧 BUGS Y ISSUES CONOCIDOS
+
+  Editor UI:
+
+  - Zoom in/out del canvas - Actualmente solo hay zoom global, falta zoom
+del grafo de nodos
+  - Grid snapping - El snap to grid existe pero no es muy preciso
+  - Connection routing - Las conexiones son líneas rectas, considerar bezier
+curves
+  - Node search - Falta buscador de nodos en el node picker
+  - Minimap - Falta minimapa del grafo para navegación
+
+  YAML Serialization:
+
+  - MIDI mappings no se serializan correctamente - El estado de MIDI Learn
+no se guarda en YAML
+    - Archivos afectados: src/editor/dsl/serializer.py
+    - Necesita: Guardar midi_mapping del MIDIListenerNode
+  - Launcher → Generator connections - Las conexiones de Launcher a
+parámetros de Generator no se serializan
+    - El sistema de modulation manager necesita serialización
+
+  Runtime:
+
+  - Hot reload de shaders - No se pueden recargar shaders sin reiniciar
+  - Live code editing - No se puede editar código de nodos en runtime
+  - FPS counter - Falta visualización de FPS en UI
+
+  MIDI System:
+
+  - Multiple MIDI devices - Solo soporta un dispositivo MIDI a la vez
+  - MIDI output - No hay soporte para MIDI feedback (LEDs en controladores)
+  - MIDI clock sync - No hay sincronización con MIDI clock
+
+  ---
+  📁 ARCHIVOS CLAVE DEL PROYECTO
+
+  Core System:
+
+  src/core/
+  ├── graph/
+  │   ├── graph.py              # RenderGraph - Grafo de ejecución
+  │   ├── node.py               # RenderNode - Clase base de nodos
+  │   ├── loader.py             # GraphLoader - Carga desde YAML
+  │   └── registry.py           # NodeRegistry - Registro de tipos
+  ├── error_handling.py         # Sistema de errores centralizado
+  ├── midi_modulation.py        # MIDI modulation manager
+  └── config.py                 # Configuración global
+
+  Editor:
+
+  src/editor/
+  ├── app.py                    # VisualEditor - Aplicación principal
+  ├── state.py                  # EditorState - Estado del editor
+  ├── graph/
+  │   ├── visual_graph.py       # VisualGraph - Grafo visual
+  │   ├── visual_node.py        # VisualNode - Nodo visual
+  │   └── executor.py           # GraphExecutor - Ejecutor de grafos
+  ├── ui/
+  │   ├── canvas.py             # NodeCanvas - Canvas de nodos
+  │   ├── inspector.py          # Inspector - Panel de propiedades
+  │   ├── menu_bar.py           # MenuBar - Menú superior
+  │   ├── preview.py            # PreviewPanel - Vista previa
+  │   └── notifications.py      # NotificationManager - Notificaciones
+  └── dsl/
+      ├── serializer.py         # PresetSerializer - Serialización YAML
+      └── deserializer.py       # PresetDeserializer - Deserialización YAML
+
+  Nodes:
+
+  src/nodes/
+  ├── midi/
+  │   ├── midi_listener_node.py # MIDI Listener con Learn mode
+  │   └── launcher_node.py       # MIDI Launcher con 4 modos
+  ├── generators/
+  │   ├── noise_node.py          # Generador de ruido Simplex
+  │   └── checkerboard_node.py   # Generador de tablero
+  ├── pixelate_node.py           # Efecto pixelado
+  ├── edge_detect_node.py        # Detección de bordes
+  ├── posterize_node.py          # Posterización
+  ├── distort_node.py            # Distorsión UV
+  ├── transform_node.py          # Transformaciones 2D
+  └── blend_modes_node.py        # 11 modos de fusión
+
+  Render Engine:
+
+  src/render/
+  ├── engine.py                  # VisualEngine - Motor principal
+  ├── post.py                    # PostChain - Post-procesado
+  └── fx.py                      # FXEngine - Efectos
+
+  ---
+  🎯 PRIORIDADES SUGERIDAS PARA GEMINI
+
+  Orden Recomendado:
+
+  1. ALTA PRIORIDAD - Arreglar Serialización MIDI 🔴
+    - Guardar/cargar MIDI mappings en YAML
+    - Serializar Launcher → Generator connections
+    - Testing con presets de ejemplo
+  2. ALTA PRIORIDAD - Añadir Nodos Faltantes Críticos 🔴
+    - Bloom/Glow avanzado
+    - Buffer/Feedback node (necesario para muchos efectos)
+    - Math nodes (Add, Multiply, necesarios para modulación)
+  3. MEDIA PRIORIDAD - Optimización Básica 🟡
+    - Dirty tracking en executor
+    - Texture memory pooling básico
+    - FPS counter en UI
+  4. MEDIA PRIORIDAD - Documentación Básica 🟡
+    - YAML_DSL_REFERENCE.md
+    - NODE_REFERENCE.md
+    - Presets showcase
+  5. BAJA PRIORIDAD - Mejoras de Editor 🟢
+    - Node search
+    - Better connection routing
+    - Minimap
+
+  ---
+  💡 NOTAS TÉCNICAS IMPORTANTES
+
+  Patrón de Registro de Nodos:
+
+  from core.graph.registry import NodeRegistry
+
+  @NodeRegistry.register("node.type.name")
+  class MyNode(RenderNode):
+      def __init__(self, ctx, node_id, resolution):
+          super().__init__(ctx, node_id, resolution)
+          self.add_param("param_name", default_value, min_val, max_val)
+
+  Sistema de Parámetros:
+
+  # En RenderNode:
+  self.add_param("speed", 1.0, 0.0, 10.0)
+  value = self.get_param_value("speed", default=1.0)
+
+  Sistema de Animación:
+
+  # LFO
+  self.animators["speed"] = LFO(type="sine", freq=1.0, amp=0.5)
+
+  # En update():
+  offset = self.animators["speed"].update(dt)
+  self.params["speed"].lfo_offset = offset
+
+  Conexiones entre Nodos:
+
+  # En __init__:
+  self.add_input("input0")  # Declarar slot de input
+
+  # Para usar:
+  input_tex = self.get_input_texture("input0")
+  if input_tex:
+      input_tex.use(location=0)
